@@ -4,7 +4,21 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
     tools:context=".ExerciseDetailViewActivity">
+
+    <Button
+        android:id="@+id/moveLeftButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="@string/move_left"
+        app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
+        app:layout_constraintEnd_toStartOf="@+id/restTimeView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/restTimeView" />
 
     <Button
         android:id="@+id/sub25Button"
@@ -82,13 +96,14 @@
         android:layout_marginTop="8dp"
         android:ems="10"
         android:gravity="center_horizontal|center_vertical"
+        android:hint="@string/reps_value_hint"
+        android:importantForAutofill="no"
         android:inputType="number"
+        android:selectAllOnFocus="true"
         android:singleLine="true"
         app:layout_constraintStart_toStartOf="@+id/addRepButton"
         app:layout_constraintTop_toBottomOf="@+id/addRepButton"
-        tools:text="12"
-        android:importantForAutofill="no"
-        android:hint="@string/reps_value_hint"/>
+        tools:text="12" />
 
     <TextView
         android:id="@+id/exerciseNameView"
@@ -134,13 +149,14 @@
         android:layout_marginTop="32dp"
         android:ems="10"
         android:gravity="center_horizontal|center_vertical"
+        android:hint="@string/weight_value_hint"
+        android:importantForAutofill="no"
         android:inputType="numberDecimal"
+        android:selectAllOnFocus="true"
         android:singleLine="true"
         app:layout_constraintStart_toEndOf="@+id/sub5Button"
         app:layout_constraintTop_toTopOf="@+id/sub2point5Button"
-        tools:text="25.0"
-        android:importantForAutofill="no"
-        android:hint="@string/weight_value_hint"/>
+        tools:text="25.0" />
 
     <Button
         android:id="@+id/add10Button"
@@ -218,5 +234,19 @@
         app:layout_constraintTop_toTopOf="@+id/restProgressBar"
         app:layout_constraintVertical_bias="0.40"
         tools:text="30.0s" />
+
+    <Button
+        android:id="@+id/moveRightButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="@string/move_right"
+        app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.458"
+        app:layout_constraintStart_toEndOf="@+id/restTimeView"
+        app:layout_constraintTop_toTopOf="@+id/restTimeView"
+        app:layout_constraintVertical_bias="1.0" />
 
 </android.support.constraint.ConstraintLayout>

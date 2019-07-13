@@ -53,6 +53,13 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        repsView.clearFocus();
+        weightView.clearFocus();
+    }
+
+    @Override
     public boolean handleMessage(Message msg) {
         switch (msg.what) {
             case Constants.EXERCISE_LOAD_SUCCESS:

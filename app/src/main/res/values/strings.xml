@@ -17,4 +17,6 @@
     <string name="weight_value_hint">lbs</string>
     <string name="reps_value_hint">Reps</string>
     <string name="dynamo_table">refitted.dev01</string>
+    <string name="move_right"><![CDATA[>]]></string>
+    <string name="move_left"><![CDATA[<]]></string>
 </resources>
