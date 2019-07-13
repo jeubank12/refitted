@@ -11,6 +11,7 @@ import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,6 +26,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private TextView noteView;
     private TextView repsView;
     private TextView weightView;
+    private TextView restView;
 
     @Override
     protected void onStop() {
@@ -47,6 +49,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         noteView = findViewById(R.id.exerciseNotesView);
         repsView = findViewById(R.id.repsDisplayView);
         weightView = findViewById(R.id.weightDisplayView);
+        restView = findViewById(R.id.restTimeView);
 
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
                 "1.2", "AX1"));
@@ -73,8 +76,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                 nameView.setText(ex.getName());
                 descriptionView.setText(ex.getDescription());
                 noteView.setText(set.getNote());
-                repsView.setText(Integer.toString(set.getReps()));
-                weightView.setText(Double.toString(25.0));
+                repsView.setText(String.format(Locale.getDefault(), "%d", set.getReps()));
+                weightView.setText(String.format(Locale.getDefault(), "%.1f", 25.0));
+                restView.setText(String.format(Locale.getDefault(), "%.1f", (double)set.getRest()));
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
                 Log.d(TAG, "handleMessage: failed to load exercise");

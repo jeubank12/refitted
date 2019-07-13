@@ -16,6 +16,7 @@ public class ExerciseSet implements Serializable {
     private int reps;
     private int sets;
     private boolean toFailure;
+    private int rest;
     private Exercise exercise;
 
     @DynamoDBHashKey(attributeName = "Id")
@@ -55,7 +56,7 @@ public class ExerciseSet implements Serializable {
         return note;
     }
 
-    public void setNote(String description) {
+    public void setNote(String note) {
         this.note = note;
     }
 
@@ -92,5 +93,14 @@ public class ExerciseSet implements Serializable {
 
     public void setExercise(Exercise exercise) {
         this.exercise = exercise;
+    }
+
+    @DynamoDBAttribute(attributeName = "Rest")
+    public int getRest() {
+        return rest;
+    }
+
+    public void setRest(int rest) {
+        this.rest = rest;
     }
 }
