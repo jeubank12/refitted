@@ -1,6 +1,7 @@
 package com.litus_animae.refitted;
 
 import android.databinding.DataBindingUtil;
+import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
 import android.os.Handler;
 import android.os.Message;
@@ -11,7 +12,9 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
+import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.models.SetRecord;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
 import java.util.ArrayList;
@@ -31,7 +34,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private ActivityExerciseDetailViewBinding binding;
     private ObservableInt leftButtonVisibility = new ObservableInt(View.INVISIBLE);
     private ObservableInt rightButtonVisibility = new ObservableInt(View.INVISIBLE);
+    private ObservableField<String> completeSetButtonText;
     private ArrayList<ExerciseSet> exerciseSets;
+    private ArrayList<ExerciseRecord> exerciseRecords;
     private int exerciseIndex;
 
     @Override
@@ -49,6 +54,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         binding.setLocale(Locale.getDefault());
         binding.setHasLeft(leftButtonVisibility);
         binding.setHasRight(rightButtonVisibility);
+        completeSetButtonText = new ObservableField<>(getString(R.string.complete_set));
+        binding.setCompleteSetButtonText(completeSetButtonText);
 
         detailViewHandler = new Handler(this);
         threadPoolService = Executors.newCachedThreadPool();
@@ -82,14 +89,13 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             case Constants.EXERCISE_LOAD_SUCCESS:
                 Log.d(TAG, "handleMessage: succeeded loading exercise");
                 exerciseSets = msg.getData().getParcelableArrayList("exercise_load");
+                exerciseRecords = msg.getData().getParcelableArrayList("exercise_records");
                 if (exerciseSets == null || exerciseSets.isEmpty()) {
                     Log.e(TAG, "handleMessage: exercise failed to serialize");
                     return false;
                 }
                 exerciseIndex = 0;
-                binding.setExercise(exerciseSets.get(0));
-                leftButtonVisibility.set(View.INVISIBLE);
-                rightButtonVisibility.set(exerciseSets.size() > 1 ? View.VISIBLE : View.INVISIBLE);
+                UpdateVisibleExercise();
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
                 Log.d(TAG, "handleMessage: failed to load exercise");
@@ -192,11 +198,20 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         leftButtonVisibility.set(exerciseIndex > 0 ? View.VISIBLE : View.INVISIBLE);
         rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1 ?
                 View.VISIBLE : View.INVISIBLE);
-        binding.setExercise(exerciseSets.get(exerciseIndex));
+        ExerciseSet e = exerciseSets.get(exerciseIndex);
+        // TODO disallow more sets if already full
+        completeSetButtonText.set(getString(R.string.complete_set) +
+                String.format(Locale.getDefault(), " %d %s %d",
+                        exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
+                        getString(R.string.word_of), e.getSets()));
+        binding.setExercise(e);
     }
 
     public void HandleCompleteSet(View view){
-
+        exerciseRecords.get(exerciseIndex).addSet(
+                new SetRecord(Double.parseDouble(weightView.getText().toString()),
+                        Integer.parseInt(repsView.getText().toString())));
+        UpdateVisibleExercise();
     }
 
     // TODO implement on change for weight and reps then re-enable edit

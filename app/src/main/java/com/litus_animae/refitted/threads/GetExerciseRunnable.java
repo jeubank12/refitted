@@ -22,6 +22,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.litus_animae.refitted.Constants;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
+import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.WorkoutDay;
 
@@ -48,12 +49,18 @@ public class GetExerciseRunnable implements Runnable {
         Message msg;
         if (!exerciseSets.isEmpty()) {
             GetExercises(db, workoutId, exerciseSets);
+            // TODO apply order
+
+            ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
+            for (ExerciseSet e : exerciseSets){
+                records.add(new ExerciseRecord(e));
+            }
 
             Log.d(TAG, "run: retrieval success");
             msg = Message.obtain(null, Constants.EXERCISE_LOAD_SUCCESS);
             Bundle bundle = new Bundle();
-            // TODO apply order
             bundle.putParcelableArrayList("exercise_load", exerciseSets);
+            bundle.putParcelableArrayList("exercise_records", records);
             msg.setData(bundle);
         } else {
             Log.d(TAG, "run: retrieval failure");

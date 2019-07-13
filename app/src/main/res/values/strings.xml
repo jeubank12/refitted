@@ -19,4 +19,5 @@
     <string name="dynamo_table">refitted.dev01</string>
     <string name="move_right"><![CDATA[>]]></string>
     <string name="move_left"><![CDATA[<]]></string>
+    <string name="word_of">of</string>
 </resources>
