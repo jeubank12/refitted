@@ -7,6 +7,11 @@ import android.os.Message;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig;
@@ -18,36 +23,37 @@ import com.litus_animae.refitted.Constants;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.models.WorkoutDay;
 
 public class GetExerciseRunnable implements Runnable {
 
     private static final String TAG = "GetExerciseRunnable";
     private WeakReference<Handler> mainThreadHandler;
     private Context applicationContext;
-    private String dayAndSetId;
+    private String day;
     private String workoutId;
 
     public GetExerciseRunnable(Context context, Handler mainThreadHandler,
-                               String dayAndSetId, String workoutId) {
+                               String day, String workoutId) {
         this.applicationContext = context.getApplicationContext();
         this.mainThreadHandler = new WeakReference<>(mainThreadHandler);
-        this.dayAndSetId = dayAndSetId;
+        this.day = day;
         this.workoutId = workoutId;
     }
 
     @Override
     public void run() {
         DynamoDBMapper db = GetDatabaseMapper();
-        ExerciseSet exerciseSet = GetSet(db, dayAndSetId, workoutId);
-        if (exerciseSet != null) {
-            exerciseSet.setExercise(GetExercise(db, exerciseSet.getName(), workoutId));
-        }
+        ArrayList<ExerciseSet> exerciseSets = GetExerciseSets(db, day, workoutId);
         Message msg;
-        if (exerciseSet != null && exerciseSet.getExercise() != null) {
+        if (!exerciseSets.isEmpty()) {
+            GetExercises(db, workoutId, exerciseSets);
+
             Log.d(TAG, "run: retrieval success");
             msg = Message.obtain(null, Constants.EXERCISE_LOAD_SUCCESS);
             Bundle bundle = new Bundle();
-            bundle.putSerializable("exercise_load", exerciseSet);
+            // TODO apply order
+            bundle.putParcelableArrayList("exercise_load", exerciseSets);
             msg.setData(bundle);
         } else {
             Log.d(TAG, "run: retrieval failure");
@@ -56,26 +62,78 @@ public class GetExerciseRunnable implements Runnable {
         mainThreadHandler.get().sendMessage(msg);
     }
 
+    private static void GetExercises(DynamoDBMapper db, String workoutId,
+                                     ArrayList<ExerciseSet> exerciseSets){
+        if (exerciseSets.isEmpty()) {
+            Log.e(TAG, "GetExercises: result set was empty");
+            return;
+        }
+        Set<String> exercises = new HashSet<>();
+        for (ExerciseSet e : exerciseSets) {
+            exercises.add(e.getName());
+        }
+        Log.d(TAG, "GetExercises: retrieving distinct exercises");
+        Map<String, Exercise> exerciseMap = new HashMap<>();
+        for (String e : exercises){
+            exerciseMap.put(e, GetExercise(db, e, workoutId));
+        }
+        Exercise errExercise = new Exercise();
+        errExercise.setDescription("Error loading");
+        for (ExerciseSet e : exerciseSets) {
+            e.setExercise(exerciseMap.getOrDefault(e.getName(), errExercise));
+        }
+    }
+
     private static Exercise GetExercise(DynamoDBMapper db, String exerciseId, String workoutId) {
-        Log.d(TAG, "GetExercise: retriving exercise: " + exerciseId +
+        Log.d(TAG, "GetExercise: retrieving exercise: " + exerciseId +
                 " from workout: " + workoutId);
         try {
             return db.load(Exercise.class, exerciseId, workoutId);
         } catch (Exception ex) {
             Log.e(TAG, "GetExercise: error loading Exercise", ex);
+        }
+        return null;
+    }
+
+    private static ArrayList<ExerciseSet> GetExerciseSets(DynamoDBMapper db, String day, String workoutId) {
+        Log.d(TAG, "GetExerciseSets: retrieving exercise set ids for day: " + day +
+                " from workout: " + workoutId);
+        Set<String> exercises = GetExerciseKeys(db, day, workoutId);
+        if (exercises.isEmpty()) {
+            Log.e(TAG, "GetExerciseSets: result set was empty");
+            return new ArrayList<>();
+        }
+        Log.d(TAG, "GetExerciseSets: retrieving exercise sets for day: " + day +
+                " from workout: " + workoutId);
+        ArrayList<ExerciseSet> exerciseSets = new ArrayList<>();
+        for (String e : exercises) {
+            ExerciseSet exerciseSet = GetExerciseSet(db, day, e, workoutId);
+            if (exerciseSet != null) {
+                exerciseSets.add(exerciseSet);
+            }
+        }
+        return exerciseSets;
+    }
+
+    private static ExerciseSet GetExerciseSet(DynamoDBMapper db, String day, String exercise, String workoutId) {
+        try {
+            return db.load(ExerciseSet.class, day + "." + exercise, workoutId);
+        } catch (Exception ex) {
+            Log.e(TAG, "GetExerciseSet: error loading Exercise Set", ex);
             return null;
         }
     }
 
-    private static ExerciseSet GetSet(DynamoDBMapper db, String dayAndSetId, String workoutId) {
-        Log.d(TAG, "GetSet: retriving exercise set: " + dayAndSetId +
-                " from workout: " + workoutId);
+    private static Set<String> GetExerciseKeys(DynamoDBMapper db, String day, String workoutId) {
         try {
-            return db.load(ExerciseSet.class, dayAndSetId, workoutId);
+            WorkoutDay workout = db.load(WorkoutDay.class, day, workoutId);
+            if (workout != null) {
+                return workout.getExercises();
+            }
         } catch (Exception ex) {
-            Log.e(TAG, "GetSet: error loading Exercise", ex);
-            return null;
+            Log.e(TAG, "GetExerciseKeys: error loading workout", ex);
         }
+        return new HashSet<>();
     }
 
     private DynamoDBMapper GetDatabaseMapper() {

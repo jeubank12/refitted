@@ -11,12 +11,11 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
-import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
+import java.util.ArrayList;
 import java.util.Locale;
-import java.util.Observable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,8 +29,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private TextView weightView;
     private TextView restView;
     private ActivityExerciseDetailViewBinding binding;
-    public final ObservableInt enableLeftNavigation = new ObservableInt(View.INVISIBLE);
-    public final ObservableInt enableRightNavigation = new ObservableInt(View.INVISIBLE);
+    private ObservableInt leftButtonVisibility = new ObservableInt(View.INVISIBLE);
+    private ObservableInt rightButtonVisibility = new ObservableInt(View.INVISIBLE);
+    private ArrayList<ExerciseSet> exerciseSets;
 
     @Override
     protected void onStop() {
@@ -46,8 +46,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_exercise_detail_view);
         binding.setLocale(Locale.getDefault());
-        binding.setHasLeft(enableLeftNavigation);
-        binding.setHasRight(enableRightNavigation);
+        binding.setHasLeft(leftButtonVisibility);
+        binding.setHasRight(rightButtonVisibility);
 
         detailViewHandler = new Handler(this);
         threadPoolService = Executors.newCachedThreadPool();
@@ -57,7 +57,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         restView = findViewById(R.id.restTimeView);
 
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
-                "1.2", "AX1"));
+                "1", "AX1"));
     }
 
     @Override
@@ -72,12 +72,14 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         switch (msg.what) {
             case Constants.EXERCISE_LOAD_SUCCESS:
                 Log.d(TAG, "handleMessage: succeeded loading exercise");
-                ExerciseSet set = (ExerciseSet) msg.getData().getSerializable("exercise_load");
-                if (set == null) {
+                exerciseSets = msg.getData().getParcelableArrayList("exercise_load");
+                if (exerciseSets == null || exerciseSets.isEmpty()) {
                     Log.e(TAG, "handleMessage: exercise failed to serialize");
                     return false;
                 }
-                binding.setExercise(set);
+                binding.setExercise(exerciseSets.get(0));
+                leftButtonVisibility.set(View.INVISIBLE);
+                rightButtonVisibility.set(exerciseSets.size() > 1 ? View.VISIBLE : View.INVISIBLE);
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
                 Log.d(TAG, "handleMessage: failed to load exercise");
