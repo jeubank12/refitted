@@ -1,6 +1,7 @@
 package com.litus_animae.refitted;
 
 import android.databinding.DataBindingUtil;
+import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
 import android.os.CountDownTimer;
@@ -13,6 +14,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
+import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
@@ -33,8 +35,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private TextView weightView;
     private TextView restView;
     private ActivityExerciseDetailViewBinding binding;
-    private ObservableInt leftButtonVisibility = new ObservableInt(View.INVISIBLE);
-    private ObservableInt rightButtonVisibility = new ObservableInt(View.INVISIBLE);
+    private ObservableBoolean leftButtonVisibility = new ObservableBoolean(false);
+    private ObservableBoolean rightButtonVisibility = new ObservableBoolean(false);
     private ObservableField<String> completeSetButtonText;
     private ArrayList<ExerciseSet> exerciseSets;
     private ArrayList<ExerciseRecord> exerciseRecords;
@@ -75,8 +77,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     private void GetWorkoutsForDay(String day, String workoutName) {
-        leftButtonVisibility.set(View.INVISIBLE);
-        rightButtonVisibility.set(View.INVISIBLE);
+        leftButtonVisibility.set(false);
+        rightButtonVisibility.set(false);
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
                 day, workoutName));
     }
@@ -100,6 +102,12 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                     return false;
                 }
                 exerciseIndex = 0;
+                ExerciseSet e = exerciseSets.get(0);
+                if (e.getStep().endsWith(".a")){
+                    e.setAlternate(exerciseSets.get(1));
+                    e.getAlternate().setActive(false);
+                    e.getAlternate().setAlternate(e);
+                }
                 UpdateVisibleExercise();
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
@@ -184,7 +192,13 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             Log.e(TAG, "HandleNavigateLeft: already furthest left");
             exerciseIndex = 0;
         } else {
-            exerciseIndex--;
+            ExerciseSet e = exerciseSets.get(exerciseIndex);
+            if (e.getStep().endsWith(".b")){
+                // if the first step, then there will be a '.a'
+                exerciseIndex = Math.max(exerciseIndex - 2, 1);
+            } else {
+                exerciseIndex--;
+            }
         }
         UpdateVisibleExercise();
     }
@@ -194,16 +208,37 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             Log.e(TAG, "HandleNavigateLeft: already furthest right");
             exerciseIndex = exerciseSets.size() - 1;
         } else {
-            exerciseIndex++;
+            ExerciseSet e = exerciseSets.get(exerciseIndex);
+            if (e.getStep().endsWith(".a")){
+                // if the last step, then there will be a '.b'
+                exerciseIndex = Math.min(exerciseIndex + 2, exerciseSets.size() - 1);
+            } else {
+                exerciseIndex++;
+            }
         }
         UpdateVisibleExercise();
     }
 
     private void UpdateVisibleExercise() {
-        leftButtonVisibility.set(exerciseIndex > 0 ? View.VISIBLE : View.INVISIBLE);
-        rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1 ?
-                View.VISIBLE : View.INVISIBLE);
         ExerciseSet e = exerciseSets.get(exerciseIndex);
+        if (e.hasAlternate() || e.getStep().endsWith(".a")) {
+            if (!e.hasAlternate()){
+                e.setAlternate(exerciseSets.get(exerciseIndex + 1));
+                e.getAlternate().setActive(false);
+                e.getAlternate().setAlternate(e);
+            } else if (!e.isActive() && e.getStep().endsWith(".a")){
+                exerciseIndex++;
+                e = e.getAlternate();
+            } else if (!e.isActive()){
+                exerciseIndex--;
+                e = e.getAlternate();
+            }
+            leftButtonVisibility.set(exerciseIndex > 1);
+            rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 2);
+        } else {
+            leftButtonVisibility.set(exerciseIndex > 0);
+            rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1);
+        }
         if (exerciseRecords.get(exerciseIndex).getSetsCount() == e.getSets()) {
             completeSetButtonText.set(getString(R.string.complete_exercise));
         } else {

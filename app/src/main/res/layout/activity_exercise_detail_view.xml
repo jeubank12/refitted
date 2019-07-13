@@ -2,10 +2,11 @@
 <layout xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <data>
+        <import type="android.view.View"/>
         <variable name="exercise" type="com.litus_animae.refitted.models.ExerciseSet"/>
         <variable name="locale" type="java.util.Locale"/>
-        <variable name="hasLeft" type="android.databinding.ObservableInt"/>
-        <variable name="hasRight" type="android.databinding.ObservableInt"/>
+        <variable name="hasLeft" type="android.databinding.ObservableBoolean"/>
+        <variable name="hasRight" type="android.databinding.ObservableBoolean"/>
         <variable name="completeSetButtonText" type="android.databinding.ObservableField&lt;String&gt;"/>
     </data>
     <android.support.constraint.ConstraintLayout
@@ -24,7 +25,7 @@
             android:layout_marginEnd="8dp"
             android:onClick="HandleNavigateLeft"
             android:text="@string/move_left"
-            android:visibility="@{hasLeft}"
+            android:visibility="@{hasLeft ? View.VISIBLE : View.INVISIBLE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toStartOf="@+id/restTimeView"
             app:layout_constraintStart_toStartOf="parent"
@@ -273,7 +274,7 @@
             android:layout_marginEnd="8dp"
             android:onClick="HandleNavigateRight"
             android:text="@string/move_right"
-            android:visibility="@{hasRight}"
+            android:visibility="@{hasRight ? View.VISIBLE : View.INVISIBLE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.458"

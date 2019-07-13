@@ -21,6 +21,8 @@ public class ExerciseSet implements Parcelable {
     private boolean toFailure;
     private int rest;
     private Exercise exercise;
+    private ExerciseSet alternate;
+    private boolean isActive = true;
 
     public ExerciseSet(){}
 
@@ -150,4 +152,24 @@ public class ExerciseSet implements Parcelable {
             return new ExerciseSet[size];
         }
     };
+
+    public ExerciseSet getAlternate() {
+        return alternate;
+    }
+
+    public void setAlternate(ExerciseSet alternate) {
+        this.alternate = alternate;
+    }
+
+    public boolean hasAlternate(){
+        return alternate != null;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 }
