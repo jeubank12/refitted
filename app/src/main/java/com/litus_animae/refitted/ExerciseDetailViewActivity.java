@@ -2,29 +2,29 @@ package com.litus_animae.refitted;
 
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
 import com.litus_animae.refitted.models.Exercise;
+import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
-import com.litus_animae.refitted.threads.PassUpExceptionThreadFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 public class ExerciseDetailViewActivity extends AppCompatActivity implements
-        Handler.Callback,
-Thread.UncaughtExceptionHandler{
+        Handler.Callback{
 
     private static final String TAG = "ExerciseDetailViewActivity";
     private ExecutorService threadPoolService;
     private Handler detailViewHandler;
     private TextView nameView;
     private TextView descriptionView;
+    private TextView noteView;
+    private TextView repsView;
+    private TextView weightView;
 
     @Override
     protected void onStop() {
@@ -44,9 +44,12 @@ Thread.UncaughtExceptionHandler{
 
         nameView = findViewById(R.id.exerciseNameView);
         descriptionView = findViewById(R.id.exerciseDescriptionView);
+        noteView = findViewById(R.id.exerciseNotesView);
+        repsView = findViewById(R.id.repsDisplayView);
+        weightView = findViewById(R.id.weightDisplayView);
 
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
-                "Chest_Alternate DB press (Neutral Grip)", "AX1"));
+                "1.2", "AX1"));
     }
 
     @Override
@@ -54,19 +57,22 @@ Thread.UncaughtExceptionHandler{
         switch (msg.what) {
             case Constants.EXERCISE_LOAD_SUCCESS:
                 Log.d(TAG, "handleMessage: succeeded loading exercise");
-                Exercise ex = (Exercise) msg.getData().getSerializable("exercise_load");
+                ExerciseSet set = (ExerciseSet) msg.getData().getSerializable("exercise_load");
+                if (set == null){
+                    Log.e(TAG, "handleMessage: exercise failed to serialize");
+                    return false;
+                }
+                Exercise ex = set.getExercise();
                 nameView.setText(ex.getName());
                 descriptionView.setText(ex.getDescription());
+                noteView.setText(set.getNote());
+                repsView.setText(Integer.toString(set.getReps()));
+                weightView.setText(Double.toString(25.0));
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
                 Log.d(TAG, "handleMessage: failed to load exercise");
                 return true;
         }
         return false;
-    }
-
-    @Override
-    public void uncaughtException(Thread t, Throwable e) {
-        Log.e(TAG, "uncaughtException: " + e.getMessage(), e);
     }
 }
