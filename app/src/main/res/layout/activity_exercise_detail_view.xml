@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ExerciseDetailViewActivity">
+
+    <Button
+        android:id="@+id/sub25Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/sub25"
+        app:layout_constraintStart_toEndOf="@+id/sub10Button"
+        app:layout_constraintTop_toBottomOf="@+id/sub5Button" />
+
+    <Button
+        android:id="@+id/add25Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/add25"
+        app:layout_constraintStart_toEndOf="@+id/add10Button"
+        app:layout_constraintTop_toBottomOf="@+id/add5Button" />
+
+    <Button
+        android:id="@+id/sub45Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="28dp"
+        android:text="@string/sub45"
+        app:layout_constraintStart_toStartOf="@+id/sub10Button"
+        app:layout_constraintTop_toBottomOf="@+id/sub10Button" />
+
+    <Button
+        android:id="@+id/sub10Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/sub10"
+        app:layout_constraintStart_toStartOf="@+id/sub2point5Button"
+        app:layout_constraintTop_toBottomOf="@+id/sub2point5Button" />
+
+    <Button
+        android:id="@+id/add45Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="28dp"
+        android:text="@string/add45"
+        app:layout_constraintStart_toStartOf="@+id/add10Button"
+        app:layout_constraintTop_toBottomOf="@+id/add10Button" />
+
+    <Button
+        android:id="@+id/sub5Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/sub5"
+        app:layout_constraintStart_toEndOf="@+id/sub2point5Button"
+        app:layout_constraintTop_toTopOf="@+id/sub2point5Button" />
+
+    <Button
+        android:id="@+id/sub2point5Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:text="@string/sub2point5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/divider" />
+
+    <Button
+        android:id="@+id/add5Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/add5"
+        app:layout_constraintStart_toEndOf="@+id/add2point5Button"
+        app:layout_constraintTop_toTopOf="@+id/add2point5Button" />
+
+    <EditText
+        android:id="@+id/repsDisplayView"
+        android:layout_width="58dp"
+        android:layout_height="46dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:gravity="center_horizontal|center_vertical"
+        android:inputType="number"
+        android:singleLine="true"
+        app:layout_constraintStart_toStartOf="@+id/addRepButton"
+        app:layout_constraintTop_toBottomOf="@+id/addRepButton"
+        tools:text="12"
+        android:importantForAutofill="no"
+        android:hint="@string/reps_value_hint"/>
+
+    <TextView
+        android:id="@+id/exerciseNameView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Exercise Name" />
+
+    <TextView
+        android:id="@+id/exerciseDescriptionView"
+        android:layout_width="347dp"
+        android:layout_height="87dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintStart_toStartOf="@+id/exerciseNameView"
+        app:layout_constraintTop_toBottomOf="@+id/exerciseNameView"
+        tools:text="Exercise Description. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
+
+    <TextView
+        android:id="@+id/exerciseNotesView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintStart_toStartOf="@+id/exerciseDescriptionView"
+        app:layout_constraintTop_toBottomOf="@+id/exerciseDescriptionView"
+        tools:text="Exercise Notes" />
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="395dp"
+        android:layout_height="1dp"
+        android:layout_marginTop="20dp"
+        android:background="?android:attr/listDivider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/exerciseNotesView" />
+
+    <EditText
+        android:id="@+id/weightDisplayView"
+        android:layout_width="58dp"
+        android:layout_height="46dp"
+        android:layout_marginTop="32dp"
+        android:ems="10"
+        android:gravity="center_horizontal|center_vertical"
+        android:inputType="numberDecimal"
+        android:singleLine="true"
+        app:layout_constraintStart_toEndOf="@+id/sub5Button"
+        app:layout_constraintTop_toTopOf="@+id/sub2point5Button"
+        tools:text="25.0"
+        android:importantForAutofill="no"
+        android:hint="@string/weight_value_hint"/>
+
+    <Button
+        android:id="@+id/add10Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/add10"
+        app:layout_constraintStart_toEndOf="@+id/weightDisplayView"
+        app:layout_constraintTop_toBottomOf="@+id/add2point5Button" />
+
+    <Button
+        android:id="@+id/addRepButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="@string/addOne"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/add5Button"
+        app:layout_constraintTop_toTopOf="@+id/sub2point5Button" />
+
+    <Button
+        android:id="@+id/add2point5Button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:text="@string/add2point5"
+        app:layout_constraintStart_toEndOf="@+id/weightDisplayView"
+        app:layout_constraintTop_toTopOf="@+id/sub2point5Button" />
+
+    <Button
+        android:id="@+id/subRepButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/subOne"
+        app:layout_constraintStart_toStartOf="@+id/addRepButton"
+        app:layout_constraintTop_toBottomOf="@+id/repsDisplayView" />
+
+    <Button
+        android:id="@+id/completeSetButton"
+        android:layout_width="352dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="8dp"
+        android:text="@string/complete_set"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sub45Button" />
+
+    <ProgressBar
+        android:id="@+id/restProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="352dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/completeSetButton" />
+
+    <TextView
+        android:id="@+id/restTimeView"
+        android:layout_width="171dp"
+        android:layout_height="61dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        android:textSize="30sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/restProgressBar"
+        app:layout_constraintVertical_bias="0.40"
+        tools:text="30.0s" />
+
+</android.support.constraint.ConstraintLayout>

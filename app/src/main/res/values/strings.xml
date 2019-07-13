@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Refitted</string>
+    <string name="action_settings">Settings</string>
+    <string name="sub25">-25</string>
+    <string name="add25">+25</string>
+    <string name="sub45">-45</string>
+    <string name="sub10">-10</string>
+    <string name="add45">+45</string>
+    <string name="sub5">-5</string>
+    <string name="sub2point5">-2.5</string>
+    <string name="add5">+5</string>
+    <string name="add10">+10</string>
+    <string name="addOne">+1</string>
+    <string name="add2point5">+2.5</string>
+    <string name="subOne">-1</string>
+    <string name="complete_set">Complete Set</string>
+    <string name="weight_value_hint">lbs</string>
+    <string name="reps_value_hint">Reps</string>
+    <string name="dynamo_table">refitted.dev01</string>
+</resources>
