@@ -8,6 +8,7 @@ import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class GetExerciseRunnable implements Runnable {
         Message msg;
         if (!exerciseSets.isEmpty()) {
             GetExercises(db, workoutId, exerciseSets);
-            // TODO apply order
+            exerciseSets.sort((o1, o2) -> o1.getStep().compareTo(o2.getStep()));
 
             ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
             for (ExerciseSet e : exerciseSets){
