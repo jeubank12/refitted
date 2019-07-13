@@ -102,12 +102,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                     return false;
                 }
                 exerciseIndex = 0;
-                ExerciseSet e = exerciseSets.get(0);
-                if (e.getStep().endsWith(".a")){
-                    e.setAlternate(exerciseSets.get(1));
-                    e.getAlternate().setActive(false);
-                    e.getAlternate().setAlternate(e);
-                }
+                CheckForAlternateExerciseSet(exerciseSets.get(0));
                 UpdateVisibleExercise();
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
@@ -222,17 +217,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private void UpdateVisibleExercise() {
         ExerciseSet e = exerciseSets.get(exerciseIndex);
         if (e.hasAlternate() || e.getStep().endsWith(".a")) {
-            if (!e.hasAlternate()){
-                e.setAlternate(exerciseSets.get(exerciseIndex + 1));
-                e.getAlternate().setActive(false);
-                e.getAlternate().setAlternate(e);
-            } else if (!e.isActive() && e.getStep().endsWith(".a")){
-                exerciseIndex++;
-                e = e.getAlternate();
-            } else if (!e.isActive()){
-                exerciseIndex--;
-                e = e.getAlternate();
-            }
+            e = CheckForAlternateExerciseSet(e);
             leftButtonVisibility.set(exerciseIndex > 1);
             rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 2);
         } else {
@@ -249,6 +234,21 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         }
         UpdateRestTimerView(e.getRest());
         binding.setExercise(e);
+    }
+
+    private ExerciseSet CheckForAlternateExerciseSet(ExerciseSet e) {
+        if (!e.hasAlternate()){
+            e.setAlternate(exerciseSets.get(exerciseIndex + 1));
+            e.getAlternate().setActive(false);
+            e.getAlternate().setAlternate(e);
+        } else if (!e.isActive() && e.getStep().endsWith(".a")){
+            exerciseIndex++;
+            e = e.getAlternate();
+        } else if (!e.isActive()){
+            exerciseIndex--;
+            e = e.getAlternate();
+        }
+        return e;
     }
 
     private void UpdateRestTimerView(double rest) {
