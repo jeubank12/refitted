@@ -23,4 +23,5 @@
     <string name="word_of">of</string>
     <string name="seconds_abbrev">s</string>
     <string name="rest">rest</string>
+    <string name="switch_to_alternate">Switch To Alternate</string>
 </resources>

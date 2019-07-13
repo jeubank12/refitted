@@ -10,6 +10,9 @@ import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
@@ -34,6 +37,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private TextView repsView;
     private TextView weightView;
     private TextView restView;
+    private MenuItem switchToAlternateButton;
     private ActivityExerciseDetailViewBinding binding;
     private ObservableBoolean leftButtonVisibility = new ObservableBoolean(false);
     private ObservableBoolean rightButtonVisibility = new ObservableBoolean(false);
@@ -51,6 +55,28 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         threadPoolService.shutdownNow();
         if (timer != null){
             timer.cancel();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.alternate_menu, menu);
+        switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()){
+            case R.id.switch_to_alternate_menu_item:
+                ExerciseSet e = exerciseSets.get(exerciseIndex);
+                e.setActive(false);
+                CheckForAlternateExerciseSet(e);
+                UpdateVisibleExercise();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -218,9 +244,12 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         ExerciseSet e = exerciseSets.get(exerciseIndex);
         if (e.hasAlternate() || e.getStep().endsWith(".a")) {
             e = CheckForAlternateExerciseSet(e);
+            switchToAlternateButton.setVisible(true);
             leftButtonVisibility.set(exerciseIndex > 1);
-            rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 2);
+            rightButtonVisibility.set(exerciseIndex < exerciseSets.size() -
+                    (e.getStep().endsWith(".a") ? 2 : 1));
         } else {
+            switchToAlternateButton.setVisible(false);
             leftButtonVisibility.set(exerciseIndex > 0);
             rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1);
         }
@@ -237,7 +266,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     private ExerciseSet CheckForAlternateExerciseSet(ExerciseSet e) {
-        if (!e.hasAlternate()){
+        if (!e.hasAlternate() && e.getStep().endsWith(".a")){
             e.setAlternate(exerciseSets.get(exerciseIndex + 1));
             e.getAlternate().setActive(false);
             e.getAlternate().setAlternate(e);
@@ -248,6 +277,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             exerciseIndex--;
             e = e.getAlternate();
         }
+        e.setActive(true);
         return e;
     }
 

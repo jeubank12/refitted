@@ -1,16 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout">
+
     <data>
-        <import type="android.view.View"/>
-        <variable name="exercise" type="com.litus_animae.refitted.models.ExerciseSet"/>
-        <variable name="locale" type="java.util.Locale"/>
-        <variable name="hasLeft" type="android.databinding.ObservableBoolean"/>
-        <variable name="hasRight" type="android.databinding.ObservableBoolean"/>
-        <variable name="completeSetButtonText" type="android.databinding.ObservableField&lt;String&gt;"/>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="exercise"
+            type="com.litus_animae.refitted.models.ExerciseSet" />
+
+        <variable
+            name="locale"
+            type="java.util.Locale" />
+
+        <variable
+            name="hasLeft"
+            type="android.databinding.ObservableBoolean" />
+
+        <variable
+            name="hasRight"
+            type="android.databinding.ObservableBoolean" />
+
+        <variable
+            name="completeSetButtonText"
+            type="android.databinding.ObservableField&lt;String&gt;" />
     </data>
+
     <android.support.constraint.ConstraintLayout
-        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:focusable="true"
@@ -128,19 +147,20 @@
 
         <TextView
             android:id="@+id/exerciseNameView"
-            android:layout_width="wrap_content"
+            android:layout_width="352dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
             android:text="@{exercise.Exercise.Name}"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Exercise Name" />
 
         <TextView
             android:id="@+id/exerciseDescriptionView"
-            android:layout_width="347dp"
-            android:layout_height="87dp"
+            android:layout_width="352dp"
+            android:layout_height="88dp"
             android:layout_marginTop="16dp"
             android:text="@{exercise.Exercise.Description}"
             app:layout_constraintStart_toStartOf="@+id/exerciseNameView"
@@ -149,7 +169,7 @@
 
         <TextView
             android:id="@+id/exerciseNotesView"
-            android:layout_width="wrap_content"
+            android:layout_width="352dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@{exercise.Note}"
