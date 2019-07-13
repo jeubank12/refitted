@@ -14,10 +14,13 @@
     <string name="add2point5">+2.5</string>
     <string name="subOne">-1</string>
     <string name="complete_set">Complete Set</string>
+    <string name="complete_exercise">Exercise Complete!</string>
     <string name="weight_value_hint">lbs</string>
     <string name="reps_value_hint">Reps</string>
     <string name="dynamo_table">refitted.dev01</string>
     <string name="move_right"><![CDATA[>]]></string>
     <string name="move_left"><![CDATA[<]]></string>
     <string name="word_of">of</string>
+    <string name="seconds_abbrev">s</string>
+    <string name="rest">rest</string>
 </resources>

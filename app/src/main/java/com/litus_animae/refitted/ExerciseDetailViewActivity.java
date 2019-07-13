@@ -3,6 +3,7 @@ package com.litus_animae.refitted;
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -38,6 +39,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private ArrayList<ExerciseSet> exerciseSets;
     private ArrayList<ExerciseRecord> exerciseRecords;
     private int exerciseIndex;
+    private CountDownTimer timer;
 
     @Override
     protected void onStop() {
@@ -45,6 +47,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         super.onStop();
 
         threadPoolService.shutdownNow();
+        if (timer != null){
+            timer.cancel();
+        }
     }
 
     @Override
@@ -174,8 +179,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         }
     }
 
-    public void HandleNavigateLeft(View view){
-        if (exerciseIndex < 1){
+    public void HandleNavigateLeft(View view) {
+        if (exerciseIndex < 1) {
             Log.e(TAG, "HandleNavigateLeft: already furthest left");
             exerciseIndex = 0;
         } else {
@@ -184,8 +189,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         UpdateVisibleExercise();
     }
 
-    public void HandleNavigateRight(View view){
-        if (exerciseIndex >= exerciseSets.size()){
+    public void HandleNavigateRight(View view) {
+        if (exerciseIndex >= exerciseSets.size()) {
             Log.e(TAG, "HandleNavigateLeft: already furthest right");
             exerciseIndex = exerciseSets.size() - 1;
         } else {
@@ -199,19 +204,58 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1 ?
                 View.VISIBLE : View.INVISIBLE);
         ExerciseSet e = exerciseSets.get(exerciseIndex);
-        // TODO disallow more sets if already full
-        completeSetButtonText.set(getString(R.string.complete_set) +
-                String.format(Locale.getDefault(), " %d %s %d",
-                        exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
-                        getString(R.string.word_of), e.getSets()));
+        if (exerciseRecords.get(exerciseIndex).getSetsCount() == e.getSets()) {
+            completeSetButtonText.set(getString(R.string.complete_exercise));
+        } else {
+            completeSetButtonText.set(getString(R.string.complete_set) +
+                    String.format(Locale.getDefault(), " %d %s %d",
+                            exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
+                            getString(R.string.word_of), e.getSets()));
+        }
+        UpdateRestTimerView(e.getRest());
         binding.setExercise(e);
     }
 
-    public void HandleCompleteSet(View view){
+    private void UpdateRestTimerView(double rest) {
+        restView.setText(String.format(Locale.getDefault(), "%.1f%s %s",
+                rest, getString(R.string.seconds_abbrev),
+                getString(R.string.rest)));
+    }
+
+    public void HandleCompleteSet(View view) {
+        if (exerciseRecords.get(exerciseIndex).getSetsCount() ==
+                exerciseSets.get(exerciseIndex).getSets()) {
+            completeSetButtonText.set(getString(R.string.complete_exercise));
+            return;
+        }
+        view.setEnabled(false);
         exerciseRecords.get(exerciseIndex).addSet(
                 new SetRecord(Double.parseDouble(weightView.getText().toString()),
                         Integer.parseInt(repsView.getText().toString())));
         UpdateVisibleExercise();
+        if (timer != null){
+            timer.cancel();
+        }
+        timer = new CountDownTimer(
+                exerciseSets.get(exerciseIndex).getRest() * 1000,
+                100) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                UpdateRestTimerView(millisUntilFinished / 1000.0);
+            }
+
+            @Override
+            public void onFinish() {
+                if (exerciseRecords.get(exerciseIndex).getSetsCount() ==
+                        exerciseSets.get(exerciseIndex).getSets()) {
+                    HandleNavigateRight(view);
+                } else {
+                    UpdateVisibleExercise();
+                }
+                view.setEnabled(true);
+            }
+        };
+        timer.start();
     }
 
     // TODO implement on change for weight and reps then re-enable edit
