@@ -32,6 +32,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private ObservableInt leftButtonVisibility = new ObservableInt(View.INVISIBLE);
     private ObservableInt rightButtonVisibility = new ObservableInt(View.INVISIBLE);
     private ArrayList<ExerciseSet> exerciseSets;
+    private int exerciseIndex;
 
     @Override
     protected void onStop() {
@@ -56,8 +57,16 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         weightView = findViewById(R.id.weightDisplayView);
         restView = findViewById(R.id.restTimeView);
 
+        String day = "1";
+        String workoutName = "AX1";
+        GetWorkoutsForDay(day, workoutName);
+    }
+
+    private void GetWorkoutsForDay(String day, String workoutName) {
+        leftButtonVisibility.set(View.INVISIBLE);
+        rightButtonVisibility.set(View.INVISIBLE);
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
-                "1", "AX1"));
+                day, workoutName));
     }
 
     @Override
@@ -77,6 +86,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                     Log.e(TAG, "handleMessage: exercise failed to serialize");
                     return false;
                 }
+                exerciseIndex = 0;
                 binding.setExercise(exerciseSets.get(0));
                 leftButtonVisibility.set(View.INVISIBLE);
                 rightButtonVisibility.set(exerciseSets.size() > 1 ? View.VISIBLE : View.INVISIBLE);
@@ -156,6 +166,37 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         } else {
             repsView.setText(String.format(Locale.getDefault(), "%d", 0));
         }
+    }
+
+    public void HandleNavigateLeft(View view){
+        if (exerciseIndex < 1){
+            Log.e(TAG, "HandleNavigateLeft: already furthest left");
+            exerciseIndex = 0;
+        } else {
+            exerciseIndex--;
+        }
+        UpdateVisibleExercise();
+    }
+
+    public void HandleNavigateRight(View view){
+        if (exerciseIndex >= exerciseSets.size()){
+            Log.e(TAG, "HandleNavigateLeft: already furthest right");
+            exerciseIndex = exerciseSets.size() - 1;
+        } else {
+            exerciseIndex++;
+        }
+        UpdateVisibleExercise();
+    }
+
+    private void UpdateVisibleExercise() {
+        leftButtonVisibility.set(exerciseIndex > 0 ? View.VISIBLE : View.INVISIBLE);
+        rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1 ?
+                View.VISIBLE : View.INVISIBLE);
+        binding.setExercise(exerciseSets.get(exerciseIndex));
+    }
+
+    public void HandleCompleteSet(View view){
+
     }
 
     // TODO implement on change for weight and reps then re-enable edit
