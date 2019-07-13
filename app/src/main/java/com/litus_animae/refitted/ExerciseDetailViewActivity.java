@@ -1,6 +1,7 @@
 package com.litus_animae.refitted;
 
 import android.databinding.DataBindingUtil;
+import android.databinding.ObservableInt;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +16,7 @@ import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
 import java.util.Locale;
+import java.util.Observable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -28,6 +30,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private TextView weightView;
     private TextView restView;
     private ActivityExerciseDetailViewBinding binding;
+    public final ObservableInt enableLeftNavigation = new ObservableInt(View.INVISIBLE);
+    public final ObservableInt enableRightNavigation = new ObservableInt(View.INVISIBLE);
 
     @Override
     protected void onStop() {
@@ -42,6 +46,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_exercise_detail_view);
         binding.setLocale(Locale.getDefault());
+        binding.setHasLeft(enableLeftNavigation);
+        binding.setHasRight(enableRightNavigation);
 
         detailViewHandler = new Handler(this);
         threadPoolService = Executors.newCachedThreadPool();

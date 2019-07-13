@@ -3,6 +3,8 @@
     <data>
         <variable name="exercise" type="com.litus_animae.refitted.models.ExerciseSet"/>
         <variable name="locale" type="java.util.Locale"/>
+        <variable name="hasLeft" type="android.databinding.ObservableInt"/>
+        <variable name="hasRight" type="android.databinding.ObservableInt"/>
     </data>
     <android.support.constraint.ConstraintLayout
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -20,6 +22,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:text="@string/move_left"
+            android:visibility="@{hasLeft}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toStartOf="@+id/restTimeView"
             app:layout_constraintStart_toStartOf="parent"
@@ -267,6 +270,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:text="@string/move_right"
+            android:visibility="@{hasRight}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.458"
