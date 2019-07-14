@@ -266,7 +266,10 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                             exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
                             getString(R.string.word_of), e.getSets()));
         }
-        UpdateRestTimerView(e.getRest());
+        if (timer == null) {
+            binding.restProgressBar.setMax(e.getRest()*1000);
+            UpdateRestTimerView(e.getRest());
+        }
         binding.setExercise(e);
     }
 
@@ -287,6 +290,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     private void UpdateRestTimerView(double rest) {
+        binding.restProgressBar.setProgress((int)(binding.restProgressBar.getMax() - rest*1000));
         restView.setText(String.format(Locale.getDefault(), "%.1f%s %s",
                 rest, getString(R.string.seconds_abbrev),
                 getString(R.string.rest)));
@@ -308,7 +312,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         }
         timer = new CountDownTimer(
                 exerciseSets.get(exerciseIndex).getRest() * 1000,
-                100) {
+                50) {
             @Override
             public void onTick(long millisUntilFinished) {
                 UpdateRestTimerView(millisUntilFinished / 1000.0);
@@ -323,6 +327,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                     UpdateVisibleExercise();
                 }
                 view.setEnabled(true);
+                timer = null;
             }
         };
         timer.start();
