@@ -45,7 +45,7 @@ public class Exercise implements Parcelable {
     }
 
     public void setName(String name) {
-        id = getCategory() + name;
+        id = getCategory() + "_" + name;
     }
 
     public String getCategory() {
@@ -54,7 +54,7 @@ public class Exercise implements Parcelable {
 
     public void setCategory(String category) {
         // TODO ensure no underscore in category
-        id = category + getName();
+        id = category + "_" + getName();
     }
 
     @DynamoDBAttribute(attributeName = "Note")
