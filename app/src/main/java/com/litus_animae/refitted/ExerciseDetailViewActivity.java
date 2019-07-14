@@ -94,13 +94,11 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         detailViewHandler = new Handler(this);
         threadPoolService = Executors.newCachedThreadPool();
 
-        repsView = findViewById(R.id.repsDisplayView);
-        weightView = findViewById(R.id.weightDisplayView);
-        restView = findViewById(R.id.restTimeView);
+        repsView = binding.repsDisplayView;
+        weightView = binding.weightDisplayView;
+        restView = binding.restTimeView;
 
         Intent intent = getIntent();
-        String day = "1";
-        String workoutName = "AX1";
         GetWorkoutsForDay(Integer.toString(intent.getIntExtra("day", 1)),
                 intent.getStringExtra("workout"));
     }
@@ -108,6 +106,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     private void GetWorkoutsForDay(String day, String workoutName) {
         leftButtonVisibility.set(false);
         rightButtonVisibility.set(false);
+        binding.loadingOverlay.setVisibility(View.VISIBLE);
         threadPoolService.submit(new GetExerciseRunnable(this, detailViewHandler,
                 day, workoutName));
     }
@@ -133,11 +132,14 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                 exerciseIndex = 0;
                 CheckForAlternateExerciseSet(exerciseSets.get(0));
                 UpdateVisibleExercise();
+                binding.loadingOverlay.setVisibility(View.GONE);
                 return true;
             case Constants.EXERCISE_LOAD_FAIL:
+                binding.loadingOverlay.setVisibility(View.GONE);
                 Log.d(TAG, "handleMessage: failed to load exercise");
                 return true;
         }
+        binding.loadingOverlay.setVisibility(View.GONE);
         return false;
     }
 
