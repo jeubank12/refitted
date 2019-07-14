@@ -222,8 +222,11 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         } else {
             ExerciseSet e = exerciseSets.get(exerciseIndex);
             if (e.getStep().endsWith(".b")){
+                // TODO write tests for this
                 // if the first step, then there will be a '.a'
-                exerciseIndex = Math.max(exerciseIndex - 2, 1);
+                if (exerciseIndex != 1) {
+                    exerciseIndex = exerciseIndex - 2;
+                }
             } else {
                 exerciseIndex--;
             }
@@ -232,14 +235,16 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     public void HandleNavigateRight(View view) {
-        if (exerciseIndex >= exerciseSets.size()) {
+        if (exerciseIndex >= exerciseSets.size() - 1) {
             Log.e(TAG, "HandleNavigateLeft: already furthest right");
             exerciseIndex = exerciseSets.size() - 1;
         } else {
             ExerciseSet e = exerciseSets.get(exerciseIndex);
             if (e.getStep().endsWith(".a")){
                 // if the last step, then there will be a '.b'
-                exerciseIndex = Math.min(exerciseIndex + 2, exerciseSets.size() - 1);
+                if (exerciseIndex != exerciseSets.size() - 2) {
+                    exerciseIndex = Math.min(exerciseIndex + 2, exerciseSets.size() - 1);
+                }
             } else {
                 exerciseIndex++;
             }
@@ -252,7 +257,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         if (e.hasAlternate() || e.getStep().endsWith(".a")) {
             e = CheckForAlternateExerciseSet(e);
             switchToAlternateButton.setVisible(true);
-            leftButtonVisibility.set(exerciseIndex > 1);
+            leftButtonVisibility.set(exerciseIndex > (e.getStep().endsWith(".b") ? 1 : 0));
             rightButtonVisibility.set(exerciseIndex < exerciseSets.size() -
                     (e.getStep().endsWith(".a") ? 2 : 1));
         } else {
