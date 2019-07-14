@@ -322,6 +322,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
 
             @Override
             public void onFinish() {
+                timer = null;
                 if (exerciseRecords.get(exerciseIndex).getSetsCount() ==
                         exerciseSets.get(exerciseIndex).getSets()) {
                     HandleNavigateRight(view);
@@ -329,7 +330,6 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
                     UpdateVisibleExercise();
                 }
                 view.setEnabled(true);
-                timer = null;
             }
         };
         timer.start();
