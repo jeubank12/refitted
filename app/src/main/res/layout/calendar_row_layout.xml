@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <data>
+        <import type="android.view.View"/>
+        <variable
+            name="daysVisible"
+            type="int" />
+        <variable
+            name="minDay"
+            type="int" />
+        <variable
+            name="locale"
+            type="java.util.Locale" />
+    </data>
+    <android.support.constraint.ConstraintLayout
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <Button
+        android:id="@+id/day6button"
+        android:layout_width="50dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 5 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 6)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@+id/day7button"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day5button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+    <Button
+        android:id="@+id/day3button"
+        android:layout_width="49dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 2 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 3)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@+id/day4button"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day2button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+    <Button
+        android:id="@+id/day4button"
+        android:layout_width="50dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 3 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 4)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@+id/day5button"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day3button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+    <Button
+        android:id="@+id/day5button"
+        android:layout_width="49dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 4 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 5)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@+id/day6button"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day4button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+    <Button
+        android:id="@+id/day7button"
+        android:layout_width="50dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 6 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 7)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day6button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+        <Button
+            android:id="@+id/day1button"
+            android:layout_width="49dp"
+            android:layout_height="42dp"
+            android:paddingVertical="8dp"
+            android:visibility="@{daysVisible > 0 ? View.VISIBLE : View.INVISIBLE}"
+            android:text='@{String.format(locale, "%d", minDay + 1)}'
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toStartOf="@+id/day2button"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="90" />
+
+    <Button
+        android:id="@+id/day2button"
+        android:layout_width="50dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="8dp"
+        android:paddingVertical="8dp"
+        android:visibility="@{daysVisible > 1 ? View.VISIBLE : View.INVISIBLE}"
+        android:text='@{String.format(locale, "%d", minDay + 2)}'
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@+id/day3button"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/day1button"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="90" />
+
+</android.support.constraint.ConstraintLayout>
+</layout>

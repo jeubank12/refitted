@@ -1,5 +1,6 @@
 package com.litus_animae.refitted;
 
+import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
@@ -97,9 +98,11 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         weightView = findViewById(R.id.weightDisplayView);
         restView = findViewById(R.id.restTimeView);
 
+        Intent intent = getIntent();
         String day = "1";
         String workoutName = "AX1";
-        GetWorkoutsForDay(day, workoutName);
+        GetWorkoutsForDay(Integer.toString(intent.getIntExtra("day", 1)),
+                intent.getStringExtra("workout"));
     }
 
     private void GetWorkoutsForDay(String day, String workoutName) {
