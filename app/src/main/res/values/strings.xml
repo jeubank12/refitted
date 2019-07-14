@@ -15,6 +15,7 @@
     <string name="subOne">-1</string>
     <string name="complete_set">Complete Set</string>
     <string name="complete_exercise">Exercise Complete!</string>
+    <string name="cancel_rest">Start Next Set Early</string>
     <string name="weight_value_hint">lbs</string>
     <string name="reps_value_hint">Reps</string>
     <string name="dynamo_table">refitted.dev01</string>

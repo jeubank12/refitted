@@ -56,7 +56,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         super.onStop();
 
         threadPoolService.shutdownNow();
-        if (timer != null){
+        if (timer != null) {
             timer.cancel();
         }
     }
@@ -71,7 +71,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.switch_to_alternate_menu_item:
                 ExerciseSet e = exerciseSets.get(exerciseIndex);
                 e.setActive(false);
@@ -221,7 +221,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             exerciseIndex = 0;
         } else {
             ExerciseSet e = exerciseSets.get(exerciseIndex);
-            if (e.getStep().endsWith(".b")){
+            if (e.getStep().endsWith(".b")) {
                 // TODO write tests for this
                 // if the first step, then there will be a '.a'
                 if (exerciseIndex != 1) {
@@ -240,7 +240,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             exerciseIndex = exerciseSets.size() - 1;
         } else {
             ExerciseSet e = exerciseSets.get(exerciseIndex);
-            if (e.getStep().endsWith(".a")){
+            if (e.getStep().endsWith(".a")) {
                 // if the last step, then there will be a '.b'
                 if (exerciseIndex != exerciseSets.size() - 2) {
                     exerciseIndex = Math.min(exerciseIndex + 2, exerciseSets.size() - 1);
@@ -265,30 +265,33 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             leftButtonVisibility.set(exerciseIndex > 0);
             rightButtonVisibility.set(exerciseIndex < exerciseSets.size() - 1);
         }
-        if (exerciseRecords.get(exerciseIndex).getSetsCount() == e.getSets()) {
-            completeSetButtonText.set(getString(R.string.complete_exercise));
-        } else {
-            completeSetButtonText.set(getString(R.string.complete_set) +
-                    String.format(Locale.getDefault(), " %d %s %d",
-                            exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
-                            getString(R.string.word_of), e.getSets()));
-        }
+
         if (timer == null) {
-            binding.restProgressBar.setMax(e.getRest()*1000);
+            if (exerciseRecords.get(exerciseIndex).getSetsCount() == e.getSets()) {
+                completeSetButtonText.set(getString(R.string.complete_exercise));
+            } else {
+                completeSetButtonText.set(getString(R.string.complete_set) +
+                        String.format(Locale.getDefault(), " %d %s %d",
+                                exerciseRecords.get(exerciseIndex).getSetsCount() + 1,
+                                getString(R.string.word_of), e.getSets()));
+            }
+            binding.restProgressBar.setMax(e.getRest() * 1000);
             UpdateRestTimerView(e.getRest());
+        } else {
+            completeSetButtonText.set(getString(R.string.cancel_rest));
         }
         binding.setExercise(e);
     }
 
     private ExerciseSet CheckForAlternateExerciseSet(ExerciseSet e) {
-        if (!e.hasAlternate() && e.getStep().endsWith(".a")){
+        if (!e.hasAlternate() && e.getStep().endsWith(".a")) {
             e.setAlternate(exerciseSets.get(exerciseIndex + 1));
             e.getAlternate().setActive(false);
             e.getAlternate().setAlternate(e);
-        } else if (!e.isActive() && e.getStep().endsWith(".a")){
+        } else if (!e.isActive() && e.getStep().endsWith(".a")) {
             exerciseIndex++;
             e = e.getAlternate();
-        } else if (!e.isActive()){
+        } else if (!e.isActive()) {
             exerciseIndex--;
             e = e.getAlternate();
         }
@@ -297,26 +300,32 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
     }
 
     private void UpdateRestTimerView(double rest) {
-        binding.restProgressBar.setProgress((int)(binding.restProgressBar.getMax() - rest*1000));
+        binding.restProgressBar.setProgress((int) (binding.restProgressBar.getMax() - rest * 1000));
         restView.setText(String.format(Locale.getDefault(), "%.1f%s %s",
                 rest, getString(R.string.seconds_abbrev),
                 getString(R.string.rest)));
     }
 
     public void HandleCompleteSet(View view) {
+        // if there is a timer, then this is a cancel button
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+            UpdateVisibleExercise();
+            return;
+        }
+
+        // the logic inside to set the text should never be necessary, but we need the check
         if (exerciseRecords.get(exerciseIndex).getSetsCount() ==
                 exerciseSets.get(exerciseIndex).getSets()) {
             completeSetButtonText.set(getString(R.string.complete_exercise));
             return;
         }
-        view.setEnabled(false);
+
         exerciseRecords.get(exerciseIndex).addSet(
                 new SetRecord(Double.parseDouble(weightView.getText().toString()),
                         Integer.parseInt(repsView.getText().toString())));
-        UpdateVisibleExercise();
-        if (timer != null){
-            timer.cancel();
-        }
+
         timer = new CountDownTimer(
                 exerciseSets.get(exerciseIndex).getRest() * 1000,
                 50) {
@@ -328,15 +337,10 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
             @Override
             public void onFinish() {
                 timer = null;
-                if (exerciseRecords.get(exerciseIndex).getSetsCount() ==
-                        exerciseSets.get(exerciseIndex).getSets()) {
-                    HandleNavigateRight(view);
-                } else {
-                    UpdateVisibleExercise();
-                }
-                view.setEnabled(true);
+                UpdateVisibleExercise();
             }
         };
+        UpdateVisibleExercise();
         timer.start();
     }
 
