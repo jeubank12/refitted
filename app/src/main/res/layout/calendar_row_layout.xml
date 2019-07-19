@@ -13,7 +13,7 @@
             name="locale"
             type="java.util.Locale" />
     </data>
-    <android.support.constraint.ConstraintLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -122,5 +122,5 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="90" />
 
-</android.support.constraint.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

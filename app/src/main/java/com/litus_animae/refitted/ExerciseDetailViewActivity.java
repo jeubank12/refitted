@@ -1,14 +1,15 @@
 package com.litus_animae.refitted;
 
 import android.content.Intent;
-import android.databinding.DataBindingUtil;
-import android.databinding.ObservableBoolean;
-import android.databinding.ObservableField;
-import android.databinding.ObservableInt;
+
+import androidx.databinding.DataBindingUtil;
+import androidx.databinding.ObservableBoolean;
+import androidx.databinding.ObservableField;
+import androidx.databinding.ObservableInt;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -17,10 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-import com.instabug.library.Instabug;
-import com.instabug.library.invocation.InstabugInvocationEvent;
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
-import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;

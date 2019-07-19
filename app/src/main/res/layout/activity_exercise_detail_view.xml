@@ -18,18 +18,18 @@
 
         <variable
             name="hasLeft"
-            type="android.databinding.ObservableBoolean" />
+            type="androidx.databinding.ObservableBoolean" />
 
         <variable
             name="hasRight"
-            type="android.databinding.ObservableBoolean" />
+            type="androidx.databinding.ObservableBoolean" />
 
         <variable
             name="completeSetButtonText"
-            type="android.databinding.ObservableField&lt;String&gt;" />
+            type="androidx.databinding.ObservableField&lt;String&gt;" />
     </data>
 
-    <android.support.constraint.ConstraintLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:focusable="true"
@@ -307,10 +307,11 @@
             android:layout_height="0dp"
             android:background="#9E000000"
             android:translationZ="8dp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-    </android.support.constraint.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
