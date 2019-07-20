@@ -42,29 +42,7 @@ public class DynamoDataService {
                 .build();
     }
 
-    public void GetExercises(String workoutId,
-                                    ArrayList<ExerciseSet> exerciseSets){
-        if (exerciseSets.isEmpty()) {
-            Log.e(TAG, "GetExercises: result set was empty");
-            return;
-        }
-        Set<String> exercises = new HashSet<>();
-        for (ExerciseSet e : exerciseSets) {
-            exercises.add(e.getName());
-        }
-        Log.d(TAG, "GetExercises: retrieving distinct exercises");
-        Map<String, Exercise> exerciseMap = new HashMap<>();
-        for (String e : exercises){
-            exerciseMap.put(e, GetExercise(e, workoutId));
-        }
-        Exercise errExercise = new Exercise();
-        errExercise.setDescription("Error loading");
-        for (ExerciseSet e : exerciseSets) {
-            e.setExercise(exerciseMap.getOrDefault(e.getName(), errExercise));
-        }
-    }
-
-    private Exercise GetExercise(String exerciseId, String workoutId) {
+    public Exercise GetExercise(String exerciseId, String workoutId) {
         Log.d(TAG, "GetExercise: retrieving exercise: " + exerciseId +
                 " from workout: " + workoutId);
         try {
@@ -75,27 +53,7 @@ public class DynamoDataService {
         return null;
     }
 
-    public ArrayList<ExerciseSet> GetExerciseSets(String day, String workoutId) {
-        Log.d(TAG, "GetExerciseSets: retrieving exercise set ids for day: " + day +
-                " from workout: " + workoutId);
-        Set<String> exercises = GetExerciseKeys(day, workoutId);
-        if (exercises.isEmpty()) {
-            Log.e(TAG, "GetExerciseSets: result set was empty");
-            return new ArrayList<>();
-        }
-        Log.d(TAG, "GetExerciseSets: retrieving exercise sets for day: " + day +
-                " from workout: " + workoutId);
-        ArrayList<ExerciseSet> exerciseSets = new ArrayList<>();
-        for (String e : exercises) {
-            ExerciseSet exerciseSet = GetExerciseSet(day, e, workoutId);
-            if (exerciseSet != null) {
-                exerciseSets.add(exerciseSet);
-            }
-        }
-        return exerciseSets;
-    }
-
-    private ExerciseSet GetExerciseSet(String day, String exercise, String workoutId) {
+    public ExerciseSet GetExerciseSet(String day, String exercise, String workoutId) {
         try {
             return db.load(ExerciseSet.class, day + "." + exercise, workoutId);
         } catch (Exception ex) {
@@ -104,7 +62,9 @@ public class DynamoDataService {
         }
     }
 
-    private Set<String> GetExerciseKeys(String day, String workoutId) {
+    public Set<String> GetExerciseKeys(String day, String workoutId) {
+        Log.d(TAG, "GetExerciseKeys: retrieving exercise set ids for day: " + day +
+                " from workout: " + workoutId);
         try {
             WorkoutDay workout = db.load(WorkoutDay.class, day, workoutId);
             if (workout != null) {

@@ -22,6 +22,7 @@ import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
+import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
 import java.util.ArrayList;
@@ -53,7 +54,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements
         Log.d(TAG, "onStop: called");
         super.onStop();
 
-        threadPoolService.shutdownNow();
+        threadPoolService.submit(new CloseDatabaseRunnable(getApplicationContext()));
+
+        threadPoolService.shutdown();
         if (timer != null) {
             timer.cancel();
         }

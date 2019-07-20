@@ -3,19 +3,26 @@ package com.litus_animae.refitted.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey;
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIndexHashKey;
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIndexRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
 
-import java.io.Serializable;
 
+@Entity(primaryKeys = {"exercise_name","exercise_workout"})
 @DynamoDBTable(tableName = "refitted-exercise")
 public class Exercise implements Parcelable {
-    private String workout;
-    private String id;
+    @NonNull
+    @ColumnInfo(name = "exercise_workout")
+    private String workout = "";
+    @NonNull
+    @ColumnInfo(name = "exercise_name")
+    private String id = "";
     private String description;
 
     public Exercise(){}

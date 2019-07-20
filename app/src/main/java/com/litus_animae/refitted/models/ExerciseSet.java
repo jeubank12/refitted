@@ -3,28 +3,46 @@ package com.litus_animae.refitted.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.ForeignKey;
+import androidx.room.Ignore;
+import androidx.room.Index;
+
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
 
-import java.io.Serializable;
-
+@Entity(primaryKeys = {"day", "step", "workout"},
+        foreignKeys = @ForeignKey(entity = Exercise.class,
+                parentColumns = {"exercise_name", "exercise_workout"},
+                childColumns = {"name", "workout"}),
+        indices = @Index({"name", "workout"}))
 @DynamoDBTable(tableName = "refitted-exercise")
 public class ExerciseSet implements Parcelable {
-    private String workout;
-    private String id;
+    @NonNull
+    private String workout = "";
+    private String id = "0.0";
     private String note;
     private String name;
+    @NonNull
+    private String day = "0";
+    @NonNull
+    private String step = "0";
     private int reps;
     private int sets;
     private boolean toFailure;
     private int rest;
+    @Ignore
     private Exercise exercise;
+    @Ignore
     private ExerciseSet alternate;
+    @Ignore
     private boolean isActive = true;
 
-    public ExerciseSet(){}
+    public ExerciseSet() {
+    }
 
     @DynamoDBHashKey(attributeName = "Id")
     @DynamoDBAttribute(attributeName = "Id")
@@ -36,8 +54,15 @@ public class ExerciseSet implements Parcelable {
         this.id = id;
     }
 
-    public String getDay(){ return id.split("\\.", 2)[0]; }
-    public String getStep(){ return id.split("\\.", 2)[1]; }
+    public String getDay() {
+        return id.split("\\.", 2)[0];
+    }
+    public void setDay(String day){ id = day + "." + getStep(); }
+
+    public String getStep() {
+        return id.split("\\.", 2)[1];
+    }
+    public void setStep(String step){ id = getDay() + "." + step; }
 
     @DynamoDBRangeKey(attributeName = "Disc")
     @DynamoDBAttribute(attributeName = "Disc")
@@ -161,7 +186,7 @@ public class ExerciseSet implements Parcelable {
         this.alternate = alternate;
     }
 
-    public boolean hasAlternate(){
+    public boolean hasAlternate() {
         return alternate != null;
     }
 

@@ -3,11 +3,19 @@ package com.litus_animae.refitted.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.room.Embedded;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.Relation;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ExerciseRecord implements Parcelable {
+    @Embedded
     private ExerciseSet targetSet;
+
+    @Relation(parentColumn = "name", entityColumn = "target_set", entity = SetRecord.class)
     private List<SetRecord> sets = new ArrayList<>();
 
     public ExerciseRecord(ExerciseSet targetSet){

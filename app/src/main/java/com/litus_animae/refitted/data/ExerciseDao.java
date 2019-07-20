@@ -1,0 +1,29 @@
+package com.litus_animae.refitted.data;
+
+import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+
+import com.litus_animae.refitted.models.Exercise;
+import com.litus_animae.refitted.models.ExerciseSet;
+
+import java.util.List;
+
+@Dao
+public interface ExerciseDao {
+    @Query("select distinct step from exerciseset where day = :day and workout = :workout")
+    List<String> getSteps(String day, String workout);
+
+    @Query("select * from exerciseset where day = :day and workout = :workout and step = :step")
+    ExerciseSet getExerciseSet(String day, String workout, String step);
+
+    @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
+    Exercise getExercise(String name, String workout);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void storeExercise(Exercise exercise);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void storeExerciseSet(ExerciseSet exerciseSet);
+}
