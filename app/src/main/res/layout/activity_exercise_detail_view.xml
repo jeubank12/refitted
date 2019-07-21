@@ -72,9 +72,10 @@
             android:id="@+id/sub45Button"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:layout_marginStart="28dp"
             android:onClick="HandleWeightClick"
             android:text="@string/sub45"
+            app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
+            app:layout_constraintEnd_toEndOf="@+id/sub25Button"
             app:layout_constraintStart_toStartOf="@+id/sub10Button"
             app:layout_constraintTop_toBottomOf="@+id/sub10Button" />
 
@@ -84,6 +85,7 @@
             android:layout_height="56dp"
             android:onClick="HandleWeightClick"
             android:text="@string/sub10"
+            app:layout_constraintBottom_toTopOf="@+id/sub45Button"
             app:layout_constraintStart_toStartOf="@+id/sub2point5Button"
             app:layout_constraintTop_toBottomOf="@+id/sub2point5Button" />
 
@@ -91,9 +93,9 @@
             android:id="@+id/add45Button"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:layout_marginStart="28dp"
             android:onClick="HandleWeightClick"
             android:text="@string/add45"
+            app:layout_constraintEnd_toEndOf="@+id/add25Button"
             app:layout_constraintStart_toStartOf="@+id/add10Button"
             app:layout_constraintTop_toBottomOf="@+id/add10Button" />
 
@@ -114,8 +116,9 @@
             android:layout_marginTop="12dp"
             android:onClick="HandleWeightClick"
             android:text="@string/sub2point5"
+            app:layout_constraintBottom_toTopOf="@+id/sub10Button"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/divider" />
+            app:layout_constraintTop_toBottomOf="@+id/guideline" />
 
         <Button
             android:id="@+id/add5Button"
@@ -146,44 +149,45 @@
 
         <TextView
             android:id="@+id/exerciseNameView"
-            android:layout_width="352dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
+            android:layout_marginEnd="16dp"
             android:text="@{exercise.Exercise.Name}"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+            app:layout_constraintBottom_toTopOf="@+id/exerciseNotesView"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="Exercise Name" />
+            tools:text="Alternating Woodchopper Pushdowns" />
 
         <TextView
             android:id="@+id/exerciseDescriptionView"
-            android:layout_width="352dp"
-            android:layout_height="88dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
             android:text="@{exercise.Exercise.Description}"
-            app:layout_constraintStart_toStartOf="@+id/exerciseNameView"
-            app:layout_constraintTop_toBottomOf="@+id/exerciseNameView"
-            tools:text="Exercise Description. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
+            app:layout_constraintBottom_toTopOf="@+id/guideline"
+            app:layout_constraintEnd_toEndOf="@+id/exerciseNameView"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="@+id/exerciseNotesView"
+            app:layout_constraintTop_toBottomOf="@+id/exerciseNotesView"
+            tools:text="Attach a rope to a high pulley or drape a band over a pullup bar and grab an end in each hand with your elbows bent and held close to your chest to start. Begin by bringing your hands down and across your body, extending the elbows straight to fully contract the triceps. As you bring the rope down, consciously contract your core as well to help with the rotation of the body and increase your trunk stability at the same time. Return the hands to the starting position to repeat the same movement over the opposite leg on the next rep. Continue repeating this alternating pattern for the prescribed number of reps per set." />
 
         <TextView
             android:id="@+id/exerciseNotesView"
-            android:layout_width="352dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:text="@{exercise.Note}"
-            app:layout_constraintStart_toStartOf="@+id/exerciseDescriptionView"
-            app:layout_constraintTop_toBottomOf="@+id/exerciseDescriptionView"
-            tools:text="Exercise Notes" />
-
-        <View
-            android:id="@+id/divider"
-            android:layout_width="395dp"
-            android:layout_height="1dp"
-            android:layout_marginTop="20dp"
-            android:background="?android:attr/listDivider"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/exerciseNotesView" />
+            app:layout_constraintBottom_toTopOf="@+id/exerciseDescriptionView"
+            app:layout_constraintEnd_toEndOf="@+id/exerciseNameView"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="@+id/exerciseNameView"
+            app:layout_constraintTop_toBottomOf="@+id/exerciseNameView"
+            tools:text="Alternate reps (10-12 in each direction) for each completed set. If using a resistance band, step further away to increase tension on band and difficulty of exercise" />
 
         <EditText
             android:id="@+id/weightDisplayView"
@@ -247,11 +251,13 @@
             android:layout_width="352dp"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:onClick="HandleCompleteSet"
             android:text="@{completeSetButtonText}"
+            app:layout_constraintBottom_toTopOf="@+id/restProgressBar"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/sub45Button" />
 
@@ -261,9 +267,10 @@
             android:layout_width="352dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/restTimeView"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/completeSetButton" />
 
@@ -274,13 +281,14 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="32dp"
             android:gravity="center"
             android:textSize="30sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/restProgressBar"
+            app:layout_constraintTop_toBottomOf="@+id/restProgressBar"
             app:layout_constraintVertical_bias="0.40"
             tools:text="30.0s" />
 
@@ -311,6 +319,15 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintGuide_percent="0.5"
             app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
