@@ -57,6 +57,8 @@ public class ExerciseRecord implements Parcelable {
     public SetRecord getSet(int set) {
         if (set < sets.size() && set >= 0) {
             return sets.get(set);
+        } else if (set < 0 && sets.size() + set >= 0){
+            return sets.get(sets.size() + set);
         }
         return null;
     }

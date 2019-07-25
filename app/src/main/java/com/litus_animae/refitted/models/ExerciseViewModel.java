@@ -39,6 +39,8 @@ public class ExerciseViewModel extends AndroidViewModel {
     private MutableLiveData<Integer> restMax = new MutableLiveData<>();
     private MutableLiveData<Integer> restProgress = new MutableLiveData<>();
     private MutableLiveData<String> restValue = new MutableLiveData<>();
+    private MutableLiveData<String> weightDisplayValue = new MutableLiveData<>();
+    private MutableLiveData<String> repsDisplayValue = new MutableLiveData<>();
 
     public ExerciseViewModel(@NonNull Application application) {
         super(application);
@@ -73,6 +75,34 @@ public class ExerciseViewModel extends AndroidViewModel {
     public void loadExercises(String day, String workoutId) {
         threadPoolService.submit(new GetExerciseRunnable(getApplication(), exerciseSets,
                 day, workoutId));
+    }
+
+    private void UpdateWeightDisplay(double change) {
+        double value = Double.parseDouble(weightDisplayValue.getValue()) + change;
+        if (value < 0) {
+            SetWeightDisplay(0);
+        } else {
+            SetWeightDisplay(value);
+        }
+    }
+
+    private void SetWeightDisplay(double value) {
+        weightDisplayValue.setValue(String.format(Locale.getDefault(), "%.1f", value));
+    }
+
+    private void UpdateRepsDisplay(boolean increase) {
+        int value = Integer.parseInt(repsDisplayValue.getValue());
+        if (increase) {
+            SetRepsDisplay(value + 1);
+        } else if (value > 0) {
+            SetRepsDisplay(value - 1);
+        } else {
+            SetRepsDisplay(0);
+        }
+    }
+
+    private void SetRepsDisplay(int value) {
+        repsDisplayValue.setValue(String.format(Locale.getDefault(), "%d", value));
     }
 
     private boolean CheckForAlternateExerciseSet(int index, ExerciseSet e) {
@@ -133,6 +163,13 @@ public class ExerciseViewModel extends AndroidViewModel {
         if (wasChanged) {
             exerciseSets.setValue(copyExerciseSets);
         }
+        // TODO set reps and weight
+        SetRepsDisplay(exerciseRecords.get(index).getSetsCount() > 0 ?
+                exerciseRecords.get(index).getSet(-1).getReps() :
+                e.getReps());
+        SetWeightDisplay(exerciseRecords.get(index).getSetsCount() > 0 ?
+                exerciseRecords.get(index).getSet(-1).getWeight() :
+                25);
         return e;
     }
 
@@ -249,6 +286,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                 getString(R.string.rest)));
     }
 
+    // region getters
     public LiveData<ExerciseSet> getExercise() {
         return exerciseMutableLiveData;
     }
@@ -269,15 +307,24 @@ public class ExerciseViewModel extends AndroidViewModel {
         return completeSetMessage;
     }
 
-    public LiveData<Integer> getRestMax(){
+    public LiveData<Integer> getRestMax() {
         return restMax;
     }
 
-    public LiveData<Integer> getRestProgress(){
+    public LiveData<Integer> getRestProgress() {
         return restProgress;
     }
 
-    public LiveData<String> getRestValue(){
+    public LiveData<String> getRestValue() {
         return restValue;
     }
+
+    public LiveData<String> getWeightDisplayValue() {
+        return weightDisplayValue;
+    }
+
+    public LiveData<String> getRepsDisplayValue() {
+        return repsDisplayValue;
+    }
+    // endregion getters
 }

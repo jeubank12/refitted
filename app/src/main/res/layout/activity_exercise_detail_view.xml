@@ -130,7 +130,7 @@
             android:inputType="number"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:text='@{String.format(locale, "%d", viewmodel.exercise.Reps)}'
+            android:text='@{viewmodel.repsDisplayValue}'
             app:layout_constraintStart_toStartOf="@+id/addRepButton"
             app:layout_constraintTop_toBottomOf="@+id/addRepButton"
             tools:text="12" />
@@ -189,7 +189,7 @@
             android:inputType="numberDecimal"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:text='@{String.format(locale, "%.1f", 25.0)}'
+            android:text='@{viewmodel.weightDisplayValue}'
             app:layout_constraintStart_toEndOf="@+id/sub5Button"
             app:layout_constraintTop_toTopOf="@+id/sub2point5Button"
             tools:text="25.0" />
@@ -306,7 +306,7 @@
             android:layout_height="0dp"
             android:background="#9E000000"
             android:translationZ="8dp"
-            android:visibility="@{viewmodel.isLoading}"
+            android:visibility="@{viewmodel.isLoading ?? View.GONE}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

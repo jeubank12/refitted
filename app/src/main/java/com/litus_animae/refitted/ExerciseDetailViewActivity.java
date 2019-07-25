@@ -125,6 +125,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     }
 
     private void UpdateWeightValue(double change) {
+        // TODO hook into viewmodel
         double value = Double.parseDouble(binding.weightDisplayView.getText().toString()) + change;
         if (value < 0) {
             binding.weightDisplayView.setText(String.format(Locale.getDefault(), "%.1f", 0.0));
@@ -147,6 +148,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     }
 
     private void UpdateRepValue(boolean increase) {
+        // TODO hook into viewmodel
         int value = Integer.parseInt(binding.repsDisplayView.getText().toString());
         if (increase) {
             binding.repsDisplayView.setText(String.format(Locale.getDefault(), "%d", value + 1));
