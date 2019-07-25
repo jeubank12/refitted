@@ -2,9 +2,11 @@ package com.litus_animae.refitted.threads;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.litus_animae.refitted.Constants;
 import com.litus_animae.refitted.data.DynamoDataService;
@@ -14,29 +16,30 @@ import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GetExerciseRunnable implements Runnable {
+public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHandler {
 
     private static final String TAG = "GetExerciseRunnable";
-    private WeakReference<Handler> mainThreadHandler;
     private Context applicationContext;
     private String day;
     private String workoutId;
     private ExerciseRoom roomDb;
     private DynamoDataService dynamoDb;
+    private MutableLiveData<List<ExerciseSet>> exerciseSetLiveData;
 
-    public GetExerciseRunnable(Context context, Handler mainThreadHandler,
+    public GetExerciseRunnable(Context context, MutableLiveData<List<ExerciseSet>> sets,
                                String day, String workoutId) {
         this.applicationContext = context.getApplicationContext();
-        this.mainThreadHandler = new WeakReference<>(mainThreadHandler);
         this.day = day;
         this.workoutId = workoutId;
+        this.exerciseSetLiveData = sets;
+        Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
     @Override
@@ -52,6 +55,9 @@ public class GetExerciseRunnable implements Runnable {
             Message msg;
             if (!exerciseSets.isEmpty()) {
                 exerciseSets.sort((o1, o2) -> o1.getStep().compareTo(o2.getStep()));
+                Log.d(TAG, "run: posting data");
+                exerciseSetLiveData.postValue(exerciseSets);
+                Log.d(TAG, "run: data posted");
 
                 ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
                 for (ExerciseSet e : exerciseSets) {
@@ -69,7 +75,6 @@ public class GetExerciseRunnable implements Runnable {
                 Log.d(TAG, "run: retrieval failure");
                 msg = Message.obtain(null, Constants.EXERCISE_LOAD_FAIL);
             }
-            mainThreadHandler.get().sendMessage(msg);
         } catch (Exception ex) {
             Log.e(TAG, "run: ", ex);
         }
@@ -145,4 +150,8 @@ public class GetExerciseRunnable implements Runnable {
         return exerciseKeys;
     }
 
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+        Log.e(TAG, "uncaughtException: thread: " + t.getName(), e);
+    }
 }

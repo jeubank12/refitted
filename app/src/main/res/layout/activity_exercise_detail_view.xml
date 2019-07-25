@@ -9,24 +9,12 @@
         <import type="android.view.View" />
 
         <variable
-            name="exercise"
-            type="com.litus_animae.refitted.models.ExerciseSet" />
+            name="viewmodel"
+            type="com.litus_animae.refitted.models.ExerciseViewModel" />
 
         <variable
             name="locale"
             type="java.util.Locale" />
-
-        <variable
-            name="hasLeft"
-            type="androidx.databinding.ObservableBoolean" />
-
-        <variable
-            name="hasRight"
-            type="androidx.databinding.ObservableBoolean" />
-
-        <variable
-            name="completeSetButtonText"
-            type="androidx.databinding.ObservableField&lt;String&gt;" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -44,7 +32,7 @@
             android:layout_marginEnd="8dp"
             android:onClick="HandleNavigateLeft"
             android:text="@string/move_left"
-            android:visibility="@{hasLeft ? View.VISIBLE : View.INVISIBLE}"
+            android:visibility="@{viewmodel.hasLeft ?? View.GONE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toStartOf="@+id/restTimeView"
             app:layout_constraintStart_toStartOf="parent"
@@ -142,7 +130,7 @@
             android:inputType="number"
             android:selectAllOnFocus="true"
             android:singleLine="true"
-            android:text='@{String.format(locale, "%d", exercise.Reps)}'
+            android:text='@{String.format(locale, "%d", viewmodel.exercise.Reps)}'
             app:layout_constraintStart_toStartOf="@+id/addRepButton"
             app:layout_constraintTop_toBottomOf="@+id/addRepButton"
             tools:text="12" />
@@ -154,7 +142,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="16dp"
-            android:text="@{exercise.Exercise.Name}"
+            android:text="@{viewmodel.exercise.Exercise.Name}"
             android:textAppearance="@style/TextAppearance.AppCompat.Medium"
             app:layout_constraintBottom_toTopOf="@+id/exerciseNotesView"
             app:layout_constraintEnd_toEndOf="parent"
@@ -168,7 +156,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="16dp"
-            android:text="@{exercise.Exercise.Description}"
+            android:text="@{viewmodel.exercise.Exercise.Description}"
             app:layout_constraintBottom_toTopOf="@+id/guideline"
             app:layout_constraintEnd_toEndOf="@+id/exerciseNameView"
             app:layout_constraintHorizontal_bias="1.0"
@@ -181,7 +169,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@{exercise.Note}"
+            android:text="@{viewmodel.exercise.Note}"
             app:layout_constraintBottom_toTopOf="@+id/exerciseDescriptionView"
             app:layout_constraintEnd_toEndOf="@+id/exerciseNameView"
             app:layout_constraintHorizontal_bias="0.0"
@@ -254,7 +242,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:onClick="HandleCompleteSet"
-            android:text="@{completeSetButtonText}"
+            android:text="@{viewmodel.completeSetMessage}"
             app:layout_constraintBottom_toTopOf="@+id/restProgressBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -268,6 +256,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
+            android:max="@{viewmodel.restMax ?? 0}"
+            android:progress="@{viewmodel.restProgress ?? 0}"
             app:layout_constraintBottom_toTopOf="@+id/restTimeView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -284,6 +274,7 @@
             android:layout_marginBottom="32dp"
             android:gravity="center"
             android:textSize="30sp"
+            android:text="@{viewmodel.restValue}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -300,7 +291,7 @@
             android:layout_marginEnd="8dp"
             android:onClick="HandleNavigateRight"
             android:text="@string/move_right"
-            android:visibility="@{hasRight ? View.VISIBLE : View.INVISIBLE}"
+            android:visibility="@{viewmodel.hasRight ?? View.GONE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.458"
@@ -315,7 +306,7 @@
             android:layout_height="0dp"
             android:background="#9E000000"
             android:translationZ="8dp"
-            android:visibility="gone"
+            android:visibility="@{viewmodel.isLoading}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
