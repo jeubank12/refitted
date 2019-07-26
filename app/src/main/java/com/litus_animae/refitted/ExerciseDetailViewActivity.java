@@ -1,40 +1,21 @@
 package com.litus_animae.refitted;
 
 import android.content.Intent;
-
-import androidx.databinding.DataBindingUtil;
-import androidx.databinding.ObservableBoolean;
-import androidx.databinding.ObservableField;
-import androidx.databinding.ObservableInt;
-
-import android.os.CountDownTimer;
-import android.os.Handler;
-import android.os.Message;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProviders;
-
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.databinding.DataBindingUtil;
+import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
-import com.litus_animae.refitted.models.ExerciseRecord;
-import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.ExerciseViewModel;
-import com.litus_animae.refitted.models.SetRecord;
-import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
-import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
-import java.util.ArrayList;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class ExerciseDetailViewActivity extends AppCompatActivity {
 

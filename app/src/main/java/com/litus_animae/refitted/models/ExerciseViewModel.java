@@ -125,6 +125,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     public void loadExercises(String day, String workoutId) {
+        isLoadingBool.setValue(true);
         exerciseRepo.LoadExercises(day, workoutId);
     }
 

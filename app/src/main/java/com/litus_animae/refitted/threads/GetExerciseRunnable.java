@@ -105,7 +105,7 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
         for (ExerciseSet e : exerciseSets) {
             exercises.add(e.getName());
         }
-        Log.d(TAG, "GetExercises: retrieving distinct exercises");
+        Log.i(TAG, "GetExercises: retrieving distinct exercises");
         Map<String, Exercise> exerciseMap = new HashMap<>();
         for (String e : exercises) {
             Exercise exercise = roomDb.getExerciseDao().getExercise(e, workoutId);
@@ -121,20 +121,22 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
         }
         Exercise errExercise = new Exercise();
         errExercise.setDescription("Error loading");
+        // TODO notify of errors??
         for (ExerciseSet e : exerciseSets) {
             e.setExercise(exerciseMap.getOrDefault(e.getName(), errExercise));
         }
+        Log.i(TAG, "GetExercises: retrieved distinct exercises");
     }
 
     private ArrayList<ExerciseSet> GetExerciseSets(String day, Set<String> exercises,
                                                    String workoutId) {
-        Log.d(TAG, "GetExerciseSets: retrieving exercise sets for day: " + day +
+        Log.i(TAG, "GetExerciseSets: retrieving exercise sets for day: " + day +
                 " from workout: " + workoutId);
         ArrayList<ExerciseSet> exerciseSets = new ArrayList<>();
         for (String e : exercises) {
             ExerciseSet exerciseSet = roomDb.getExerciseDao().getExerciseSet(day, workoutId, e);
             if (exerciseSet == null) {
-                Log.d(TAG, "GetExerciseSets: missed cache for " + day + "." + e +
+                Log.i(TAG, "GetExerciseSets: missed cache for " + day + "." + e +
                         " in workout " + workoutId);
                 exerciseSet = dynamoDb.GetExerciseSet(day, e, workoutId);
             }
@@ -149,11 +151,11 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
     }
 
     private Set<String> GetExerciseKeys(String day, String workoutId) {
-        Log.d(TAG, "GetExerciseKeys: retrieving exercise set ids for day: " + day +
+        Log.i(TAG, "GetExerciseKeys: retrieving exercise set ids for day: " + day +
                 " from workout: " + workoutId);
         Set<String> exerciseKeys = new HashSet<>(roomDb.getExerciseDao().getSteps(day, workoutId));
         if (!exerciseKeys.isEmpty()) {
-            Log.d(TAG, "GetExerciseKeys: found keys in cache");
+            Log.i(TAG, "GetExerciseKeys: found keys in cache");
             return exerciseKeys;
         }
         Log.d(TAG, "GetExerciseKeys: did not find keys in cache, checking dynamo");
