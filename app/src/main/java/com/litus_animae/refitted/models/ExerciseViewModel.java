@@ -14,18 +14,14 @@ import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
-import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class ExerciseViewModel extends AndroidViewModel {
     private static final String TAG = "ExerciseViewModel";
     private static final double defaultWeight = 25;
 
-    private ExecutorService threadPoolService;
     private ExerciseRepository exerciseRepo;
 
     private LiveData<ExerciseSet> exerciseMutableLiveData;
@@ -48,7 +44,6 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public ExerciseViewModel(@NonNull Application application) {
         super(application);
-        threadPoolService = Executors.newCachedThreadPool();
         exerciseRepo = new ExerciseRepository(application);
 
         isLoadingBool = new MutableLiveData<>();
@@ -61,7 +56,10 @@ public class ExerciseViewModel extends AndroidViewModel {
         exerciseSets.addSource(exerciseRepo.getExercises(),
                 exercises -> exerciseSets.setValue(exercises));
         exerciseRecords.addSource(exerciseRepo.getRecords(),
-                records -> exerciseRecords.setValue(records));
+                records -> {
+                    exerciseRecords.setValue(records);
+                    UpdateVisibleExercise(exerciseIndex.getValue());
+                });
 
         SetupWeightAndRepsTransforms();
 
@@ -87,8 +85,14 @@ public class ExerciseViewModel extends AndroidViewModel {
         {
             // is this going to be heavy?
             Log.d(TAG, "SetupWeightAndRepsTransforms: reviewing changing weightDisplayValue");
-            double value = Double.parseDouble(v);
-            if (value != Math.round(value * 2) / 2.0){
+            double value;
+            try {
+                value = Double.parseDouble(v);
+            } catch (Exception ex) {
+                Log.e(TAG, "SetupWeightAndRepsTransforms: ", ex);
+                value = 0;
+            }
+            if (value != Math.round(value * 2) / 2.0) {
                 Log.d(TAG, "SetupWeightAndRepsTransforms: had to reformat weightDisplayValue");
                 weightDisplayValue.setValue(FormatWeightDisplay(value));
             }
@@ -99,8 +103,14 @@ public class ExerciseViewModel extends AndroidViewModel {
         {
             // is this going to be heavy?
             Log.d(TAG, "SetupWeightAndRepsTransforms: reviewing changing repsDisplayValue");
-            int value = Integer.parseInt(v);
-            if (value < 0){
+            int value;
+            try {
+                value = Integer.parseInt(v);
+            } catch (Exception ex) {
+                Log.e(TAG, "SetupWeightAndRepsTransforms: ", ex);
+                value = 0;
+            }
+            if (value < 0) {
                 Log.d(TAG, "SetupWeightAndRepsTransforms: had to reformat repsDisplayValue");
                 repsDisplayValue.setValue(FormatRepsDisplay(value));
             }
@@ -120,8 +130,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        threadPoolService.submit(new CloseDatabaseRunnable(getApplication()));
-        threadPoolService.shutdown();
+        exerciseRepo.Shutdown();
     }
 
     public void loadExercises(String day, String workoutId) {
@@ -145,6 +154,9 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     private static String FormatWeightDisplay(double value) {
         value = Math.round(value * 2) / 2.0;
+        if (value < 0) {
+            value = 0;
+        }
         return String.format(Locale.getDefault(), "%.1f", value);
     }
 
@@ -165,7 +177,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     private static String FormatRepsDisplay(int value) {
-        if (value < 0){
+        if (value < 0) {
             value = 0;
         }
         return String.format(Locale.getDefault(), "%d", value);
@@ -330,7 +342,10 @@ public class ExerciseViewModel extends AndroidViewModel {
             return;
         }
 
-        record.addSet(new SetRecord(Double.parseDouble(weight), Integer.parseInt(reps)));
+        SetRecord newRecord = new SetRecord(exerciseSet,
+                Double.parseDouble(weight), Integer.parseInt(reps));
+        exerciseRepo.StoreSetRecord(newRecord);
+        record.addSet(newRecord);
 
         timer = new CountDownTimer(
                 exerciseSet.getRest() * 1000,

@@ -7,7 +7,9 @@ import androidx.room.Query;
 
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.models.SetRecord;
 
+import java.util.Date;
 import java.util.List;
 
 @Dao
@@ -26,4 +28,10 @@ public interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void storeExerciseSet(ExerciseSet exerciseSet);
+
+    @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
+    List<SetRecord> getSetRecords(Date minDate, String targetExercise);
+
+    @Insert
+    void storeExerciseRecord(SetRecord exerciseRecord);
 }

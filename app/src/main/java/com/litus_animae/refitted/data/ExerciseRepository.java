@@ -8,9 +8,10 @@ import androidx.lifecycle.MutableLiveData;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
+import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
 import com.litus_animae.refitted.threads.GetExerciseRunnable;
+import com.litus_animae.refitted.threads.StoreRecordsRunnable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,21 +28,13 @@ public class ExerciseRepository {
         threadPoolService = Executors.newCachedThreadPool();
     }
 
-    private static List<ExerciseRecord> GenerateRecords(List<ExerciseSet> ex) {
-        ArrayList<ExerciseRecord> records = new ArrayList<>(ex.size());
-        for (ExerciseSet e : ex) {
-            records.add(new ExerciseRecord(e));
-        }
-        return records;
-    }
-
     public void LoadExercises(String day, String workoutId) {
         threadPoolService.submit(new GetExerciseRunnable(applicationContext, exercises, records,
                 day, workoutId));
     }
 
     public void StoreSetRecord(SetRecord record) {
-
+        threadPoolService.submit(new StoreRecordsRunnable(applicationContext, record));
     }
 
     public LiveData<List<ExerciseSet>> getExercises() {
@@ -50,5 +43,10 @@ public class ExerciseRepository {
 
     public LiveData<List<ExerciseRecord>> getRecords() {
         return records;
+    }
+
+    public void Shutdown(){
+        threadPoolService.submit(new CloseDatabaseRunnable(applicationContext));
+        threadPoolService.shutdown();
     }
 }

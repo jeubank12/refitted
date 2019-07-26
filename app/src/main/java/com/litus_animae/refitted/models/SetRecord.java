@@ -1,64 +1,73 @@
 package com.litus_animae.refitted.models;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 
 import java.time.Instant;
 import java.util.Date;
 
-@Entity(primaryKeys = {"target_set", "completed"})
-public class SetRecord implements Parcelable {
+@Entity(primaryKeys = {"exercise", "completed"})
+public class SetRecord {
     private double weight;
     private int reps;
-    private Date completed;
+    private String workout;
     private String target_set;
+    @NonNull
+    private Date completed;
+    @NonNull
+    private String exercise = "";
 
-    public SetRecord(double weight, int reps) {
+    public SetRecord(ExerciseSet targetSet, double weight, int reps) {
         this.weight = weight;
         this.reps = reps;
         this.completed = Date.from(Instant.now());
+        this.exercise = targetSet.getExerciseName();
+        this.target_set = targetSet.getId();
+        this.workout = targetSet.getWorkout();
     }
 
-    protected SetRecord(Parcel in) {
-        weight = in.readDouble();
-        reps = in.readInt();
+    public SetRecord(){
+        this.completed = Date.from(Instant.now());
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeDouble(weight);
-        dest.writeInt(reps);
+    public String getExercise() {
+        return exercise;
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
+    public void setExercise(String exercise) {
+        this.exercise = exercise;
     }
 
-    public static final Creator<SetRecord> CREATOR = new Creator<SetRecord>() {
-        @Override
-        public SetRecord createFromParcel(Parcel in) {
-            return new SetRecord(in);
-        }
+    public Date getCompleted() {
+        return completed;
+    }
 
-        @Override
-        public SetRecord[] newArray(int size) {
-            return new SetRecord[size];
-        }
-    };
+    public void setCompleted(Date completed) {
+        this.completed = completed;
+    }
 
     public double getWeight() {
         return weight;
+    }
+
+    public void setWeight(double weight) {
+        this.weight = weight;
     }
 
     public int getReps() {
         return reps;
     }
 
-    public Date getCompleted() {
-        return completed;
+    public void setReps(int reps) {
+        this.reps = reps;
+    }
+
+    public String getWorkout() {
+        return workout;
+    }
+
+    public void setWorkout(String workout) {
+        this.workout = workout;
     }
 
     public String getTarget_set() {

@@ -19,7 +19,9 @@ public class RoomDataService {
             synchronized (ExerciseRoom.class) {
                 if (rooms.get(context.getApplicationContext()) == null) {
                     room = Room.databaseBuilder(context.getApplicationContext(),
-                            ExerciseRoom.class, db_name).build();
+                            ExerciseRoom.class, db_name)
+                            .addMigrations(ExerciseRoom.MIGRATION_1_2)
+                            .build();
                     rooms.put(context.getApplicationContext(), room);
                 }
             }

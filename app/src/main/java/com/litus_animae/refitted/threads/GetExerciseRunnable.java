@@ -12,14 +12,21 @@ import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHandler {
+public class GetExerciseRunnable implements Runnable {
 
     private static final String TAG = "GetExerciseRunnable";
     private Context applicationContext;
@@ -38,7 +45,6 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
         this.workoutId = workoutId;
         this.exerciseSetLiveData = sets;
         this.exerciseRecordLiveData = records;
-        Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
     @Override
@@ -68,12 +74,13 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
                 Log.d(TAG, "run: retrieval failure");
             }
         } catch (Exception ex) {
-            Log.e(TAG, "run: ", ex);
+            Log.e(TAG, "run: exception during load", ex);
         }
     }
 
     private ArrayList<ExerciseRecord> getExerciseRecords(ArrayList<ExerciseSet> exerciseSets) {
         ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
+        Date tonightMidnight = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0)));
         for (ExerciseSet e : exerciseSets) {
             Log.d(TAG, "getExerciseRecords: storing " + e.getId() + "-" +
                     e.getWorkout() + ": '" + e.getName() + "' in cache");
@@ -88,9 +95,14 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
                 roomDb.getExerciseDao().storeExercise(exercise);
                 roomDb.getExerciseDao().storeExerciseSet(e);
             }
-            // TODO load if available
-            // TODO handle repeats in a day
-            records.add(new ExerciseRecord(e));
+            ExerciseRecord record = new ExerciseRecord(e);
+            try {
+                record.setSets(roomDb.getExerciseDao()
+                        .getSetRecords(tonightMidnight, e.getExerciseName()));
+            } catch (Exception ex) {
+                Log.e(TAG, "getExerciseRecords: failed retrieving records", ex);
+            }
+            records.add(record);
         }
         return records;
     }
@@ -165,10 +177,5 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
             Log.e(TAG, "GetExerciseKeys: error loading workout", ex);
         }
         return exerciseKeys;
-    }
-
-    @Override
-    public void uncaughtException(Thread t, Throwable e) {
-        Log.e(TAG, "uncaughtException: thread: " + t.getName(), e);
     }
 }
