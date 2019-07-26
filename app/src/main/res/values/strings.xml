@@ -25,4 +25,8 @@
     <string name="seconds_abbrev">s</string>
     <string name="rest">rest</string>
     <string name="switch_to_alternate">Switch To Alternate</string>
+    <string name="target_reps">Target Reps:</string>
+    <string name="target_sets">Target Sets:</string>
+    <string name="to_failure">To Failure</string>
+    <string name="to_failure_note">(To Failure)</string>
 </resources>

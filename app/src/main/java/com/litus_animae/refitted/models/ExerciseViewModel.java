@@ -25,6 +25,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     private ExerciseRepository exerciseRepo;
 
     private LiveData<ExerciseSet> exerciseMutableLiveData;
+    private LiveData<String> targetExerciseReps;
     private LiveData<Integer> isLoading;
     private MutableLiveData<Boolean> isLoadingBool;
     private LiveData<Integer> hasLeft;
@@ -60,15 +61,29 @@ public class ExerciseViewModel extends AndroidViewModel {
                     exerciseRecords.setValue(records);
                     UpdateVisibleExercise(exerciseIndex.getValue());
                 });
-
-        SetupWeightAndRepsTransforms();
-
         exerciseMutableLiveData = Transformations.switchMap(exerciseSets,
                 set -> Transformations.map(exerciseIndex,
                         this::UpdateVisibleExercise));
+
+        SetupWeightAndRepsTransforms();
     }
 
     private void SetupWeightAndRepsTransforms() {
+        targetExerciseReps = Transformations.map(exerciseMutableLiveData, exercise ->
+        {
+            if (exercise == null){
+                return "";
+            }
+            if (exercise.getReps() < 0){
+                return getString(R.string.to_failure);
+            }
+            if (exercise.isToFailure()){
+                return String.format(Locale.getDefault(), "%d %s",
+                        exercise.getReps(), getString(R.string.to_failure_note));
+            }
+            return String.format(Locale.getDefault(), "%d", exercise.getReps());
+        });
+        // FIXME this should monitor the mutableexercise rather than the index
         LiveData<String> weightSeedValue = Transformations.switchMap(exerciseRecords, records ->
                 Transformations.map(exerciseIndex, index ->
                         FormatWeightDisplay(records.get(index).getSetsCount() > 0 ?
@@ -414,6 +429,10 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public MutableLiveData<String> getRepsDisplayValue() {
         return repsDisplayValue;
+    }
+
+    public LiveData<String> getTargetExerciseReps() {
+        return targetExerciseReps;
     }
     // endregion getters
 }
