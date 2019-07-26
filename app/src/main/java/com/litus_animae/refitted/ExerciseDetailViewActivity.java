@@ -1,6 +1,7 @@
 package com.litus_animae.refitted;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -23,6 +24,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     private MenuItem switchToAlternateButton;
     private ActivityExerciseDetailViewBinding binding;
     private ExerciseViewModel model;
+    private String workout;
+    private int day;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -56,8 +59,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         binding.setLocale(Locale.getDefault());
 
         Intent intent = getIntent();
-        model.loadExercises(Integer.toString(intent.getIntExtra("day", 1)),
-                intent.getStringExtra("workout"));
+        day = intent.getIntExtra("day", 1);
+        workout = intent.getStringExtra("workout");
+        model.loadExercises(Integer.toString(day), workout);
         binding.setViewmodel(model);
     }
 
@@ -66,6 +70,13 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         super.onResume();
         binding.repsDisplayView.clearFocus();
         binding.weightDisplayView.clearFocus();
+
+        SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("lastActivity", getClass().getName());
+        editor.putInt("day", day);
+        editor.putString("workout", workout);
+        editor.apply();
     }
 
     public void HandleWeightClick(View view) {
