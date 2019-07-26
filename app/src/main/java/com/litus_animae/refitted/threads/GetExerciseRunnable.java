@@ -1,14 +1,10 @@
 package com.litus_animae.refitted.threads;
 
 import android.content.Context;
-import android.os.Bundle;
-import android.os.Message;
 import android.util.Log;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.litus_animae.refitted.Constants;
 import com.litus_animae.refitted.data.DynamoDataService;
 import com.litus_animae.refitted.data.ExerciseRoom;
 import com.litus_animae.refitted.data.RoomDataService;
@@ -32,13 +28,16 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
     private ExerciseRoom roomDb;
     private DynamoDataService dynamoDb;
     private MutableLiveData<List<ExerciseSet>> exerciseSetLiveData;
+    private MutableLiveData<List<ExerciseRecord>> exerciseRecordLiveData;
 
     public GetExerciseRunnable(Context context, MutableLiveData<List<ExerciseSet>> sets,
+                               MutableLiveData<List<ExerciseRecord>> records,
                                String day, String workoutId) {
         this.applicationContext = context.getApplicationContext();
         this.day = day;
         this.workoutId = workoutId;
         this.exerciseSetLiveData = sets;
+        this.exerciseRecordLiveData = records;
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
@@ -52,32 +51,48 @@ public class GetExerciseRunnable implements Runnable, Thread.UncaughtExceptionHa
             ArrayList<ExerciseSet> exerciseSets = GetExerciseSets(day, keys, workoutId);
             GetExercises(workoutId, exerciseSets);
 
-            Message msg;
             if (!exerciseSets.isEmpty()) {
                 exerciseSets.sort((o1, o2) -> o1.getStep().compareTo(o2.getStep()));
-                Log.d(TAG, "run: posting data");
-                exerciseSetLiveData.postValue(exerciseSets);
-                Log.d(TAG, "run: data posted");
 
-                ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
-                for (ExerciseSet e : exerciseSets) {
-                    roomDb.getExerciseDao().storeExerciseSet(e);
-                    records.add(new ExerciseRecord(e));
-                }
+                Log.d(TAG, "run: posting sets");
+                exerciseSetLiveData.postValue(exerciseSets);
+                Log.d(TAG, "run: sets posted");
+
+                ArrayList<ExerciseRecord> records = getExerciseRecords(exerciseSets);
+                Log.d(TAG, "run: posting records");
+                exerciseRecordLiveData.postValue(records);
+                Log.d(TAG, "run: records posted");
 
                 Log.d(TAG, "run: retrieval success");
-                msg = Message.obtain(null, Constants.EXERCISE_LOAD_SUCCESS);
-                Bundle bundle = new Bundle();
-                bundle.putParcelableArrayList("exercise_load", exerciseSets);
-                bundle.putParcelableArrayList("exercise_records", records);
-                msg.setData(bundle);
             } else {
                 Log.d(TAG, "run: retrieval failure");
-                msg = Message.obtain(null, Constants.EXERCISE_LOAD_FAIL);
             }
         } catch (Exception ex) {
             Log.e(TAG, "run: ", ex);
         }
+    }
+
+    private ArrayList<ExerciseRecord> getExerciseRecords(ArrayList<ExerciseSet> exerciseSets) {
+        ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
+        for (ExerciseSet e : exerciseSets) {
+            Log.d(TAG, "getExerciseRecords: storing " + e.getId() + "-" +
+                    e.getWorkout() + ": '" + e.getName() + "' in cache");
+            try {
+                roomDb.getExerciseDao().storeExerciseSet(e);
+            } catch (Exception ex) {
+                // TODO report to me
+                Log.e(TAG, "getExerciseRecords: error storing exercise set cache", ex);
+                Exercise exercise = new Exercise();
+                exercise.setId(e.getName());
+                exercise.setWorkout(e.getWorkout());
+                roomDb.getExerciseDao().storeExercise(exercise);
+                roomDb.getExerciseDao().storeExerciseSet(e);
+            }
+            // TODO load if available
+            // TODO handle repeats in a day
+            records.add(new ExerciseRecord(e));
+        }
+        return records;
     }
 
     private void GetExercises(String workoutId,

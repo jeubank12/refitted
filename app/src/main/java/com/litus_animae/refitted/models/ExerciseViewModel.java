@@ -8,14 +8,14 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.R;
+import com.litus_animae.refitted.data.ExerciseRepository;
 import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
-import com.litus_animae.refitted.threads.GetExerciseRunnable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -23,6 +23,11 @@ import java.util.concurrent.Executors;
 
 public class ExerciseViewModel extends AndroidViewModel {
     private static final String TAG = "ExerciseViewModel";
+    private static final double defaultWeight = 25;
+
+    private ExecutorService threadPoolService;
+    private ExerciseRepository exerciseRepo;
+
     private LiveData<ExerciseSet> exerciseMutableLiveData;
     private LiveData<Integer> isLoading;
     private MutableLiveData<Boolean> isLoadingBool;
@@ -30,26 +35,79 @@ public class ExerciseViewModel extends AndroidViewModel {
     private MutableLiveData<Boolean> hasLeftBool;
     private LiveData<Integer> hasRight;
     private MutableLiveData<Boolean> hasRightBool;
-    private MutableLiveData<List<ExerciseSet>> exerciseSets;
-    private ExecutorService threadPoolService;
+    private MediatorLiveData<List<ExerciseSet>> exerciseSets = new MediatorLiveData<>();
+    private MediatorLiveData<List<ExerciseRecord>> exerciseRecords = new MediatorLiveData<>();
     private MutableLiveData<Integer> exerciseIndex = new MutableLiveData<>();
     private MutableLiveData<String> completeSetMessage = new MutableLiveData<>();
     private CountDownTimer timer;
-    private ArrayList<ExerciseRecord> exerciseRecords;
     private MutableLiveData<Integer> restMax = new MutableLiveData<>();
     private MutableLiveData<Integer> restProgress = new MutableLiveData<>();
     private MutableLiveData<String> restValue = new MutableLiveData<>();
-    private MutableLiveData<String> weightDisplayValue = new MutableLiveData<>();
-    private MutableLiveData<String> repsDisplayValue = new MutableLiveData<>();
+    private MediatorLiveData<String> weightDisplayValue = new MediatorLiveData<>();
+    private MediatorLiveData<String> repsDisplayValue = new MediatorLiveData<>();
 
     public ExerciseViewModel(@NonNull Application application) {
         super(application);
         threadPoolService = Executors.newCachedThreadPool();
+        exerciseRepo = new ExerciseRepository(application);
 
         isLoadingBool = new MutableLiveData<>();
         isLoadingBool.setValue(true);
         isLoading = Transformations.map(isLoadingBool, isLoad -> isLoad ? View.VISIBLE : View.GONE);
 
+        SetupLeftRightTransforms();
+
+        exerciseIndex.setValue(0);
+        exerciseSets.addSource(exerciseRepo.getExercises(),
+                exercises -> exerciseSets.setValue(exercises));
+        exerciseRecords.addSource(exerciseRepo.getRecords(),
+                records -> exerciseRecords.setValue(records));
+
+        SetupWeightAndRepsTransforms();
+
+        exerciseMutableLiveData = Transformations.switchMap(exerciseSets,
+                set -> Transformations.map(exerciseIndex,
+                        this::UpdateVisibleExercise));
+    }
+
+    private void SetupWeightAndRepsTransforms() {
+        LiveData<String> weightSeedValue = Transformations.switchMap(exerciseRecords, records ->
+                Transformations.map(exerciseIndex, index ->
+                        FormatWeightDisplay(records.get(index).getSetsCount() > 0 ?
+                                records.get(index).getSet(-1).getWeight() :
+                                defaultWeight)));
+        LiveData<String> repsSeedValue = Transformations.switchMap(exerciseRecords, records ->
+                Transformations.map(exerciseIndex, index ->
+                        FormatRepsDisplay(records.get(index).getSetsCount() > 0 ?
+                                records.get(index).getSet(-1).getReps() :
+                                records.get(index).getTargetSet().getReps())));
+        weightDisplayValue.addSource(weightSeedValue, v ->
+                weightDisplayValue.setValue(v));
+        weightDisplayValue.addSource(weightDisplayValue, v ->
+        {
+            // is this going to be heavy?
+            Log.d(TAG, "SetupWeightAndRepsTransforms: reviewing changing weightDisplayValue");
+            double value = Double.parseDouble(v);
+            if (value != Math.round(value * 2) / 2.0){
+                Log.d(TAG, "SetupWeightAndRepsTransforms: had to reformat weightDisplayValue");
+                weightDisplayValue.setValue(FormatWeightDisplay(value));
+            }
+        });
+        repsDisplayValue.addSource(repsSeedValue, v ->
+                repsDisplayValue.setValue(v));
+        repsDisplayValue.addSource(repsDisplayValue, v ->
+        {
+            // is this going to be heavy?
+            Log.d(TAG, "SetupWeightAndRepsTransforms: reviewing changing repsDisplayValue");
+            int value = Integer.parseInt(v);
+            if (value < 0){
+                Log.d(TAG, "SetupWeightAndRepsTransforms: had to reformat repsDisplayValue");
+                repsDisplayValue.setValue(FormatRepsDisplay(value));
+            }
+        });
+    }
+
+    private void SetupLeftRightTransforms() {
         hasLeftBool = new MutableLiveData<>();
         hasLeftBool.setValue(false);
         hasLeft = Transformations.map(hasLeftBool, enable -> enable ? View.VISIBLE : View.GONE);
@@ -57,12 +115,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         hasRightBool = new MutableLiveData<>();
         hasRightBool.setValue(true);
         hasRight = Transformations.map(hasRightBool, enable -> enable ? View.VISIBLE : View.GONE);
-
-        exerciseIndex.setValue(0);
-        exerciseSets = new MutableLiveData<>();
-        exerciseMutableLiveData = Transformations.switchMap(exerciseSets,
-                set -> Transformations.map(exerciseIndex,
-                        this::UpdateVisibleExercise));
     }
 
     @Override
@@ -73,11 +125,11 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     public void loadExercises(String day, String workoutId) {
-        threadPoolService.submit(new GetExerciseRunnable(getApplication(), exerciseSets,
-                day, workoutId));
+        exerciseRepo.LoadExercises(day, workoutId);
     }
 
-    private void UpdateWeightDisplay(double change) {
+    public void UpdateWeightDisplay(double change) {
+        // leaving this as a warning as I don't know when this would be null
         double value = Double.parseDouble(weightDisplayValue.getValue()) + change;
         if (value < 0) {
             SetWeightDisplay(0);
@@ -87,10 +139,16 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     private void SetWeightDisplay(double value) {
-        weightDisplayValue.setValue(String.format(Locale.getDefault(), "%.1f", value));
+        weightDisplayValue.setValue(FormatWeightDisplay(value));
     }
 
-    private void UpdateRepsDisplay(boolean increase) {
+    private static String FormatWeightDisplay(double value) {
+        value = Math.round(value * 2) / 2.0;
+        return String.format(Locale.getDefault(), "%.1f", value);
+    }
+
+    public void UpdateRepsDisplay(boolean increase) {
+        // leaving this as a warning as I don't know when this would be null
         int value = Integer.parseInt(repsDisplayValue.getValue());
         if (increase) {
             SetRepsDisplay(value + 1);
@@ -102,13 +160,21 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     private void SetRepsDisplay(int value) {
-        repsDisplayValue.setValue(String.format(Locale.getDefault(), "%d", value));
+        repsDisplayValue.setValue(FormatRepsDisplay(value));
+    }
+
+    private static String FormatRepsDisplay(int value) {
+        if (value < 0){
+            value = 0;
+        }
+        return String.format(Locale.getDefault(), "%d", value);
     }
 
     private boolean CheckForAlternateExerciseSet(int index, ExerciseSet e) {
         boolean result = false;
         if (!e.hasAlternate() && e.getStep().endsWith(".a")) {
             Log.d(TAG, "CheckForAlternateExerciseSet: setting up new alternate for .a");
+            // leaving this as a warning as I don't know when this would be null
             e.setAlternate(exerciseSets.getValue().get(index + 1));
             e.getAlternate().setActive(false);
             e.getAlternate().setAlternate(e);
@@ -127,18 +193,12 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     private ExerciseSet UpdateVisibleExercise(int index) {
-        if (exerciseRecords == null) {
-            exerciseRecords = new ArrayList<>();
-            for (ExerciseSet e : exerciseSets.getValue()) {
-                exerciseRecords.add(new ExerciseRecord(e));
-            }
-        }
-
         final List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (copyExerciseSets == null) {
             Log.d(TAG, "UpdateVisibleExercise: exerciseSets is not yet set, returning default");
             return new ExerciseSet();
         }
+        // leaving this as a warning as I don't know when this would be null
         if (isLoadingBool.getValue()) {
             isLoadingBool.setValue(false);
         }
@@ -148,6 +208,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         if (e.hasAlternate() || e.getStep().endsWith(".a")) {
             Log.d(TAG, "UpdateVisibleExercise: checking for alternate...");
             wasChanged = CheckForAlternateExerciseSet(index, e);
+            // leaving this as a warning as I don't know when this would be null
             e = copyExerciseSets.get(exerciseIndex.getValue());
             //switchToAlternateButton.setVisible(true);
             hasLeftBool.setValue(index > (e.getStep().endsWith(".b") ? 1 : 0));
@@ -159,29 +220,25 @@ public class ExerciseViewModel extends AndroidViewModel {
             hasRightBool.setValue(index < copyExerciseSets.size() - 1);
         }
 
-        SetTimerText(e);
+        final List<ExerciseRecord> records = exerciseRecords.getValue();
+        SetTimerText(e, records);
         if (wasChanged) {
             exerciseSets.setValue(copyExerciseSets);
         }
-        // TODO set reps and weight
-        SetRepsDisplay(exerciseRecords.get(index).getSetsCount() > 0 ?
-                exerciseRecords.get(index).getSet(-1).getReps() :
-                e.getReps());
-        SetWeightDisplay(exerciseRecords.get(index).getSetsCount() > 0 ?
-                exerciseRecords.get(index).getSet(-1).getWeight() :
-                25);
         return e;
     }
 
-    private void SetTimerText(ExerciseSet e) {
+    private void SetTimerText(ExerciseSet e, List<ExerciseRecord> records) {
+        // leaving this as a warning as I don't know when this would be null
+        ExerciseRecord currentRecord = getExerciseRecord(e, records, exerciseIndex.getValue());
         if (timer == null) {
-            if (exerciseRecords.get(exerciseIndex.getValue()).getSetsCount() == e.getSets()) {
+            if (currentRecord.getSetsCount() == e.getSets()) {
                 completeSetMessage.setValue(getString(R.string.complete_exercise));
             } else {
                 completeSetMessage.setValue(getString(R.string.complete_set) +
                         String.format(Locale.getDefault(), " %d %s %d",
                                 // using the LiveData here because the value may have changed
-                                exerciseRecords.get(exerciseIndex.getValue()).getSetsCount() + 1,
+                                currentRecord.getSetsCount() + 1,
                                 getString(R.string.word_of), e.getSets()));
             }
             restMax.setValue(e.getRest() * 1000);
@@ -191,17 +248,29 @@ public class ExerciseViewModel extends AndroidViewModel {
         }
     }
 
+    private ExerciseRecord getExerciseRecord(ExerciseSet e, List<ExerciseRecord> records, int index) {
+        ExerciseRecord currentRecord;
+        if (records == null || records.size() < index) {
+            currentRecord = new ExerciseRecord(e);
+        } else {
+            currentRecord = records.get(index);
+        }
+        return currentRecord;
+    }
+
     private String getString(int resourceId) {
         return getApplication().getResources().getString(resourceId);
     }
 
     public void SwapToAlternate() {
         final List<ExerciseSet> copyExerciseSet = exerciseSets.getValue();
+        // leaving this as a warning as I don't know when this would be null
         copyExerciseSet.get(exerciseIndex.getValue()).setActive(false);
         exerciseSets.setValue(copyExerciseSet);
     }
 
     public void NavigateLeft() {
+        // leaving this as a warning as I don't know when this would be null
         int index = exerciseIndex.getValue();
         if (index < 1) {
             Log.e(TAG, "HandleNavigateLeft: already furthest left");
@@ -221,6 +290,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     public void NavigateRight() {
+        // leaving this as a warning as I don't know when this would be null
         int index = exerciseIndex.getValue();
         List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (index >= copyExerciseSets.size() - 1) {
@@ -240,26 +310,26 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     public void CompleteSet(String weight, String reps) {
+        // leaving this as a warning as I don't know when this would be null
         final int index = exerciseIndex.getValue();
         final ExerciseSet exerciseSet = exerciseSets.getValue().get(index);
+        final List<ExerciseRecord> records = exerciseRecords.getValue();
+        final ExerciseRecord record = getExerciseRecord(exerciseSet, records, index);
         // if there is a timer, then this is a cancel button
         if (timer != null) {
             timer.cancel();
             timer = null;
-            SetTimerText(exerciseSet);
+            SetTimerText(exerciseSet, records);
             return;
         }
 
         // the logic inside to set the text should never be necessary, but we need the check
-        if (exerciseRecords.get(index).getSetsCount() ==
-                exerciseSet.getSets()) {
+        if (record.getSetsCount() == exerciseSet.getSets()) {
             completeSetMessage.setValue(getString(R.string.complete_exercise));
             return;
         }
 
-        exerciseRecords.get(index).addSet(
-                new SetRecord(Double.parseDouble(weight),
-                        Integer.parseInt(reps)));
+        record.addSet(new SetRecord(Double.parseDouble(weight), Integer.parseInt(reps)));
 
         timer = new CountDownTimer(
                 exerciseSet.getRest() * 1000,
@@ -272,14 +342,17 @@ public class ExerciseViewModel extends AndroidViewModel {
             @Override
             public void onFinish() {
                 timer = null;
-                SetTimerText(exerciseSets.getValue().get(exerciseIndex.getValue()));
+                SetTimerText(exerciseSets.getValue().get(exerciseIndex.getValue()),
+                        exerciseRecords.getValue());
             }
         };
-        SetTimerText(exerciseSet);
+        SetTimerText(exerciseSet, records);
+        exerciseRecords.setValue(records);
         timer.start();
     }
 
     private void UpdateRestTimerProgress(double rest) {
+        // leaving this as a warning as I don't know when this would be null
         restProgress.setValue((int) (restMax.getValue() - rest * 1000));
         restValue.setValue(String.format(Locale.getDefault(), "%.1f%s %s",
                 rest, getString(R.string.seconds_abbrev),
@@ -319,11 +392,11 @@ public class ExerciseViewModel extends AndroidViewModel {
         return restValue;
     }
 
-    public LiveData<String> getWeightDisplayValue() {
+    public MutableLiveData<String> getWeightDisplayValue() {
         return weightDisplayValue;
     }
 
-    public LiveData<String> getRepsDisplayValue() {
+    public MutableLiveData<String> getRepsDisplayValue() {
         return repsDisplayValue;
     }
     // endregion getters

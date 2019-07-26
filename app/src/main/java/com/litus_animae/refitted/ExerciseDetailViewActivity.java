@@ -125,13 +125,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     }
 
     private void UpdateWeightValue(double change) {
-        // TODO hook into viewmodel
-        double value = Double.parseDouble(binding.weightDisplayView.getText().toString()) + change;
-        if (value < 0) {
-            binding.weightDisplayView.setText(String.format(Locale.getDefault(), "%.1f", 0.0));
-        } else {
-            binding.weightDisplayView.setText(String.format(Locale.getDefault(), "%.1f", value));
-        }
+        model.UpdateWeightDisplay(change);
     }
 
     public void HandleRepsClick(View view) {
@@ -148,15 +142,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     }
 
     private void UpdateRepValue(boolean increase) {
-        // TODO hook into viewmodel
-        int value = Integer.parseInt(binding.repsDisplayView.getText().toString());
-        if (increase) {
-            binding.repsDisplayView.setText(String.format(Locale.getDefault(), "%d", value + 1));
-        } else if (value > 0) {
-            binding.repsDisplayView.setText(String.format(Locale.getDefault(), "%d", value - 1));
-        } else {
-            binding.repsDisplayView.setText(String.format(Locale.getDefault(), "%d", 0));
-        }
+        model.UpdateRepsDisplay(increase);
     }
 
     public void HandleNavigateLeft(View view) {

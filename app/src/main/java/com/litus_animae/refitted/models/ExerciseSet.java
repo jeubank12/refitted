@@ -2,6 +2,7 @@ package com.litus_animae.refitted.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
@@ -81,6 +82,11 @@ public class ExerciseSet implements Parcelable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getExerciseName() {
+        return TextUtils.isEmpty(name) || !name.contains("_") ? "" :
+                name.split("_", 2)[1];
     }
 
     @DynamoDBAttribute(attributeName = "Note")

@@ -2,6 +2,7 @@ package com.litus_animae.refitted.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
@@ -48,7 +49,16 @@ public class Exercise implements Parcelable {
     }
 
     public String getName() {
-        return id.split("_", 2)[1];
+        return TextUtils.isEmpty(id) || !id.contains("_") ? null :
+                id.split("_", 2)[1];
+    }
+
+    public String getName(boolean allowNull) {
+        if (allowNull){
+            return getName();
+        }
+        return TextUtils.isEmpty(id) || !id.contains("_") ? "" :
+                id.split("_", 2)[1];
     }
 
     public void setName(String name) {
@@ -60,8 +70,7 @@ public class Exercise implements Parcelable {
     }
 
     public void setCategory(String category) {
-        // TODO ensure no underscore in category
-        id = category + "_" + getName();
+        id = category.split("_", 2)[0] + "_" + getName(false);
     }
 
     @DynamoDBAttribute(attributeName = "Note")
