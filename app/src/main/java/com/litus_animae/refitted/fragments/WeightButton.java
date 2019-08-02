@@ -15,6 +15,7 @@ import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.R;
+import com.litus_animae.refitted.databinding.FragmentWeightButton4Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton5Binding;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
@@ -35,12 +36,12 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private static final String TAG = "WeightButton";
 
     public enum LAYOUT {
-        button5
+        button5,button4
     }
 
-    private static final String ARG_PARAM1 = "layout";
-    private static final String ARG_PARAM2 = "button values";
-    private static final String ARG_PARAM3 = "is positive";
+    private static final String ARG_LAYOUT = "layout";
+    private static final String ARG_VALUES = "button values";
+    private static final String ARG_POSITIVE = "is positive";
 
     private LAYOUT layoutResource;
     private MutableLiveData<double[]> buttonValues = new MutableLiveData<>();
@@ -76,9 +77,9 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     public static WeightButton newInstance(LAYOUT layoutType, double[] values, boolean isPositive) {
         WeightButton fragment = new WeightButton();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, layoutType.toString());
-        args.putSerializable(ARG_PARAM2, values);
-        args.putBoolean(ARG_PARAM3, isPositive);
+        args.putString(ARG_LAYOUT, layoutType.toString());
+        args.putSerializable(ARG_VALUES, values);
+        args.putBoolean(ARG_POSITIVE, isPositive);
         fragment.setArguments(args);
         return fragment;
     }
@@ -88,9 +89,9 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         super.onCreate(savedInstanceState);
         model = ViewModelProviders.of(getActivity()).get(ExerciseViewModel.class);
         if (getArguments() != null) {
-            setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_PARAM1)),
-                    (double[]) getArguments().getSerializable(ARG_PARAM2));
-            isPositive.setValue(getArguments().getBoolean(ARG_PARAM3));
+            setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_LAYOUT)),
+                    (double[]) getArguments().getSerializable(ARG_VALUES));
+            isPositive.setValue(getArguments().getBoolean(ARG_POSITIVE));
         } else {
             throw new IllegalStateException();
         }
@@ -101,6 +102,9 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         switch (layout) {
             case button5:
                 result = Arrays.copyOf(values, 5);
+                break;
+            case button4:
+                result = Arrays.copyOf(values, 4);
                 break;
             default:
                 throw new IllegalStateException();
@@ -116,9 +120,14 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         // Inflate the layout for this fragment
         switch (layoutResource) {
             case button5:
-                FragmentWeightButton5Binding binding = FragmentWeightButton5Binding
+                FragmentWeightButton5Binding bind5 = FragmentWeightButton5Binding
                         .inflate(inflater, container, false);
-                genericBinding = getWeightButton5Interface(binding);
+                genericBinding = getWeightButton5Interface(bind5);
+                break;
+            case button4:
+                FragmentWeightButton4Binding bind4 = FragmentWeightButton4Binding
+                        .inflate(inflater, container, false);
+                genericBinding = getWeightButton4Interface(bind4);
                 break;
             default:
                 throw new IllegalStateException();
@@ -132,7 +141,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         return genericBinding.getRoot();
     }
 
-    private BindingInterface getWeightButton5Interface(FragmentWeightButton5Binding binding) {
+    private static BindingInterface getWeightButton5Interface(FragmentWeightButton5Binding binding) {
         BindingInterface genericBinding;
         genericBinding = new BindingInterface() {
             @Override
@@ -154,6 +163,38 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             public Collection<Button> getButtons() {
                 return Arrays.asList(binding.button11, binding.button12,
                         binding.button21, binding.button22, binding.button3);
+            }
+
+            @Override
+            public View getRoot() {
+                return binding.getRoot();
+            }
+        };
+        return genericBinding;
+    }
+
+    private static BindingInterface getWeightButton4Interface(FragmentWeightButton4Binding binding) {
+        BindingInterface genericBinding;
+        genericBinding = new BindingInterface() {
+            @Override
+            public void setLifecycleOwner(LifecycleOwner owner) {
+                binding.setLifecycleOwner(owner);
+            }
+
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11, binding.button12,
+                        binding.button21, binding.button22);
             }
 
             @Override

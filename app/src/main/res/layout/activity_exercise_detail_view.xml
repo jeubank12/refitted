@@ -125,7 +125,6 @@
             android:id="@+id/weightDisplayView"
             android:layout_width="58dp"
             android:layout_height="46dp"
-            android:layout_marginTop="32dp"
             android:ems="10"
             android:gravity="center_horizontal|center_vertical"
             android:hint="@string/weight_value_hint"
@@ -134,6 +133,7 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:text='@={viewmodel.weightDisplayValue}'
+            app:layout_constraintBottom_toBottomOf="@+id/sub_weight_fragment"
             app:layout_constraintStart_toEndOf="@+id/sub_weight_fragment"
             app:layout_constraintTop_toTopOf="@+id/sub_weight_fragment"
             tools:text="25.0" />
@@ -160,6 +160,13 @@
             app:layout_constraintStart_toStartOf="@+id/addRepButton"
             app:layout_constraintTop_toBottomOf="@+id/repsDisplayView" />
 
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/weight_rep_barrier"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="subRepButton,sub_weight_fragment"/>
+
         <Button
             android:id="@+id/completeSetButton"
             android:layout_width="352dp"
@@ -173,7 +180,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/sub_weight_fragment" />
+            app:layout_constraintTop_toBottomOf="@+id/weight_rep_barrier" />
 
         <ProgressBar
             android:id="@+id/restProgressBar"

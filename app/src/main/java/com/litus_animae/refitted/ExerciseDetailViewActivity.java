@@ -39,7 +39,6 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item);
         enable25 = menu.findItem(R.id.enable_25);
         enable25.setChecked(show25);
-        updateWeightFragments();
 
         model.getExercise().observe(this, exerciseSet ->
                 switchToAlternateButton.setVisible(exerciseSet.hasAlternate()));
@@ -86,7 +85,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
 
     private void setInitialWeightFragments() {
         Log.d(TAG, "setInitialWeightFragments: will show the 2.5 button? " + show25);
-        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet().invoke();
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.add(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
         transaction.add(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
@@ -95,7 +94,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
 
     private void updateWeightFragments() {
         Log.d(TAG, "updateWeightFragments: will show the 2.5 button? " + show25);
-        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet().invoke();
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
         transaction.replace(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
@@ -111,6 +110,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
 
         show25 = prefs.getBoolean("enable25", true);
+        updateWeightFragments();
 
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("lastActivity", getClass().getName());
@@ -172,18 +172,17 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
             return addFrag;
         }
 
-        public WeightButtonFragmentSet invoke() {
+        public WeightButtonFragmentSet() {
             WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
             double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
             if (!show25) {
-                // TODO set layout
+                buttonsVisible = WeightButton.LAYOUT.button4;
                 buttonValues = Arrays.copyOfRange(buttonValues, 1, 5);
             }
             subFrag = WeightButton.newInstance(buttonsVisible,
                     buttonValues, false);
             addFrag = WeightButton.newInstance(buttonsVisible,
                     buttonValues, true);
-            return this;
         }
     }
 }
