@@ -160,32 +160,29 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             public View getRoot() {
                 return binding.getRoot();
             }
-        } return genericBinding;
+        };
+        return genericBinding;
     }
 
     @Override
     public void onClick(View view) {
         int sign = isPositive.getValue() ? 1 : -1;
+        double[] values = buttonValues.getValue();
         switch (view.getId()) {
             case R.id.button1_1:
-                // TODO get value
-                model.UpdateWeightDisplay(2.5 * sign);
+                model.UpdateWeightDisplay(values[0] * sign);
                 break;
             case R.id.button1_2:
-                // TODO get value
-                model.UpdateWeightDisplay(5 * sign);
+                model.UpdateWeightDisplay(values[1] * sign);
                 break;
             case R.id.button2_1:
-                // TODO get value
-                model.UpdateWeightDisplay(10 * sign);
+                model.UpdateWeightDisplay(values[2] * sign);
                 break;
             case R.id.button2_2:
-                // TODO get value
-                model.UpdateWeightDisplay(25 * sign);
+                model.UpdateWeightDisplay(values[3] * sign);
                 break;
             case R.id.button3:
-                // TODO get value
-                model.UpdateWeightDisplay(45 * sign);
+                model.UpdateWeightDisplay(values[4] * sign);
                 break;
             default:
                 Log.e(TAG, "HandleWeightClick: event from unknown source: " + view.getId());
