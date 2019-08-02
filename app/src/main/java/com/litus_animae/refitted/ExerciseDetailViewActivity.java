@@ -18,12 +18,15 @@ import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
 import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 public class ExerciseDetailViewActivity extends AppCompatActivity {
 
     private static final String TAG = "ExerciseDetailViewActivity";
     private MenuItem switchToAlternateButton;
+    private MenuItem enable25;
+    private boolean show25 = true;
     private ActivityExerciseDetailViewBinding binding;
     private ExerciseViewModel model;
     private String workout;
@@ -34,6 +37,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.alternate_menu, menu);
         switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item);
+        enable25 = menu.findItem(R.id.enable_25);
+        enable25.setChecked(show25);
+        updateWeightFragments();
 
         model.getExercise().observe(this, exerciseSet ->
                 switchToAlternateButton.setVisible(exerciseSet.hasAlternate()));
@@ -44,12 +50,21 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.switch_to_alternate_menu_item:
+                Log.d(TAG, "onOptionsItemSelected: handle 'switch to alternate'");
                 model.swapToAlternate();
                 return true;
+            case R.id.enable_25:
+                Log.d(TAG, "onOptionsItemSelected: handle 'enable 2.5'");
+                show25 = !show25;
+                enable25.setChecked(show25);
+                updateWeightFragments();
+                return true;
             default:
-                return super.onOptionsItemSelected(item);
+                return false;
         }
     }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,19 +76,30 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         binding.setLocale(Locale.getDefault());
 
         Intent intent = getIntent();
-        WeightButton subFrag = WeightButton.newInstance(WeightButton.LAYOUT.button5,
-                new double[] {2.5,5,10,25,45}, false);
-        WeightButton addFrag = WeightButton.newInstance(WeightButton.LAYOUT.button5,
-                new double[] {2.5,5,10,25,45}, true);
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.add(R.id.sub_weight_fragment, subFrag);
-        transaction.add(R.id.add_weight_fragment, addFrag);
-        transaction.commit();
+        setInitialWeightFragments();
 
         day = intent.getIntExtra("day", 1);
         workout = intent.getStringExtra("workout");
         model.loadExercises(Integer.toString(day), workout);
         binding.setViewmodel(model);
+    }
+
+    private void setInitialWeightFragments() {
+        Log.d(TAG, "setInitialWeightFragments: will show the 2.5 button? " + show25);
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet().invoke();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.add(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
+        transaction.add(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
+        transaction.commit();
+    }
+
+    private void updateWeightFragments() {
+        Log.d(TAG, "updateWeightFragments: will show the 2.5 button? " + show25);
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet().invoke();
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
+        transaction.replace(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
+        transaction.commit();
     }
 
     @Override
@@ -83,10 +109,24 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         binding.weightDisplayView.clearFocus();
 
         SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+
+        show25 = prefs.getBoolean("enable25", true);
+
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("lastActivity", getClass().getName());
         editor.putInt("day", day);
         editor.putString("workout", workout);
+        editor.apply();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("enable25", show25);
         editor.apply();
     }
 
@@ -120,5 +160,30 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 binding.repsDisplayView.getText().toString());
     }
 
-    // TODO implement on change for weight and reps then re-enable edit
+    private class WeightButtonFragmentSet {
+        private WeightButton subFrag;
+        private WeightButton addFrag;
+
+        public WeightButton getSubFrag() {
+            return subFrag;
+        }
+
+        public WeightButton getAddFrag() {
+            return addFrag;
+        }
+
+        public WeightButtonFragmentSet invoke() {
+            WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
+            double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
+            if (!show25) {
+                // TODO set layout
+                buttonValues = Arrays.copyOfRange(buttonValues, 1, 5);
+            }
+            subFrag = WeightButton.newInstance(buttonsVisible,
+                    buttonValues, false);
+            addFrag = WeightButton.newInstance(buttonsVisible,
+                    buttonValues, true);
+            return this;
+        }
+    }
 }
