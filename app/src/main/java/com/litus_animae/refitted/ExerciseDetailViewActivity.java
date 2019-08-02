@@ -11,9 +11,11 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
+import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
 import java.util.Locale;
@@ -59,6 +61,15 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         binding.setLocale(Locale.getDefault());
 
         Intent intent = getIntent();
+        WeightButton subFrag = WeightButton.newInstance(WeightButton.LAYOUT.button5,
+                new double[] {2.5,5,10,25,45}, false);
+        WeightButton addFrag = WeightButton.newInstance(WeightButton.LAYOUT.button5,
+                new double[] {2.5,5,10,25,45}, true);
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.add(R.id.sub_weight_fragment, subFrag);
+        transaction.add(R.id.add_weight_fragment, addFrag);
+        transaction.commit();
+
         day = intent.getIntExtra("day", 1);
         workout = intent.getStringExtra("workout");
         model.loadExercises(Integer.toString(day), workout);
@@ -79,73 +90,32 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         editor.apply();
     }
 
-    public void HandleWeightClick(View view) {
-        switch (view.getId()) {
-            case R.id.add2point5Button:
-                UpdateWeightValue(2.5);
-                break;
-            case R.id.add5Button:
-                UpdateWeightValue(5);
-                break;
-            case R.id.add10Button:
-                UpdateWeightValue(10);
-                break;
-            case R.id.add25Button:
-                UpdateWeightValue(25);
-                break;
-            case R.id.add45Button:
-                UpdateWeightValue(45);
-                break;
-            case R.id.sub2point5Button:
-                UpdateWeightValue(-2.5);
-                break;
-            case R.id.sub5Button:
-                UpdateWeightValue(-5);
-                break;
-            case R.id.sub10Button:
-                UpdateWeightValue(-10);
-                break;
-            case R.id.sub25Button:
-                UpdateWeightValue(-25);
-                break;
-            case R.id.sub45Button:
-                UpdateWeightValue(-45);
-                break;
-            default:
-                Log.e(TAG, "HandleWeightClick: event from unknown source: " + view.getId());
-        }
-    }
-
-    private void UpdateWeightValue(double change) {
-        model.UpdateWeightDisplay(change);
-    }
-
-    public void HandleRepsClick(View view) {
+    public void handleRepsClick(View view) {
         switch (view.getId()) {
             case R.id.addRepButton:
-                UpdateRepValue(true);
+                updateRepValue(true);
                 break;
             case R.id.subRepButton:
-                UpdateRepValue(false);
+                updateRepValue(false);
                 break;
             default:
-                Log.e(TAG, "HandleRepsClick: event from unknown source: " + view.getId());
+                Log.e(TAG, "handleRepsClick: event from unknown source: " + view.getId());
         }
     }
 
-    private void UpdateRepValue(boolean increase) {
+    private void updateRepValue(boolean increase) {
         model.UpdateRepsDisplay(increase);
     }
 
-    public void HandleNavigateLeft(View view) {
+    public void handleNavigateLeft(View view) {
         model.NavigateLeft();
     }
 
-    public void HandleNavigateRight(View view) {
+    public void handleNavigateRight(View view) {
         model.NavigateRight();
     }
 
-    public void HandleCompleteSet(View view) {
+    public void handleCompleteSet(View view) {
         model.CompleteSet(binding.weightDisplayView.getText().toString(),
                 binding.repsDisplayView.getText().toString());
     }

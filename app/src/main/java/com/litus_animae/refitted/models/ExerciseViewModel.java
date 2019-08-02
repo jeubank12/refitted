@@ -301,7 +301,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         // leaving this as a warning as I don't know when this would be null
         int index = exerciseIndex.getValue();
         if (index < 1) {
-            Log.e(TAG, "HandleNavigateLeft: already furthest left");
+            Log.e(TAG, "handleNavigateLeft: already furthest left");
             exerciseIndex.setValue(0);
         } else {
             ExerciseSet e = exerciseSets.getValue().get(index);
@@ -322,7 +322,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         int index = exerciseIndex.getValue();
         List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (index >= copyExerciseSets.size() - 1) {
-            Log.e(TAG, "HandleNavigateLeft: already furthest right");
+            Log.e(TAG, "handleNavigateLeft: already furthest right");
             exerciseIndex.setValue(copyExerciseSets.size() - 1);
         } else {
             ExerciseSet e = copyExerciseSets.get(index);
