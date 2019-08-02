@@ -44,7 +44,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.switch_to_alternate_menu_item:
-                model.SwapToAlternate();
+                model.swapToAlternate();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -104,19 +104,19 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
     }
 
     private void updateRepValue(boolean increase) {
-        model.UpdateRepsDisplay(increase);
+        model.updateRepsDisplay(increase);
     }
 
     public void handleNavigateLeft(View view) {
-        model.NavigateLeft();
+        model.navigateLeft();
     }
 
     public void handleNavigateRight(View view) {
-        model.NavigateRight();
+        model.navigateRight();
     }
 
     public void handleCompleteSet(View view) {
-        model.CompleteSet(binding.weightDisplayView.getText().toString(),
+        model.completeSet(binding.weightDisplayView.getText().toString(),
                 binding.repsDisplayView.getText().toString());
     }
 

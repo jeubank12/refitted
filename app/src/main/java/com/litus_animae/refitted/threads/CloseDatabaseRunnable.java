@@ -14,6 +14,6 @@ public class CloseDatabaseRunnable implements Runnable {
 
     @Override
     public void run() {
-        RoomDataService.CloseExerciseRoom(applicationContext);
+        RoomDataService.closeExerciseRoom(applicationContext);
     }
 }

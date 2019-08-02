@@ -42,28 +42,28 @@ public class DynamoDataService {
                 .build();
     }
 
-    public Exercise GetExercise(String exerciseId, String workoutId) {
-        Log.d(TAG, "GetExercise: retrieving exercise: " + exerciseId +
+    public Exercise getExercise(String exerciseId, String workoutId) {
+        Log.d(TAG, "getExercise: retrieving exercise: " + exerciseId +
                 " from workout: " + workoutId);
         try {
             return db.load(Exercise.class, exerciseId, workoutId);
         } catch (Exception ex) {
-            Log.e(TAG, "GetExercise: error loading Exercise", ex);
+            Log.e(TAG, "getExercise: error loading Exercise", ex);
         }
         return null;
     }
 
-    public ExerciseSet GetExerciseSet(String day, String exercise, String workoutId) {
+    public ExerciseSet getExerciseSet(String day, String exercise, String workoutId) {
         try {
             return db.load(ExerciseSet.class, day + "." + exercise, workoutId);
         } catch (Exception ex) {
-            Log.e(TAG, "GetExerciseSet: error loading Exercise Set", ex);
+            Log.e(TAG, "getExerciseSet: error loading Exercise Set", ex);
             return null;
         }
     }
 
-    public Set<String> GetExerciseKeys(String day, String workoutId) {
-        Log.d(TAG, "GetExerciseKeys: retrieving exercise set ids for day: " + day +
+    public Set<String> getExerciseKeys(String day, String workoutId) {
+        Log.d(TAG, "getExerciseKeys: retrieving exercise set ids for day: " + day +
                 " from workout: " + workoutId);
         try {
             WorkoutDay workout = db.load(WorkoutDay.class, day, workoutId);
@@ -71,7 +71,7 @@ public class DynamoDataService {
                 return workout.getExercises();
             }
         } catch (Exception ex) {
-            Log.e(TAG, "GetExerciseKeys: error loading workout", ex);
+            Log.e(TAG, "getExerciseKeys: error loading workout", ex);
         }
         return new HashSet<>();
     }

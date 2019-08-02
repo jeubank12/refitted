@@ -13,7 +13,7 @@ public class RoomDataService {
     private static final String db_name = "dev01.2.db";
     private static final Map<Context, ExerciseRoom> rooms = new ConcurrentHashMap<>();
 
-    public static ExerciseRoom GetExerciseRoom(Context context) {
+    public static ExerciseRoom getExerciseRoom(Context context) {
         ExerciseRoom room = rooms.get(context.getApplicationContext());
         if (room == null) {
             synchronized (ExerciseRoom.class) {
@@ -30,7 +30,7 @@ public class RoomDataService {
         return room;
     }
 
-    public static void CloseExerciseRoom(Context context) {
+    public static void closeExerciseRoom(Context context) {
         ExerciseRoom room = rooms.remove(context.getApplicationContext());
         if (room != null) {
             synchronized (ExerciseRoom.class) {

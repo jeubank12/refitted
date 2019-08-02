@@ -12,13 +12,9 @@ import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,12 +46,12 @@ public class GetExerciseRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            roomDb = RoomDataService.GetExerciseRoom(applicationContext);
+            roomDb = RoomDataService.getExerciseRoom(applicationContext);
             dynamoDb = new DynamoDataService(applicationContext);
 
-            Set<String> keys = GetExerciseKeys(day, workoutId);
-            ArrayList<ExerciseSet> exerciseSets = GetExerciseSets(day, keys, workoutId);
-            GetExercises(workoutId, exerciseSets);
+            Set<String> keys = getExerciseKeys(day, workoutId);
+            ArrayList<ExerciseSet> exerciseSets = getExerciseSets(day, keys, workoutId);
+            getExercises(workoutId, exerciseSets);
 
             if (!exerciseSets.isEmpty()) {
                 exerciseSets.sort((o1, o2) -> o1.getStep().compareTo(o2.getStep()));
@@ -107,22 +103,22 @@ public class GetExerciseRunnable implements Runnable {
         return records;
     }
 
-    private void GetExercises(String workoutId,
+    private void getExercises(String workoutId,
                               ArrayList<ExerciseSet> exerciseSets) {
         if (exerciseSets.isEmpty()) {
-            Log.e(TAG, "GetExercises: result set was empty");
+            Log.e(TAG, "getExercises: result set was empty");
             return;
         }
         Set<String> exercises = new HashSet<>();
         for (ExerciseSet e : exerciseSets) {
             exercises.add(e.getName());
         }
-        Log.i(TAG, "GetExercises: retrieving distinct exercises");
+        Log.i(TAG, "getExercises: retrieving distinct exercises");
         Map<String, Exercise> exerciseMap = new HashMap<>();
         for (String e : exercises) {
             Exercise exercise = roomDb.getExerciseDao().getExercise(e, workoutId);
             if (exercise == null) {
-                exercise = dynamoDb.GetExercise(e, workoutId);
+                exercise = dynamoDb.getExercise(e, workoutId);
                 if (exercise != null) {
                     roomDb.getExerciseDao().storeExercise(exercise);
                 }
@@ -137,44 +133,44 @@ public class GetExerciseRunnable implements Runnable {
         for (ExerciseSet e : exerciseSets) {
             e.setExercise(exerciseMap.getOrDefault(e.getName(), errExercise));
         }
-        Log.i(TAG, "GetExercises: retrieved distinct exercises");
+        Log.i(TAG, "getExercises: retrieved distinct exercises");
     }
 
-    private ArrayList<ExerciseSet> GetExerciseSets(String day, Set<String> exercises,
+    private ArrayList<ExerciseSet> getExerciseSets(String day, Set<String> exercises,
                                                    String workoutId) {
-        Log.i(TAG, "GetExerciseSets: retrieving exercise sets for day: " + day +
+        Log.i(TAG, "getExerciseSets: retrieving exercise sets for day: " + day +
                 " from workout: " + workoutId);
         ArrayList<ExerciseSet> exerciseSets = new ArrayList<>();
         for (String e : exercises) {
             ExerciseSet exerciseSet = roomDb.getExerciseDao().getExerciseSet(day, workoutId, e);
             if (exerciseSet == null) {
-                Log.i(TAG, "GetExerciseSets: missed cache for " + day + "." + e +
+                Log.i(TAG, "getExerciseSets: missed cache for " + day + "." + e +
                         " in workout " + workoutId);
-                exerciseSet = dynamoDb.GetExerciseSet(day, e, workoutId);
+                exerciseSet = dynamoDb.getExerciseSet(day, e, workoutId);
             }
             if (exerciseSet != null) {
                 exerciseSets.add(exerciseSet);
             } else {
-                Log.e(TAG, "GetExerciseSets: exercise not found! " + day + "." + e +
+                Log.e(TAG, "getExerciseSets: exercise not found! " + day + "." + e +
                         " in workout " + workoutId);
             }
         }
         return exerciseSets;
     }
 
-    private Set<String> GetExerciseKeys(String day, String workoutId) {
-        Log.i(TAG, "GetExerciseKeys: retrieving exercise set ids for day: " + day +
+    private Set<String> getExerciseKeys(String day, String workoutId) {
+        Log.i(TAG, "getExerciseKeys: retrieving exercise set ids for day: " + day +
                 " from workout: " + workoutId);
         Set<String> exerciseKeys = new HashSet<>(roomDb.getExerciseDao().getSteps(day, workoutId));
         if (!exerciseKeys.isEmpty()) {
-            Log.i(TAG, "GetExerciseKeys: found keys in cache");
+            Log.i(TAG, "getExerciseKeys: found keys in cache");
             return exerciseKeys;
         }
-        Log.d(TAG, "GetExerciseKeys: did not find keys in cache, checking dynamo");
+        Log.d(TAG, "getExerciseKeys: did not find keys in cache, checking dynamo");
         try {
-            exerciseKeys = dynamoDb.GetExerciseKeys(day, workoutId);
+            exerciseKeys = dynamoDb.getExerciseKeys(day, workoutId);
         } catch (Exception ex) {
-            Log.e(TAG, "GetExerciseKeys: error loading workout", ex);
+            Log.e(TAG, "getExerciseKeys: error loading workout", ex);
         }
         return exerciseKeys;
     }

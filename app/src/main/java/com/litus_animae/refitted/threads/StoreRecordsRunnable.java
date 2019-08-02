@@ -21,7 +21,7 @@ public class StoreRecordsRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            roomDb = RoomDataService.GetExerciseRoom(applicationContext);
+            roomDb = RoomDataService.getExerciseRoom(applicationContext);
             roomDb.getExerciseDao().storeExerciseRecord(record);
         } catch (Exception ex){
             Log.e(TAG, "run: exception during store", ex);

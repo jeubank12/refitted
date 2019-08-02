@@ -28,12 +28,12 @@ public class ExerciseRepository {
         threadPoolService = Executors.newCachedThreadPool();
     }
 
-    public void LoadExercises(String day, String workoutId) {
+    public void loadExercises(String day, String workoutId) {
         threadPoolService.submit(new GetExerciseRunnable(applicationContext, exercises, records,
                 day, workoutId));
     }
 
-    public void StoreSetRecord(SetRecord record) {
+    public void storeSetRecord(SetRecord record) {
         threadPoolService.submit(new StoreRecordsRunnable(applicationContext, record));
     }
 
@@ -45,7 +45,7 @@ public class ExerciseRepository {
         return records;
     }
 
-    public void Shutdown(){
+    public void shutdown(){
         threadPoolService.submit(new CloseDatabaseRunnable(applicationContext));
         threadPoolService.shutdown();
     }

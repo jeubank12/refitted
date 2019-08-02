@@ -27,7 +27,7 @@ import java.util.Collection;
 
 /**
  * A simple {@link Fragment} subclass. Presents a widget of buttons that
- * call {@link ExerciseViewModel#UpdateWeightDisplay(double)} with their value
+ * call {@link ExerciseViewModel#updateWeightDisplay(double)} with their value
  * Use the {@link WeightButton#newInstance} factory method to
  * create an instance of this fragment.
  */
@@ -170,19 +170,19 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         double[] values = buttonValues.getValue();
         switch (view.getId()) {
             case R.id.button1_1:
-                model.UpdateWeightDisplay(values[0] * sign);
+                model.updateWeightDisplay(values[0] * sign);
                 break;
             case R.id.button1_2:
-                model.UpdateWeightDisplay(values[1] * sign);
+                model.updateWeightDisplay(values[1] * sign);
                 break;
             case R.id.button2_1:
-                model.UpdateWeightDisplay(values[2] * sign);
+                model.updateWeightDisplay(values[2] * sign);
                 break;
             case R.id.button2_2:
-                model.UpdateWeightDisplay(values[3] * sign);
+                model.updateWeightDisplay(values[3] * sign);
                 break;
             case R.id.button3:
-                model.UpdateWeightDisplay(values[4] * sign);
+                model.updateWeightDisplay(values[4] * sign);
                 break;
             default:
                 Log.e(TAG, "HandleWeightClick: event from unknown source: " + view.getId());
