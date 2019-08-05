@@ -49,9 +49,9 @@ public class GetExerciseRunnable implements Runnable {
             roomDb = RoomDataService.getExerciseRoom(applicationContext);
             dynamoDb = new DynamoDataService(applicationContext);
 
-            Set<String> keys = getExerciseKeys(day, workoutId);
-            ArrayList<ExerciseSet> exerciseSets = getExerciseSets(day, keys, workoutId);
-            getExercises(workoutId, exerciseSets);
+            Set<String> keys = getExerciseKeys();
+            ArrayList<ExerciseSet> exerciseSets = getExerciseSets(keys);
+            getExercises(exerciseSets);
 
             if (!exerciseSets.isEmpty()) {
                 exerciseSets.sort((o1, o2) -> o1.getStep().compareTo(o2.getStep()));
@@ -103,8 +103,7 @@ public class GetExerciseRunnable implements Runnable {
         return records;
     }
 
-    private void getExercises(String workoutId,
-                              ArrayList<ExerciseSet> exerciseSets) {
+    private void getExercises(ArrayList<ExerciseSet> exerciseSets) {
         if (exerciseSets.isEmpty()) {
             Log.e(TAG, "getExercises: result set was empty");
             return;
@@ -136,8 +135,7 @@ public class GetExerciseRunnable implements Runnable {
         Log.i(TAG, "getExercises: retrieved distinct exercises");
     }
 
-    private ArrayList<ExerciseSet> getExerciseSets(String day, Set<String> exercises,
-                                                   String workoutId) {
+    private ArrayList<ExerciseSet> getExerciseSets(Set<String> exercises) {
         Log.i(TAG, "getExerciseSets: retrieving exercise sets for day: " + day +
                 " from workout: " + workoutId);
         ArrayList<ExerciseSet> exerciseSets = new ArrayList<>();
@@ -158,7 +156,7 @@ public class GetExerciseRunnable implements Runnable {
         return exerciseSets;
     }
 
-    private Set<String> getExerciseKeys(String day, String workoutId) {
+    private Set<String> getExerciseKeys() {
         Log.i(TAG, "getExerciseKeys: retrieving exercise set ids for day: " + day +
                 " from workout: " + workoutId);
         Set<String> exerciseKeys = new HashSet<>(roomDb.getExerciseDao().getSteps(day, workoutId));
