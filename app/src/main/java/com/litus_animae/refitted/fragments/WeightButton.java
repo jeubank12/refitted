@@ -36,7 +36,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private static final String TAG = "WeightButton";
 
     public enum LAYOUT {
-        button5,button4
+        button5, button4
     }
 
     private static final String ARG_LAYOUT = "layout";
@@ -87,7 +87,12 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        model = ViewModelProviders.of(getActivity()).get(ExerciseViewModel.class);
+        if (getActivity() != null) {
+            model = ViewModelProviders.of(getActivity()).get(ExerciseViewModel.class);
+        } else {
+            Log.e(TAG, "onCreate: already detached, getting dummy model...");
+            model = ViewModelProviders.of(this).get(ExerciseViewModel.class);
+        }
         if (getArguments() != null) {
             setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_LAYOUT)),
                     (double[]) getArguments().getSerializable(ARG_VALUES));
@@ -96,6 +101,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             throw new IllegalStateException();
         }
     }
+
 
     private void setButtonValues(LAYOUT layout, double[] values) {
         double[] result;
