@@ -93,6 +93,7 @@ public class GetExerciseRunnable implements Runnable {
             }
             ExerciseRecord record = new ExerciseRecord(e);
             try {
+                record.setLatestSet(roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()));
                 record.setSets(roomDb.getExerciseDao()
                         .getSetRecords(tonightMidnight, e.getExerciseName()));
             } catch (Exception ex) {

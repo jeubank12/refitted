@@ -73,13 +73,13 @@ public class ExerciseViewModel extends AndroidViewModel {
     private void setupWeightAndRepsTransforms() {
         targetExerciseReps = Transformations.map(exerciseMutableLiveData, exercise ->
         {
-            if (exercise == null){
+            if (exercise == null) {
                 return "";
             }
-            if (exercise.getReps() < 0){
+            if (exercise.getReps() < 0) {
                 return getString(R.string.to_failure);
             }
-            if (exercise.isToFailure()){
+            if (exercise.isToFailure()) {
                 return String.format(Locale.getDefault(), "%d %s",
                         exercise.getReps(), getString(R.string.to_failure_note));
             }
@@ -87,10 +87,13 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
         // FIXME this should monitor the mutableexercise rather than the index
         LiveData<String> weightSeedValue = Transformations.switchMap(exerciseRecords, records ->
-                Transformations.map(exerciseIndex, index ->
-                        formatWeightDisplay(records.get(index).getSetsCount() > 0 ?
-                                records.get(index).getSet(-1).getWeight() :
-                                defaultWeight)));
+                Transformations.map(exerciseIndex, index -> {
+                    ExerciseRecord r = records.get(index);
+                    return formatWeightDisplay(r.getSetsCount() > 0 ?
+                            r.getSet(-1).getWeight() :
+                            r.getLatestSet() != null ? r.getLatestSet().getWeight() :
+                                    defaultWeight);
+                }));
         LiveData<String> repsSeedValue = Transformations.switchMap(exerciseRecords, records ->
                 Transformations.map(exerciseIndex, index ->
                         formatRepsDisplay(records.get(index).getSetsCount() > 0 ?

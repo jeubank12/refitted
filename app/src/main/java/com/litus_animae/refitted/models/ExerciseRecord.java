@@ -10,6 +10,8 @@ public class ExerciseRecord {
     @Embedded
     private ExerciseSet targetSet;
 
+    private SetRecord latestSet;
+
     @Relation(parentColumn = "name", entityColumn = "exercise", entity = SetRecord.class)
     private List<SetRecord> sets = new ArrayList<>();
 
@@ -48,5 +50,13 @@ public class ExerciseRecord {
 
     public void setSets(List<SetRecord> sets) {
         this.sets = sets;
+    }
+
+    public SetRecord getLatestSet() {
+        return latestSet;
+    }
+
+    public void setLatestSet(SetRecord latestSet) {
+        this.latestSet = latestSet;
     }
 }

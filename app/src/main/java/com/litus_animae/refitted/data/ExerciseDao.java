@@ -32,6 +32,9 @@ public interface ExerciseDao {
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
     List<SetRecord> getSetRecords(Date minDate, String targetExercise);
 
+    @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
+    SetRecord getLatestSetRecord(String targetExercise);
+
     @Insert
     void storeExerciseRecord(SetRecord exerciseRecord);
 }
