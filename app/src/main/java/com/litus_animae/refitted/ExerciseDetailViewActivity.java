@@ -25,7 +25,6 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
 
     private static final String TAG = "ExerciseDetailViewActivity";
     private MenuItem switchToAlternateButton;
-    private MenuItem enable25;
     private boolean show25 = true;
     private ActivityExerciseDetailViewBinding binding;
     private ExerciseViewModel model;
@@ -37,7 +36,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.alternate_menu, menu);
         switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item);
-        enable25 = menu.findItem(R.id.enable_25);
+        MenuItem enable25 = menu.findItem(R.id.enable_25);
         enable25.setChecked(show25);
 
         model.getExercise().observe(this, exerciseSet ->
@@ -55,7 +54,7 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
             case R.id.enable_25:
                 Log.d(TAG, "onOptionsItemSelected: handle 'enable 2.5'");
                 show25 = !show25;
-                enable25.setChecked(show25);
+                item.setChecked(show25);
                 updateWeightFragments();
                 return true;
             default:
