@@ -12,6 +12,8 @@ public class ExerciseRecord {
 
     private SetRecord latestSet;
 
+    private List<SetRecord> allSets;
+
     @Relation(parentColumn = "name", entityColumn = "exercise", entity = SetRecord.class)
     private List<SetRecord> sets = new ArrayList<>();
 
@@ -58,5 +60,13 @@ public class ExerciseRecord {
 
     public void setLatestSet(SetRecord latestSet) {
         this.latestSet = latestSet;
+    }
+
+    public List<SetRecord> getAllSets() {
+        return allSets;
+    }
+
+    public void setAllSets(List<SetRecord> allSets) {
+        this.allSets = allSets;
     }
 }

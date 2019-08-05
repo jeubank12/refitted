@@ -35,6 +35,9 @@ public interface ExerciseDao {
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
     SetRecord getLatestSetRecord(String targetExercise);
 
+    @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
+    List<SetRecord> getAllSetRecord(String targetExercise);
+
     @Insert
     void storeExerciseRecord(SetRecord exerciseRecord);
 }

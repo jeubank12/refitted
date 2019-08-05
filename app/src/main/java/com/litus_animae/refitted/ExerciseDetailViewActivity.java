@@ -11,10 +11,12 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
+import com.litus_animae.refitted.fragments.ExerciseHistoryDialogFragment;
 import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
@@ -56,6 +58,10 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 show25 = !show25;
                 item.setChecked(show25);
                 updateWeightFragments();
+                return true;
+            case R.id.show_history:
+                DialogFragment history = new ExerciseHistoryDialogFragment();
+                history.show(getSupportFragmentManager(), null);
                 return true;
             default:
                 return false;

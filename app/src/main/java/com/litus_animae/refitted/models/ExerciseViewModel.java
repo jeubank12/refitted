@@ -137,6 +137,16 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     }
 
+    public ExerciseRecord getCurrentRecord(){
+        //FIXME make safe
+        return exerciseRecords.getValue().get(exerciseIndex.getValue());
+    }
+
+    public ExerciseSet getCurrentSet(){
+        //FIXME make safe
+        return exerciseSets.getValue().get(exerciseIndex.getValue());
+    }
+
     private void setupLeftRightTransforms() {
         hasLeftBool = new MutableLiveData<>();
         hasLeftBool.setValue(false);

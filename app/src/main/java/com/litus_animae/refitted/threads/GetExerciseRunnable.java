@@ -96,6 +96,7 @@ public class GetExerciseRunnable implements Runnable {
                 record.setLatestSet(roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()));
                 record.setSets(roomDb.getExerciseDao()
                         .getSetRecords(tonightMidnight, e.getExerciseName()));
+                record.setAllSets(roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()));
             } catch (Exception ex) {
                 Log.e(TAG, "getExerciseRecords: failed retrieving records", ex);
             }
