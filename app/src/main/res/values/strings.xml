@@ -37,4 +37,6 @@
     <string name="lbs">lbs</string>
     <string name="alternate">Alternate</string>
     <string name="history">History</string>
+    <string name="colon">:</string>
+    <string name="day">Day</string>
 </resources>

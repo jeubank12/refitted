@@ -84,6 +84,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
 
         day = intent.getIntExtra("day", 1);
         workout = intent.getStringExtra("workout");
+        setTitle(getString(R.string.app_name) + getString(R.string.colon) + " " +
+                workout + " " + getString(R.string.day) + " " + day);
         model.loadExercises(Integer.toString(day), workout);
         binding.setViewmodel(model);
     }
