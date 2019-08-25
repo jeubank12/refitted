@@ -23,6 +23,7 @@ public class ExerciseRecord {
 
     public void addSet(SetRecord record) {
         getSets().add(record);
+        allSets.add(0,record);
     }
 
     public SetRecord getSet(int set) {
