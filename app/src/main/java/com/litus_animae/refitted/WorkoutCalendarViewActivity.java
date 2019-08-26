@@ -41,12 +41,12 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_workout_calendar_view);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         ((CollapsingToolbarLayout) findViewById(R.id.toolbar_layout))
                 .setTitle("AX1");
         RecyclerView list = findViewById(R.id.calendar_recycler);
-        list.setAdapter(new CalendarAdapter(90));
+        list.setAdapter(new CalendarAdapter(84));
         list.setLayoutManager(new LinearLayoutManager(this));
     }
 
