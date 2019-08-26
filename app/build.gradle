@@ -51,7 +51,7 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.1'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
     implementation 'com.amazonaws:aws-android-sdk-ddb-mapper:2.13.6'
-    implementation 'com.instabug.library:instabug:8.5.0'
+    implementation 'com.instabug.library:instabug:8.6.1'
 
     def room_version = "2.1.0"
     implementation "androidx.room:room-runtime:$room_version"
