@@ -124,7 +124,6 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="12dp"
             android:onClick="handleWeightClick"
-            app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
             app:layout_constraintEnd_toStartOf="@+id/weightDisplayView"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
@@ -212,6 +211,7 @@
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
             android:fillViewport="true"
             app:layout_constraintBottom_toTopOf="@+id/guideline"
             app:layout_constraintEnd_toEndOf="parent"
