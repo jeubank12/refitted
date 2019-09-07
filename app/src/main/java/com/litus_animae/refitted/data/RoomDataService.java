@@ -2,6 +2,7 @@ package com.litus_animae.refitted.data;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -19,16 +20,20 @@ public class RoomDataService {
     private static final ConcurrentHashMap<ContextWeakReference, MutableLiveData<ExerciseRoom>> rooms = new ConcurrentHashMap<>();
 
     public static ExerciseRoom getExerciseRoom(Context context) {
+        Log.i(TAG, "getExerciseRoom: context " + context.toString() + " requested Room database, " + Thread.currentThread().getName());
         ContextWeakReference contextRef = new ContextWeakReference(context);
         MutableLiveData<ExerciseRoom> room = rooms.get(contextRef);
         if (room == null || room.getValue() == null) {
+            Log.i(TAG, "getExerciseRoom: context " + context.toString() + " waiting to create Room database, " + Thread.currentThread().getName());
             synchronized (ExerciseRoom.class) {
+                Log.i(TAG, "getExerciseRoom: context " + context.toString() + " has exclusive creation access, " + Thread.currentThread().getName());
                 room = rooms.merge(contextRef, new MutableLiveData<>(), (oldValue, newValue) -> oldValue);
                 if (room.getValue() == null) {
                     ExerciseRoom newRoom = Room.databaseBuilder(context.getApplicationContext(),
                             ExerciseRoom.class, db_name)
                             .addMigrations(ExerciseRoom.MIGRATION_1_2)
                             .build();
+                    Log.i(TAG, "getExerciseRoom: context " + context.toString() + " opened the database, " + Thread.currentThread().getName());
                     room.setValue(newRoom);
                 }
             }
@@ -37,9 +42,11 @@ public class RoomDataService {
     }
 
     public static LiveData<ExerciseRoom> getExerciseRoomAsync(WeakReference<Context> context) {
+        Log.i(TAG, "getExerciseRoomAsync: context " + context.get().toString() + " requested Room database, " + Thread.currentThread().getName());
         ContextWeakReference contextRef = new ContextWeakReference(context);
         MutableLiveData<ExerciseRoom> room = rooms.merge(contextRef, new MutableLiveData<>(), (oldValue, newValue) -> oldValue);
         if (room.getValue() == null) {
+            Log.d(TAG, "getExerciseRoomAsync: context " + context.get().toString() + " submitting request to create db, " + Thread.currentThread().getName());
             new GetDatabaseTask(room).execute(contextRef);
         }
         return room;
@@ -56,9 +63,12 @@ public class RoomDataService {
     }
 
     public static void closeExerciseRoomAsync(Context context) {
+        Log.i(TAG, "closeExerciseRoomAsync: context " + context.toString() + " requested to close the database, " + Thread.currentThread().getName());
+        new CloseDatabaseTask().execute(new ContextWeakReference(context));
     }
 
     private static class GetDatabaseTask extends AsyncTask<ContextWeakReference, Void, Void> {
+        private static final String TAG = "RoomDataService.GetDatabaseTask";
 
         private MutableLiveData<ExerciseRoom> result;
 
@@ -70,39 +80,44 @@ public class RoomDataService {
         protected Void doInBackground(ContextWeakReference... contexts) {
             if (contexts.length > 0) {
                 ContextWeakReference context = contexts[0];
+                Log.d(TAG, "doInBackground: context " + context.get().toString() + " waiting to create Room database, " + Thread.currentThread().getName());
                 synchronized (ExerciseRoom.class) {
+                    Log.d(TAG, "doInBackground: context " + context.get().toString() + " has exclusive hashset access, " + Thread.currentThread().getName());
                     if (result.getValue() == null) {
                         ExerciseRoom room = Room.databaseBuilder(context.get(),
                                 ExerciseRoom.class, db_name)
                                 .addMigrations(ExerciseRoom.MIGRATION_1_2)
                                 .build();
+                        Log.i(TAG, "doInBackground: context " + context.get().toString() + " opened the database, " + Thread.currentThread().getName());
                         result.postValue(room);
                     }
                 }
+            } else {
+                Log.e(TAG, "doInBackground: insufficient arguments given");
             }
             return null;
         }
     }
 
     private static class CloseDatabaseTask extends AsyncTask<ContextWeakReference, Void, Void> {
-
-        private MutableLiveData<ExerciseRoom> result;
-
-        private CloseDatabaseTask(MutableLiveData<ExerciseRoom> result) {
-            this.result = result;
-        }
+        private static final String TAG = "RoomDataService.CloseDatabaseTask";
 
         @Override
         protected Void doInBackground(ContextWeakReference... contexts) {
             if (contexts.length > 0) {
                 ContextWeakReference context = contexts[0];
+                Log.d(TAG, "doInBackground: context " + context.get().toString() + " waiting to create Room database, " + Thread.currentThread().getName());
                 synchronized (ExerciseRoom.class) {
+                    Log.d(TAG, "doInBackground: context " + context.get().toString() + " has exclusive hashset access, " + Thread.currentThread().getName());
                     MutableLiveData<ExerciseRoom> room = rooms.remove(context);
                     if (room != null && room.getValue() != null) {
                         room.getValue().close();
+                    } else if (room.getValue() == null){
+                        Log.w(TAG, "doInBackground: context " + context.get().toString() + " found empty hashset entry, " + Thread.currentThread().getName());
                     }
-                    // TODO log if value null
                 }
+            } else {
+                Log.e(TAG, "doInBackground: insufficient arguments given");
             }
             return null;
         }
