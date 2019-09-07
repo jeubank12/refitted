@@ -14,6 +14,8 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
 
+import java.util.Date;
+
 
 @Entity(primaryKeys = {"exercise_name","exercise_workout"})
 @DynamoDBTable(tableName = "refitted-exercise")
@@ -25,6 +27,7 @@ public class Exercise implements Parcelable {
     @ColumnInfo(name = "exercise_name")
     private String id = "";
     private String description;
+    //private Date cacheDate;
 
     public Exercise(){}
 

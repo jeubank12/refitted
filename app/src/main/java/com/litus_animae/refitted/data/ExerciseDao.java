@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.data;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -15,10 +16,13 @@ import java.util.List;
 @Dao
 public interface ExerciseDao {
     @Query("select distinct step from exerciseset where day = :day and workout = :workout")
-    List<String> getSteps(String day, String workout);
+    LiveData<List<String>> getSteps(String day, String workout);
 
     @Query("select * from exerciseset where day = :day and workout = :workout and step = :step")
     ExerciseSet getExerciseSet(String day, String workout, String step);
+
+    @Query("select * from exerciseset where day = :day and workout = :workout and step in (:steps) order by step")
+    LiveData<List<ExerciseSet>> getExerciseSets(String day, String workout, String... steps);
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
     Exercise getExercise(String name, String workout);

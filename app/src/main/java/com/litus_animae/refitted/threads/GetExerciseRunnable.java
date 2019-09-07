@@ -3,7 +3,10 @@ package com.litus_animae.refitted.threads;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.data.DynamoDataService;
 import com.litus_animae.refitted.data.ExerciseRoom;
@@ -49,7 +52,8 @@ public class GetExerciseRunnable implements Runnable {
             roomDb = RoomDataService.getExerciseRoom(applicationContext);
             dynamoDb = new DynamoDataService(applicationContext);
 
-            Set<String> keys = getExerciseKeys();
+            //Set<String> keys = getExerciseKeys();
+            Set<String> keys = null;
             ArrayList<ExerciseSet> exerciseSets = getExerciseSets(keys);
             getExercises(exerciseSets);
 
@@ -158,17 +162,16 @@ public class GetExerciseRunnable implements Runnable {
         return exerciseSets;
     }
 
-    private Set<String> getExerciseKeys() {
+    private LiveData<Set<String>> getExerciseKeys() {
         Log.i(TAG, "getExerciseKeys: retrieving exercise set ids for day: " + day +
                 " from workout: " + workoutId);
-        Set<String> exerciseKeys = new HashSet<>(roomDb.getExerciseDao().getSteps(day, workoutId));
-        if (!exerciseKeys.isEmpty()) {
-            Log.i(TAG, "getExerciseKeys: found keys in cache");
-            return exerciseKeys;
-        }
+        LiveData<Set<String>> exerciseKeys = Transformations.map(
+                roomDb.getExerciseDao().getSteps(day, workoutId),
+                HashSet::new);
+// TODO kick off ANOTHER background thread?
         Log.d(TAG, "getExerciseKeys: did not find keys in cache, checking dynamo");
         try {
-            exerciseKeys = dynamoDb.getExerciseKeys(day, workoutId);
+            dynamoDb.getExerciseKeys(day, workoutId);
         } catch (Exception ex) {
             Log.e(TAG, "getExerciseKeys: error loading workout", ex);
         }
