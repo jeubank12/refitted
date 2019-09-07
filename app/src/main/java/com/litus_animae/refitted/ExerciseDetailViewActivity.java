@@ -60,8 +60,10 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 updateWeightFragments();
                 return true;
             case R.id.show_history:
-                DialogFragment history = new ExerciseHistoryDialogFragment();
-                history.show(getSupportFragmentManager(), null);
+                if (model.getCurrentRecord() != null) {
+                    DialogFragment history = new ExerciseHistoryDialogFragment();
+                    history.show(getSupportFragmentManager(), null);
+                }
                 return true;
             default:
                 return false;

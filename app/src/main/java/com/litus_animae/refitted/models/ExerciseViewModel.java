@@ -138,13 +138,19 @@ public class ExerciseViewModel extends AndroidViewModel {
     }
 
     public ExerciseRecord getCurrentRecord(){
-        //FIXME make safe
-        return exerciseRecords.getValue().get(exerciseIndex.getValue());
+        List<ExerciseRecord> records = exerciseRecords.getValue();
+        if (records != null){
+            return records.get(exerciseIndex.getValue());
+        }
+        return null;
     }
 
     public ExerciseSet getCurrentSet(){
-        //FIXME make safe
-        return exerciseSets.getValue().get(exerciseIndex.getValue());
+        List<ExerciseSet> sets = exerciseSets.getValue();
+        if (sets != null) {
+            return sets.get(exerciseIndex.getValue());
+        }
+        return null;
     }
 
     private void setupLeftRightTransforms() {
