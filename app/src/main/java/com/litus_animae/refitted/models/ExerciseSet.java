@@ -1,10 +1,9 @@
 package com.litus_animae.refitted.models;
 
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LiveData;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Ignore;
@@ -21,7 +20,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
                 childColumns = {"name", "workout"}),
         indices = @Index({"name", "workout"}))
 @DynamoDBTable(tableName = "refitted-exercise")
-public class ExerciseSet implements Parcelable {
+public class ExerciseSet {
     @NonNull
     private String workout = "";
     private String id = "0.0";
@@ -36,7 +35,7 @@ public class ExerciseSet implements Parcelable {
     private boolean toFailure;
     private int rest;
     @Ignore
-    private Exercise exercise;
+    private LiveData<Exercise> exercise;
     @Ignore
     private ExerciseSet alternate;
     @Ignore
@@ -125,11 +124,11 @@ public class ExerciseSet implements Parcelable {
         this.toFailure = toFailure;
     }
 
-    public Exercise getExercise() {
+    public LiveData<Exercise> getExercise() {
         return exercise;
     }
 
-    public void setExercise(Exercise exercise) {
+    public void setExercise(LiveData<Exercise> exercise) {
         this.exercise = exercise;
     }
 
@@ -141,48 +140,6 @@ public class ExerciseSet implements Parcelable {
     public void setRest(int rest) {
         this.rest = rest;
     }
-
-    protected ExerciseSet(Parcel in) {
-        workout = in.readString();
-        id = in.readString();
-        note = in.readString();
-        name = in.readString();
-        reps = in.readInt();
-        sets = in.readInt();
-        toFailure = in.readByte() != 0;
-        rest = in.readInt();
-        exercise = in.readParcelable(Exercise.class.getClassLoader());
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(workout);
-        dest.writeString(id);
-        dest.writeString(note);
-        dest.writeString(name);
-        dest.writeInt(reps);
-        dest.writeInt(sets);
-        dest.writeByte((byte) (toFailure ? 1 : 0));
-        dest.writeInt(rest);
-        dest.writeParcelable(exercise, flags);
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public static final Creator<ExerciseSet> CREATOR = new Creator<ExerciseSet>() {
-        @Override
-        public ExerciseSet createFromParcel(Parcel in) {
-            return new ExerciseSet(in);
-        }
-
-        @Override
-        public ExerciseSet[] newArray(int size) {
-            return new ExerciseSet[size];
-        }
-    };
 
     public ExerciseSet getAlternate() {
         return alternate;

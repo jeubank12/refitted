@@ -43,9 +43,17 @@ public class ExerciseRepository {
                 );
             }
             return new MutableLiveData<>();
-        }), exerciseSets -> exercises.setValue(exerciseSets));
-//        threadPoolService.submit(new GetExerciseRunnable(applicationContext.get(), exercises, records,
-//                day, workoutId));
+        }), exerciseSets -> {
+            for (ExerciseSet set : exerciseSets){
+                set.setExercise(Transformations.switchMap(room, roomDb -> {
+                    if (roomDb != null) {
+                        return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
+                    }
+                    return new MutableLiveData<>();
+                }));
+            }
+            exercises.setValue(exerciseSets);
+        });
     }
 
     public void storeSetRecord(SetRecord record) {

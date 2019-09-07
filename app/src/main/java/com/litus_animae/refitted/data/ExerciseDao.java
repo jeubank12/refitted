@@ -25,7 +25,7 @@ public interface ExerciseDao {
     LiveData<List<ExerciseSet>> getExerciseSets(String day, String workout, String... steps);
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
-    Exercise getExercise(String name, String workout);
+    LiveData<Exercise> getExercise(String name, String workout);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void storeExercise(Exercise exercise);
