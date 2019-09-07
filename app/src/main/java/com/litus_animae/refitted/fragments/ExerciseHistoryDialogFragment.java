@@ -29,6 +29,7 @@ import com.litus_animae.refitted.models.SetRecord;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,7 +51,11 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
             model = ViewModelProviders.of(this).get(ExerciseViewModel.class);
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        setRecordAdapter = new SetRecordAdapter(getActivity(), model.getCurrentRecord().getAllSets(), 0);
+        List<SetRecord> sets = model.getCurrentRecord().getAllSets();
+        if (sets == null){
+            sets = new ArrayList<>();
+        }
+        setRecordAdapter = new SetRecordAdapter(getActivity(), sets, 0);
         builder.setTitle(R.string.prev_weight)
 //                .setPositiveButton("TODO", new DialogInterface.OnClickListener() {
 //                    @Override
@@ -78,6 +83,7 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
         super.onAttach(context);
     }
 
+    // TODO this should directly use livedata
     private class SetRecordAdapter extends ArrayAdapter<SetRecord> {
 
         private RadioButton lastChecked;

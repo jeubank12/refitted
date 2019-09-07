@@ -139,7 +139,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public ExerciseRecord getCurrentRecord(){
         List<ExerciseRecord> records = exerciseRecords.getValue();
-        if (records != null){
+        if (records != null && records.size() > exerciseIndex.getValue()){
             return records.get(exerciseIndex.getValue());
         }
         return null;
@@ -147,7 +147,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public ExerciseSet getCurrentSet(){
         List<ExerciseSet> sets = exerciseSets.getValue();
-        if (sets != null) {
+        if (sets != null && sets.size() > exerciseIndex.getValue()) {
             return sets.get(exerciseIndex.getValue());
         }
         return null;
@@ -381,7 +381,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         SetRecord newRecord = new SetRecord(exerciseSet,
                 Double.parseDouble(weight), Integer.parseInt(reps));
         exerciseRepo.storeSetRecord(newRecord);
-        record.addSet(newRecord);
 
         timer = new CountDownTimer(
                 exerciseSet.getRest() * 1000,

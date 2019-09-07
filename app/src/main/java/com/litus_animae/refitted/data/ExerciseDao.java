@@ -34,13 +34,13 @@ public interface ExerciseDao {
     void storeExerciseSet(ExerciseSet exerciseSet);
 
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
-    List<SetRecord> getSetRecords(Date minDate, String targetExercise);
+    LiveData<List<SetRecord>> getSetRecords(Date minDate, String targetExercise);
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    SetRecord getLatestSetRecord(String targetExercise);
+    LiveData<SetRecord> getLatestSetRecord(String targetExercise);
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    List<SetRecord> getAllSetRecord(String targetExercise);
+    LiveData<List<SetRecord>> getAllSetRecord(String targetExercise);
 
     @Insert
     void storeExerciseRecord(SetRecord exerciseRecord);

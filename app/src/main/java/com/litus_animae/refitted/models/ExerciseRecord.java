@@ -1,29 +1,30 @@
 package com.litus_animae.refitted.models;
 
-import androidx.room.Embedded;
-import androidx.room.Relation;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ExerciseRecord {
-    @Embedded
     private ExerciseSet targetSet;
 
-    private SetRecord latestSet;
+    private LiveData<SetRecord> latestSet = new MutableLiveData<>();
 
-    private List<SetRecord> allSets;
+    private LiveData<List<SetRecord>> allSets = new MutableLiveData<>();
 
-    @Relation(parentColumn = "name", entityColumn = "exercise", entity = SetRecord.class)
-    private List<SetRecord> sets = new ArrayList<>();
+    private LiveData<List<SetRecord>> sets = new MutableLiveData<>();
 
     public ExerciseRecord(ExerciseSet targetSet){
         this.targetSet = targetSet;
-    }
+        MutableLiveData<SetRecord> setLatest = new MutableLiveData<>();
+        setLatest.setValue(new SetRecord());
+        latestSet = setLatest;
 
-    public void addSet(SetRecord record) {
-        getSets().add(record);
-        allSets.add(0,record);
+        MutableLiveData<List<SetRecord>> emptySets = new MutableLiveData<>();
+        emptySets.setValue(new ArrayList<>());
+        allSets = emptySets;
+        sets = emptySets;
     }
 
     public SetRecord getSet(int set) {
@@ -36,38 +37,38 @@ public class ExerciseRecord {
     }
 
     public int getSetsCount(){
-        return getSets().size();
+        List<SetRecord> sets = getSets();
+        if (sets != null){
+            return sets.size();
+        }
+        return 0;
     }
 
     public ExerciseSet getTargetSet() {
         return targetSet;
     }
 
-    public void setTargetSet(ExerciseSet targetSet) {
-        this.targetSet = targetSet;
-    }
-
     public List<SetRecord> getSets() {
-        return sets;
+        return sets.getValue();
     }
 
-    public void setSets(List<SetRecord> sets) {
+    public void setSets(LiveData<List<SetRecord>> sets) {
         this.sets = sets;
     }
 
     public SetRecord getLatestSet() {
-        return latestSet;
+        return latestSet.getValue();
     }
 
-    public void setLatestSet(SetRecord latestSet) {
+    public void setLatestSet(LiveData<SetRecord> latestSet) {
         this.latestSet = latestSet;
     }
 
     public List<SetRecord> getAllSets() {
-        return allSets;
+        return allSets.getValue();
     }
 
-    public void setAllSets(List<SetRecord> allSets) {
+    public void setAllSets(LiveData<List<SetRecord>> allSets) {
         this.allSets = allSets;
     }
 }
