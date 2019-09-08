@@ -63,9 +63,9 @@ public class GetExerciseRunnable implements Runnable {
                 exerciseSetLiveData.postValue(exerciseSets);
                 Log.d(TAG, "run: sets posted");
 
-                ArrayList<ExerciseRecord> records = getExerciseRecords(exerciseSets);
+                //ArrayList<ExerciseRecord> records = getExerciseRecords(exerciseSets);
                 Log.d(TAG, "run: posting records");
-                exerciseRecordLiveData.postValue(records);
+                //exerciseRecordLiveData.postValue(records);
                 Log.d(TAG, "run: records posted");
 
                 Log.d(TAG, "run: retrieval success");
@@ -77,36 +77,36 @@ public class GetExerciseRunnable implements Runnable {
         }
     }
 
-    private ArrayList<ExerciseRecord> getExerciseRecords(ArrayList<ExerciseSet> exerciseSets) {
-        ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
-        Date tonightMidnight = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0)));
-        for (ExerciseSet e : exerciseSets) {
-            Log.d(TAG, "getExerciseRecords: storing " + e.getId() + "-" +
-                    e.getWorkout() + ": '" + e.getName() + "' in cache");
-            try {
-                roomDb.getExerciseDao().storeExerciseSet(e);
-            } catch (Exception ex) {
-                // TODO report to me
-                Log.e(TAG, "getExerciseRecords: error storing exercise set cache", ex);
-                Exercise exercise = new Exercise();
-                exercise.setId(e.getName());
-                exercise.setWorkout(e.getWorkout());
-                roomDb.getExerciseDao().storeExercise(exercise);
-                roomDb.getExerciseDao().storeExerciseSet(e);
-            }
-            ExerciseRecord record = new ExerciseRecord(e);
-            try {
-                record.setLatestSet(roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()));
-                record.setSets(roomDb.getExerciseDao()
-                        .getSetRecords(tonightMidnight, e.getExerciseName()));
-                record.setAllSets(roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()));
-            } catch (Exception ex) {
-                Log.e(TAG, "getExerciseRecords: failed retrieving records", ex);
-            }
-            records.add(record);
-        }
-        return records;
-    }
+//    private ArrayList<ExerciseRecord> getExerciseRecords(ArrayList<ExerciseSet> exerciseSets) {
+//        ArrayList<ExerciseRecord> records = new ArrayList<>(exerciseSets.size());
+//        Date tonightMidnight = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0)));
+//        for (ExerciseSet e : exerciseSets) {
+//            Log.d(TAG, "getExerciseRecords: storing " + e.getId() + "-" +
+//                    e.getWorkout() + ": '" + e.getName() + "' in cache");
+//            try {
+//                roomDb.getExerciseDao().storeExerciseSet(e);
+//            } catch (Exception ex) {
+//                // TODO report to me
+//                Log.e(TAG, "getExerciseRecords: error storing exercise set cache", ex);
+//                Exercise exercise = new Exercise();
+//                exercise.setId(e.getName());
+//                exercise.setWorkout(e.getWorkout());
+//                roomDb.getExerciseDao().storeExercise(exercise);
+//                roomDb.getExerciseDao().storeExerciseSet(e);
+//            }
+//            ExerciseRecord record = new ExerciseRecord(e);
+//            try {
+//                record.setLatestSet(roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()));
+//                record.setSets(roomDb.getExerciseDao()
+//                        .getSetRecords(tonightMidnight, e.getExerciseName()));
+//                record.setAllSets(roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()));
+//            } catch (Exception ex) {
+//                Log.e(TAG, "getExerciseRecords: failed retrieving records", ex);
+//            }
+//            records.add(record);
+//        }
+//        return records;
+//    }
 
 //    private void getExercises(ArrayList<ExerciseSet> exerciseSets) {
 //        if (exerciseSets.isEmpty()) {

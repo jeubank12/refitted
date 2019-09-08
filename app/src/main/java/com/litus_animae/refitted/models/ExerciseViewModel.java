@@ -87,18 +87,28 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
         // FIXME this should monitor the mutableexercise rather than the index
         LiveData<String> weightSeedValue = Transformations.switchMap(exerciseRecords, records ->
-                Transformations.map(exerciseIndex, index -> {
+                Transformations.switchMap(exerciseIndex, index -> {
                     ExerciseRecord r = records.get(index);
-                    return formatWeightDisplay(r.getSetsCount() > 0 ?
-                            r.getSet(-1).getWeight() :
-                            r.getLatestSet() != null ? r.getLatestSet().getWeight() :
-                                    defaultWeight);
+                    return Transformations.map(r.getLatestSet(), latestSet -> {
+                        if (latestSet != null){
+                            return formatWeightDisplay(latestSet.getWeight());
+                        }
+                        return formatWeightDisplay(defaultWeight);
+                    });
                 }));
         LiveData<String> repsSeedValue = Transformations.switchMap(exerciseRecords, records ->
-                Transformations.map(exerciseIndex, index ->
-                        formatRepsDisplay(records.get(index).getSetsCount() > 0 ?
-                                records.get(index).getSet(-1).getReps() :
-                                records.get(index).getTargetSet().getReps())));
+                // FIXME this should monitor the mutableexercise rather than the index
+                Transformations.switchMap(exerciseIndex, index ->
+                        // TODO check for index out of bounds
+                        Transformations.switchMap(records.get(index).getSetsCount(), count -> {
+                            if (count > 0){
+                                return Transformations.map(records.get(index).getSet(-1),
+                                        latestSet -> formatRepsDisplay(latestSet.getReps()));
+                            }
+                            MutableLiveData<String> result = new MutableLiveData<>();
+                            result.setValue(formatRepsDisplay(records.get(index).getTargetSet().getReps()));
+                            return result;
+                        })));
         weightDisplayValue.addSource(weightSeedValue, v ->
                 weightDisplayValue.setValue(v));
         weightDisplayValue.addSource(weightDisplayValue, v ->

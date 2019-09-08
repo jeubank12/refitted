@@ -42,6 +42,10 @@ public class ExerciseRepository {
         records = Transformations.switchMap(room, roomDb -> {
             if (roomDb != null) {
                 return Transformations.map(exercises, loadedExercises -> {
+                    if (loadedExercises == null) {
+                        return new ArrayList<>();
+                    }
+                    Log.i(TAG, "ExerciseRepository: detected " + loadedExercises.size() + " new exercises, loading records");
                     Date tonightMidnight = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0)));
                     ArrayList<ExerciseRecord> recordObjects = new ArrayList<>();
                     for (ExerciseSet e : loadedExercises) {
@@ -56,9 +60,11 @@ public class ExerciseRepository {
                         }
                         recordObjects.add(record);
                     }
+                    Log.i(TAG, "ExerciseRepository: records loaded");
                     return recordObjects;
                 });
             }
+            Log.i(TAG, "ExerciseRepository: Room not yet initialized, returning empty list");
             MutableLiveData<List<ExerciseRecord>> emptyResult = new MutableLiveData<>();
             emptyResult.setValue(new ArrayList<>());
             return emptyResult;
@@ -68,6 +74,7 @@ public class ExerciseRepository {
     public void loadExercises(String day, String workoutId) {
         LiveData<ExerciseRoom> room = RoomDataService.getExerciseRoomAsync(applicationContext);
         if (currentExerciseSource != null) {
+            Log.d(TAG, "loadExercises: removing previously loaded exercises");
             exercises.removeSource(currentExerciseSource);
         }
         currentExerciseSource = Transformations.switchMap(room, roomDb -> {
@@ -76,25 +83,37 @@ public class ExerciseRepository {
                         Transformations.map(
                                 roomDb.getExerciseDao().getSteps(day, workoutId),
                                 HashSet::new),
-                        stepKeys -> roomDb.getExerciseDao().getExerciseSets(day, workoutId, stepKeys.toArray(new String[0]))
+                        stepKeys -> {
+                            Log.i(TAG, "loadExercises: found exercise set numbers, loading sets");
+                            return roomDb.getExerciseDao().getExerciseSets(day, workoutId, stepKeys.toArray(new String[0]));
+                        }
                 );
             }
+            Log.i(TAG, "loadExercises: Room not yet initialized, returning null");
             return new MutableLiveData<>();
         });
         exercises.addSource(currentExerciseSource, exerciseSets -> {
+            if (exerciseSets == null){
+                Log.d(TAG, "loadExercises: null exerciseSets");
+                return;
+            }
+            Log.i(TAG, "loadExercises: detected " + exerciseSets.size() + " new exercise sets, loading exercise descriptions");
             for (ExerciseSet set : exerciseSets) {
                 set.setExercise(Transformations.switchMap(room, roomDb -> {
                     if (roomDb != null) {
                         return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
                     }
+                    Log.w(TAG, "loadExercises: somehow Room was null, returning null for exercise description");
                     return new MutableLiveData<>();
                 }));
             }
+            Log.i(TAG, "loadExercises: setting final value of exercise livedata");
             exercises.setValue(exerciseSets);
         });
     }
 
     public void storeSetRecord(SetRecord record) {
+        Log.i(TAG, "storeSetRecord: requesting record creation");
         threadPoolService.submit(new StoreRecordsRunnable(applicationContext.get(), record));
     }
 

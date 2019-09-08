@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.data;
 
 import androidx.lifecycle.LiveData;
+import androidx.paging.DataSource;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -40,7 +41,7 @@ public interface ExerciseDao {
     LiveData<SetRecord> getLatestSetRecord(String targetExercise);
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    LiveData<List<SetRecord>> getAllSetRecord(String targetExercise);
+    DataSource.Factory<Integer, SetRecord> getAllSetRecord(String targetExercise);
 
     @Insert
     void storeExerciseRecord(SetRecord exerciseRecord);
