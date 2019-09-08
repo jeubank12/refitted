@@ -52,7 +52,7 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         // TODO adapt SetRecordAdapter to use PagedListAdapter
-        List<SetRecord> sets = model.getCurrentRecord().getAllSets();
+        List<SetRecord> sets = null; //model.getCurrentRecord().getAllSets();
         if (sets == null){
             Log.w(TAG, "onCreateDialog: creating alert dialog from invalid model");
             sets = new ArrayList<>();
