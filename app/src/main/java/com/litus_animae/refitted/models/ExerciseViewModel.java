@@ -292,26 +292,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         return e;
     }
 
-    private void setTimerText(ExerciseSet e, List<ExerciseRecord> records) {
-        // leaving this as a warning as I don't know when this would be null
-        ExerciseRecord currentRecord = getExerciseRecord(e, records, exerciseIndex.getValue());
-        if (timer == null) {
-            if (currentRecord.getSetsCount() == e.getSets()) {
-                completeSetMessage.setValue(getString(R.string.complete_exercise));
-            } else {
-                completeSetMessage.setValue(getString(R.string.complete_set) +
-                        String.format(Locale.getDefault(), " %d %s %d",
-                                // using the LiveData here because the value may have changed
-                                currentRecord.getSetsCount() + 1,
-                                getString(R.string.word_of), e.getSets()));
-            }
-            restMax.setValue(e.getRest() * 1000);
-            updateRestTimerProgress(e.getRest());
-        } else {
-            completeSetMessage.setValue(getString(R.string.cancel_rest));
-        }
-    }
-
     private ExerciseRecord getExerciseRecord(ExerciseSet e, List<ExerciseRecord> records, int index) {
         ExerciseRecord currentRecord;
         if (records == null || records.size() < index) {
@@ -370,6 +350,26 @@ public class ExerciseViewModel extends AndroidViewModel {
             } else {
                 exerciseIndex.setValue(index + 1);
             }
+        }
+    }
+
+    private void setTimerText(ExerciseSet e, List<ExerciseRecord> records) {
+        // leaving this as a warning as I don't know when this would be null
+        ExerciseRecord currentRecord = getExerciseRecord(e, records, exerciseIndex.getValue());
+        if (timer == null) {
+            if (currentRecord.getSetsCount() == e.getSets()) {
+                completeSetMessage.setValue(getString(R.string.complete_exercise));
+            } else {
+                completeSetMessage.setValue(getString(R.string.complete_set) +
+                        String.format(Locale.getDefault(), " %d %s %d",
+                                // using the LiveData here because the value may have changed
+                                currentRecord.getSetsCount() + 1,
+                                getString(R.string.word_of), e.getSets()));
+            }
+            restMax.setValue(e.getRest() * 1000);
+            updateRestTimerProgress(e.getRest());
+        } else {
+            completeSetMessage.setValue(getString(R.string.cancel_rest));
         }
     }
 
