@@ -61,8 +61,14 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
         return Transformations.switchMap(exerciseMutableLiveData, exercise -> {
-            return Transformations.map(record.getSetsCount(), setsCompleted -> {
-                return setsCompleted < exercise.getSets();
+            return Transformations.switchMap(record.getSetsCount(), setsCompleted -> {
+                return Transformations.map(timerMutableLiveData, timer -> {
+                    if (timer == null){
+                        return setsCompleted < exercise.getSets();
+                    }
+                    return true;
+                });
+
             });
         });
     });
@@ -426,6 +432,12 @@ public class ExerciseViewModel extends AndroidViewModel {
             return;
         }
 
+        // FIXME this won't be correct if not observed, but it would only be necessary if not observed either, double negative
+        if (!completeSetButtonEnabled.getValue()){
+            Log.w(TAG, "completeSet: someone isn't using the enabled value");
+            return;
+        }
+
         SetRecord newRecord = new SetRecord(exerciseSet,
                 Double.parseDouble(weight), Integer.parseInt(reps));
         exerciseRepo.storeSetRecord(newRecord);
@@ -494,6 +506,10 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public LiveData<String> getTargetExerciseReps() {
         return targetExerciseReps;
+    }
+
+    public LiveData<Boolean> getCompleteSetButtonEnabled() {
+        return completeSetButtonEnabled;
     }
     // endregion getters
 }
