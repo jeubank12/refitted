@@ -37,12 +37,70 @@ public class ExerciseViewModel extends AndroidViewModel {
     private MediatorLiveData<List<ExerciseSet>> exerciseSets = new MediatorLiveData<>();
     private MediatorLiveData<List<ExerciseRecord>> exerciseRecords = new MediatorLiveData<>();
     private MutableLiveData<Integer> exerciseIndex = new MutableLiveData<>();
-    private MediatorLiveData<String> completeSetMessage = new MediatorLiveData<>();
+    private MutableLiveData<Double> restRemaining = new MutableLiveData<>();
     private MutableLiveData<Integer> restMax = new MutableLiveData<>();
-    private MutableLiveData<Integer> restProgress = new MutableLiveData<>();
-    private MutableLiveData<String> restValue = new MutableLiveData<>();
+    private LiveData<Integer> restProgress = Transformations.switchMap(restMax, max -> {
+        return Transformations.map(restRemaining, rest -> (int) (max - rest * 1000));
+    });
+    private LiveData<String> restValue = Transformations.map(restRemaining, rest ->
+            String.format(Locale.getDefault(), "%.1f%s %s",
+                    rest, getString(R.string.seconds_abbrev),
+                    getString(R.string.rest)));
     private MediatorLiveData<String> weightDisplayValue = new MediatorLiveData<>();
     private MediatorLiveData<String> repsDisplayValue = new MediatorLiveData<>();
+
+    private MutableLiveData<CountDownTimer> timerMutableLiveData = new MutableLiveData<>();
+    private LiveData<ExerciseRecord> currentRecord = Transformations.switchMap(exerciseIndex, index -> {
+        return Transformations.map(exerciseRecords, records -> {
+            if (index == null || records == null || index >= records.size()) {
+                return null;
+            }
+            return records.get(index);
+        });
+    });
+
+    private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
+        return Transformations.switchMap(exerciseMutableLiveData, exercise -> {
+            return Transformations.map(record.getSetsCount(), setsCompleted -> {
+                return setsCompleted < exercise.getSets();
+            });
+        });
+    });
+
+    private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, currentRecord -> {
+        if (currentRecord == null) {
+            Log.w(TAG, "completeSetMessage: currentRecord was null");
+        }
+        Log.i(TAG, "completeSetMessage: setting switch value 1");
+        return Transformations.switchMap(timerMutableLiveData, timer -> {
+            if (timer == null) {
+                Log.i(TAG, "completeSetMessage: setting switch value 2");
+                return Transformations.switchMap(currentRecord.getSetsCount(), completeSetsCount -> {
+                    Log.i(TAG, "completeSetMessage: setting switch value 4");
+                    return Transformations.map(exerciseMutableLiveData, exercise -> {
+                        Log.i(TAG, "completeSetMessage: setting switch value 5");
+                        restMax.setValue(exercise.getRest() * 1000);
+                        restRemaining.setValue((double) exercise.getRest());
+
+                        if (completeSetsCount == exercise.getSets()) {
+                            return getString(R.string.complete_exercise);
+                        } else {
+                            return getString(R.string.complete_set) +
+                                    String.format(Locale.getDefault(), " %d %s %d",
+                                            // using the LiveData here because the value may have changed
+                                            completeSetsCount + 1,
+                                            getString(R.string.word_of), exercise.getSets());
+                        }
+                    });
+                });
+            } else {
+                Log.i(TAG, "completeSetMessage: setting switch value 3");
+                MutableLiveData<String> result = new MutableLiveData<>();
+                result.setValue(getString(R.string.cancel_rest));
+                return result;
+            }
+        });
+    });
     // endregion
 
     public ExerciseViewModel(@NonNull Application application) {
@@ -68,6 +126,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                         this::updateVisibleExercise));
 
         setupWeightAndRepsTransforms();
+        timerMutableLiveData.setValue(null);
     }
 
     private void setupWeightAndRepsTransforms() {
@@ -284,7 +343,7 @@ public class ExerciseViewModel extends AndroidViewModel {
             hasRightBool.setValue(index < copyExerciseSets.size() - 1);
         }
 
-        setTimerText(e);
+        //setTimerText(e);
         if (wasChanged) {
             exerciseSets.setValue(copyExerciseSets);
         }
@@ -353,46 +412,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         }
     }
 
-    private MutableLiveData<CountDownTimer> timerMutableLiveData = new MutableLiveData<>();
-    private LiveData<ExerciseRecord> currentRecord = Transformations.switchMap(exerciseIndex, index -> {
-        return Transformations.map(exerciseRecords, records -> {
-            if (index == null || records == null || index >= records.size()) {
-                return null;
-            }
-            return records.get(index);
-        });
-    });
-
-    private void setTimerText(ExerciseSet e) {
-        // leaving this as a warning as I don't know when this would be null
-        LiveData<String> completeSetButtonMessage = Transformations.switchMap(currentRecord, currentRecord -> {
-            if (currentRecord == null) {
-                Log.w(TAG, "setTimerText: currentRecord was null");
-            }
-            return Transformations.switchMap(timerMutableLiveData, timer -> {
-                if (timer == null) {
-                    restMax.setValue(e.getRest() * 1000);
-                    updateRestTimerProgress(e.getRest());
-                    return Transformations.map(currentRecord.getSetsCount(), completeSetsCount -> {
-                        if (completeSetsCount == e.getSets()) {
-                            return getString(R.string.complete_exercise);
-                        } else {
-                            return getString(R.string.complete_set) +
-                                    String.format(Locale.getDefault(), " %d %s %d",
-                                            // using the LiveData here because the value may have changed
-                                            completeSetsCount + 1,
-                                            getString(R.string.word_of), e.getSets());
-                        }
-                    });
-                } else {
-                    MutableLiveData<String> result = new MutableLiveData<>();
-                    result.setValue(getString(R.string.cancel_rest));
-                    return result;
-                }
-            });
-        });
-    }
-
     public void completeSet(String weight, String reps) {
         // leaving this as a warning as I don't know when this would be null
         final int index = exerciseIndex.getValue();
@@ -401,14 +420,9 @@ public class ExerciseViewModel extends AndroidViewModel {
         if (timer != null) {
             timer.cancel();
             timer = null;
-            setTimerText(exerciseSet);
-            return;
-        }
-
-        // the logic inside to set the text should never be necessary, but we need the check
-        // FIXME this looks awful
-        if (currentRecord.getValue().getSetsCount().getValue() == exerciseSet.getSets()) {
-            completeSetMessage.setValue(getString(R.string.complete_exercise));
+            restRemaining.setValue((double)restMax.getValue());
+            timerMutableLiveData.setValue(null);
+            //setTimerText(exerciseSet);
             return;
         }
 
@@ -421,27 +435,20 @@ public class ExerciseViewModel extends AndroidViewModel {
                 50) {
             @Override
             public void onTick(long millisUntilFinished) {
-                updateRestTimerProgress(millisUntilFinished / 1000.0);
+                //updateRestTimerProgress(millisUntilFinished / 1000.0);
+                restRemaining.setValue(millisUntilFinished / 1000.0);
             }
 
             @Override
             public void onFinish() {
                 timer = null;
-                setTimerText(exerciseSets.getValue().get(exerciseIndex.getValue()));
+                //setTimerText(exerciseSets.getValue().get(exerciseIndex.getValue()));
                 timerMutableLiveData.setValue(null);
             }
         };
-        setTimerText(exerciseSet);
+        //setTimerText(exerciseSet);
         timerMutableLiveData.setValue(timer);
         timer.start();
-    }
-
-    private void updateRestTimerProgress(double rest) {
-        // leaving this as a warning as I don't know when this would be null
-        restProgress.setValue((int) (restMax.getValue() - rest * 1000));
-        restValue.setValue(String.format(Locale.getDefault(), "%.1f%s %s",
-                rest, getString(R.string.seconds_abbrev),
-                getString(R.string.rest)));
     }
 
     // region getters
