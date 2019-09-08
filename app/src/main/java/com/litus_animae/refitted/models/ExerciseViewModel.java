@@ -98,17 +98,22 @@ public class ExerciseViewModel extends AndroidViewModel {
                 }));
         LiveData<String> repsSeedValue = Transformations.switchMap(exerciseRecords, records ->
                 // FIXME this should monitor the mutableexercise rather than the index
-                Transformations.switchMap(exerciseIndex, index ->
-                        // TODO check for index out of bounds
-                        Transformations.switchMap(records.get(index).getSetsCount(), count -> {
-                            if (count > 0){
-                                return Transformations.map(records.get(index).getSet(-1),
-                                        latestSet -> formatRepsDisplay(latestSet.getReps()));
-                            }
-                            MutableLiveData<String> result = new MutableLiveData<>();
-                            result.setValue(formatRepsDisplay(records.get(index).getTargetSet().getReps()));
-                            return result;
-                        })));
+                Transformations.switchMap(exerciseIndex, index -> {
+                    if (index >= records.size()){
+                        MutableLiveData<String> emptyResult = new MutableLiveData<>();
+                        emptyResult.setValue(formatRepsDisplay(0));
+                        return emptyResult;
+                    }
+                    return Transformations.switchMap(records.get(index).getSetsCount(), count -> {
+                        if (count > 0) {
+                            return Transformations.map(records.get(index).getSet(-1),
+                                    latestSet -> formatRepsDisplay(latestSet.getReps()));
+                        }
+                        MutableLiveData<String> result = new MutableLiveData<>();
+                        result.setValue(formatRepsDisplay(records.get(index).getTargetSet().getReps()));
+                        return result;
+                    });
+                }));
         weightDisplayValue.addSource(weightSeedValue, v ->
                 weightDisplayValue.setValue(v));
         weightDisplayValue.addSource(weightDisplayValue, v ->
