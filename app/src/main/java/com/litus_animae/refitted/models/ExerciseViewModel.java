@@ -217,22 +217,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     }
 
-//    public ExerciseRecord getCurrentRecord() {
-//        List<ExerciseRecord> records = exerciseRecords.getValue();
-//        if (records != null && records.size() > exerciseIndex.getValue()) {
-//            return records.get(exerciseIndex.getValue());
-//        }
-//        return null;
-//    }
-
-//    public ExerciseSet getCurrentSet() {
-//        List<ExerciseSet> sets = exerciseSets.getValue();
-//        if (sets != null && sets.size() > exerciseIndex.getValue()) {
-//            return sets.get(exerciseIndex.getValue());
-//        }
-//        return null;
-//    }
-
     private void setupLeftRightTransforms() {
         hasLeftBool = new MutableLiveData<>();
         hasLeftBool.setValue(false);
@@ -355,17 +339,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         }
         return e;
     }
-
-//    private ExerciseRecord getExerciseRecord(ExerciseSet e, List<ExerciseRecord> records, int index) {
-//        ExerciseRecord currentRecord;
-//        if (records == null || records.size() < index) {
-//            Log.w(TAG, "getExerciseRecord: had to make new record");
-//            currentRecord = new ExerciseRecord(e);
-//        } else {
-//            currentRecord = records.get(index);
-//        }
-//        return currentRecord;
-//    }
 
     private String getString(int resourceId) {
         return getApplication().getResources().getString(resourceId);
