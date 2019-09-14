@@ -1,30 +1,44 @@
 package com.litus_animae.refitted.data;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.util.Log;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.room.RoomDatabase;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig;
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression;
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedList;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
+import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.WorkoutDay;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class DynamoDataService {
+public class DynamoDataService extends AsyncTask<String, Void, Void> {
     private static final String TAG = "DynamoDataService";
-    private DynamoDBMapper db;
+    protected final DynamoDBMapper db;
+    private final ExerciseRoom room;
 
-    public DynamoDataService(Context applicationContext) {
+    public DynamoDataService(Context applicationContext, ExerciseRoom room) {
+        this.room = room;
         CognitoCachingCredentialsProvider credentialsProvider =
                 new CognitoCachingCredentialsProvider(
                         applicationContext,
@@ -53,26 +67,39 @@ public class DynamoDataService {
         return null;
     }
 
-    public ExerciseSet getExerciseSet(String day, String exercise, String workoutId) {
-        try {
-            return db.load(ExerciseSet.class, day + "." + exercise, workoutId);
-        } catch (Exception ex) {
-            Log.e(TAG, "getExerciseSet: error loading Exercise Set", ex);
-            return null;
-        }
-    }
+    @Override
+    protected Void doInBackground(String... dayAndWorkoutId) {
+        ExerciseSet keyValues = new ExerciseSet();
+        keyValues.setWorkout(dayAndWorkoutId[1]);
 
-    public Set<String> getExerciseKeys(String day, String workoutId) {
-        Log.d(TAG, "getExerciseKeys: retrieving exercise set ids for day: " + day +
-                " from workout: " + workoutId);
-        try {
-            WorkoutDay workout = db.load(WorkoutDay.class, day, workoutId);
-            if (workout != null) {
-                return workout.getExercises();
+        Condition rangeCondition = new Condition()
+                .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
+                .withAttributeValueList(new AttributeValue().withS(dayAndWorkoutId[0] + "."));
+
+        DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
+                .withHashKeyValues(keyValues)
+                .withIndexName("Reverse-index")
+                .withRangeKeyCondition("Id", rangeCondition)
+                .withConsistentRead(false);
+
+        Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
+                " from workout " + dayAndWorkoutId[1]);
+
+        PaginatedList<ExerciseSet> result = db.query(ExerciseSet.class, queryExpression);
+
+        Log.i(TAG, "doInBackground: Query results received");
+        Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
+        // TODO must fetch exercises and store first
+        for (ExerciseSet set : result){
+            try {
+                Exercise e = db.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                room.getExerciseDao().storeExercise(e);
+                room.getExerciseDao().storeExerciseSet(set);
+            } catch (Exception ex) {
+                Log.e(TAG, "getExercise: error loading Exercise", ex);
             }
-        } catch (Exception ex) {
-            Log.e(TAG, "getExerciseKeys: error loading workout", ex);
         }
-        return new HashSet<>();
+        return null;
     }
 }
+

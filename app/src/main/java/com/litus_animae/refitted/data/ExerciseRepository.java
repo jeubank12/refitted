@@ -30,6 +30,7 @@ public class ExerciseRepository {
 
     private WeakReference<Context> applicationContext;
     private ExecutorService threadPoolService;
+    // TODO remove this and only access sets via records
     private MediatorLiveData<List<ExerciseSet>> exercises = new MediatorLiveData<>();
     private LiveData<List<ExerciseSet>> currentExerciseSource = null;
     private LiveData<List<ExerciseRecord>> records;
@@ -79,6 +80,8 @@ public class ExerciseRepository {
         }
         currentExerciseSource = Transformations.switchMap(room, roomDb -> {
             if (roomDb != null) {
+                DynamoDataService dynamoService = new DynamoDataService(applicationContext.get(), roomDb);
+                dynamoService.execute(day, workoutId);
                 return Transformations.switchMap(
                         Transformations.map(
                                 roomDb.getExerciseDao().getSteps(day, workoutId),

@@ -323,7 +323,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     private ExerciseSet updateVisibleExercise(int index) {
         final List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
-        if (copyExerciseSets == null) {
+        if (copyExerciseSets == null || copyExerciseSets.size() < 1) {
             Log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default");
             return new ExerciseSet();
         }

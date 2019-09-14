@@ -50,7 +50,7 @@ public class GetExerciseRunnable implements Runnable {
     public void run() {
         try {
             roomDb = RoomDataService.getExerciseRoom(applicationContext);
-            dynamoDb = new DynamoDataService(applicationContext);
+            //dynamoDb = new DynamoDataService(applicationContext);
 
             Set<String> keys = null;
             ArrayList<ExerciseSet> exerciseSets = null;

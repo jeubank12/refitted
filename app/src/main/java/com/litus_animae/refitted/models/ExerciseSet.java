@@ -11,6 +11,8 @@ import androidx.room.Index;
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey;
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIndexHashKey;
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBIndexRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
 
@@ -46,6 +48,7 @@ public class ExerciseSet {
 
     @DynamoDBHashKey(attributeName = "Id")
     @DynamoDBAttribute(attributeName = "Id")
+    @DynamoDBIndexRangeKey(attributeName = "Id", globalSecondaryIndexName = "Reverse-index")
     public String getId() {
         return id;
     }
@@ -66,6 +69,7 @@ public class ExerciseSet {
 
     @DynamoDBRangeKey(attributeName = "Disc")
     @DynamoDBAttribute(attributeName = "Disc")
+    @DynamoDBIndexHashKey(attributeName = "Disc", globalSecondaryIndexName = "Reverse-index")
     public String getWorkout() {
         return workout;
     }
