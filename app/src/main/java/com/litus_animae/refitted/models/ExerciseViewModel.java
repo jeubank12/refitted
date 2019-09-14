@@ -26,7 +26,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     private CountDownTimer timer;
 
     // region livedata
-    private LiveData<ExerciseSet> exerciseMutableLiveData;
+    private LiveData<ExerciseSet> currentExercise;
     private LiveData<String> targetExerciseReps;
     private LiveData<Integer> isLoading;
     private MutableLiveData<Boolean> isLoadingBool;
@@ -35,7 +35,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     private LiveData<Integer> hasRight;
     private MutableLiveData<Boolean> hasRightBool;
     private MediatorLiveData<List<ExerciseSet>> exerciseSets = new MediatorLiveData<>();
-    private MediatorLiveData<List<ExerciseRecord>> exerciseRecords = new MediatorLiveData<>();
+    private LiveData<List<ExerciseRecord>> exerciseRecords;
     private MutableLiveData<Integer> exerciseIndex = new MutableLiveData<>();
     private MutableLiveData<Double> restRemaining = new MutableLiveData<>();
     private MutableLiveData<Integer> restMax = new MutableLiveData<>();
@@ -60,10 +60,15 @@ public class ExerciseViewModel extends AndroidViewModel {
     });
 
     private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
-        return Transformations.switchMap(exerciseMutableLiveData, exercise -> {
+        if (record == null){
+            MutableLiveData<Boolean> result = new MutableLiveData<>();
+            result.setValue(false);
+            return result;
+        }
+        return Transformations.switchMap(currentExercise, exercise -> {
             return Transformations.switchMap(record.getSetsCount(), setsCompleted -> {
                 return Transformations.map(timerMutableLiveData, timer -> {
-                    if (timer == null){
+                    if (timer == null) {
                         return setsCompleted < exercise.getSets();
                     }
                     return true;
@@ -73,18 +78,17 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     });
 
-    private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, currentRecord -> {
-        if (currentRecord == null) {
-            Log.w(TAG, "completeSetMessage: currentRecord was null");
+    private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
+        if (record == null) {
+            Log.w(TAG, "completeSetMessage: record was null");
+            MutableLiveData<String> result = new MutableLiveData<>();
+            result.setValue(getString(R.string.complete_set));
+            return result;
         }
-        Log.i(TAG, "completeSetMessage: setting switch value 1");
         return Transformations.switchMap(timerMutableLiveData, timer -> {
             if (timer == null) {
-                Log.i(TAG, "completeSetMessage: setting switch value 2");
-                return Transformations.switchMap(currentRecord.getSetsCount(), completeSetsCount -> {
-                    Log.i(TAG, "completeSetMessage: setting switch value 4");
-                    return Transformations.map(exerciseMutableLiveData, exercise -> {
-                        Log.i(TAG, "completeSetMessage: setting switch value 5");
+                return Transformations.switchMap(record.getSetsCount(), completeSetsCount -> {
+                    return Transformations.map(currentExercise, exercise -> {
                         restMax.setValue(exercise.getRest() * 1000);
                         restRemaining.setValue((double) exercise.getRest());
 
@@ -100,7 +104,6 @@ public class ExerciseViewModel extends AndroidViewModel {
                     });
                 });
             } else {
-                Log.i(TAG, "completeSetMessage: setting switch value 3");
                 MutableLiveData<String> result = new MutableLiveData<>();
                 result.setValue(getString(R.string.cancel_rest));
                 return result;
@@ -122,21 +125,18 @@ public class ExerciseViewModel extends AndroidViewModel {
         exerciseIndex.setValue(0);
         exerciseSets.addSource(exerciseRepo.getExercises(),
                 exercises -> exerciseSets.setValue(exercises));
-        exerciseRecords.addSource(exerciseRepo.getRecords(),
-                records -> {
-                    exerciseRecords.setValue(records);
-                    updateVisibleExercise(exerciseIndex.getValue());
-                });
-        exerciseMutableLiveData = Transformations.switchMap(exerciseSets,
-                set -> Transformations.map(exerciseIndex,
-                        this::updateVisibleExercise));
+        exerciseRecords = exerciseRepo.getRecords();
+        currentExercise = Transformations.switchMap(exerciseSets,
+                set -> Transformations.switchMap(exerciseRecords,
+                        records -> Transformations.map(exerciseIndex,
+                                this::updateVisibleExercise)));
 
         setupWeightAndRepsTransforms();
         timerMutableLiveData.setValue(null);
     }
 
     private void setupWeightAndRepsTransforms() {
-        targetExerciseReps = Transformations.map(exerciseMutableLiveData, exercise ->
+        targetExerciseReps = Transformations.map(currentExercise, exercise ->
         {
             if (exercise == null) {
                 return "";
@@ -150,35 +150,37 @@ public class ExerciseViewModel extends AndroidViewModel {
             }
             return String.format(Locale.getDefault(), "%d", exercise.getReps());
         });
-        // FIXME this should monitor the mutableexercise rather than the index
-        LiveData<String> weightSeedValue = Transformations.switchMap(exerciseRecords, records ->
-                Transformations.switchMap(exerciseIndex, index -> {
-                    ExerciseRecord r = records.get(index);
-                    return Transformations.map(r.getLatestSet(), latestSet -> {
+        LiveData<String> weightSeedValue = Transformations.switchMap(currentRecord,
+                record -> {
+                    if (record == null) {
+                        MutableLiveData<String> result = new MutableLiveData<>();
+                        result.setValue(formatWeightDisplay(defaultWeight));
+                        return result;
+                    }
+                    return Transformations.map(record.getLatestSet(), latestSet -> {
                         if (latestSet != null) {
                             return formatWeightDisplay(latestSet.getWeight());
                         }
                         return formatWeightDisplay(defaultWeight);
                     });
-                }));
-        LiveData<String> repsSeedValue = Transformations.switchMap(exerciseRecords, records ->
-                // FIXME this should monitor the mutableexercise rather than the index
-                Transformations.switchMap(exerciseIndex, index -> {
-                    if (index >= records.size()) {
-                        MutableLiveData<String> emptyResult = new MutableLiveData<>();
-                        emptyResult.setValue(formatRepsDisplay(0));
-                        return emptyResult;
-                    }
-                    return Transformations.switchMap(records.get(index).getSetsCount(), count -> {
-                        if (count > 0) {
-                            return Transformations.map(records.get(index).getSet(-1),
-                                    latestSet -> formatRepsDisplay(latestSet.getReps()));
-                        }
-                        MutableLiveData<String> result = new MutableLiveData<>();
-                        result.setValue(formatRepsDisplay(records.get(index).getTargetSet().getReps()));
-                        return result;
-                    });
-                }));
+                });
+        LiveData<String> repsSeedValue = Transformations.switchMap(currentRecord, record -> {
+            if (record == null) {
+                MutableLiveData<String> emptyResult = new MutableLiveData<>();
+                emptyResult.setValue(formatRepsDisplay(0));
+                return emptyResult;
+            }
+            return Transformations.switchMap(record.getSetsCount(), count -> {
+                if (count > 0) {
+                    return Transformations.map(record.getSet(-1),
+                            latestSet -> formatRepsDisplay(latestSet.getReps()));
+                }
+                MutableLiveData<String> result = new MutableLiveData<>();
+                // TODO target set should be a livedata
+                result.setValue(formatRepsDisplay(record.getTargetSet().getReps()));
+                return result;
+            });
+        });
         weightDisplayValue.addSource(weightSeedValue, v ->
                 weightDisplayValue.setValue(v));
         weightDisplayValue.addSource(weightDisplayValue, v ->
@@ -311,6 +313,7 @@ public class ExerciseViewModel extends AndroidViewModel {
             Log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default");
             return new ExerciseSet();
         }
+        // TODO might be able to remove this since the method is only called by livedata transformation
         // leaving this as a warning as I don't know when this would be null
         if (isLoadingBool.getValue()) {
             isLoadingBool.setValue(false);
@@ -399,14 +402,14 @@ public class ExerciseViewModel extends AndroidViewModel {
         if (timer != null) {
             timer.cancel();
             timer = null;
-            restRemaining.setValue((double)restMax.getValue());
+            restRemaining.setValue((double) restMax.getValue());
             timerMutableLiveData.setValue(null);
             //setTimerText(exerciseSet);
             return;
         }
 
         // FIXME this won't be correct if not observed, but it would only be necessary if not observed either, double negative
-        if (!completeSetButtonEnabled.getValue()){
+        if (!completeSetButtonEnabled.getValue()) {
             Log.w(TAG, "completeSet: someone isn't using the enabled value");
             return;
         }
@@ -438,7 +441,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     // region getters
     public LiveData<ExerciseSet> getExercise() {
-        return exerciseMutableLiveData;
+        return currentExercise;
     }
 
     public LiveData<Integer> getIsLoading() {
