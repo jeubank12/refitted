@@ -72,19 +72,23 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
         Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
                 " from workout " + dayAndWorkoutId[1]);
 
-        PaginatedQueryList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
+        try {
+            PaginatedQueryList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
 
-        Log.i(TAG, "doInBackground: Query results received");
-        Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
-        room.runInTransaction(() -> result.forEach(set -> {
-            try {
-                Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
-                room.getExerciseDao().storeExercise(e);
-                room.getExerciseDao().storeExerciseSet(set);
-            } catch (Exception ex) {
-                Log.e(TAG, "doInBackground: error loading Exercise", ex);
-            }
-        }));
+            Log.i(TAG, "doInBackground: Query results received");
+            Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
+            room.runInTransaction(() -> result.forEach(set -> {
+                try {
+                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                    room.getExerciseDao().storeExercise(e);
+                    room.getExerciseDao().storeExerciseSet(set);
+                } catch (Exception ex) {
+                    Log.e(TAG, "doInBackground: error loading Exercise", ex);
+                }
+            }));
+        } catch (Exception ex) {
+            Log.e(TAG, "doInBackground: error loading ExerciseSets", ex);
+        }
         return null;
     }
 }
