@@ -8,6 +8,7 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
@@ -18,8 +19,10 @@ import java.lang.ref.WeakReference;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +37,8 @@ public class ExerciseRepository {
     private MediatorLiveData<List<ExerciseSet>> exercises = new MediatorLiveData<>();
     private LiveData<List<ExerciseSet>> currentExerciseSource = null;
     private LiveData<List<ExerciseRecord>> records;
+    private Comparator<ExerciseSet> compareByStep = Comparator.comparing(ExerciseSet::getStep);
+
 
     public ExerciseRepository(Context context) {
         applicationContext = new WeakReference<>(context.getApplicationContext());
@@ -87,7 +92,18 @@ public class ExerciseRepository {
                                 roomDb.getExerciseDao().getSteps(day, workoutId),
                                 HashSet::new),
                         stepKeys -> {
-                            Log.i(TAG, "loadExercises: found exercise set numbers, loading sets");
+                            List<ExerciseSet> lastExercises = currentExerciseSource.getValue();
+                            if (lastExercises != null && stepKeys.size() == lastExercises.size()) {
+                                if (doListsFullyIntersect(new ArrayList<>(stepKeys), lastExercises)) {
+                                    Log.i(TAG, "loadExercises: exercise sets were updated, but there are no new sets");
+                                    return currentExerciseSource;
+                                }
+                            }
+                            if (lastExercises == null) {
+                                Log.i(TAG, "loadExercises: found exercise set numbers, loading sets");
+                            } else {
+                                Log.i(TAG, "loadExercises: found new exercise set numbers, loading sets");
+                            }
                             return roomDb.getExerciseDao().getExerciseSets(day, workoutId, stepKeys.toArray(new String[0]));
                         }
                 );
@@ -96,23 +112,58 @@ public class ExerciseRepository {
             return new MutableLiveData<>();
         });
         exercises.addSource(currentExerciseSource, exerciseSets -> {
-            if (exerciseSets == null){
+            if (exerciseSets == null) {
                 Log.d(TAG, "loadExercises: null exerciseSets");
                 return;
             }
             Log.i(TAG, "loadExercises: detected " + exerciseSets.size() + " new exercise sets, loading exercise descriptions");
+            exerciseSets.sort(compareByStep);
+            List<ExerciseSet> oldVals = exercises.getValue();
+            if (oldVals == null){
+                oldVals = new ArrayList<>();
+            }
+
             for (ExerciseSet set : exerciseSets) {
-                set.setExercise(Transformations.switchMap(room, roomDb -> {
-                    if (roomDb != null) {
-                        return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
-                    }
-                    Log.w(TAG, "loadExercises: somehow Room was null, returning null for exercise description");
-                    return new MutableLiveData<>();
-                }));
+                ExerciseSet existing = getSetWithMatchingExercise(oldVals, set);
+                if (existing != null){
+                    set.setExercise(existing.getExercise());
+                } else {
+                    set.setExercise(Transformations.switchMap(room, roomDb -> {
+                        if (roomDb != null) {
+                            return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
+                        }
+                        Log.w(TAG, "loadExercises: somehow Room was null, returning null for exercise description");
+                        return new MutableLiveData<>();
+                    }));
+                }
             }
             Log.i(TAG, "loadExercises: setting final value of exercise livedata");
             exercises.setValue(exerciseSets);
         });
+    }
+
+    private ExerciseSet getSetWithMatchingExercise(List<ExerciseSet> oldVals, ExerciseSet set) {
+        for(ExerciseSet oldVal : oldVals){
+            if (oldVal.getName().equals(set.getName())){
+                return oldVal;
+            }
+        }
+        return null;
+    }
+
+    private boolean doListsFullyIntersect(List<String> stepKeys, List<ExerciseSet> lastExercises) {
+        stepKeys.sort(String::compareTo);
+        lastExercises.sort(compareByStep);
+        Iterator<String> newVals = stepKeys.iterator();
+        Iterator<ExerciseSet> oldVals = lastExercises.iterator();
+        while (newVals.hasNext()) {
+            String newVal = newVals.next();
+            ExerciseSet oldVal = oldVals.next();
+            if (!newVal.equals(oldVal.getStep())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void storeSetRecord(SetRecord record) {
