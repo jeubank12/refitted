@@ -89,74 +89,84 @@ public class ExerciseRepository {
             changedSetsSource.removeSource(currentStepsSource);
         }
 
-        currentStepsSource = Transformations.switchMap(room, roomDb -> {
-            if (roomDb != null) {
-                DynamoDataService dynamoService = new DynamoDataService(applicationContext.get(), roomDb);
-                dynamoService.execute(day, workoutId);
-                return Transformations.map(
-                        roomDb.getExerciseDao().getSteps(day, workoutId),
-                        HashSet::new);
-            }
-            Log.i(TAG, "loadExercises: Room not yet initialized, returning null");
-            return new MutableLiveData<>();
-        });
+        currentStepsSource = Transformations.switchMap(room,
+                roomDb -> getStepsForDayAndWorkout(day, workoutId, roomDb));
 
-        changedSetsSource.addSource(currentStepsSource, stepKeys -> {
-            List<ExerciseSet> lastExercises = currentExerciseSource.getValue();
-            if (lastExercises != null && stepKeys.size() == lastExercises.size()) {
-                if (doListsFullyIntersect(new ArrayList<>(stepKeys), lastExercises)) {
-                    Log.i(TAG, "loadExercises: exercise sets were updated, but there are no new sets");
-                    //return changedSetsSource;
-                    return;
-                }
-            }
-            if (lastExercises == null) {
-                Log.i(TAG, "loadExercises: found exercise set numbers");
+        changedSetsSource.addSource(currentStepsSource, this::updateSetsIfChanged);
+
+        currentExerciseSource = Transformations.switchMap(room,
+                roomDb -> getExercisesFromSteps(day, workoutId, roomDb));
+
+        exercises.addSource(currentExerciseSource,
+                exerciseSets -> updateExercisesWithMinimumChange(room, exerciseSets));
+    }
+
+    private void updateExercisesWithMinimumChange(LiveData<ExerciseRoom> room, List<ExerciseSet> exerciseSets) {
+        if (exerciseSets == null) {
+            Log.d(TAG, "loadExercises: null exerciseSets");
+            return;
+        }
+        Log.i(TAG, "loadExercises: detected " + exerciseSets.size() + " new exercise sets, loading exercise descriptions");
+        exerciseSets.sort(compareByStep);
+        List<ExerciseSet> oldVals = exercises.getValue();
+        if (oldVals == null) {
+            oldVals = new ArrayList<>();
+        }
+
+        for (ExerciseSet set : exerciseSets) {
+            ExerciseSet existing = getSetWithMatchingExercise(oldVals, set);
+            if (existing != null) {
+                set.setExercise(existing.getExercise());
             } else {
-                Log.i(TAG, "loadExercises: found new exercise set numbers");
+                set.setExercise(Transformations.switchMap(room, roomDb -> {
+                    if (roomDb != null) {
+                        return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
+                    }
+                    Log.w(TAG, "loadExercises: somehow Room was null, returning null for exercise description");
+                    return new MutableLiveData<>();
+                }));
             }
-            changedSetsSource.setValue(stepKeys);
+        }
+        Log.i(TAG, "loadExercises: setting final value of exercise livedata");
+        exercises.setValue(exerciseSets);
+    }
 
-        });
+    private LiveData<List<ExerciseSet>> getExercisesFromSteps(String day, String workoutId, ExerciseRoom roomDb) {
+        if (roomDb != null) {
+            return Transformations.switchMap(changedSetsSource,
+                    steps -> roomDb.getExerciseDao().getExerciseSets(day, workoutId, steps.toArray(new String[0])));
+        }
+        Log.i(TAG, "loadExercises: Room not yet initialized, returning null");
+        return new MutableLiveData<>();
+    }
 
-        currentExerciseSource = Transformations.switchMap(room, roomDb -> {
-           if (roomDb != null){
-               return Transformations.switchMap(changedSetsSource,
-                       steps -> roomDb.getExerciseDao().getExerciseSets(day, workoutId, steps.toArray(new String[0])));
-           }
-            Log.i(TAG, "loadExercises: Room not yet initialized, returning null");
-           return new MutableLiveData<>();
-        });
-
-        exercises.addSource(currentExerciseSource, exerciseSets -> {
-            if (exerciseSets == null) {
-                Log.d(TAG, "loadExercises: null exerciseSets");
+    private void updateSetsIfChanged(HashSet<String> stepKeys) {
+        List<ExerciseSet> lastExercises = currentExerciseSource.getValue();
+        if (lastExercises != null && stepKeys.size() == lastExercises.size()) {
+            if (doListsFullyIntersect(new ArrayList<>(stepKeys), lastExercises)) {
+                Log.i(TAG, "loadExercises: exercise sets were updated, but there are no new sets");
+                //return changedSetsSource;
                 return;
             }
-            Log.i(TAG, "loadExercises: detected " + exerciseSets.size() + " new exercise sets, loading exercise descriptions");
-            exerciseSets.sort(compareByStep);
-            List<ExerciseSet> oldVals = exercises.getValue();
-            if (oldVals == null){
-                oldVals = new ArrayList<>();
-            }
+        }
+        if (lastExercises == null) {
+            Log.i(TAG, "loadExercises: found exercise set numbers");
+        } else {
+            Log.i(TAG, "loadExercises: found new exercise set numbers");
+        }
+        changedSetsSource.setValue(stepKeys);
+    }
 
-            for (ExerciseSet set : exerciseSets) {
-                ExerciseSet existing = getSetWithMatchingExercise(oldVals, set);
-                if (existing != null){
-                    set.setExercise(existing.getExercise());
-                } else {
-                    set.setExercise(Transformations.switchMap(room, roomDb -> {
-                        if (roomDb != null) {
-                            return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
-                        }
-                        Log.w(TAG, "loadExercises: somehow Room was null, returning null for exercise description");
-                        return new MutableLiveData<>();
-                    }));
-                }
-            }
-            Log.i(TAG, "loadExercises: setting final value of exercise livedata");
-            exercises.setValue(exerciseSets);
-        });
+    private LiveData<HashSet<String>> getStepsForDayAndWorkout(String day, String workoutId, ExerciseRoom roomDb) {
+        if (roomDb != null) {
+            DynamoDataService dynamoService = new DynamoDataService(applicationContext.get(), roomDb);
+            dynamoService.execute(day, workoutId);
+            return Transformations.map(
+                    roomDb.getExerciseDao().getSteps(day, workoutId),
+                    HashSet::new);
+        }
+        Log.i(TAG, "loadExercises: Room not yet initialized, returning null");
+        return new MutableLiveData<>();
     }
 
     private ExerciseSet getSetWithMatchingExercise(List<ExerciseSet> oldVals, ExerciseSet
