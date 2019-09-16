@@ -4,10 +4,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.Observer;
-import androidx.room.RoomDatabase;
-
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig;
@@ -22,19 +18,10 @@ import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
-import com.litus_animae.refitted.models.WorkoutDay;
-
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class DynamoDataService extends AsyncTask<String, Void, Void> {
     private static final String TAG = "DynamoDataService";
-    protected final DynamoDBMapper db;
+    protected final DynamoDBMapper dynamoDb;
     private final ExerciseRoom room;
 
     public DynamoDataService(Context applicationContext, ExerciseRoom room) {
@@ -49,7 +36,7 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
         dbClient.setRegion(Region.getRegion(Regions.US_EAST_2));
         String tableName = applicationContext.getString(R.string.dynamo_table);
         Log.d(TAG, "GetDatabaseMapper: generating mapper to table: " + tableName);
-        db = DynamoDBMapper.builder()
+        dynamoDb = DynamoDBMapper.builder()
                 .dynamoDBClient(dbClient)
                 .dynamoDBMapperConfig(new DynamoDBMapperConfig(
                         new DynamoDBMapperConfig.TableNameOverride(tableName)))
@@ -60,7 +47,7 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
         Log.d(TAG, "getExercise: retrieving exercise: " + exerciseId +
                 " from workout: " + workoutId);
         try {
-            return db.load(Exercise.class, exerciseId, workoutId);
+            return dynamoDb.load(Exercise.class, exerciseId, workoutId);
         } catch (Exception ex) {
             Log.e(TAG, "getExercise: error loading Exercise", ex);
         }
@@ -85,20 +72,21 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
         Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
                 " from workout " + dayAndWorkoutId[1]);
 
-        PaginatedList<ExerciseSet> result = db.query(ExerciseSet.class, queryExpression);
+        PaginatedList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
 
         Log.i(TAG, "doInBackground: Query results received");
         Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
-        // TODO must fetch exercises and store first
-        for (ExerciseSet set : result){
-            try {
-                Exercise e = db.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
-                room.getExerciseDao().storeExercise(e);
-                room.getExerciseDao().storeExerciseSet(set);
-            } catch (Exception ex) {
-                Log.e(TAG, "getExercise: error loading Exercise", ex);
+        room.runInTransaction(() -> {
+            for (ExerciseSet set : result){
+                try {
+                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                    room.getExerciseDao().storeExercise(e);
+                    room.getExerciseDao().storeExerciseSet(set);
+                } catch (Exception ex) {
+                    Log.e(TAG, "getExercise: error loading Exercise", ex);
+                }
             }
-        }
+        });
         return null;
     }
 }
