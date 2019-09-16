@@ -8,7 +8,7 @@ import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression;
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedList;
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryList;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
@@ -63,7 +63,7 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
                 .withAttributeValueList(new AttributeValue().withS(dayAndWorkoutId[0] + "."));
 
-        DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
+        DynamoDBQueryExpression<ExerciseSet> queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
                 .withHashKeyValues(keyValues)
                 .withIndexName("Reverse-index")
                 .withRangeKeyCondition("Id", rangeCondition)
@@ -72,21 +72,19 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
         Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
                 " from workout " + dayAndWorkoutId[1]);
 
-        PaginatedList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
+        PaginatedQueryList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
 
         Log.i(TAG, "doInBackground: Query results received");
         Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
-        room.runInTransaction(() -> {
-            for (ExerciseSet set : result){
-                try {
-                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
-                    room.getExerciseDao().storeExercise(e);
-                    room.getExerciseDao().storeExerciseSet(set);
-                } catch (Exception ex) {
-                    Log.e(TAG, "getExercise: error loading Exercise", ex);
-                }
+        room.runInTransaction(() -> result.forEach(set -> {
+            try {
+                Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                room.getExerciseDao().storeExercise(e);
+                room.getExerciseDao().storeExerciseSet(set);
+            } catch (Exception ex) {
+                Log.e(TAG, "doInBackground: error loading Exercise", ex);
             }
-        });
+        }));
         return null;
     }
 }
