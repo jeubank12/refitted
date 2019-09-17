@@ -55,9 +55,9 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
+            android:enabled="@{viewmodel.completeSetButtonEnabled}"
             android:onClick="handleCompleteSet"
             android:text="@{viewmodel.completeSetMessage}"
-            android:enabled="@{viewmodel.completeSetButtonEnabled}"
             app:layout_constraintBottom_toTopOf="@+id/restProgressBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -159,21 +159,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/completeSetButton" />
 
-        <ProgressBar
-            android:id="@+id/loadingOverlay"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:background="#9E000000"
-            android:translationZ="8dp"
-            android:visibility="@{viewmodel.isLoading ?? View.GONE}"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:visibility="gone" />
-
-
         <TextView
             android:id="@+id/restTimeView"
             android:layout_width="171dp"
@@ -209,11 +194,12 @@
             app:layout_constraintGuide_percent="0.5"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <androidx.core.widget.NestedScrollView
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginBottom="8dp"
             android:fillViewport="true"
+            android:id="@+id/exerciseDetailSwipeLayout"
             app:layout_constraintBottom_toTopOf="@+id/guideline"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -311,7 +297,7 @@
                     app:layout_constraintTop_toTopOf="@+id/exerciseRepsTargetLabel"
                     tools:text="4" />
             </androidx.constraintlayout.widget.ConstraintLayout>
-        </androidx.core.widget.NestedScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

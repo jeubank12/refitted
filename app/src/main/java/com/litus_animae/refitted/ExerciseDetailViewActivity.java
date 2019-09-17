@@ -14,6 +14,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
 import com.litus_animae.refitted.fragments.ExerciseHistoryDialogFragment;
@@ -90,6 +91,15 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 workout + " " + getString(R.string.day) + " " + day);
         model.loadExercises(Integer.toString(day), workout);
         binding.setViewmodel(model);
+        binding.exerciseDetailSwipeLayout.setOnRefreshListener(() ->
+                model.loadExercises(Integer.toString(day), workout));
+        model.getIsLoadingBool().observe(this, isLoading -> {
+                if (isLoading) {
+                    binding.exerciseDetailSwipeLayout.setRefreshing(true);
+                } else {
+                    binding.exerciseDetailSwipeLayout.setRefreshing(false);
+                }
+        });
     }
 
     private void setInitialWeightFragments() {

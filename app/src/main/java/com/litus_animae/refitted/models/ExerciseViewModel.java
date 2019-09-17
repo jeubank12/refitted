@@ -448,6 +448,10 @@ public class ExerciseViewModel extends AndroidViewModel {
         return isLoading;
     }
 
+    public LiveData<Boolean> getIsLoadingBool() {
+        return isLoadingBool;
+    }
+
     public LiveData<Integer> getHasLeft() {
         return hasLeft;
     }
