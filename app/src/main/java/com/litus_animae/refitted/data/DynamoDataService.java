@@ -68,8 +68,16 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
             Log.i(TAG, "doInBackground: Query results received");
             Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
             room.runInTransaction(() -> result.forEach(set -> {
+                if (set == null){
+                    Log.w(TAG, "doInBackground: loaded set was null");
+                    return;
+                }
                 try {
                     Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                    if (e == null){
+                        Log.w(TAG, "doInBackground: loaded exercise was null");
+                        return;
+                    }
                     room.getExerciseDao().storeExercise(e);
                     room.getExerciseDao().storeExerciseSet(set);
                 } catch (Exception ex) {
