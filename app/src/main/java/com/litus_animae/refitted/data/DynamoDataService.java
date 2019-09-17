@@ -43,20 +43,10 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
                 .build();
     }
 
-    public Exercise getExercise(String exerciseId, String workoutId) {
-        Log.d(TAG, "getExercise: retrieving exercise: " + exerciseId +
-                " from workout: " + workoutId);
-        try {
-            return dynamoDb.load(Exercise.class, exerciseId, workoutId);
-        } catch (Exception ex) {
-            Log.e(TAG, "getExercise: error loading Exercise", ex);
-        }
-        return null;
-    }
-
     @Override
     protected Void doInBackground(String... dayAndWorkoutId) {
         ExerciseSet keyValues = new ExerciseSet();
+        // TODO check the array
         keyValues.setWorkout(dayAndWorkoutId[1]);
 
         Condition rangeCondition = new Condition()
