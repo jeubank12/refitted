@@ -4,22 +4,20 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribut
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable;
-import java.util.Set;
 
 @DynamoDBTable(tableName = "refitted-exercise")
-public class WorkoutDay {
+public class WorkoutPlan {
     private String workout;
-    private String day;
-    private Set<String> exercises;
+    private String id = "Plan";
 
     @DynamoDBHashKey(attributeName = "Id")
     @DynamoDBAttribute(attributeName = "Id")
-    public String getDay() {
-        return day;
+    public String getId() {
+        return id;
     }
 
-    public void setDay(String day) {
-        this.day = day;
+    public void setId(String id) {
+        this.id = id;
     }
 
     @DynamoDBRangeKey(attributeName = "Disc")
@@ -30,14 +28,5 @@ public class WorkoutDay {
 
     public void setWorkout(String workout) {
         this.workout = workout;
-    }
-
-    @DynamoDBAttribute(attributeName = "Exercises")
-    public Set<String> getExercises() {
-        return exercises;
-    }
-
-    public void setExercises(Set<String> exercises) {
-        this.exercises = exercises;
     }
 }
