@@ -1,46 +1,21 @@
 package com.litus_animae.refitted.data;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.util.Log;
 
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper;
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryList;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 
-public class DynamoExerciseDataService extends AsyncTask<String, Void, Void> {
+public class DynamoExerciseDataService extends DynamoDataService {
     private static final String TAG = "DynamoExerciseDataService";
-    protected final DynamoDBMapper dynamoDb;
-    private final ExerciseRoom room;
 
-    public DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
-        this.room = room;
-        CognitoCachingCredentialsProvider credentialsProvider =
-                new CognitoCachingCredentialsProvider(
-                        applicationContext,
-                        "***REMOVED***",
-                        Regions.US_EAST_2
-                );
-        AmazonDynamoDBClient dbClient = new AmazonDynamoDBClient(credentialsProvider);
-        dbClient.setRegion(Region.getRegion(Regions.US_EAST_2));
-        String tableName = applicationContext.getString(R.string.dynamo_table);
-        Log.d(TAG, "GetDatabaseMapper: generating mapper to table: " + tableName);
-        dynamoDb = DynamoDBMapper.builder()
-                .dynamoDBClient(dbClient)
-                .dynamoDBMapperConfig(new DynamoDBMapperConfig(
-                        new DynamoDBMapperConfig.TableNameOverride(tableName)))
-                .build();
+    DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
+        super(applicationContext, room);
     }
 
     @Override
