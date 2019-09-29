@@ -73,10 +73,12 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
                     return;
                 }
                 try {
-                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), dayAndWorkoutId[1]);
+                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), set.getWorkout());
                     if (e == null){
-                        Log.w(TAG, "doInBackground: loaded exercise was null");
-                        return;
+                        Log.w(TAG, "doInBackground: loaded exercise was null, replacing with default");
+                        e = new Exercise();
+                        e.setId(set.getName());
+                        e.setWorkout(set.getWorkout());
                     }
                     room.getExerciseDao().storeExercise(e);
                     room.getExerciseDao().storeExerciseSet(set);
