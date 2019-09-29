@@ -84,6 +84,11 @@ public class DynamoDataService extends AsyncTask<String, Void, Void> {
                     room.getExerciseDao().storeExerciseSet(set);
                 } catch (Exception ex) {
                     Log.e(TAG, "doInBackground: error loading Exercise", ex);
+                    Exercise e = new Exercise();
+                    e.setId(set.getName());
+                    e.setWorkout(set.getWorkout());
+                    room.getExerciseDao().storeExercise(e);
+                    room.getExerciseDao().storeExerciseSet(set);
                 }
             }));
         } catch (Exception ex) {
