@@ -19,12 +19,12 @@ import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 
-public class DynamoDataService extends AsyncTask<String, Void, Void> {
-    private static final String TAG = "DynamoDataService";
+public class DynamoExerciseDataService extends AsyncTask<String, Void, Void> {
+    private static final String TAG = "DynamoExerciseDataService";
     protected final DynamoDBMapper dynamoDb;
     private final ExerciseRoom room;
 
-    public DynamoDataService(Context applicationContext, ExerciseRoom room) {
+    public DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
         this.room = room;
         CognitoCachingCredentialsProvider credentialsProvider =
                 new CognitoCachingCredentialsProvider(

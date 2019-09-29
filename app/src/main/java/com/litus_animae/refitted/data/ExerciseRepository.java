@@ -174,7 +174,7 @@ public class ExerciseRepository {
     private LiveData<HashSet<String>> getStepsForDayAndWorkout(String day, String workoutId, ExerciseRoom roomDb) {
         if (roomDb != null) {
             Log.i(TAG, "getStepsForDayAndWorkout: submitting dynamo query for workout " + workoutId + ", day " + day);
-            DynamoDataService dynamoService = new DynamoDataService(applicationContext.get(), roomDb);
+            DynamoExerciseDataService dynamoService = new DynamoExerciseDataService(applicationContext.get(), roomDb);
             dynamoService.execute(day, workoutId);
             Log.i(TAG, "getStepsForDayAndWorkout: returning query for workout steps");
             return Transformations.map(
