@@ -4,6 +4,9 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,8 +42,8 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
             LiveData<PagedList<SetRecord>> recordList = new LivePagedListBuilder<>(exerciseRecord.getAllSets(), 10).build();
             recordList.observe(this, adapter::submitList);
         });
-        RecyclerView recyclerView = new RecyclerView(getContext());
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        View dialogContent = requireActivity().getLayoutInflater().inflate(R.layout.fragment_set_record_recycler, null);
+        RecyclerView recyclerView = dialogContent.findViewById(R.id.set_record_recycler);
         recyclerView.setAdapter(adapter);
         builder.setTitle(R.string.prev_weight)
 //                .setPositiveButton("TODO", new DialogInterface.OnClickListener() {
@@ -55,7 +58,7 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
 
                     }
                 })
-                .setView(recyclerView);
+                .setView(dialogContent);
 //                .setSingleChoiceItems((ListAdapter) adapter, 0, new DialogInterface.OnClickListener() {
 //                    @Override
 //                    public void onClick(DialogInterface dialog, int which) {
