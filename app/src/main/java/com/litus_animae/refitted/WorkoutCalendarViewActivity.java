@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Switch;
 
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 
@@ -11,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.widget.Toolbar;
+
+import java.lang.ref.WeakReference;
 
 public class WorkoutCalendarViewActivity extends AppCompatActivity {
 
@@ -44,9 +47,12 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         ((CollapsingToolbarLayout) findViewById(R.id.toolbar_layout))
-                .setTitle("AX1");
+                .setTitle("Athlean-X");
+
+        Switch planSwitch = findViewById(R.id.switch1);
+
         RecyclerView list = findViewById(R.id.calendar_recycler);
-        list.setAdapter(new CalendarAdapter(84));
+        list.setAdapter(new CalendarAdapter(84, new WeakReference<>(planSwitch)));
         list.setLayoutManager(new LinearLayoutManager(this));
     }
 

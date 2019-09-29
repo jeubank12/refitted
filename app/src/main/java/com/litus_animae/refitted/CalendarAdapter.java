@@ -7,17 +7,21 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Switch;
 
 import com.litus_animae.refitted.databinding.CalendarRowLayoutBinding;
 
+import java.lang.ref.WeakReference;
 import java.util.Locale;
 
 public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHolder> {
 
     private int daysCount;
+    private final WeakReference<Switch> planSwitch;
 
-    public CalendarAdapter(int daysCount) {
+    public CalendarAdapter(int daysCount, WeakReference<Switch> planSwitch) {
         this.daysCount = daysCount;
+        this.planSwitch = planSwitch;
     }
 
     @NonNull
@@ -61,7 +65,12 @@ public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHo
         public void onClick(View v) {
             int position = getAdapterPosition() * 7;
             Intent intent = new Intent(v.getContext(), ExerciseDetailViewActivity.class);
-            intent.putExtra("workout", "AX1");
+            Switch mPlanSwitch = planSwitch.get();
+            if (mPlanSwitch != null && mPlanSwitch.isChecked()){
+                intent.putExtra("workout", "Inferno Size");
+            } else {
+                intent.putExtra("workout", "AX1");
+            }
             switch (v.getId()) {
                 case R.id.day1button:
                     intent.putExtra("day", position + 1);

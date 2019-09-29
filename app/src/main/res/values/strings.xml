@@ -39,4 +39,6 @@
     <string name="history">History</string>
     <string name="colon">:</string>
     <string name="day">Day</string>
+    <string name="ax1">AX1</string>
+    <string name="inferno_size">Inferno Size</string>
 </resources>
