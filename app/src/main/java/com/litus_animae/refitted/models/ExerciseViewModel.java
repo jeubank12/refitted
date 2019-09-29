@@ -50,6 +50,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     private MediatorLiveData<String> repsDisplayValue = new MediatorLiveData<>();
 
     private MutableLiveData<CountDownTimer> timerMutableLiveData = new MutableLiveData<>();
+
     private LiveData<ExerciseRecord> currentRecord = Transformations.switchMap(exerciseIndex, index -> {
         return Transformations.map(exerciseRecords, records -> {
             if (index == null || records == null || index >= records.size()) {
@@ -491,5 +492,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     public LiveData<Boolean> getCompleteSetButtonEnabled() {
         return completeSetButtonEnabled;
     }
+
+    public LiveData<ExerciseRecord> getCurrentRecord() { return currentRecord; }
     // endregion getters
 }
