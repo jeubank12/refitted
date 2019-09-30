@@ -51,11 +51,6 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
         list.setLayoutManager(new LinearLayoutManager(this));
 
         mAuth = FirebaseAuth.getInstance();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
         googleSignInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .requestProfile()
