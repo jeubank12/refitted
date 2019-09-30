@@ -22,7 +22,7 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
         CognitoCachingCredentialsProvider credentialsProvider =
                 new CognitoCachingCredentialsProvider(
                         applicationContext,
-                        "***REMOVED***",
+                        applicationContext.getString(R.string.cognito_identity_pool_id),
                         Regions.US_EAST_2
                 );
         AmazonDynamoDBClient dbClient = new AmazonDynamoDBClient(credentialsProvider);

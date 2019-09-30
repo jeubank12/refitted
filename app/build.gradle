@@ -22,9 +22,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
         }
         debug {
             signingConfig signingConfigs.debug
+            resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
         }
     }
     dataBinding {
