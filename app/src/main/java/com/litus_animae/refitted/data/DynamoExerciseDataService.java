@@ -13,6 +13,7 @@ import com.litus_animae.refitted.models.ExerciseSet;
 
 public class DynamoExerciseDataService extends DynamoDataService {
     private static final String TAG = "DynamoExerciseDataService";
+    private DynamoDBQueryExpression<ExerciseSet> queryExpression;
 
     DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
         super(applicationContext, room);
@@ -28,7 +29,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
                 .withAttributeValueList(new AttributeValue().withS(dayAndWorkoutId[0] + "."));
 
-        DynamoDBQueryExpression<ExerciseSet> queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
+        queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
                 .withHashKeyValues(keyValues)
                 .withIndexName("Reverse-index")
                 .withRangeKeyCondition("Id", rangeCondition)
@@ -37,6 +38,12 @@ public class DynamoExerciseDataService extends DynamoDataService {
         Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
                 " from workout " + dayAndWorkoutId[1]);
 
+        connectAndRun();
+        return null;
+    }
+
+    @Override
+    protected void runAfterConnect() {
         try {
             PaginatedQueryList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
 
@@ -69,7 +76,6 @@ public class DynamoExerciseDataService extends DynamoDataService {
         } catch (Exception ex) {
             Log.e(TAG, "doInBackground: error loading ExerciseSets", ex);
         }
-        return null;
     }
 }
 

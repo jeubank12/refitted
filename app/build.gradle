@@ -23,10 +23,12 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
+            resValue 'string', "firebase_id_source", Refitted_OpenIdSource
         }
         debug {
             signingConfig signingConfigs.debug
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
+            resValue 'string', "firebase_id_source", Refitted_OpenIdSource
         }
     }
     dataBinding {
