@@ -17,18 +17,24 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
+import com.litus_animae.refitted.fragments.ConfigureButtonsDialogFragment;
 import com.litus_animae.refitted.fragments.ExerciseHistoryDialogFragment;
 import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Locale;
 
-public class ExerciseDetailViewActivity extends AppCompatActivity {
+public class ExerciseDetailViewActivity extends AppCompatActivity implements ConfigureButtonsDialogFragment.OnButtonConfigurtionChangeListener {
 
     private static final String TAG = "ExerciseDetailViewActivity";
     private MenuItem switchToAlternateButton;
     private boolean show25 = true;
+    private boolean show5 = true;
+    private boolean showMore = true;
+    private boolean showAsDouble = false;
     private ActivityExerciseDetailViewBinding binding;
     private ExerciseViewModel model;
     private String workout;
@@ -39,8 +45,8 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.alternate_menu, menu);
         switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item);
-        MenuItem enable25 = menu.findItem(R.id.enable_25);
-        enable25.setChecked(show25);
+//        MenuItem enable25 = menu.findItem(R.id.enable_25);
+//        enable25.setChecked(show25);
 
         model.getExercise().observe(this, exerciseSet ->
                 switchToAlternateButton.setVisible(exerciseSet.hasAlternate()));
@@ -54,11 +60,14 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 Log.d(TAG, "onOptionsItemSelected: handle 'switch to alternate'");
                 model.swapToAlternate();
                 return true;
-            case R.id.enable_25:
+            case R.id.config_button_layout:
                 Log.d(TAG, "onOptionsItemSelected: handle 'enable 2.5'");
-                show25 = !show25;
-                item.setChecked(show25);
-                updateWeightFragments();
+                //show25 = !show25;
+                //item.setChecked(show25);
+                //updateWeightFragments();
+                ConfigureButtonsDialogFragment configureButtonsDialogFragment =
+                        ConfigureButtonsDialogFragment.newInstance(EnumSet.noneOf(ConfigureButtonsDialogFragment.ButtonLayout.class));
+                configureButtonsDialogFragment.show(getSupportFragmentManager(), null);
                 return true;
             case R.id.show_history:
                 //if (model.getCurrentRecord() != null) {
@@ -129,6 +138,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
 
         show25 = prefs.getBoolean("enable25", true);
+        show5 = prefs.getBoolean("enable5", true);
+        showMore = prefs.getBoolean("enableMore", true);
+        showAsDouble = prefs.getBoolean("enableDouble", false);
         updateWeightFragments();
 
         SharedPreferences.Editor editor = prefs.edit();
@@ -179,6 +191,11 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
                 binding.repsDisplayView.getText().toString());
     }
 
+    @Override
+    public void onButtonConfigurationChange(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> layout) {
+        updateWeightFragments();
+    }
+
     private class WeightButtonFragmentSet {
         private WeightButton subFrag;
         private WeightButton addFrag;
@@ -193,15 +210,43 @@ public class ExerciseDetailViewActivity extends AppCompatActivity {
 
         public WeightButtonFragmentSet() {
             WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
-            double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
-            if (!show25) {
-                buttonsVisible = WeightButton.LAYOUT.button4;
-                buttonValues = Arrays.copyOfRange(buttonValues, 1, 5);
+            ArrayList<Double> buttonValues = new ArrayList<>();
+            //double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
+            if (show25) {
+                buttonValues.add(2.5);
             }
+            if (show5){
+                buttonValues.add(5d);
+            }
+            if (showMore){
+                buttonValues.add(10d);
+                buttonValues.add(25d);
+                buttonValues.add(45d);
+            }
+            if (showAsDouble){
+                if (buttonValues.size() < 1){
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() < 5){
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() < 6){
+                    buttonsVisible = WeightButton.LAYOUT.button5;
+                }
+            } else {
+                if (buttonValues.size() < 1){
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() < 5){
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() < 6){
+                    buttonsVisible = WeightButton.LAYOUT.button5;
+                }
+            }
+
+            Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
+
             subFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonValues, false);
+                    buttonFinalValues, false);
             addFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonValues, true);
+                    buttonFinalValues, true);
         }
     }
 }

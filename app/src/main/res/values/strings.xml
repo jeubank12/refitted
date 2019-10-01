@@ -29,7 +29,10 @@
     <string name="target_sets">Target Sets:</string>
     <string name="to_failure">To Failure</string>
     <string name="to_failure_note">(To Failure)</string>
-    <string name="enable_2_5_lbs">Enable 2.5 lbs</string>
+    <string name="enable_2_5_lbs">Show 2.5 lb button</string>
+    <string name="enable_5_lbs">Show 5 lb button</string>
+    <string name="enable_more_lbs">Show 10, 25, and 45 lb buttons</string>
+    <string name="enable_double_lbs">Show weights as double (i.e. 2x45)</string>
     <string name="prev_weight">Previous Sets</string>
     <string name="date">Date:</string>
     <string name="reps">Reps:</string>

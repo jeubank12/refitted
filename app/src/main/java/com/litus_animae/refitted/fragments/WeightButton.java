@@ -36,7 +36,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private static final String TAG = "WeightButton";
 
     public enum LAYOUT {
-        button5, button4
+        button5, button4, button1
     }
 
     private static final String ARG_LAYOUT = "layout";
@@ -82,6 +82,14 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         args.putBoolean(ARG_POSITIVE, isPositive);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public static WeightButton newInstance(LAYOUT layoutType, Double[] values, boolean isPositive) {
+        double[] newValues = new double[values.length];
+        for (int i = 0; i < values.length; i++){
+            newValues[i] = values[i];
+        }
+        return newInstance(layoutType, newValues, isPositive);
     }
 
     @Override
