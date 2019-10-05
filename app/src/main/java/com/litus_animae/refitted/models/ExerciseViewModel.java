@@ -61,7 +61,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     });
 
     private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
-        if (record == null){
+        if (record == null) {
             MutableLiveData<Boolean> result = new MutableLiveData<>();
             result.setValue(false);
             return result;
@@ -136,6 +136,21 @@ public class ExerciseViewModel extends AndroidViewModel {
         timerMutableLiveData.setValue(null);
     }
 
+    private static String formatWeightDisplay(double value) {
+        value = Math.round(value * 2) / 2.0;
+        if (value < 0) {
+            value = 0;
+        }
+        return String.format(Locale.getDefault(), "%.1f", value);
+    }
+
+    private static String formatRepsDisplay(int value) {
+        if (value < 0) {
+            value = 0;
+        }
+        return String.format(Locale.getDefault(), "%d", value);
+    }
+
     private void setupWeightAndRepsTransforms() {
         targetExerciseReps = Transformations.map(currentExercise, exercise ->
         {
@@ -145,11 +160,19 @@ public class ExerciseViewModel extends AndroidViewModel {
             if (exercise.getReps() < 0) {
                 return getString(R.string.to_failure);
             }
-            if (exercise.isToFailure()) {
-                return String.format(Locale.getDefault(), "%d %s",
-                        exercise.getReps(), getString(R.string.to_failure_note));
+            String result;
+            if (exercise.getRepsRange() > 0) {
+                result = String.format(Locale.getDefault(), "%d-%d",
+                        exercise.getReps(),
+                        exercise.getReps() + exercise.getRepsRange());
+            } else {
+                result = String.format(Locale.getDefault(), "%d", exercise.getReps());
             }
-            return String.format(Locale.getDefault(), "%d", exercise.getReps());
+            if (exercise.isToFailure()) {
+                return String.format(Locale.getDefault(), "%s %s",
+                        result, getString(R.string.to_failure_note));
+            }
+            return result;
         });
         LiveData<String> weightSeedValue = Transformations.switchMap(currentRecord,
                 record -> {
@@ -178,7 +201,13 @@ public class ExerciseViewModel extends AndroidViewModel {
                 }
                 MutableLiveData<String> result = new MutableLiveData<>();
                 // TODO target set should be a livedata
-                result.setValue(formatRepsDisplay(record.getTargetSet().getReps()));
+                if (record.getTargetSet().getRepsRange() > 0) {
+                    result.setValue(formatRepsDisplay(
+                            record.getTargetSet().getReps() +
+                                    record.getTargetSet().getRepsRange()));
+                } else {
+                    result.setValue(formatRepsDisplay(record.getTargetSet().getReps()));
+                }
                 return result;
             });
         });
@@ -255,14 +284,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         weightDisplayValue.setValue(formatWeightDisplay(value));
     }
 
-    private static String formatWeightDisplay(double value) {
-        value = Math.round(value * 2) / 2.0;
-        if (value < 0) {
-            value = 0;
-        }
-        return String.format(Locale.getDefault(), "%.1f", value);
-    }
-
     public void updateRepsDisplay(boolean increase) {
         // leaving this as a warning as I don't know when this would be null
         int value = Integer.parseInt(repsDisplayValue.getValue());
@@ -277,13 +298,6 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     private void setRepsDisplay(int value) {
         repsDisplayValue.setValue(formatRepsDisplay(value));
-    }
-
-    private static String formatRepsDisplay(int value) {
-        if (value < 0) {
-            value = 0;
-        }
-        return String.format(Locale.getDefault(), "%d", value);
     }
 
     private boolean checkForAlternateExerciseSet(int index, ExerciseSet e) {
@@ -493,6 +507,8 @@ public class ExerciseViewModel extends AndroidViewModel {
         return completeSetButtonEnabled;
     }
 
-    public LiveData<ExerciseRecord> getCurrentRecord() { return currentRecord; }
+    public LiveData<ExerciseRecord> getCurrentRecord() {
+        return currentRecord;
+    }
     // endregion getters
 }
