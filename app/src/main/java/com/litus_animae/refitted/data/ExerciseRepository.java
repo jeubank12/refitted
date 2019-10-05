@@ -8,6 +8,7 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.bugsee.library.Bugsee;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
@@ -64,6 +65,7 @@ public class ExerciseRepository {
                                 .getSetRecords(tonightMidnight, e.getExerciseName()));
                         record.setAllSets(roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()));
                     } catch (Exception ex) {
+                        Bugsee.logException(ex);
                         Log.e(TAG, "getRecordsForLoadedExercises: failed retrieving records", ex);
                     }
                     recordObjects.add(record);
@@ -72,6 +74,7 @@ public class ExerciseRepository {
                 return recordObjects;
             });
         }
+        Bugsee.log("getRecordsForLoadedExercises: Room not yet initialized, returning empty list");
         Log.i(TAG, "getRecordsForLoadedExercises: Room not yet initialized, returning empty list");
         MutableLiveData<List<ExerciseRecord>> emptyResult = new MutableLiveData<>();
         emptyResult.setValue(new ArrayList<>());
@@ -128,6 +131,7 @@ public class ExerciseRepository {
                         Log.d(TAG, "updateExercisesWithMinimumChange: getting new query for " + set.getName());
                         return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
                     }
+                    Bugsee.log("updateExercisesWithMinimumChange: somehow Room was null, returning null for exercise description");
                     Log.w(TAG, "updateExercisesWithMinimumChange: somehow Room was null, returning null for exercise description");
                     return new MutableLiveData<>();
                 }));
@@ -145,6 +149,7 @@ public class ExerciseRepository {
                         return roomDb.getExerciseDao().getExerciseSets(day, workoutId, steps.toArray(new String[0]));
                     });
         }
+        Bugsee.log("getExercisesFromSteps: Room not yet initialized, returning null");
         Log.i(TAG, "getExercisesFromSteps: Room not yet initialized, returning null");
         return new MutableLiveData<>();
     }
@@ -180,6 +185,7 @@ public class ExerciseRepository {
                     roomDb.getExerciseDao().getSteps(day, workoutId),
                     HashSet::new);
         }
+        Bugsee.log("getStepsForDayAndWorkout: Room not yet initialized, returning null");
         Log.i(TAG, "getStepsForDayAndWorkout: Room not yet initialized, returning null");
         return new MutableLiveData<>();
     }

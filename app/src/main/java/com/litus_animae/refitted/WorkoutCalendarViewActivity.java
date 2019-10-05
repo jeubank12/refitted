@@ -12,6 +12,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bugsee.library.Bugsee;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -116,6 +117,7 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
             // Signed in successfully, show authenticated UI.
             firebaseAuthWithGoogle(account);
         } catch (ApiException e) {
+            Bugsee.logException(e);
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
             Log.w(TAG, "signInResult:failed code=" + e.getStatusCode());
@@ -156,8 +158,10 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         } catch (ClassNotFoundException ex) {
+            Bugsee.logException(ex);
             Log.e(TAG, "onCreate: bad class reference in shared preferences", ex);
         } catch (Exception ex) {
+            Bugsee.logException(ex);
             Log.e(TAG, "onCreate: shared preferences error", ex);
         }
     }

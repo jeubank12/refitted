@@ -12,6 +12,7 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.bugsee.library.Bugsee;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
 
@@ -225,6 +226,7 @@ public class ExerciseViewModel extends AndroidViewModel {
             try {
                 value = Double.parseDouble(v);
             } catch (Exception ex) {
+                Bugsee.logException(ex);
                 Log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
                 value = 0;
             }
@@ -243,6 +245,7 @@ public class ExerciseViewModel extends AndroidViewModel {
             try {
                 value = Integer.parseInt(v);
             } catch (Exception ex) {
+                Bugsee.logException(ex);
                 Log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
                 value = 0;
             }

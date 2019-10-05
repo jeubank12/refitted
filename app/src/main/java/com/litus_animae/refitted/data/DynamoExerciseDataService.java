@@ -8,12 +8,16 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryLi
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
+import com.bugsee.library.Bugsee;
+import com.bugsee.library.events.BugseeLogLevel;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 
 public class DynamoExerciseDataService extends DynamoDataService {
     private static final String TAG = "DynamoExerciseDataService";
     private DynamoDBQueryExpression<ExerciseSet> queryExpression;
+    private String day;
+    private String workout;
 
     DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
         super(applicationContext, room);
@@ -35,6 +39,9 @@ public class DynamoExerciseDataService extends DynamoDataService {
                 .withRangeKeyCondition("Id", rangeCondition)
                 .withConsistentRead(false);
 
+        day = dayAndWorkoutId[0];
+        workout = dayAndWorkoutId[1];
+
         Log.i(TAG, "doInBackground: Sending query request to load day " + dayAndWorkoutId[0] +
                 " from workout " + dayAndWorkoutId[1]);
 
@@ -51,12 +58,16 @@ public class DynamoExerciseDataService extends DynamoDataService {
             Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
             room.runInTransaction(() -> result.forEach(set -> {
                 if (set == null){
+                    Bugsee.log(workout + "-" + day + ": a set had error loading from dynamo",
+                            BugseeLogLevel.Warning);
                     Log.w(TAG, "doInBackground: loaded set was null");
                     return;
                 }
                 try {
                     Exercise e = dynamoDb.load(Exercise.class, set.getName(), set.getWorkout());
                     if (e == null){
+                        Bugsee.log(set.getWorkout() + "-" + set.getName() + ": exercise had error loading from dynamo",
+                                BugseeLogLevel.Warning);
                         Log.w(TAG, "doInBackground: loaded exercise was null, replacing with default");
                         e = new Exercise();
                         e.setId(set.getName());
@@ -65,6 +76,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
                     room.getExerciseDao().storeExercise(e);
                     room.getExerciseDao().storeExerciseSet(set);
                 } catch (Exception ex) {
+                    Bugsee.logException(ex);
                     Log.e(TAG, "doInBackground: error loading Exercise", ex);
                     Exercise e = new Exercise();
                     e.setId(set.getName());
@@ -74,6 +86,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
                 }
             }));
         } catch (Exception ex) {
+            Bugsee.logException(ex);
             Log.e(TAG, "doInBackground: error loading ExerciseSets", ex);
         }
     }
