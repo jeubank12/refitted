@@ -14,7 +14,6 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
 import com.litus_animae.refitted.fragments.ConfigureButtonsDialogFragment;
@@ -23,7 +22,6 @@ import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Locale;
 
@@ -62,25 +60,43 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
                 return true;
             case R.id.config_button_layout:
                 Log.d(TAG, "onOptionsItemSelected: handle 'enable 2.5'");
-                //show25 = !show25;
-                //item.setChecked(show25);
-                //updateWeightFragments();
                 ConfigureButtonsDialogFragment configureButtonsDialogFragment =
-                        ConfigureButtonsDialogFragment.newInstance(EnumSet.noneOf(ConfigureButtonsDialogFragment.ButtonLayout.class));
+                        ConfigureButtonsDialogFragment.newInstance(getCurrentLayout());
                 configureButtonsDialogFragment.show(getSupportFragmentManager(), null);
                 return true;
             case R.id.show_history:
-                //if (model.getCurrentRecord() != null) {
-                    DialogFragment history = new ExerciseHistoryDialogFragment();
-                    history.show(getSupportFragmentManager(), null);
-                //}
+                DialogFragment history = new ExerciseHistoryDialogFragment();
+                history.show(getSupportFragmentManager(), null);
                 return true;
             default:
                 return false;
         }
     }
 
+    private EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> getCurrentLayout() {
+        EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> result =
+                EnumSet.noneOf(ConfigureButtonsDialogFragment.ButtonLayout.class);
+        if (show25) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.show25);
+        }
+        if (show5) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.show5);
+        }
+        if (showMore) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
+        }
+        if (showAsDouble) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
+        }
+        return result;
+    }
 
+    private void updateCurrentLayout(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> newLayout) {
+        show25 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show25);
+        show5 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show5);
+        showMore = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
+        showAsDouble = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,11 +119,11 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
         binding.exerciseDetailSwipeLayout.setOnRefreshListener(() ->
                 model.loadExercises(Integer.toString(day), workout));
         model.getIsLoadingBool().observe(this, isLoading -> {
-                if (isLoading) {
-                    binding.exerciseDetailSwipeLayout.setRefreshing(true);
-                } else {
-                    binding.exerciseDetailSwipeLayout.setRefreshing(false);
-                }
+            if (isLoading) {
+                binding.exerciseDetailSwipeLayout.setRefreshing(true);
+            } else {
+                binding.exerciseDetailSwipeLayout.setRefreshing(false);
+            }
         });
     }
 
@@ -158,6 +174,9 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
 
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean("enable25", show25);
+        editor.putBoolean("enable5", show5);
+        editor.putBoolean("enableMore", showMore);
+        editor.putBoolean("enableDouble", showAsDouble);
         editor.apply();
     }
 
@@ -193,20 +212,13 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
 
     @Override
     public void onButtonConfigurationChange(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> layout) {
+        updateCurrentLayout(layout);
         updateWeightFragments();
     }
 
     private class WeightButtonFragmentSet {
         private WeightButton subFrag;
         private WeightButton addFrag;
-
-        public WeightButton getSubFrag() {
-            return subFrag;
-        }
-
-        public WeightButton getAddFrag() {
-            return addFrag;
-        }
 
         public WeightButtonFragmentSet() {
             WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
@@ -215,28 +227,36 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
             if (show25) {
                 buttonValues.add(2.5);
             }
-            if (show5){
+            if (show5) {
                 buttonValues.add(5d);
             }
-            if (showMore){
+            if (showMore) {
                 buttonValues.add(10d);
                 buttonValues.add(25d);
                 buttonValues.add(45d);
             }
-            if (showAsDouble){
-                if (buttonValues.size() < 1){
+            if (showAsDouble) {
+                if (buttonValues.size() <= 1) {
+                    buttonsVisible = WeightButton.LAYOUT.button1;
+                } else if (buttonValues.size() <= 2) {
+                    buttonsVisible = WeightButton.LAYOUT.button2;
+                } else if (buttonValues.size() <= 3) {
+                    buttonsVisible = WeightButton.LAYOUT.button3;
+                } else if (buttonValues.size() <= 4) {
                     buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() < 5){
-                    buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() < 6){
+                } else if (buttonValues.size() <= 5) {
                     buttonsVisible = WeightButton.LAYOUT.button5;
                 }
             } else {
-                if (buttonValues.size() < 1){
+                if (buttonValues.size() <= 1) {
+                    buttonsVisible = WeightButton.LAYOUT.button1;
+                } else if (buttonValues.size() <= 2) {
+                    buttonsVisible = WeightButton.LAYOUT.button2;
+                } else if (buttonValues.size() <= 3) {
+                    buttonsVisible = WeightButton.LAYOUT.button3;
+                } else if (buttonValues.size() <= 4) {
                     buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() < 5){
-                    buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() < 6){
+                } else if (buttonValues.size() <= 5) {
                     buttonsVisible = WeightButton.LAYOUT.button5;
                 }
             }
@@ -247,6 +267,14 @@ public class ExerciseDetailViewActivity extends AppCompatActivity implements Con
                     buttonFinalValues, false);
             addFrag = WeightButton.newInstance(buttonsVisible,
                     buttonFinalValues, true);
+        }
+
+        public WeightButton getSubFrag() {
+            return subFrag;
+        }
+
+        public WeightButton getAddFrag() {
+            return addFrag;
         }
     }
 }

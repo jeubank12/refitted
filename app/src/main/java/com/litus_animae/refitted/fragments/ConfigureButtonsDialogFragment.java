@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,12 +28,12 @@ import java.util.Map;
  * create an instance of this fragment.
  */
 public class ConfigureButtonsDialogFragment extends DialogFragment {
+    private static final String TAG = "ConfigureButtonsDialogF";
+
     public static final EnumSet<ButtonLayout> ALL_OPTS = EnumSet.allOf(ButtonLayout.class);
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+
     private static final String ARG_PARAM1 = "selectedLayout";
     private Map<String, ButtonLayout> layoutDescriptions = new HashMap<>();
-    // TODO: Rename and change types of parameters
     private EnumSet<ButtonLayout> buttonLayout;
 
     private OnButtonConfigurtionChangeListener mListener;
@@ -89,8 +90,13 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
         layoutDescriptions.put(requireContext().getString(R.string.enable_2_5_lbs), ButtonLayout.show25);
         layoutDescriptions.put(requireContext().getString(R.string.enable_5_lbs), ButtonLayout.show5);
         layoutDescriptions.put(requireContext().getString(R.string.enable_more_lbs), ButtonLayout.showMore);
-        //layoutDescriptions.put(requireContext().getString(R.string.enable_double_lbs), ButtonLayout.showAsDouble);
-        CharSequence[] display = layoutDescriptions.keySet().toArray(new CharSequence[0]);
+        layoutDescriptions.put(requireContext().getString(R.string.enable_double_lbs), ButtonLayout.showAsDouble);
+        CharSequence[] display = new CharSequence[]{
+                requireContext().getString(R.string.enable_2_5_lbs),
+                requireContext().getString(R.string.enable_5_lbs),
+                requireContext().getString(R.string.enable_more_lbs)
+                //,requireContext().getString(R.string.enable_double_lbs)
+        };
         EnumSet<ButtonLayout> resultLayout = EnumSet.copyOf(buttonLayout);
         builder.setTitle(R.string.prev_weight)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -109,8 +115,10 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which, boolean isChecked) {
                         if (isChecked) {
+                            Log.d(TAG, "onClick: adding " + layoutDescriptions.get(display[which].toString()));
                             resultLayout.add(layoutDescriptions.get(display[which].toString()));
                         } else {
+                            Log.d(TAG, "onClick: removing " + layoutDescriptions.get(display[which].toString()));
                             resultLayout.remove(layoutDescriptions.get(display[which].toString()));
                         }
                     }

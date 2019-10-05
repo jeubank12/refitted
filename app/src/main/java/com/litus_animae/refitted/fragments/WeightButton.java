@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import androidx.databinding.ViewDataBinding;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
@@ -15,6 +16,9 @@ import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.R;
+import com.litus_animae.refitted.databinding.FragmentWeightButton1Binding;
+import com.litus_animae.refitted.databinding.FragmentWeightButton2Binding;
+import com.litus_animae.refitted.databinding.FragmentWeightButton3Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton4Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton5Binding;
 import com.litus_animae.refitted.models.ExerciseViewModel;
@@ -36,7 +40,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private static final String TAG = "WeightButton";
 
     public enum LAYOUT {
-        button5, button4, button1
+        button5, button4, button3, button2, button1
     }
 
     private static final String ARG_LAYOUT = "layout";
@@ -112,25 +116,25 @@ public class WeightButton extends Fragment implements View.OnClickListener {
 
 
     private void setButtonValues(LAYOUT layout, double[] values) {
-        double[] result;
-        switch (layout) {
-            case button5:
-                result = Arrays.copyOf(values, 5);
-                break;
-            case button4:
-                result = Arrays.copyOf(values, 4);
-                break;
-            default:
-                throw new IllegalStateException();
-        }
+//        double[] result;
+//        switch (layout) {
+//            case button5:
+//                result = Arrays.copyOf(values, 5);
+//                break;
+//            case button4:
+//                result = Arrays.copyOf(values, 4);
+//                break;
+//            default:
+//                throw new IllegalStateException();
+//        }
         layoutResource = layout;
-        buttonValues.setValue(result);
+        buttonValues.setValue(values);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        BindingInterface genericBinding;
+        ButtonBinding genericBinding;
         // Inflate the layout for this fragment
         switch (layoutResource) {
             case button5:
@@ -143,6 +147,21 @@ public class WeightButton extends Fragment implements View.OnClickListener {
                         .inflate(inflater, container, false);
                 genericBinding = getWeightButton4Interface(bind4);
                 break;
+            case button3:
+                FragmentWeightButton3Binding bind3 = FragmentWeightButton3Binding
+                        .inflate(inflater, container, false);
+                genericBinding = getWeightButton3Interface(bind3);
+                break;
+            case button2:
+                FragmentWeightButton2Binding bind2 = FragmentWeightButton2Binding
+                        .inflate(inflater, container, false);
+                genericBinding = getWeightButton2Interface(bind2);
+                break;
+            case button1:
+                FragmentWeightButton1Binding bind1 = FragmentWeightButton1Binding
+                        .inflate(inflater, container, false);
+                genericBinding = getWeightButton1Interface(bind1);
+                break;
             default:
                 throw new IllegalStateException();
         }
@@ -153,70 +172,6 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         genericBinding.setViewmodel(model);
         genericBinding.setButtonLabels(buttonLabels);
         return genericBinding.getRoot();
-    }
-
-    private static BindingInterface getWeightButton5Interface(FragmentWeightButton5Binding binding) {
-        BindingInterface genericBinding;
-        genericBinding = new BindingInterface() {
-            @Override
-            public void setLifecycleOwner(LifecycleOwner owner) {
-                binding.setLifecycleOwner(owner);
-            }
-
-            @Override
-            public void setViewmodel(ExerciseViewModel model) {
-                binding.setViewmodel(model);
-            }
-
-            @Override
-            public void setButtonLabels(LiveData<String[]> labels) {
-                binding.setButtonLabels(labels);
-            }
-
-            @Override
-            public Collection<Button> getButtons() {
-                return Arrays.asList(binding.button11, binding.button12,
-                        binding.button21, binding.button22, binding.button3);
-            }
-
-            @Override
-            public View getRoot() {
-                return binding.getRoot();
-            }
-        };
-        return genericBinding;
-    }
-
-    private static BindingInterface getWeightButton4Interface(FragmentWeightButton4Binding binding) {
-        BindingInterface genericBinding;
-        genericBinding = new BindingInterface() {
-            @Override
-            public void setLifecycleOwner(LifecycleOwner owner) {
-                binding.setLifecycleOwner(owner);
-            }
-
-            @Override
-            public void setViewmodel(ExerciseViewModel model) {
-                binding.setViewmodel(model);
-            }
-
-            @Override
-            public void setButtonLabels(LiveData<String[]> labels) {
-                binding.setButtonLabels(labels);
-            }
-
-            @Override
-            public Collection<Button> getButtons() {
-                return Arrays.asList(binding.button11, binding.button12,
-                        binding.button21, binding.button22);
-            }
-
-            @Override
-            public View getRoot() {
-                return binding.getRoot();
-            }
-        };
-        return genericBinding;
     }
 
     @Override
@@ -244,15 +199,134 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         }
     }
 
-    private interface BindingInterface {
-        void setLifecycleOwner(LifecycleOwner owner);
+    private abstract static class ButtonBinding {
+        private ViewDataBinding binding;
 
-        void setViewmodel(ExerciseViewModel model);
+        ButtonBinding(ViewDataBinding binding){
+            this.binding = binding;
+        }
 
-        void setButtonLabels(LiveData<String[]> labels);
+        void setLifecycleOwner(LifecycleOwner owner){
+            binding.setLifecycleOwner(owner);
+        }
 
-        Collection<Button> getButtons();
+        abstract void setViewmodel(ExerciseViewModel model);
 
-        View getRoot();
+        abstract void setButtonLabels(LiveData<String[]> labels);
+
+        abstract Collection<Button> getButtons();
+
+        View getRoot() {
+            return binding.getRoot();
+        }
+    }
+
+    private static ButtonBinding getWeightButton5Interface(FragmentWeightButton5Binding binding) {
+        ButtonBinding genericBinding;
+        genericBinding = new ButtonBinding(binding) {
+
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11, binding.button12,
+                        binding.button21, binding.button22, binding.button3);
+            }
+        };
+        return genericBinding;
+    }
+
+    private static ButtonBinding getWeightButton4Interface(FragmentWeightButton4Binding binding) {
+        ButtonBinding genericBinding;
+        genericBinding = new ButtonBinding(binding) {
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11, binding.button12,
+                        binding.button21, binding.button22);
+            }
+        };
+        return genericBinding;
+    }
+
+    private static ButtonBinding getWeightButton3Interface(FragmentWeightButton3Binding binding) {
+        ButtonBinding genericBinding;
+        genericBinding = new ButtonBinding(binding) {
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11, binding.button12,
+                        binding.button21);
+            }
+        };
+        return genericBinding;
+    }
+
+    private static ButtonBinding getWeightButton2Interface(FragmentWeightButton2Binding binding) {
+        ButtonBinding genericBinding;
+        genericBinding = new ButtonBinding(binding) {
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11, binding.button12);
+            }
+        };
+        return genericBinding;
+    }
+
+    private static ButtonBinding getWeightButton1Interface(FragmentWeightButton1Binding binding) {
+        ButtonBinding genericBinding;
+        genericBinding = new ButtonBinding(binding) {
+            @Override
+            public void setViewmodel(ExerciseViewModel model) {
+                binding.setViewmodel(model);
+            }
+
+            @Override
+            public void setButtonLabels(LiveData<String[]> labels) {
+                binding.setButtonLabels(labels);
+            }
+
+            @Override
+            public Collection<Button> getButtons() {
+                return Arrays.asList(binding.button11);
+            }
+        };
+        return genericBinding;
     }
 }
