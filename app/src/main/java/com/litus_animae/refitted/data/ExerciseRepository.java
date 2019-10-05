@@ -11,7 +11,6 @@ import androidx.lifecycle.Transformations;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
-import com.litus_animae.refitted.threads.CloseDatabaseRunnable;
 import com.litus_animae.refitted.threads.StoreRecordsRunnable;
 
 import java.lang.ref.WeakReference;
@@ -223,8 +222,6 @@ public class ExerciseRepository {
     }
 
     public void shutdown() {
-        Log.i(TAG, "shutdown: shutdown requested for repository");
-        threadPoolService.submit(new CloseDatabaseRunnable(applicationContext.get()));
-        threadPoolService.shutdown();
+        RoomDataService.closeExerciseRoomAsync(applicationContext.get());
     }
 }
