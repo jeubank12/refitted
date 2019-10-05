@@ -36,6 +36,8 @@ public class ExerciseSet {
     private int sets;
     private boolean toFailure;
     private int rest;
+    private int repsRange = 0;
+    private String repsUnit;
     @Ignore
     private LiveData<Exercise> exercise;
     @Ignore
@@ -163,5 +165,23 @@ public class ExerciseSet {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    @DynamoDBAttribute(attributeName = "RepsRange")
+    public int getRepsRange() {
+        return repsRange;
+    }
+
+    public void setRepsRange(int repsRange) {
+        this.repsRange = repsRange;
+    }
+
+    @DynamoDBAttribute(attributeName = "RepsUnit")
+    public String getRepsUnit() {
+        return repsUnit;
+    }
+
+    public void setRepsUnit(String repsUnit) {
+        this.repsUnit = repsUnit;
     }
 }

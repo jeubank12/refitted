@@ -11,7 +11,7 @@ import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
 
-@Database(entities = {Exercise.class, ExerciseSet.class, SetRecord.class}, version = 2)
+@Database(entities = {Exercise.class, ExerciseSet.class, SetRecord.class}, version = 3)
 @TypeConverters({Converters.class})
 public abstract class ExerciseRoom extends RoomDatabase {
     public abstract ExerciseDao getExerciseDao();
@@ -23,6 +23,16 @@ public abstract class ExerciseRoom extends RoomDatabase {
                     "(`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT, " +
                     "`target_set` TEXT, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, " +
                     "PRIMARY KEY(`exercise`, `completed`))");
+        }
+    };
+
+    public static final Migration MIGRATION_2_3 = new Migration(2,3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE `ExerciseSet` " +
+                    "ADD COLUMN `repsRange` INTEGER NOT NULL default 0");
+            database.execSQL("ALTER TABLE `ExerciseSet` " +
+                    "ADD COLUMN `repsUnit` TEXT");
         }
     };
 }
