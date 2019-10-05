@@ -44,4 +44,8 @@
     <string name="day">Day</string>
     <string name="ax1">AX1</string>
     <string name="inferno_size">Inferno Size</string>
+    <string name="improvement_prefix">Improvement:</string>
+    <string name="improvement_starter">I want this page to...</string>
+    <string name="request_a_feature">Request a Feature</string>
+    <string name="report_a_bug">Report a Bug</string>
 </resources>

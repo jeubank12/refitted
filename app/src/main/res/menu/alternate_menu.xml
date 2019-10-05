@@ -21,4 +21,16 @@
         android:title="@string/history"
         android:visible="true"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/report_bug"
+        android:title="@string/report_a_bug"
+        android:visible="true"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/feedback"
+        android:title="@string/request_a_feature"
+        android:visible="true"
+        app:showAsAction="never" />
 </menu>
