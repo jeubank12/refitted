@@ -168,6 +168,10 @@ public class ExerciseViewModel extends AndroidViewModel {
             } else {
                 result = String.format(Locale.getDefault(), "%d", exercise.getReps());
             }
+            if (exercise.getRepsUnit() != null){
+                result = String.format(Locale.getDefault(), "%s %s",
+                        result, exercise.getRepsUnit());
+            }
             if (exercise.isToFailure()) {
                 return String.format(Locale.getDefault(), "%s %s",
                         result, getString(R.string.to_failure_note));
