@@ -48,4 +48,5 @@
     <string name="improvement_starter">I want this page to...</string>
     <string name="request_a_feature">Request a Feature</string>
     <string name="report_a_bug">Report a Bug</string>
+    <string name="configure_weight_buttons">Configure Weight Buttons</string>
 </resources>
