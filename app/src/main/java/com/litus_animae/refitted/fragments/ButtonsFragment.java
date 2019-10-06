@@ -1,0 +1,181 @@
+package com.litus_animae.refitted.fragments;
+
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.view.View;
+
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProviders;
+
+import com.litus_animae.refitted.models.ExerciseViewModel;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+
+import static android.content.Context.MODE_PRIVATE;
+
+public abstract class ButtonsFragment extends Fragment implements
+        ConfigureButtonsDialogFragment.OnButtonConfigurtionChangeListener,
+        WeightButtonConfigurationManager {
+
+    protected ExerciseViewModel model;
+    private boolean show25;
+    private boolean show5;
+    private boolean showMore;
+    private boolean showAsDouble;
+
+    public ButtonsFragment() {
+
+    }
+
+    @Override
+    public void onButtonConfigurationChange(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> layout) {
+        updateCurrentLayout(layout);
+        updateWeightFragments();
+
+        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("enable25", show25);
+        editor.putBoolean("enable5", show5);
+        editor.putBoolean("enableMore", showMore);
+        editor.putBoolean("enableDouble", showAsDouble);
+        editor.apply();
+    }
+
+    protected abstract String getDisplayedWeight();
+
+    protected abstract String getDisplayedReps();
+
+    protected void handleCompleteSet(View view) {
+        model.completeSet(getDisplayedWeight(),
+                getDisplayedReps());
+    }
+
+    protected abstract boolean isViewAddReps(View view);
+
+    protected void handleRepsClick(View view) {
+        updateRepValue(isViewAddReps(view));
+    }
+
+    private void updateRepValue(boolean increase) {
+        model.updateRepsDisplay(increase);
+    }
+
+    public void handleNavigateLeft(View view) {
+        model.navigateLeft();
+    }
+
+    public void handleNavigateRight(View view) {
+        model.navigateRight();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModel.class);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+
+        show25 = prefs.getBoolean("enable25", true);
+        show5 = prefs.getBoolean("enable5", true);
+        showMore = prefs.getBoolean("enableMore", true);
+        showAsDouble = prefs.getBoolean("enableDouble", false);
+        updateWeightFragments();
+    }
+
+    public EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> getCurrentLayout() {
+        EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> result =
+                EnumSet.noneOf(ConfigureButtonsDialogFragment.ButtonLayout.class);
+        if (show25) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.show25);
+        }
+        if (show5) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.show5);
+        }
+        if (showMore) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
+        }
+        if (showAsDouble) {
+            result.add(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
+        }
+        return result;
+    }
+
+    private void updateCurrentLayout(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> newLayout) {
+        show25 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show25);
+        show5 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show5);
+        showMore = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
+        showAsDouble = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
+    }
+
+    protected abstract void updateWeightFragments();
+
+
+    protected class WeightButtonFragmentSet {
+        private WeightButton subFrag;
+        private WeightButton addFrag;
+
+        public WeightButtonFragmentSet() {
+            WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
+            ArrayList<Double> buttonValues = new ArrayList<>();
+            //double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
+            if (show25) {
+                buttonValues.add(2.5);
+            }
+            if (show5) {
+                buttonValues.add(5d);
+            }
+            if (showMore) {
+                buttonValues.add(10d);
+                buttonValues.add(25d);
+                buttonValues.add(45d);
+            }
+            if (showAsDouble) {
+                if (buttonValues.size() <= 1) {
+                    buttonsVisible = WeightButton.LAYOUT.button1;
+                } else if (buttonValues.size() <= 2) {
+                    buttonsVisible = WeightButton.LAYOUT.button2;
+                } else if (buttonValues.size() <= 3) {
+                    buttonsVisible = WeightButton.LAYOUT.button3;
+                } else if (buttonValues.size() <= 4) {
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() <= 5) {
+                    buttonsVisible = WeightButton.LAYOUT.button5;
+                }
+            } else {
+                if (buttonValues.size() <= 1) {
+                    buttonsVisible = WeightButton.LAYOUT.button1;
+                } else if (buttonValues.size() <= 2) {
+                    buttonsVisible = WeightButton.LAYOUT.button2;
+                } else if (buttonValues.size() <= 3) {
+                    buttonsVisible = WeightButton.LAYOUT.button3;
+                } else if (buttonValues.size() <= 4) {
+                    buttonsVisible = WeightButton.LAYOUT.button4;
+                } else if (buttonValues.size() <= 5) {
+                    buttonsVisible = WeightButton.LAYOUT.button5;
+                }
+            }
+
+            Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
+
+            subFrag = WeightButton.newInstance(buttonsVisible,
+                    buttonFinalValues, false);
+            addFrag = WeightButton.newInstance(buttonsVisible,
+                    buttonFinalValues, true);
+        }
+
+        public WeightButton getSubFrag() {
+            return subFrag;
+        }
+
+        public WeightButton getAddFrag() {
+            return addFrag;
+        }
+    }
+}

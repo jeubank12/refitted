@@ -49,4 +49,7 @@
     <string name="request_a_feature">Request a Feature</string>
     <string name="report_a_bug">Report a Bug</string>
     <string name="configure_weight_buttons">Configure Weight Buttons</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

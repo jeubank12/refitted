@@ -99,12 +99,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getActivity() != null) {
-            model = ViewModelProviders.of(getActivity()).get(ExerciseViewModel.class);
-        } else {
-            Log.e(TAG, "onCreate: already detached, getting dummy model...");
-            model = ViewModelProviders.of(this).get(ExerciseViewModel.class);
-        }
+        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModel.class);
         if (getArguments() != null) {
             setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_LAYOUT)),
                     (double[]) getArguments().getSerializable(ARG_VALUES));
