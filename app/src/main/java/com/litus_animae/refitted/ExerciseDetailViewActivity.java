@@ -7,7 +7,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
@@ -22,15 +21,13 @@ import com.litus_animae.refitted.fragments.ButtonsFragment;
 import com.litus_animae.refitted.fragments.CommonButtonsFragment;
 import com.litus_animae.refitted.fragments.ConfigureButtonsDialogFragment;
 import com.litus_animae.refitted.fragments.ExerciseHistoryDialogFragment;
-import com.litus_animae.refitted.fragments.WeightButton;
 import com.litus_animae.refitted.models.ExerciseViewModel;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Locale;
 
 public class ExerciseDetailViewActivity extends AppCompatActivity
-implements ConfigureButtonsDialogFragment.OnButtonConfigurtionChangeListener{
+implements ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener {
 
     private static final String TAG = "ExerciseDetailViewActivity";
     private MenuItem switchToAlternateButton;

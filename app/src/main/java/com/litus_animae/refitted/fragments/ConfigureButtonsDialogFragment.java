@@ -2,7 +2,6 @@ package com.litus_animae.refitted.fragments;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -22,7 +21,7 @@ import java.util.Map;
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
- * {@link OnButtonConfigurtionChangeListener} interface
+ * {@link OnButtonConfigurationChangeListener} interface
  * to handle interaction events.
  * Use the {@link ConfigureButtonsDialogFragment#newInstance} factory method to
  * create an instance of this fragment.
@@ -36,7 +35,7 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
     private Map<String, ButtonLayout> layoutDescriptions = new HashMap<>();
     private EnumSet<ButtonLayout> buttonLayout;
 
-    private OnButtonConfigurtionChangeListener mListener;
+    private OnButtonConfigurationChangeListener mListener;
 
     public ConfigureButtonsDialogFragment() {
         // Required empty public constructor
@@ -99,28 +98,15 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
         };
         EnumSet<ButtonLayout> resultLayout = EnumSet.copyOf(buttonLayout);
         builder.setTitle(R.string.prev_weight)
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        mListener.onButtonConfigurationChange(resultLayout);
-                    }
-                })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        mListener.onButtonConfigurationChange(buttonLayout);
-                    }
-                })
-                .setMultiChoiceItems(display, getSelectedFromSet(buttonLayout), new DialogInterface.OnMultiChoiceClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                        if (isChecked) {
-                            Log.d(TAG, "onClick: adding " + layoutDescriptions.get(display[which].toString()));
-                            resultLayout.add(layoutDescriptions.get(display[which].toString()));
-                        } else {
-                            Log.d(TAG, "onClick: removing " + layoutDescriptions.get(display[which].toString()));
-                            resultLayout.remove(layoutDescriptions.get(display[which].toString()));
-                        }
+                .setPositiveButton("OK", (dialog, which) -> mListener.onButtonConfigurationChange(resultLayout))
+                .setNegativeButton("Cancel", (dialog, which) -> mListener.onButtonConfigurationChange(buttonLayout))
+                .setMultiChoiceItems(display, getSelectedFromSet(buttonLayout), (dialog, which, isChecked) -> {
+                    if (isChecked) {
+                        Log.d(TAG, "onClick: adding " + layoutDescriptions.get(display[which].toString()));
+                        resultLayout.add(layoutDescriptions.get(display[which].toString()));
+                    } else {
+                        Log.d(TAG, "onClick: removing " + layoutDescriptions.get(display[which].toString()));
+                        resultLayout.remove(layoutDescriptions.get(display[which].toString()));
                     }
                 });
         return builder.create();
@@ -135,13 +121,13 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        if (context instanceof OnButtonConfigurtionChangeListener) {
-            mListener = (OnButtonConfigurtionChangeListener) context;
+        if (context instanceof OnButtonConfigurationChangeListener) {
+            mListener = (OnButtonConfigurationChangeListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnButtonConfigurtionChangeListener");
+                    + " must implement OnButtonConfigurationChangeListener");
         }
     }
 
@@ -196,8 +182,7 @@ public class ConfigureButtonsDialogFragment extends DialogFragment {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnButtonConfigurtionChangeListener {
-        // TODO: Update argument type and name
+    public interface OnButtonConfigurationChangeListener {
         void onButtonConfigurationChange(EnumSet<ButtonLayout> layout);
     }
 

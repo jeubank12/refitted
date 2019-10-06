@@ -16,7 +16,7 @@ import java.util.EnumSet;
 import static android.content.Context.MODE_PRIVATE;
 
 public abstract class ButtonsFragment extends Fragment implements
-        ConfigureButtonsDialogFragment.OnButtonConfigurtionChangeListener,
+        ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener,
         WeightButtonConfigurationManager {
 
     protected ExerciseViewModel model;
@@ -48,14 +48,14 @@ public abstract class ButtonsFragment extends Fragment implements
 
     protected abstract String getDisplayedReps();
 
-    protected void handleCompleteSet(View view) {
+    void handleCompleteSet(View view) {
         model.completeSet(getDisplayedWeight(),
                 getDisplayedReps());
     }
 
     protected abstract boolean isViewAddReps(View view);
 
-    protected void handleRepsClick(View view) {
+    void handleRepsClick(View view) {
         updateRepValue(isViewAddReps(view));
     }
 
@@ -63,11 +63,11 @@ public abstract class ButtonsFragment extends Fragment implements
         model.updateRepsDisplay(increase);
     }
 
-    public void handleNavigateLeft(View view) {
+    void handleNavigateLeft(View view) {
         model.navigateLeft();
     }
 
-    public void handleNavigateRight(View view) {
+    void handleNavigateRight(View view) {
         model.navigateRight();
     }
 
@@ -117,11 +117,11 @@ public abstract class ButtonsFragment extends Fragment implements
     protected abstract void updateWeightFragments();
 
 
-    protected class WeightButtonFragmentSet {
+    class WeightButtonFragmentSet {
         private WeightButton subFrag;
         private WeightButton addFrag;
 
-        public WeightButtonFragmentSet() {
+        WeightButtonFragmentSet() {
             WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
             ArrayList<Double> buttonValues = new ArrayList<>();
             //double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
@@ -145,9 +145,9 @@ public abstract class ButtonsFragment extends Fragment implements
                     buttonsVisible = WeightButton.LAYOUT.button3;
                 } else if (buttonValues.size() <= 4) {
                     buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() <= 5) {
-                    buttonsVisible = WeightButton.LAYOUT.button5;
-                }
+                }// else if (buttonValues.size() <= 5) {
+                //    buttonsVisible = WeightButton.LAYOUT.button5;
+                //}
             } else {
                 if (buttonValues.size() <= 1) {
                     buttonsVisible = WeightButton.LAYOUT.button1;
@@ -157,9 +157,9 @@ public abstract class ButtonsFragment extends Fragment implements
                     buttonsVisible = WeightButton.LAYOUT.button3;
                 } else if (buttonValues.size() <= 4) {
                     buttonsVisible = WeightButton.LAYOUT.button4;
-                } else if (buttonValues.size() <= 5) {
-                    buttonsVisible = WeightButton.LAYOUT.button5;
-                }
+                }// else if (buttonValues.size() <= 5) {
+                //    buttonsVisible = WeightButton.LAYOUT.button5;
+                //}
             }
 
             Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
@@ -170,11 +170,11 @@ public abstract class ButtonsFragment extends Fragment implements
                     buttonFinalValues, true);
         }
 
-        public WeightButton getSubFrag() {
+        WeightButton getSubFrag() {
             return subFrag;
         }
 
-        public WeightButton getAddFrag() {
+        WeightButton getAddFrag() {
             return addFrag;
         }
     }

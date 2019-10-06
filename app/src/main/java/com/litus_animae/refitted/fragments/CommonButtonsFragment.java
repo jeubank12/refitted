@@ -69,8 +69,7 @@ public class CommonButtonsFragment extends ButtonsFragment {
      * @return A new instance of fragment CommonButtonsFragment.
      */
     public static CommonButtonsFragment newInstance() {
-        CommonButtonsFragment fragment = new CommonButtonsFragment();
-        return fragment;
+        return new CommonButtonsFragment();
     }
 
     @Override
