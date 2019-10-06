@@ -1,0 +1,210 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "26b4d5cab899fddc6d0785aba1ecc686",
+    "entities": [
+      {
+        "tableName": "Exercise",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`exercise_workout` TEXT NOT NULL, `exercise_name` TEXT NOT NULL, `description` TEXT, PRIMARY KEY(`exercise_name`, `exercise_workout`))",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "exercise_workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "exercise_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "exercise_name",
+            "exercise_workout"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "ExerciseSet",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, `id` TEXT, `note` TEXT, `name` TEXT, `day` TEXT NOT NULL, `step` TEXT NOT NULL, `reps` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `toFailure` INTEGER NOT NULL, `rest` INTEGER NOT NULL, `repsRange` INTEGER NOT NULL, `repsUnit` TEXT, PRIMARY KEY(`day`, `step`, `workout`), FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "day",
+            "columnName": "day",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "step",
+            "columnName": "step",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sets",
+            "columnName": "sets",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toFailure",
+            "columnName": "toFailure",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rest",
+            "columnName": "rest",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsRange",
+            "columnName": "repsRange",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsUnit",
+            "columnName": "repsUnit",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "day",
+            "step",
+            "workout"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [
+          {
+            "name": "index_ExerciseSet_name_workout",
+            "unique": false,
+            "columnNames": [
+              "name",
+              "workout"
+            ],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ExerciseSet_name_workout` ON `${TABLE_NAME}` (`name`, `workout`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Exercise",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "name",
+              "workout"
+            ],
+            "referencedColumns": [
+              "exercise_name",
+              "exercise_workout"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SetRecord",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT, `target_set` TEXT, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, PRIMARY KEY(`exercise`, `completed`))",
+        "fields": [
+          {
+            "fieldPath": "weight",
+            "columnName": "weight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "target_set",
+            "columnName": "target_set",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exercise",
+            "columnName": "exercise",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "exercise",
+            "completed"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '26b4d5cab899fddc6d0785aba1ecc686')"
+    ]
+  }
+}
