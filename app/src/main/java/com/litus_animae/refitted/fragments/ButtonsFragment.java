@@ -44,18 +44,23 @@ public abstract class ButtonsFragment extends Fragment implements
         editor.apply();
     }
 
-    protected abstract String getDisplayedWeight();
+    abstract String getDisplayedWeight();
 
-    protected abstract String getDisplayedReps();
+    abstract String getDisplayedReps();
 
-    void handleCompleteSet(View view) {
+    abstract View getCompleteSetButton();
+
+    private void handleCompleteSet(View view) {
         model.completeSet(getDisplayedWeight(),
                 getDisplayedReps());
     }
 
     protected abstract boolean isViewAddReps(View view);
 
-    void handleRepsClick(View view) {
+    abstract View getRepsPositiveButton();
+    abstract View getRepsNegativeButton();
+
+    private void handleRepsClick(View view) {
         updateRepValue(isViewAddReps(view));
     }
 
@@ -63,11 +68,14 @@ public abstract class ButtonsFragment extends Fragment implements
         model.updateRepsDisplay(increase);
     }
 
-    void handleNavigateLeft(View view) {
+    abstract View getNavigateLeftButton();
+    abstract View getNavigateRightButton();
+
+    private void handleNavigateLeft(View view) {
         model.navigateLeft();
     }
 
-    void handleNavigateRight(View view) {
+    private void handleNavigateRight(View view) {
         model.navigateRight();
     }
 
@@ -87,6 +95,12 @@ public abstract class ButtonsFragment extends Fragment implements
         showMore = prefs.getBoolean("enableMore", true);
         showAsDouble = prefs.getBoolean("enableDouble", false);
         updateWeightFragments();
+
+        getRepsPositiveButton().setOnClickListener(this::handleRepsClick);
+        getRepsNegativeButton().setOnClickListener(this::handleRepsClick);
+        getNavigateLeftButton().setOnClickListener(this::handleNavigateLeft);
+        getNavigateRightButton().setOnClickListener(this::handleNavigateRight);
+        getCompleteSetButton().setOnClickListener(this::handleCompleteSet);
     }
 
     public EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> getCurrentLayout() {

@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -41,6 +42,11 @@ public class CommonButtonsFragment extends ButtonsFragment {
     }
 
     @Override
+    View getCompleteSetButton() {
+        return binding.completeSetButton;
+    }
+
+    @Override
     protected boolean isViewAddReps(View view) {
         switch (view.getId()) {
             case R.id.addRepButton:
@@ -52,6 +58,26 @@ public class CommonButtonsFragment extends ButtonsFragment {
                 Log.e(TAG, "handleRepsClick: event from unknown source: " + view.getId());
                 return true;
         }
+    }
+
+    @Override
+    View getRepsPositiveButton() {
+        return binding.addRepButton;
+    }
+
+    @Override
+    View getRepsNegativeButton() {
+        return binding.subRepButton;
+    }
+
+    @Override
+    View getNavigateLeftButton() {
+        return binding.moveLeftButton;
+    }
+
+    @Override
+    View getNavigateRightButton() {
+        return binding.moveRightButton;
     }
 
     protected void updateWeightFragments() {
@@ -73,16 +99,11 @@ public class CommonButtonsFragment extends ButtonsFragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = CommonButtonsFragmentBinding.inflate(inflater, container, false);
         binding.setLifecycleOwner(getViewLifecycleOwner());
         binding.setViewmodel(model);
-        binding.addRepButton.setOnClickListener(this::handleRepsClick);
-        binding.subRepButton.setOnClickListener(this::handleRepsClick);
-        binding.moveLeftButton.setOnClickListener(this::handleNavigateLeft);
-        binding.moveRightButton.setOnClickListener(this::handleNavigateRight);
-        binding.completeSetButton.setOnClickListener(this::handleCompleteSet);
         return binding.getRoot();
     }
 
