@@ -9,7 +9,11 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.room.Room;
 
+import com.bugsee.library.Bugsee;
+
 import java.lang.ref.WeakReference;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -80,6 +84,7 @@ public class RoomDataService {
         protected Void doInBackground(ContextWeakReference... contexts) {
             if (contexts.length > 0) {
                 ContextWeakReference context = contexts[0];
+                Instant start = java.time.Instant.now();
                 Log.d(TAG, "doInBackground: context " + context.get().toString() + " waiting to create Room database, " + Thread.currentThread().getName());
                 synchronized (ExerciseRoom.class) {
                     Log.d(TAG, "doInBackground: context " + context.get().toString() + " has exclusive hashset access, " + Thread.currentThread().getName());
@@ -90,6 +95,8 @@ public class RoomDataService {
                                 .build();
                         Log.i(TAG, "doInBackground: context " + context.get().toString() + " opened the database, " + Thread.currentThread().getName());
                         result.postValue(room);
+                        Instant end = java.time.Instant.now();
+                        Bugsee.log("Room took " + Duration.between(start, end) + " to open");
                     }
                 }
             } else {

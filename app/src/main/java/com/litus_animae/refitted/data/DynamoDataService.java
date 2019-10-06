@@ -10,12 +10,15 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperCo
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.bugsee.library.Bugsee;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GetTokenResult;
 import com.litus_animae.refitted.R;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -69,6 +72,7 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
     private void connectToDynamo(Map<String, String> logins) {
         credentialsProvider.setLogins(logins);
 
+        Instant start = java.time.Instant.now();
         AmazonDynamoDBClient dbClient = new AmazonDynamoDBClient(credentialsProvider);
         dbClient.setRegion(Region.getRegion(Regions.US_EAST_2));
         Log.d(TAG, "GetDatabaseMapper: generating mapper to table: " + tableName);
@@ -77,8 +81,11 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
                 .dynamoDBMapperConfig(new DynamoDBMapperConfig(
                         new DynamoDBMapperConfig.TableNameOverride(tableName)))
                 .build();
-
+        Instant endOpen = java.time.Instant.now();
+        Bugsee.log("Dynamo took " + Duration.between(start, endOpen) + " to open. Started at: " + start.toString());
         runAfterConnect();
+        Instant endQuery = java.time.Instant.now();
+        Bugsee.log("Dynamo query took " + Duration.between(start, endQuery) + ". Started at: " + endOpen.toString());
     }
 
     protected abstract void runAfterConnect();

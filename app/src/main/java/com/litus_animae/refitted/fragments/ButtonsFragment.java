@@ -19,7 +19,7 @@ public abstract class ButtonsFragment extends Fragment implements
         ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener,
         WeightButtonConfigurationManager {
 
-    protected ExerciseViewModel model;
+    ExerciseViewModel model;
     private boolean show25;
     private boolean show5;
     private boolean showMore;

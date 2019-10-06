@@ -16,6 +16,8 @@ import com.bugsee.library.Bugsee;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 
@@ -112,6 +114,8 @@ public class ExerciseViewModel extends AndroidViewModel {
             }
         });
     });
+
+    private Instant startLoad;
     // endregion
 
     public ExerciseViewModel(@NonNull Application application) {
@@ -126,7 +130,14 @@ public class ExerciseViewModel extends AndroidViewModel {
 
         exerciseIndex.setValue(0);
         exerciseSets.addSource(exerciseRepo.getExercises(),
-                exercises -> exerciseSets.setValue(exercises));
+                exercises -> {
+                    Instant endLoad = java.time.Instant.now();
+                    exerciseSets.setValue(exercises);
+                    if (startLoad != null) {
+                        Bugsee.log("Initial exercise load took " + Duration.between(startLoad, endLoad) + ". Started at " + startLoad.toString());
+                        startLoad = null;
+                    }
+                });
         exerciseRecords = exerciseRepo.getRecords();
         currentExercise = Transformations.switchMap(exerciseSets,
                 set -> Transformations.switchMap(exerciseRecords,
@@ -169,7 +180,7 @@ public class ExerciseViewModel extends AndroidViewModel {
             } else {
                 result = String.format(Locale.getDefault(), "%d", exercise.getReps());
             }
-            if (exercise.getRepsUnit() != null){
+            if (exercise.getRepsUnit() != null) {
                 result = String.format(Locale.getDefault(), "%s %s",
                         result, exercise.getRepsUnit());
             }
@@ -274,6 +285,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public void loadExercises(String day, String workoutId) {
         isLoadingBool.setValue(true);
+        startLoad = java.time.Instant.now();
         exerciseRepo.loadExercises(day, workoutId);
     }
 
