@@ -84,6 +84,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     });
 
+    // FIXME optimize the layers of transformations
     private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
         if (record == null) {
             Log.w(TAG, "completeSetMessage: record was null");
@@ -101,6 +102,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                         if (completeSetsCount == exercise.getSets()) {
                             return getString(R.string.complete_exercise);
                         } else {
+                            // TODO if time unit, display "Start Circuit"
                             return getString(R.string.complete_set) +
                                     String.format(Locale.getDefault(), " %d %s %d",
                                             // using the LiveData here because the value may have changed
@@ -259,6 +261,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                             record.getTargetSet().getReps() +
                                     record.getTargetSet().getRepsRange()));
                 } else {
+                    // TODO if timed, default to last record reps if exists
                     result.setValue(formatRepsDisplay(record.getTargetSet().getReps()));
                 }
                 return result;
