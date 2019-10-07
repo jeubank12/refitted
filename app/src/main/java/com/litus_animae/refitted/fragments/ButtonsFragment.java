@@ -91,6 +91,7 @@ public abstract class ButtonsFragment extends Fragment implements
     @Override
     public void onResume() {
         super.onResume();
+        // FIXME make the RefittedMainPrefs a static reference
         SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
 
         show25 = prefs.getBoolean("enable25", true);
