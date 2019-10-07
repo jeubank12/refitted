@@ -23,7 +23,9 @@ import java.util.Locale;
 
 public class ExerciseViewModel extends AndroidViewModel {
     private static final String TAG = "ExerciseViewModel";
-    private static final double defaultWeight = 25;
+    private static final double defaultDbWeight = 25;
+    private static final double defaultBbWeight = 45;
+    private static final double defaultBodyweight = 45;
 
     private ExerciseRepository exerciseRepo;
     private CountDownTimer timer;
@@ -194,14 +196,14 @@ public class ExerciseViewModel extends AndroidViewModel {
                 record -> {
                     if (record == null) {
                         MutableLiveData<String> result = new MutableLiveData<>();
-                        result.setValue(formatWeightDisplay(defaultWeight));
+                        result.setValue(formatWeightDisplay(defaultDbWeight));
                         return result;
                     }
                     return Transformations.map(record.getLatestSet(), latestSet -> {
                         if (latestSet != null) {
                             return formatWeightDisplay(latestSet.getWeight());
                         }
-                        return formatWeightDisplay(defaultWeight);
+                        return formatWeightDisplay(determineSetDefaultWeight(record.getTargetSet()));
                     });
                 });
         LiveData<String> repsSeedValue = Transformations.switchMap(currentRecord, record -> {
@@ -265,6 +267,32 @@ public class ExerciseViewModel extends AndroidViewModel {
                 repsDisplayValue.setValue(formatRepsDisplay(value));
             }
         });
+    }
+
+    private double determineSetDefaultWeight(ExerciseSet targetSet) {
+        if (targetSet.getRepsUnit() != null && (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
+                targetSet.getRepsUnit().equalsIgnoreCase("seconds"))) {
+            return defaultBodyweight;
+        }
+        if (targetSet.getExerciseName().toLowerCase().contains("db") ||
+                targetSet.getExerciseName().toLowerCase().contains("dumbbell")) {
+            return defaultDbWeight;
+        }
+        if (targetSet.getExerciseName().toLowerCase().contains("bb") ||
+                targetSet.getExerciseName().toLowerCase().contains("barbell") ||
+                targetSet.getExerciseName().toLowerCase().contains("press")){
+            return defaultBbWeight;
+        }
+        if (targetSet.getNote().toLowerCase().contains("db") ||
+                targetSet.getNote().toLowerCase().contains("dumbbell")) {
+            return defaultDbWeight;
+        }
+        if (targetSet.getNote().toLowerCase().contains("bb") ||
+                targetSet.getNote().toLowerCase().contains("barbell") ||
+                targetSet.getNote().toLowerCase().contains("press")){
+            return defaultBbWeight;
+        }
+        return defaultBodyweight;
     }
 
     private void setupLeftRightTransforms() {
