@@ -46,6 +46,19 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
                 .setTitle("Athlean-X");
 
         Switch planSwitch = findViewById(R.id.switch1);
+        planSwitch.setOnCheckedChangeListener((view, isChecked) -> {
+            SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            if (isChecked) {
+                editor.putString("workout", "Inferno Size");
+            } else {
+                editor.putString("workout", "AX1");
+            }
+            editor.apply();
+        });
+
+        SharedPreferences prefs = getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+        planSwitch.setChecked(!prefs.getString("workout", "AX1").equals("AX1"));
 
         RecyclerView list = findViewById(R.id.calendar_recycler);
         list.setAdapter(new CalendarAdapter(84, new WeakReference<>(planSwitch)));
@@ -101,6 +114,7 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
         if (requestCode == GoogleSignInStatusCodes.SUCCESS) {
             // The Task returned from this call is always completed, no need to attach
@@ -154,7 +168,7 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
             int day = prefs.getInt("day", -1);
             intent.putExtra("workout", workout);
             intent.putExtra("day", day);
-            if (activityClass != getClass() && day > 0 && workout != "-1") {
+            if (activityClass != getClass() && day > 0 && !workout.equals("-1")) {
                 startActivity(intent);
             }
         } catch (ClassNotFoundException ex) {
