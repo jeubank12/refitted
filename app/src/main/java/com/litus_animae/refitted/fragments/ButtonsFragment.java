@@ -8,6 +8,7 @@ import android.widget.Switch;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.models.ExerciseViewModel;
@@ -25,10 +26,10 @@ public abstract class ButtonsFragment extends Fragment implements
     private boolean show25;
     private boolean show5;
     private boolean showMore;
-    private boolean showAsDouble;
+    private MediatorLiveData<Boolean> showAsDouble = new MediatorLiveData<>();
 
     public ButtonsFragment() {
-
+        showAsDouble.setValue(false);
     }
 
     @Override
@@ -97,8 +98,12 @@ public abstract class ButtonsFragment extends Fragment implements
         show25 = prefs.getBoolean("enable25", true);
         show5 = prefs.getBoolean("enable5", true);
         showMore = prefs.getBoolean("enableMore", true);
-        showAsDouble = prefs.getBoolean("enableDouble", false);
-        getDoubledValueSwitch().setChecked(showAsDouble);
+        //showAsDouble.setValue(prefs.getBoolean("enableDouble", false));
+        //getDoubledValueSwitch().setChecked(showAsDouble.getValue());
+        showAsDouble.addSource(model.getIsBarbellExercise(), isBarbell -> {
+            showAsDouble.setValue(isBarbell);
+            getDoubledValueSwitch().setChecked(isBarbell);
+        });
         updateWeightFragments();
 
         getRepsPositiveButton().setOnClickListener(this::handleRepsClick);
@@ -134,7 +139,7 @@ public abstract class ButtonsFragment extends Fragment implements
     protected abstract void updateWeightFragments(FragmentTransaction transaction,
                                                   WeightButtonFragmentSet weightButtonFragmentSet);
 
-    private void updateWeightFragments(){
+    private void updateWeightFragments() {
         WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
         updateWeightFragments(transaction, weightButtonFragmentSet);
@@ -144,11 +149,11 @@ public abstract class ButtonsFragment extends Fragment implements
     abstract Switch getDoubledValueSwitch();
 
     private void handleOnDoubleChecked(View view, boolean isChecked) {
-        showAsDouble = isChecked;
-        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean("enableDouble", showAsDouble);
-        editor.apply();
+        showAsDouble.setValue(isChecked);
+//        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putBoolean("enableDouble", showAsDouble.getValue());
+//        editor.apply();
         updateWeightFragments();
     }
 
@@ -185,9 +190,9 @@ public abstract class ButtonsFragment extends Fragment implements
             Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
 
             subFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, false, showAsDouble);
+                    buttonFinalValues, false, showAsDouble.getValue());
             addFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, true, showAsDouble);
+                    buttonFinalValues, true, showAsDouble.getValue());
         }
 
         WeightButton getSubFrag() {

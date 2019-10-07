@@ -295,6 +295,32 @@ public class ExerciseViewModel extends AndroidViewModel {
         return defaultBodyweight;
     }
 
+    private LiveData<Boolean> isBarbellExercise = Transformations.map(currentExercise, targetSet -> {
+        if (targetSet.getRepsUnit() != null && (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
+                targetSet.getRepsUnit().equalsIgnoreCase("seconds"))) {
+            return false;
+        }
+        if (targetSet.getExerciseName().toLowerCase().contains("db") ||
+                targetSet.getExerciseName().toLowerCase().contains("dumbbell")) {
+            return false;
+        }
+        if (targetSet.getExerciseName().toLowerCase().contains("bb") ||
+                targetSet.getExerciseName().toLowerCase().contains("barbell") ||
+                targetSet.getExerciseName().toLowerCase().contains("press")){
+            return true;
+        }
+        if (targetSet.getNote().toLowerCase().contains("db") ||
+                targetSet.getNote().toLowerCase().contains("dumbbell")) {
+            return false;
+        }
+        if (targetSet.getNote().toLowerCase().contains("bb") ||
+                targetSet.getNote().toLowerCase().contains("barbell") ||
+                targetSet.getNote().toLowerCase().contains("press")){
+            return true;
+        }
+        return false;
+    });
+
     private void setupLeftRightTransforms() {
         hasLeftBool = new MutableLiveData<>();
         hasLeftBool.setValue(false);
@@ -556,6 +582,10 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public LiveData<ExerciseRecord> getCurrentRecord() {
         return currentRecord;
+    }
+
+    public LiveData<Boolean> getIsBarbellExercise() {
+        return isBarbellExercise;
     }
     // endregion getters
 }
