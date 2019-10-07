@@ -52,4 +52,6 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="weight_label">Weight</string>
+    <string name="reps_label">Reps</string>
 </resources>

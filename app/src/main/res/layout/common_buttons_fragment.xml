@@ -15,7 +15,6 @@
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:onClick="handleNavigateLeft"
             android:text="@string/move_left"
             android:visibility="@{viewmodel.hasLeft ?? View.GONE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
@@ -29,19 +28,45 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:onClick="handleRepsClick"
             android:text="@string/addOne"
-            app:layout_constraintBottom_toTopOf="@+id/repsDisplayView"
+            app:layout_constraintBottom_toTopOf="@+id/reps_display_label"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/add_weight_fragment"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <TextView
+            android:id="@+id/reps_display_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/reps_label"
+            app:layout_constraintTop_toBottomOf="@+id/addRepButton"
+            app:layout_constraintBottom_toTopOf="@+id/repsDisplayView"
+            app:layout_constraintEnd_toEndOf="@+id/addRepButton"
+            app:layout_constraintStart_toStartOf="@+id/addRepButton" />
+
+        <EditText
+            android:id="@+id/repsDisplayView"
+            android:layout_width="58dp"
+            android:layout_height="46dp"
+            android:ems="10"
+            android:gravity="center_horizontal|center_vertical"
+            android:hint="@string/reps_value_hint"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:text='@={viewmodel.repsDisplayValue}'
+            app:layout_constraintBottom_toTopOf="@+id/subRepButton"
+            app:layout_constraintEnd_toEndOf="@+id/addRepButton"
+            app:layout_constraintStart_toStartOf="@+id/addRepButton"
+            app:layout_constraintTop_toBottomOf="@+id/reps_display_label"
+            tools:text="12" />
+
         <Button
             android:id="@+id/subRepButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="handleRepsClick"
             android:text="@string/subOne"
             app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
             app:layout_constraintStart_toStartOf="@+id/addRepButton"
@@ -55,7 +80,6 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:enabled="@{viewmodel.completeSetButtonEnabled}"
-            android:onClick="handleCompleteSet"
             android:text="@{viewmodel.completeSetMessage}"
             app:layout_constraintBottom_toTopOf="@+id/restProgressBar"
             app:layout_constraintEnd_toEndOf="parent"
@@ -70,7 +94,6 @@
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:onClick="handleNavigateRight"
             android:text="@string/move_right"
             android:visibility="@{viewmodel.hasRight ?? View.GONE}"
             app:layout_constraintBottom_toBottomOf="@+id/restTimeView"
@@ -79,24 +102,6 @@
             app:layout_constraintStart_toEndOf="@+id/restTimeView"
             app:layout_constraintTop_toTopOf="@+id/restTimeView"
             app:layout_constraintVertical_bias="1.0" />
-
-        <EditText
-            android:id="@+id/repsDisplayView"
-            android:layout_width="58dp"
-            android:layout_height="46dp"
-            android:layout_marginStart="16dp"
-            android:ems="10"
-            android:gravity="center_horizontal|center_vertical"
-            android:hint="@string/reps_value_hint"
-            android:importantForAutofill="no"
-            android:inputType="number"
-            android:selectAllOnFocus="true"
-            android:singleLine="true"
-            android:text='@={viewmodel.repsDisplayValue}'
-            app:layout_constraintBottom_toTopOf="@+id/subRepButton"
-            app:layout_constraintStart_toStartOf="@+id/addRepButton"
-            app:layout_constraintTop_toBottomOf="@+id/addRepButton"
-            tools:text="12" />
 
         <EditText
             android:id="@+id/weightDisplayView"
@@ -123,7 +128,6 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="12dp"
-            android:onClick="handleWeightClick"
             app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
             app:layout_constraintEnd_toStartOf="@+id/weightDisplayView"
             app:layout_constraintHorizontal_bias="0.5"
@@ -136,7 +140,6 @@
             android:id="@+id/add_weight_fragment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="handleWeightClick"
             app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
             app:layout_constraintEnd_toStartOf="@+id/addRepButton"
             app:layout_constraintHorizontal_bias="0.5"
@@ -186,6 +189,16 @@
             app:barrierDirection="bottom"
             app:constraint_referenced_ids="subRepButton,sub_weight_fragment,add_weight_fragment"
             tools:layout_editor_absoluteY="554dp" />
+
+        <TextView
+            android:id="@+id/weight_display_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/weight_label"
+            app:layout_constraintBottom_toTopOf="@+id/weightDisplayView"
+            app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
+            app:layout_constraintStart_toStartOf="@+id/weightDisplayView"
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <data>
