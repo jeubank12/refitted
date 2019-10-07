@@ -215,7 +215,7 @@
             android:id="@+id/doubled_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Doubled?"
+            android:text="@string/doubled_label"
             app:layout_constraintBottom_toTopOf="@+id/doubled_switch"
             app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
             app:layout_constraintHorizontal_bias="0.5"

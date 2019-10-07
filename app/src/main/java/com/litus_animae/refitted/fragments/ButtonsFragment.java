@@ -42,7 +42,6 @@ public abstract class ButtonsFragment extends Fragment implements
         editor.putBoolean("enable25", show25);
         editor.putBoolean("enable5", show5);
         editor.putBoolean("enableMore", showMore);
-        editor.putBoolean("enableDouble", showAsDouble);
         editor.apply();
     }
 
@@ -145,6 +144,10 @@ public abstract class ButtonsFragment extends Fragment implements
 
     private void handleOnDoubleChecked(View view, boolean isChecked) {
         showAsDouble = isChecked;
+        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("enableDouble", showAsDouble);
+        editor.apply();
         updateWeightFragments();
     }
 
