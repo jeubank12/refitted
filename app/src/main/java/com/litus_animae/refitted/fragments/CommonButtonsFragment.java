@@ -32,14 +32,24 @@ public class CommonButtonsFragment extends ButtonsFragment {
         // Required empty public constructor
     }
 
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment CommonButtonsFragment.
+     */
+    public static CommonButtonsFragment newInstance() {
+        return new CommonButtonsFragment();
+    }
+
     @Override
     protected String getDisplayedWeight() {
-        return null;
+        return binding.weightDisplayView.getText().toString();
     }
 
     @Override
     protected String getDisplayedReps() {
-        return null;
+        return binding.repsDisplayView.getText().toString();
     }
 
     @Override
@@ -90,16 +100,6 @@ public class CommonButtonsFragment extends ButtonsFragment {
     @Override
     Switch getDoubledValueSwitch() {
         return binding.doubledSwitch;
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment CommonButtonsFragment.
-     */
-    public static CommonButtonsFragment newInstance() {
-        return new CommonButtonsFragment();
     }
 
     @Override
