@@ -3,9 +3,11 @@ package com.litus_animae.refitted.fragments;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Switch;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.models.ExerciseViewModel;
@@ -58,6 +60,7 @@ public abstract class ButtonsFragment extends Fragment implements
     protected abstract boolean isViewAddReps(View view);
 
     abstract View getRepsPositiveButton();
+
     abstract View getRepsNegativeButton();
 
     private void handleRepsClick(View view) {
@@ -69,6 +72,7 @@ public abstract class ButtonsFragment extends Fragment implements
     }
 
     abstract View getNavigateLeftButton();
+
     abstract View getNavigateRightButton();
 
     private void handleNavigateLeft(View view) {
@@ -94,6 +98,7 @@ public abstract class ButtonsFragment extends Fragment implements
         show5 = prefs.getBoolean("enable5", true);
         showMore = prefs.getBoolean("enableMore", true);
         showAsDouble = prefs.getBoolean("enableDouble", false);
+        getDoubledValueSwitch().setChecked(showAsDouble);
         updateWeightFragments();
 
         getRepsPositiveButton().setOnClickListener(this::handleRepsClick);
@@ -101,6 +106,7 @@ public abstract class ButtonsFragment extends Fragment implements
         getNavigateLeftButton().setOnClickListener(this::handleNavigateLeft);
         getNavigateRightButton().setOnClickListener(this::handleNavigateRight);
         getCompleteSetButton().setOnClickListener(this::handleCompleteSet);
+        getDoubledValueSwitch().setOnCheckedChangeListener(this::handleOnDoubleChecked);
     }
 
     public EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> getCurrentLayout() {
@@ -115,9 +121,6 @@ public abstract class ButtonsFragment extends Fragment implements
         if (showMore) {
             result.add(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
         }
-        if (showAsDouble) {
-            result.add(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
-        }
         return result;
     }
 
@@ -125,11 +128,25 @@ public abstract class ButtonsFragment extends Fragment implements
         show25 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show25);
         show5 = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.show5);
         showMore = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
-        showAsDouble = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showAsDouble);
     }
 
-    protected abstract void updateWeightFragments();
+    // FIXME, ask the child classes for fragment ids instead of handing them the transaction
+    protected abstract void updateWeightFragments(FragmentTransaction transaction,
+                                                  WeightButtonFragmentSet weightButtonFragmentSet);
 
+    private void updateWeightFragments(){
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
+        FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
+        updateWeightFragments(transaction, weightButtonFragmentSet);
+        transaction.commit();
+    }
+
+    abstract Switch getDoubledValueSwitch();
+
+    private void handleOnDoubleChecked(View view, boolean isChecked) {
+        showAsDouble = isChecked;
+        updateWeightFragments();
+    }
 
     class WeightButtonFragmentSet {
         private WeightButton subFrag;
@@ -150,38 +167,23 @@ public abstract class ButtonsFragment extends Fragment implements
                 buttonValues.add(25d);
                 buttonValues.add(45d);
             }
-            if (showAsDouble) {
-                if (buttonValues.size() <= 1) {
-                    buttonsVisible = WeightButton.LAYOUT.button1;
-                } else if (buttonValues.size() <= 2) {
-                    buttonsVisible = WeightButton.LAYOUT.button2;
-                } else if (buttonValues.size() <= 3) {
-                    buttonsVisible = WeightButton.LAYOUT.button3;
-                } else if (buttonValues.size() <= 4) {
-                    buttonsVisible = WeightButton.LAYOUT.button4;
-                }// else if (buttonValues.size() <= 5) {
-                //    buttonsVisible = WeightButton.LAYOUT.button5;
-                //}
-            } else {
-                if (buttonValues.size() <= 1) {
-                    buttonsVisible = WeightButton.LAYOUT.button1;
-                } else if (buttonValues.size() <= 2) {
-                    buttonsVisible = WeightButton.LAYOUT.button2;
-                } else if (buttonValues.size() <= 3) {
-                    buttonsVisible = WeightButton.LAYOUT.button3;
-                } else if (buttonValues.size() <= 4) {
-                    buttonsVisible = WeightButton.LAYOUT.button4;
-                }// else if (buttonValues.size() <= 5) {
-                //    buttonsVisible = WeightButton.LAYOUT.button5;
-                //}
+
+            if (buttonValues.size() <= 1) {
+                buttonsVisible = WeightButton.LAYOUT.button1;
+            } else if (buttonValues.size() <= 2) {
+                buttonsVisible = WeightButton.LAYOUT.button2;
+            } else if (buttonValues.size() <= 3) {
+                buttonsVisible = WeightButton.LAYOUT.button3;
+            } else if (buttonValues.size() <= 4) {
+                buttonsVisible = WeightButton.LAYOUT.button4;
             }
 
             Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
 
             subFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, false);
+                    buttonFinalValues, false, showAsDouble);
             addFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, true);
+                    buttonFinalValues, true, showAsDouble);
         }
 
         WeightButton getSubFrag() {

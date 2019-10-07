@@ -40,10 +40,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/reps_label"
-            app:layout_constraintTop_toBottomOf="@+id/addRepButton"
             app:layout_constraintBottom_toTopOf="@+id/repsDisplayView"
             app:layout_constraintEnd_toEndOf="@+id/addRepButton"
-            app:layout_constraintStart_toStartOf="@+id/addRepButton" />
+            app:layout_constraintStart_toStartOf="@+id/addRepButton"
+            app:layout_constraintTop_toBottomOf="@+id/addRepButton" />
 
         <EditText
             android:id="@+id/repsDisplayView"
@@ -127,7 +127,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="12dp"
             app:layout_constraintBottom_toTopOf="@+id/completeSetButton"
             app:layout_constraintEnd_toStartOf="@+id/weightDisplayView"
             app:layout_constraintHorizontal_bias="0.5"
@@ -194,9 +193,32 @@
             android:id="@+id/weight_display_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
             android:text="@string/weight_label"
             app:layout_constraintBottom_toTopOf="@+id/weightDisplayView"
             app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="@+id/weightDisplayView"
+            app:layout_constraintTop_toBottomOf="@+id/doubled_switch" />
+
+        <Switch
+            android:id="@+id/doubled_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/weight_display_label"
+            app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="@+id/weightDisplayView"
+            app:layout_constraintTop_toBottomOf="@+id/doubled_label" />
+
+        <TextView
+            android:id="@+id/doubled_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Doubled?"
+            app:layout_constraintBottom_toTopOf="@+id/doubled_switch"
+            app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
+            app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="@+id/weightDisplayView"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>

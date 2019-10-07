@@ -46,10 +46,12 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private static final String ARG_LAYOUT = "layout";
     private static final String ARG_VALUES = "button values";
     private static final String ARG_POSITIVE = "is positive";
+    private static final String ARG_DOUBLED = "is doubled";
 
     private LAYOUT layoutResource;
     private MutableLiveData<double[]> buttonValues = new MutableLiveData<>();
     private MutableLiveData<Boolean> isPositive = new MutableLiveData<>();
+    private boolean isDoubled = false;
     private ExerciseViewModel model;
     private LiveData<String[]> buttonLabels;
 
@@ -78,22 +80,23 @@ public class WeightButton extends Fragment implements View.OnClickListener {
      * @param isPositive true if positive numbers, false for negative
      * @return A new instance of fragment WeightButton.
      */
-    public static WeightButton newInstance(LAYOUT layoutType, double[] values, boolean isPositive) {
+    public static WeightButton newInstance(LAYOUT layoutType, double[] values, boolean isPositive, boolean isDoubled) {
         WeightButton fragment = new WeightButton();
         Bundle args = new Bundle();
         args.putString(ARG_LAYOUT, layoutType.toString());
         args.putSerializable(ARG_VALUES, values);
         args.putBoolean(ARG_POSITIVE, isPositive);
+        args.putBoolean(ARG_DOUBLED, isDoubled);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public static WeightButton newInstance(LAYOUT layoutType, Double[] values, boolean isPositive) {
+    public static WeightButton newInstance(LAYOUT layoutType, Double[] values, boolean isPositive, boolean isDoubled) {
         double[] newValues = new double[values.length];
         for (int i = 0; i < values.length; i++){
             newValues[i] = values[i];
         }
-        return newInstance(layoutType, newValues, isPositive);
+        return newInstance(layoutType, newValues, isPositive, isDoubled);
     }
 
     @Override
@@ -104,6 +107,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_LAYOUT)),
                     (double[]) getArguments().getSerializable(ARG_VALUES));
             isPositive.setValue(getArguments().getBoolean(ARG_POSITIVE));
+            isDoubled = getArguments().getBoolean(ARG_DOUBLED);
         } else {
             throw new IllegalStateException();
         }
@@ -111,17 +115,6 @@ public class WeightButton extends Fragment implements View.OnClickListener {
 
 
     private void setButtonValues(LAYOUT layout, double[] values) {
-//        double[] result;
-//        switch (layout) {
-//            case button5:
-//                result = Arrays.copyOf(values, 5);
-//                break;
-//            case button4:
-//                result = Arrays.copyOf(values, 4);
-//                break;
-//            default:
-//                throw new IllegalStateException();
-//        }
         layoutResource = layout;
         buttonValues.setValue(values);
     }
@@ -172,6 +165,9 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         int sign = isPositive.getValue() ? 1 : -1;
+        if (isDoubled){
+            sign *= 2;
+        }
         double[] values = buttonValues.getValue();
         switch (view.getId()) {
             case R.id.button1_1:

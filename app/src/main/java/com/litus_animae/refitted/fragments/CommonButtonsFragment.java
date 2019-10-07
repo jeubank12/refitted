@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -80,12 +81,15 @@ public class CommonButtonsFragment extends ButtonsFragment {
         return binding.moveRightButton;
     }
 
-    protected void updateWeightFragments() {
-        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
-        FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
+    protected void updateWeightFragments(FragmentTransaction transaction,
+                                         WeightButtonFragmentSet weightButtonFragmentSet) {
         transaction.replace(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
         transaction.replace(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
-        transaction.commit();
+    }
+
+    @Override
+    Switch getDoubledValueSwitch() {
+        return binding.doubledSwitch;
     }
 
     /**
