@@ -81,14 +81,19 @@ public class TimedExerciseButtonsFragment extends ButtonsFragment {
         return binding.moveRightButton;
     }
 
-    protected void updateWeightFragments(FragmentTransaction transaction, WeightButtonFragmentSet weightButtonFragmentSet) {
-        transaction.replace(R.id.sub_weight_fragment, weightButtonFragmentSet.getSubFrag());
-        transaction.replace(R.id.add_weight_fragment, weightButtonFragmentSet.getAddFrag());
-    }
-
     @Override
     Switch getDoubledValueSwitch() {
         return null;
+    }
+
+    @Override
+    protected int getSubFragId() {
+        return R.id.sub_weight_fragment;
+    }
+
+    @Override
+    protected int getAddFragId() {
+        return R.id.add_weight_fragment;
     }
 
     /**

@@ -14,6 +14,7 @@
     <string name="add2point5">+2.5</string>
     <string name="subOne">-1</string>
     <string name="complete_set">Complete Set</string>
+    <string name="start_timed_exercise">Begin Exercise</string>
     <string name="complete_exercise">Exercise Complete!</string>
     <string name="cancel_rest">Start Next Set Early</string>
     <string name="weight_value_hint">lbs</string>
