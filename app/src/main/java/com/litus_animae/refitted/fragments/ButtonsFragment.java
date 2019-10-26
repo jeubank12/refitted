@@ -135,14 +135,14 @@ public abstract class ButtonsFragment extends Fragment implements
         showMore = newLayout.contains(ConfigureButtonsDialogFragment.ButtonLayout.showMore);
     }
 
-    // FIXME, ask the child classes for fragment ids instead of handing them the transaction
-    protected abstract void updateWeightFragments(FragmentTransaction transaction,
-                                                  WeightButtonFragmentSet weightButtonFragmentSet);
+    protected abstract int getSubFragId();
+    protected abstract int getAddFragId();
 
     private void updateWeightFragments() {
         WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
-        updateWeightFragments(transaction, weightButtonFragmentSet);
+        transaction.replace(getSubFragId(), weightButtonFragmentSet.getSubFrag());
+        transaction.replace(getAddFragId(), weightButtonFragmentSet.getAddFrag());
         transaction.commit();
     }
 
