@@ -62,7 +62,11 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             return Transformations.map(buttonValues, arr -> {
                 ArrayList<String> result = new ArrayList<>(arr.length);
                 for (double value : arr) {
-                    result.add(df.format(value));
+                    if (isDoubled){
+                        result.add(String.format("%s\n%s", df.format(value), df.format(value)));
+                    } else {
+                        result.add(df.format(value));
+                    }
                 }
                 return result.toArray(new String[arr.length]);
             });
