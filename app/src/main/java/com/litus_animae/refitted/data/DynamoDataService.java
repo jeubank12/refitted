@@ -83,9 +83,11 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
                 .build();
         Instant endOpen = java.time.Instant.now();
         Bugsee.log("Dynamo took " + Duration.between(start, endOpen) + " to open. Started at: " + start.toString());
+        Log.d(TAG, "connectToDynamo: Dynamo took " + Duration.between(start, endOpen) + " to open. Started at: " + start.toString());
         runAfterConnect();
         Instant endQuery = java.time.Instant.now();
         Bugsee.log("Dynamo query took " + Duration.between(start, endQuery) + ". Started at: " + endOpen.toString());
+        Log.d(TAG, "connectToDynamo: Dynamo query took " + Duration.between(start, endQuery) + ". Started at: " + endOpen.toString());
     }
 
     protected abstract void runAfterConnect();

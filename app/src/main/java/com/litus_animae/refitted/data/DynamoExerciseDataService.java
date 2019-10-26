@@ -56,7 +56,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
 
             Log.i(TAG, "doInBackground: Query results received");
             Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
-            room.runInTransaction(() -> result.forEach(set -> {
+            result.forEach(set -> room.runInTransaction(() -> {
                 if (set == null){
                     Bugsee.log(workout + "-" + day + ": a set had error loading from dynamo",
                             BugseeLogLevel.Warning);
