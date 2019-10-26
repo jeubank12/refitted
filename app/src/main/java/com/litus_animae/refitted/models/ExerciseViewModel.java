@@ -105,15 +105,19 @@ public class ExerciseViewModel extends AndroidViewModel {
                         if (completeSetsCount == exercise.getSets()) {
                             return getString(R.string.complete_exercise);
                         } else {
+                            // TODO if time unit, display "Start Circuit"
 //                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
 //                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
 //                                return "TODO Start Exercise";
 //                            }
-                            if (exercise.getStep().contains(".1")){
+                            if (exercise.getStep().contains(".1")) {
                                 // TODO determine if in sync with part 2
-                                return "Complete Superset Part 1";
+                                return "Complete Superset Part 1" +
+                                        String.format(Locale.getDefault(), " (%d %s %d)",
+                                                // using the LiveData here because the value may have changed
+                                                completeSetsCount + 1,
+                                                getString(R.string.word_of), exercise.getSets());
                             }
-                            // TODO if time unit, display "Start Circuit"
                             return getString(R.string.complete_set) +
                                     String.format(Locale.getDefault(), " %d %s %d",
                                             // using the LiveData here because the value may have changed
@@ -545,7 +549,8 @@ public class ExerciseViewModel extends AndroidViewModel {
         if (exerciseSet.getStep().contains(".1")) {
             navigateRight();
             return;
-        } else if (exerciseSet.getStep().contains(".2")){
+        } else if (exerciseSet.getStep().contains(".2")) {
+            // TODO don't navigate left if this is the last set
             navigateLeft();
         }
 
