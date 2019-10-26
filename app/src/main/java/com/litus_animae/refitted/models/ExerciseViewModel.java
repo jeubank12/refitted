@@ -42,15 +42,6 @@ public class ExerciseViewModel extends AndroidViewModel {
     private MediatorLiveData<List<ExerciseSet>> exerciseSets = new MediatorLiveData<>();
     private LiveData<List<ExerciseRecord>> exerciseRecords;
     private MutableLiveData<Integer> exerciseIndex = new MutableLiveData<>();
-    private MutableLiveData<Double> restRemaining = new MutableLiveData<>();
-    private MutableLiveData<Integer> restMax = new MutableLiveData<>();
-    private LiveData<Integer> restProgress = Transformations.switchMap(restMax, max -> {
-        return Transformations.map(restRemaining, rest -> (int) (max - rest * 1000));
-    });
-    private LiveData<String> restValue = Transformations.map(restRemaining, rest ->
-            String.format(Locale.getDefault(), "%.1f%s %s",
-                    rest, getString(R.string.seconds_abbrev),
-                    getString(R.string.rest)));
     private MediatorLiveData<String> weightDisplayValue = new MediatorLiveData<>();
     private MediatorLiveData<String> repsDisplayValue = new MediatorLiveData<>();
 
@@ -65,6 +56,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     });
 
+    // TODO make disabled for a second after click
     private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
         if (record == null) {
             MutableLiveData<Boolean> result = new MutableLiveData<>();
@@ -84,6 +76,17 @@ public class ExerciseViewModel extends AndroidViewModel {
         });
     });
 
+    private MutableLiveData<Double> restRemaining = new MutableLiveData<>();
+    private MutableLiveData<Integer> restMax = new MutableLiveData<>();
+    private LiveData<Integer> restProgress = Transformations.switchMap(restMax, max -> {
+        return Transformations.map(restRemaining, rest -> (int) (max - rest * 1000));
+    });
+    // TODO new text
+    private LiveData<String> restValue = Transformations.map(restRemaining, rest ->
+            String.format(Locale.getDefault(), "%.1f%s %s",
+                    rest, getString(R.string.seconds_abbrev),
+                    getString(R.string.rest)));
+
     // FIXME optimize the layers of transformations
     private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
         if (record == null) {
@@ -102,6 +105,14 @@ public class ExerciseViewModel extends AndroidViewModel {
                         if (completeSetsCount == exercise.getSets()) {
                             return getString(R.string.complete_exercise);
                         } else {
+//                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
+//                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
+//                                return "TODO Start Exercise";
+//                            }
+                            if (exercise.getStep().contains(".1")){
+                                // TODO determine if in sync with part 2
+                                return "Complete Superset Part 1";
+                            }
                             // TODO if time unit, display "Start Circuit"
                             return getString(R.string.complete_set) +
                                     String.format(Locale.getDefault(), " %d %s %d",
@@ -112,9 +123,19 @@ public class ExerciseViewModel extends AndroidViewModel {
                     });
                 });
             } else {
-                MutableLiveData<String> result = new MutableLiveData<>();
-                result.setValue(getString(R.string.cancel_rest));
-                return result;
+                return Transformations.map(currentExercise, exercise -> {
+                    //restMax.setValue(exercise.getRest() * 1000);
+                    //restRemaining.setValue((double) exercise.getRest());
+
+//                    if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
+//                            exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
+//                        return "TODO Start Rest Early";
+//                    }
+//                    if (exercise.getStep().endsWith("a")){
+//                        return "Complete superset then come back";
+//                    }
+                    return getString(R.string.cancel_rest);
+                });
             }
         });
     });
@@ -499,9 +520,11 @@ public class ExerciseViewModel extends AndroidViewModel {
         final int index = exerciseIndex.getValue();
         final ExerciseSet exerciseSet = exerciseSets.getValue().get(index);
         // if there is a timer, then this is a cancel button
+        // TODO if this is a timed-exercise, detect whether we are in rest or execute
         if (timer != null) {
             timer.cancel();
             timer = null;
+            // TODO if this is a timed-exercise, use unit instead of restmax
             restRemaining.setValue((double) restMax.getValue());
             timerMutableLiveData.setValue(null);
             //setTimerText(exerciseSet);
@@ -517,6 +540,14 @@ public class ExerciseViewModel extends AndroidViewModel {
         SetRecord newRecord = new SetRecord(exerciseSet,
                 Double.parseDouble(weight), Integer.parseInt(reps));
         exerciseRepo.storeSetRecord(newRecord);
+
+        // TODO if this is superset part a then move to the next exercise
+        if (exerciseSet.getStep().contains(".1")) {
+            navigateRight();
+            return;
+        } else if (exerciseSet.getStep().contains(".2")){
+            navigateLeft();
+        }
 
         timer = new CountDownTimer(
                 exerciseSet.getRest() * 1000,
