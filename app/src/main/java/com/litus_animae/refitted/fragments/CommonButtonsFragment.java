@@ -10,7 +10,6 @@ import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 
 import com.bugsee.library.Bugsee;
 import com.bugsee.library.events.BugseeLogLevel;

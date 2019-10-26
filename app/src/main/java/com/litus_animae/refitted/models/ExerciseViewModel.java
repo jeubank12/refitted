@@ -116,9 +116,11 @@ public class ExerciseViewModel extends AndroidViewModel {
             }
         });
     });
+    private MediatorLiveData<Boolean> showAsDouble = new MediatorLiveData<>();
 
     private Instant startLoad;
     // endregion
+    private LiveData<Boolean> isBarbellExercise;
 
     public ExerciseViewModel(@NonNull Application application) {
         super(application);
@@ -148,6 +150,39 @@ public class ExerciseViewModel extends AndroidViewModel {
 
         setupWeightAndRepsTransforms();
         timerMutableLiveData.setValue(null);
+        showAsDouble.setValue(false);
+        isBarbellExercise = Transformations.map(currentExercise, targetSet -> {
+            if (targetSet == null) {
+                return false;
+            }
+            if (targetSet.getRepsUnit() != null && (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
+                    targetSet.getRepsUnit().equalsIgnoreCase("seconds"))) {
+                return false;
+            }
+            if (targetSet.getExerciseName().toLowerCase().contains("db") ||
+                    targetSet.getExerciseName().toLowerCase().contains("dumbbell")) {
+                return false;
+            }
+            if (targetSet.getExerciseName().toLowerCase().contains("bb") ||
+                    targetSet.getExerciseName().toLowerCase().contains("barbell") ||
+                    targetSet.getExerciseName().toLowerCase().contains("press")) {
+                return true;
+            }
+            if (targetSet.getNote().toLowerCase().contains("db") ||
+                    targetSet.getNote().toLowerCase().contains("dumbbell")) {
+                return false;
+            }
+            return targetSet.getNote().toLowerCase().contains("bb") ||
+                    targetSet.getNote().toLowerCase().contains("barbell") ||
+                    targetSet.getNote().toLowerCase().contains("press");
+        });
+        showAsDouble.addSource(isBarbellExercise, isBarbell -> {
+            if (isBarbell != null) {
+                showAsDouble.setValue(isBarbell);
+            } else {
+                showAsDouble.setValue(false);
+            }
+        });
     }
 
     private static String formatWeightDisplay(double value) {
@@ -280,7 +315,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         }
         if (targetSet.getExerciseName().toLowerCase().contains("bb") ||
                 targetSet.getExerciseName().toLowerCase().contains("barbell") ||
-                targetSet.getExerciseName().toLowerCase().contains("press")){
+                targetSet.getExerciseName().toLowerCase().contains("press")) {
             return defaultBbWeight;
         }
         if (targetSet.getNote().toLowerCase().contains("db") ||
@@ -289,37 +324,11 @@ public class ExerciseViewModel extends AndroidViewModel {
         }
         if (targetSet.getNote().toLowerCase().contains("bb") ||
                 targetSet.getNote().toLowerCase().contains("barbell") ||
-                targetSet.getNote().toLowerCase().contains("press")){
+                targetSet.getNote().toLowerCase().contains("press")) {
             return defaultBbWeight;
         }
         return defaultBodyweight;
     }
-
-    private LiveData<Boolean> isBarbellExercise = Transformations.map(currentExercise, targetSet -> {
-        if (targetSet.getRepsUnit() != null && (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
-                targetSet.getRepsUnit().equalsIgnoreCase("seconds"))) {
-            return false;
-        }
-        if (targetSet.getExerciseName().toLowerCase().contains("db") ||
-                targetSet.getExerciseName().toLowerCase().contains("dumbbell")) {
-            return false;
-        }
-        if (targetSet.getExerciseName().toLowerCase().contains("bb") ||
-                targetSet.getExerciseName().toLowerCase().contains("barbell") ||
-                targetSet.getExerciseName().toLowerCase().contains("press")){
-            return true;
-        }
-        if (targetSet.getNote().toLowerCase().contains("db") ||
-                targetSet.getNote().toLowerCase().contains("dumbbell")) {
-            return false;
-        }
-        if (targetSet.getNote().toLowerCase().contains("bb") ||
-                targetSet.getNote().toLowerCase().contains("barbell") ||
-                targetSet.getNote().toLowerCase().contains("press")){
-            return true;
-        }
-        return false;
-    });
 
     private void setupLeftRightTransforms() {
         hasLeftBool = new MutableLiveData<>();
@@ -586,6 +595,10 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> getIsBarbellExercise() {
         return isBarbellExercise;
+    }
+
+    public MutableLiveData<Boolean> getShowAsDouble() {
+        return showAsDouble;
     }
     // endregion getters
 }

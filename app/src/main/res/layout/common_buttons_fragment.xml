@@ -120,6 +120,7 @@
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/sub_weight_fragment"
             app:layout_constraintTop_toTopOf="@+id/sub_weight_fragment"
+            app:layout_constraintVertical_bias="0.75"
             tools:text="25.0" />
 
         <FrameLayout
@@ -205,6 +206,7 @@
             android:id="@+id/doubled_switch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:checked="@={viewmodel.showAsDouble}"
             app:layout_constraintBottom_toTopOf="@+id/weight_display_label"
             app:layout_constraintEnd_toEndOf="@+id/weightDisplayView"
             app:layout_constraintHorizontal_bias="0.5"

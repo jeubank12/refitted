@@ -8,7 +8,6 @@ import android.widget.Switch;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.models.ExerciseViewModel;
@@ -26,16 +25,14 @@ public abstract class ButtonsFragment extends Fragment implements
     private boolean show25;
     private boolean show5;
     private boolean showMore;
-    private MediatorLiveData<Boolean> showAsDouble = new MediatorLiveData<>();
 
     public ButtonsFragment() {
-        showAsDouble.setValue(false);
     }
 
     @Override
     public void onButtonConfigurationChange(EnumSet<ConfigureButtonsDialogFragment.ButtonLayout> layout) {
         updateCurrentLayout(layout);
-        updateWeightFragments();
+        updateWeightFragments(getDoubledValueSwitch().isChecked());
 
         SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
 
@@ -98,13 +95,7 @@ public abstract class ButtonsFragment extends Fragment implements
         show25 = prefs.getBoolean("enable25", true);
         show5 = prefs.getBoolean("enable5", true);
         showMore = prefs.getBoolean("enableMore", true);
-        //showAsDouble.setValue(prefs.getBoolean("enableDouble", false));
-        //getDoubledValueSwitch().setChecked(showAsDouble.getValue());
-        showAsDouble.addSource(model.getIsBarbellExercise(), isBarbell -> {
-            showAsDouble.setValue(isBarbell);
-            getDoubledValueSwitch().setChecked(isBarbell);
-        });
-        updateWeightFragments();
+        updateWeightFragments(getDoubledValueSwitch().isChecked());
 
         getRepsPositiveButton().setOnClickListener(this::handleRepsClick);
         getRepsNegativeButton().setOnClickListener(this::handleRepsClick);
@@ -138,8 +129,8 @@ public abstract class ButtonsFragment extends Fragment implements
     protected abstract int getSubFragId();
     protected abstract int getAddFragId();
 
-    private void updateWeightFragments() {
-        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet();
+    private void updateWeightFragments(boolean showDouble) {
+        WeightButtonFragmentSet weightButtonFragmentSet = new WeightButtonFragmentSet(showDouble);
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
         transaction.replace(getSubFragId(), weightButtonFragmentSet.getSubFrag());
         transaction.replace(getAddFragId(), weightButtonFragmentSet.getAddFrag());
@@ -149,19 +140,14 @@ public abstract class ButtonsFragment extends Fragment implements
     abstract Switch getDoubledValueSwitch();
 
     private void handleOnDoubleChecked(View view, boolean isChecked) {
-        showAsDouble.setValue(isChecked);
-//        SharedPreferences prefs = requireContext().getSharedPreferences("RefittedMainPrefs", MODE_PRIVATE);
-//        SharedPreferences.Editor editor = prefs.edit();
-//        editor.putBoolean("enableDouble", showAsDouble.getValue());
-//        editor.apply();
-        updateWeightFragments();
+        updateWeightFragments(isChecked);
     }
 
     class WeightButtonFragmentSet {
         private WeightButton subFrag;
         private WeightButton addFrag;
 
-        WeightButtonFragmentSet() {
+        WeightButtonFragmentSet(boolean showDouble) {
             WeightButton.LAYOUT buttonsVisible = WeightButton.LAYOUT.button5;
             ArrayList<Double> buttonValues = new ArrayList<>();
             //double[] buttonValues = new double[]{2.5, 5, 10, 25, 45};
@@ -190,9 +176,9 @@ public abstract class ButtonsFragment extends Fragment implements
             Double[] buttonFinalValues = buttonValues.toArray(new Double[0]);
 
             subFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, false, showAsDouble.getValue());
+                    buttonFinalValues, false, showDouble);
             addFrag = WeightButton.newInstance(buttonsVisible,
-                    buttonFinalValues, true, showAsDouble.getValue());
+                    buttonFinalValues, true, showDouble);
         }
 
         WeightButton getSubFrag() {
