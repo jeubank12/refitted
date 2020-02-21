@@ -14,8 +14,6 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 
-import com.bugsee.library.Bugsee;
-import com.bugsee.library.data.IssueSeverity;
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
 import com.litus_animae.refitted.fragments.ButtonsFragment;
 import com.litus_animae.refitted.fragments.CommonButtonsFragment;
@@ -64,12 +62,6 @@ implements ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener {
             case R.id.show_history:
                 DialogFragment history = new ExerciseHistoryDialogFragment();
                 history.show(getSupportFragmentManager(), null);
-                return true;
-            case R.id.report_bug:
-                Bugsee.showReportDialog();
-                return true;
-            case R.id.feedback:
-                Bugsee.showReportDialog(getString(R.string.improvement_prefix), getString(R.string.improvement_starter), IssueSeverity.VeryLow);
                 return true;
             default:
                 return false;

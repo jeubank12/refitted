@@ -9,7 +9,6 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.room.Room;
 
-import com.bugsee.library.Bugsee;
 
 import java.lang.ref.WeakReference;
 import java.time.Duration;
@@ -96,7 +95,6 @@ public class RoomDataService {
                         Log.i(TAG, "doInBackground: context " + context.get().toString() + " opened the database, " + Thread.currentThread().getName());
                         result.postValue(room);
                         Instant end = java.time.Instant.now();
-                        Bugsee.log("Room took " + Duration.between(start, end) + " to open");
                     }
                 }
             } else {

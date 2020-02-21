@@ -10,7 +10,6 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperCo
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.bugsee.library.Bugsee;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -82,11 +81,9 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
                         new DynamoDBMapperConfig.TableNameOverride(tableName)))
                 .build();
         Instant endOpen = java.time.Instant.now();
-        Bugsee.log("Dynamo took " + Duration.between(start, endOpen) + " to open. Started at: " + start.toString());
         Log.d(TAG, "connectToDynamo: Dynamo took " + Duration.between(start, endOpen) + " to open. Started at: " + start.toString());
         runAfterConnect();
         Instant endQuery = java.time.Instant.now();
-        Bugsee.log("Dynamo query took " + Duration.between(start, endQuery) + ". Started at: " + endOpen.toString());
         Log.d(TAG, "connectToDynamo: Dynamo query took " + Duration.between(start, endQuery) + ". Started at: " + endOpen.toString());
     }
 

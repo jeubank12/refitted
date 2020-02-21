@@ -12,8 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.bugsee.library.Bugsee;
-import com.bugsee.library.events.BugseeLogLevel;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.databinding.CommonButtonsFragmentBinding;
 
@@ -55,7 +53,6 @@ public class TimedExerciseButtonsFragment extends ButtonsFragment {
             case R.id.subRepButton:
                 return false;
             default:
-                Bugsee.log("handleRepsClick: event from unknown source: " + view.getId(), BugseeLogLevel.Error);
                 Log.e(TAG, "handleRepsClick: event from unknown source: " + view.getId());
                 return true;
         }

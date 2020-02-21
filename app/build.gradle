@@ -24,14 +24,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
-            resValue 'string', "bugsee_id", Refitted_BugseeId
             debuggable = false
         }
         debug {
             signingConfig signingConfigs.debug
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
-            resValue 'string', "bugsee_id", Refitted_BugseeId
         }
     }
     dataBinding {
@@ -61,7 +59,6 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.2'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
     implementation 'com.amazonaws:aws-android-sdk-ddb-mapper:2.16.1'
-    implementation 'com.bugsee:bugsee-android:1.15.0'
 
     def room_version = "2.2.1"
     implementation "androidx.room:room-runtime:$room_version"
