@@ -9,6 +9,7 @@ import android.widget.Switch;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,6 +26,7 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.litus_animae.refitted.models.ExerciseViewModel;
 
 import java.lang.ref.WeakReference;
 
@@ -33,10 +35,12 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
     private static final String TAG = "WorkoutCalendarViewActi";
     private GoogleSignInOptions googleSignInOptions;
     private FirebaseAuth mAuth;
+    private ExerciseViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        viewModel = ViewModelProviders.of(this).get(ExerciseViewModel.class);
 
         setContentView(R.layout.activity_workout_calendar_view);
         Toolbar toolbar = findViewById(R.id.toolbar);

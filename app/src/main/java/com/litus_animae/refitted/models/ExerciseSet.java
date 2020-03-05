@@ -96,7 +96,7 @@ public class ExerciseSet {
 
     @DynamoDBAttribute(attributeName = "Note")
     public String getNote() {
-        return note;
+        return TextUtils.isEmpty(note) ? "" : note;
     }
 
     public void setNote(String note) {
@@ -178,7 +178,7 @@ public class ExerciseSet {
 
     @DynamoDBAttribute(attributeName = "RepsUnit")
     public String getRepsUnit() {
-        return repsUnit;
+        return TextUtils.isEmpty(repsUnit) ? "" : repsUnit;
     }
 
     public void setRepsUnit(String repsUnit) {

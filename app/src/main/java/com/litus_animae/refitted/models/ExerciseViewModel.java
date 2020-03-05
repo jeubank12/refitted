@@ -180,8 +180,8 @@ public class ExerciseViewModel extends AndroidViewModel {
             if (targetSet == null) {
                 return false;
             }
-            if (targetSet.getRepsUnit() != null && (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
-                    targetSet.getRepsUnit().equalsIgnoreCase("seconds"))) {
+            if (targetSet.getRepsUnit().equalsIgnoreCase("minutes") ||
+                    targetSet.getRepsUnit().equalsIgnoreCase("seconds")) {
                 return false;
             }
             if (targetSet.getExerciseName().toLowerCase().contains("db") ||
