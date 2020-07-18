@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 
 class ExerciseTest {
-    val testExercise = Exercise()
+    private val testExercise = Exercise()
 
     @BeforeEach
     fun setUp() {
