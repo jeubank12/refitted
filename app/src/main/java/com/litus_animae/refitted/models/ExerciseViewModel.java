@@ -537,8 +537,10 @@ public class ExerciseViewModel extends AndroidViewModel {
             return;
         }
 
-        SetRecord newRecord = new SetRecord(exerciseSet,
-                Double.parseDouble(weight), Integer.parseInt(reps));
+        SetRecord newRecord = new SetRecord(
+                Double.parseDouble(weight),
+                Integer.parseInt(reps),
+                exerciseSet);
         exerciseRepo.storeSetRecord(newRecord);
 
         // TODO if this is superset part a then move to the next exercise
