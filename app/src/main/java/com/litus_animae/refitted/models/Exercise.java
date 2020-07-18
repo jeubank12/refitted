@@ -52,7 +52,7 @@ public class Exercise implements Parcelable {
     }
 
     public String getName() {
-        return TextUtils.isEmpty(id) || !id.contains("_") ? null :
+        return id.isEmpty() || !id.contains("_") ? null :
                 id.split("_", 2)[1];
     }
 
@@ -60,7 +60,7 @@ public class Exercise implements Parcelable {
         if (allowNull){
             return getName();
         }
-        return TextUtils.isEmpty(id) || !id.contains("_") ? "" :
+        return id.isEmpty() || !id.contains("_") ? "" :
                 id.split("_", 2)[1];
     }
 
