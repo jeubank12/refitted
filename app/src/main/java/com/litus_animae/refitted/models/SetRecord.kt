@@ -5,36 +5,29 @@ import androidx.room.Entity
 import java.time.Instant
 import java.util.*
 
+// TODO generate migration
 @Entity(primaryKeys = ["exercise", "completed"])
-class SetRecord {
-    var weight = 0.0
-    var reps = 0
-    var workout: String? = null
-    @ColumnInfo(name = "target_set")
-    var targetSet: String? = null
-    var completed: Date
-    var exercise = ""
-
-    constructor(targetSet: ExerciseSet, weight: Double, reps: Int) {
-        this.weight = weight
-        this.reps = reps
-        completed = Date.from(Instant.now())
-        exercise = targetSet.exerciseName
-        this.targetSet = targetSet.id
-        workout = targetSet.workout
-    }
-
-    constructor() {
-        completed = Date.from(Instant.now())
-    }
+data class SetRecord(val weight: Double,
+                     val reps: Int,
+                     val workout: String,
+                     @ColumnInfo(name = "target_set") val targetSet: String,
+                     val completed: Date,
+                     val exercise: String) {
+    constructor(weight: Double, reps: Int, targetExerciseSet: ExerciseSet) :
+            this(weight,
+                    reps,
+                    targetExerciseSet.workout,
+                    targetExerciseSet.id,
+                    Date.from(Instant.now()),
+                    targetExerciseSet.exerciseName)
 
     override fun equals(other: Any?): Boolean {
         val record = other as SetRecord?
         return record != null &&
-            record.workout == workout &&
-            record.targetSet == targetSet &&
-            record.reps == reps &&
-            record.weight == weight &&
-            record.completed == completed
+                record.workout == workout &&
+                record.targetSet == targetSet &&
+                record.reps == reps &&
+                record.weight == weight &&
+                record.completed == completed
     }
 }

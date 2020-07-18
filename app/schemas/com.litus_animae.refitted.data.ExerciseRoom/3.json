@@ -172,7 +172,7 @@
             "notNull": false
           },
           {
-            "fieldPath": "targetSet",
+            "fieldPath": "target_set",
             "columnName": "target_set",
             "affinity": "TEXT",
             "notNull": false
