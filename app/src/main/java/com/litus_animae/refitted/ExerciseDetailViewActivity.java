@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding;
@@ -71,7 +72,7 @@ implements ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        model = ViewModelProviders.of(this).get(ExerciseViewModel.class);
+        model = new ViewModelProvider(this).get(ExerciseViewModel.class);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_exercise_detail_view);
         binding.setLifecycleOwner(this);
 
