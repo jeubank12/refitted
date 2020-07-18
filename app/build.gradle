@@ -34,8 +34,8 @@ android {
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
         }
     }
-    dataBinding {
-        enabled = true
+    buildFeatures {
+        dataBinding  = true
     }
     compileOptions {
         sourceCompatibility = '1.8'
