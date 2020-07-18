@@ -45,7 +45,7 @@ class ExerciseTest {
 
     @Test
     fun setName() {
-        testExercise.name = "test"
+        testExercise.setName("test")
         assertThat(testExercise.id).isEqualTo(testExercise.category + "_test")
     }
 
