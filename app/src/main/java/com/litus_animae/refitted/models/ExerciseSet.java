@@ -90,13 +90,13 @@ public class ExerciseSet {
     }
 
     public String getExerciseName() {
-        return TextUtils.isEmpty(name) || !name.contains("_") ? "" :
+        return name == null || name.isEmpty() || !name.contains("_") ? "" :
                 name.split("_", 2)[1];
     }
 
     @DynamoDBAttribute(attributeName = "Note")
     public String getNote() {
-        return TextUtils.isEmpty(note) ? "" : note;
+        return note == null ? "" : note;
     }
 
     public void setNote(String note) {
@@ -178,7 +178,7 @@ public class ExerciseSet {
 
     @DynamoDBAttribute(attributeName = "RepsUnit")
     public String getRepsUnit() {
-        return TextUtils.isEmpty(repsUnit) ? "" : repsUnit;
+        return repsUnit == null ? "" : repsUnit;
     }
 
     public void setRepsUnit(String repsUnit) {
