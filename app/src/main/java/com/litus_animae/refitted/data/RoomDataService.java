@@ -32,7 +32,7 @@ public class RoomDataService {
                 if (room.getValue() == null) {
                     ExerciseRoom newRoom = Room.databaseBuilder(context.getApplicationContext(),
                             ExerciseRoom.class, db_name)
-                            .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3)
+                            .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3, ExerciseRoom.MIGRATION_3_4)
                             .build();
                     Log.i(TAG, "getExerciseRoom: context " + context.toString() + " opened the database, " + Thread.currentThread().getName());
                     room.setValue(newRoom);
@@ -87,7 +87,7 @@ public class RoomDataService {
                     if (result.getValue() == null) {
                         ExerciseRoom room = Room.databaseBuilder(context.get(),
                                 ExerciseRoom.class, db_name)
-                                .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3)
+                                .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3, ExerciseRoom.MIGRATION_3_4)
                                 .build();
                         Log.i(TAG, "doInBackground: context " + context.get().toString() + " opened the database, " + Thread.currentThread().getName());
                         result.postValue(room);
