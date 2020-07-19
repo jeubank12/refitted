@@ -63,17 +63,13 @@ public class DynamoExerciseDataService extends DynamoDataService {
                     Exercise e = dynamoDb.load(Exercise.class, set.getName(), set.getWorkout());
                     if (e == null){
                         Log.w(TAG, "doInBackground: loaded exercise was null, replacing with default");
-                        e = new Exercise();
-                        e.setId(set.getName());
-                        e.setWorkout(set.getWorkout());
+                        e = new Exercise(set.getWorkout(), set.getName());
                     }
                     room.getExerciseDao().storeExercise(e);
                     room.getExerciseDao().storeExerciseSet(set);
                 } catch (Exception ex) {
                     Log.e(TAG, "doInBackground: error loading Exercise", ex);
-                    Exercise e = new Exercise();
-                    e.setId(set.getName());
-                    e.setWorkout(set.getWorkout());
+                    Exercise e = new Exercise(set.getWorkout(), set.getName());
                     room.getExerciseDao().storeExercise(e);
                     room.getExerciseDao().storeExerciseSet(set);
                 }

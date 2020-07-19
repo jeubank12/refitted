@@ -9,24 +9,31 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 
+// TODO generate migration to remove category
 @Entity(primaryKeys = ["exercise_name", "exercise_workout"])
 @DynamoDBTable(tableName = "refitted-exercise")
-class Exercise : Parcelable {
-    @get:DynamoDBAttribute(attributeName = "Disc")
-    @get:DynamoDBRangeKey(attributeName = "Disc")
-    @ColumnInfo(name = "exercise_workout")
-    var workout = ""
+data class Exercise(
+        @get:DynamoDBAttribute(attributeName = "Disc")
+        @get:DynamoDBRangeKey(attributeName = "Disc")
+        @ColumnInfo(name = "exercise_workout")
+        val workout: String,
 
-    @get:DynamoDBAttribute(attributeName = "Id")
-    @get:DynamoDBHashKey(attributeName = "Id")
-    @ColumnInfo(name = "exercise_name")
-    var id = ""
+        @get:DynamoDBAttribute(attributeName = "Id")
+        @get:DynamoDBHashKey(attributeName = "Id")
+        @ColumnInfo(name = "exercise_name")
+        val id: String,
 
-    @get:DynamoDBAttribute(attributeName = "Note")
-    var description: String? = null
+        @get:DynamoDBAttribute(attributeName = "Note")
+        val description: String? = null
+) : Parcelable {
 
-    //private Date cacheDate;
-    constructor() {}
+    constructor(parcel: Parcel): this(
+        workout = parcel.readString()!!,
+        id = parcel.readString()!!,
+        description = parcel.readString()
+    )
+
+    constructor(workout: String, id: String) : this(workout, id, description = null)
 
     val name: String?
         get() = if (id.isEmpty() || !id.contains("_")) null else id.split("_".toRegex(), 2).toTypedArray()[1]
@@ -38,16 +45,6 @@ class Exercise : Parcelable {
         return if (id.isEmpty() || !id.contains("_")) "" else id.split("_".toRegex(), 2).toTypedArray()[1]
     }
 
-    fun setName(name: String) {
-        id = category + "_" + name
-    }
-
-    var category: String
-        get() = id.split("_".toRegex(), 2).toTypedArray()[0]
-        set(category) {
-            id = category.split("_".toRegex(), 2).toTypedArray()[0] + "_" + getName(false)
-        }
-
     override fun describeContents(): Int {
         return 0
     }
@@ -56,12 +53,6 @@ class Exercise : Parcelable {
         dest.writeString(workout)
         dest.writeString(id)
         dest.writeString(description)
-    }
-
-    protected constructor(parcel: Parcel) {
-        workout = parcel.readString()!!
-        id = parcel.readString()!!
-        description = parcel.readString()
     }
 
     companion object CREATOR : Parcelable.Creator<Exercise> {

@@ -5,14 +5,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 
 class ExerciseTest {
-    private val testExercise = Exercise()
-
-    @BeforeEach
-    fun setUp() {
-        testExercise.id = "Tricep_Alternating Woodchopper Pushdowns"
-        testExercise.workout = "AX1"
-        testExercise.description = "Alternate reps (10-12 in each direction) for each completed set. If using a resistance band, step further away to increase tension on band and difficulty of exercise"
-    }
+    private var testExercise = Exercise(
+            workout = "AX1",
+            id = "Tricep_Alternating Woodchopper Pushdowns"
+    )
 
     @Test
     fun getId() {
@@ -21,7 +17,7 @@ class ExerciseTest {
 
     @Test
     fun setId() {
-        testExercise.id = "test"
+        testExercise = Exercise(workout = "AX1", id = "test")
         assertThat(testExercise.id).isEqualTo("test")
     }
 
@@ -32,31 +28,14 @@ class ExerciseTest {
 
     @Test
     fun getNameFromNull() {
-        testExercise.id = ""
+        testExercise = Exercise(workout = "AX1", id = "")
         assertThat(testExercise.getName(true)).isNull()
     }
 
     @Test
     fun getNameDisallowNull() {
-        testExercise.id = ""
+        testExercise = Exercise(workout = "AX1", id = "")
         assertThat(testExercise.getName(false)).isNotNull()
         assertThat(testExercise.getName(false)).isEmpty()
-    }
-
-    @Test
-    fun setName() {
-        testExercise.setName("test")
-        assertThat(testExercise.id).isEqualTo(testExercise.category + "_test")
-    }
-
-    @Test
-    fun getCategory() {
-        assertThat(testExercise.category).isEqualTo("Tricep")
-    }
-
-    @Test
-    fun setCategory() {
-        testExercise.category = "test"
-        assertThat(testExercise.id).isEqualTo("test_" + testExercise.name)
     }
 }
