@@ -7,12 +7,22 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 
 @DynamoDBTable(tableName = "refitted-exercise")
 class WorkoutPlan {
+    @JvmOverloads constructor(
+            workout: String?,
+            id: String = "Plan"
+    ){
+        this.workout = workout
+        this.id = id
+    }
+
+    constructor(): this(null)
+
+
     @get:DynamoDBAttribute(attributeName = "Disc")
     @get:DynamoDBRangeKey(attributeName = "Disc")
-    var workout: String? = null
+    val workout: String?
 
     @get:DynamoDBAttribute(attributeName = "Id")
     @get:DynamoDBHashKey(attributeName = "Id")
-    var id = "Plan"
-
+    val id: String
 }
