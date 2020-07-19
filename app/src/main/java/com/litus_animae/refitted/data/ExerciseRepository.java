@@ -57,15 +57,11 @@ public class ExerciseRepository {
                 Date tonightMidnight = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0)));
                 ArrayList<ExerciseRecord> recordObjects = new ArrayList<>();
                 for (ExerciseSet e : loadedExercises) {
-                    ExerciseRecord record = new ExerciseRecord(e);
-                    try {
-                        record.setLatestSet(roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()));
-                        record.setSets(roomDb.getExerciseDao()
+                    ExerciseRecord record = new ExerciseRecord(e,
+                        roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()),
+                        roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()),
+                        roomDb.getExerciseDao()
                                 .getSetRecords(tonightMidnight, e.getExerciseName()));
-                        record.setAllSets(roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()));
-                    } catch (Exception ex) {
-                        Log.e(TAG, "getRecordsForLoadedExercises: failed retrieving records", ex);
-                    }
                     recordObjects.add(record);
                 }
                 Log.i(TAG, "getRecordsForLoadedExercises: records loaded");

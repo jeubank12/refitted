@@ -1,10 +1,11 @@
 package com.litus_animae.refitted.models;
 
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.util.InstantExecutorExtension
 import com.litus_animae.util.getOrAwaitValue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
@@ -14,15 +15,13 @@ class ExerciseRecordTest {
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
     )
-
-    private val testExerciseRecord = ExerciseRecord(testExerciseSet)
     private val testSets = mutableListOf<SetRecord>()
     private val liveDataList = MutableLiveData<List<SetRecord>>(testSets)
 
-    @BeforeEach
-    fun setUp(){
-        testExerciseRecord.sets = liveDataList
-    }
+    private val testExerciseRecord = ExerciseRecord(testExerciseSet,
+        Transformations.map(liveDataList){ list: List<SetRecord> -> list.last()},
+        TestDataSourceFactory(testSets),
+        liveDataList)
 
     @Test
     fun getSetsCountEmpty() {
@@ -33,7 +32,10 @@ class ExerciseRecordTest {
 
     @Test
     fun getSetsCountNull() {
-        testExerciseRecord.sets = MutableLiveData<List<SetRecord>>(null)
+        val testExerciseRecord = ExerciseRecord(testExerciseSet,
+                Transformations.map(liveDataList){ list: List<SetRecord> -> list.last()},
+                TestDataSourceFactory(testSets),
+                MutableLiveData<List<SetRecord>>(null))
         assertThat(testExerciseRecord.setsCount.getOrAwaitValue()).isEqualTo(0)
     }
 
@@ -48,14 +50,14 @@ class ExerciseRecordTest {
     fun getLastSet() {
         testSets.add(SetRecord(0.0, 0, testExerciseSet))
         testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.getSet(-1).getOrAwaitValue().reps).isEqualTo(1)
+        assertThat(testExerciseRecord.getSet(-1).getOrAwaitValue()?.reps).isEqualTo(1)
     }
 
     @Test
     fun getFirstSet() {
         testSets.add(SetRecord(0.0, 0, testExerciseSet))
         testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.getSet(0).getOrAwaitValue().reps).isEqualTo(0)
+        assertThat(testExerciseRecord.getSet(0).getOrAwaitValue()?.reps).isEqualTo(0)
     }
 
     @Test
