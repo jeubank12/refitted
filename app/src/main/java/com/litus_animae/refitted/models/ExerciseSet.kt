@@ -37,6 +37,7 @@ data class ExerciseSet @JvmOverloads constructor(
     val sets: Int = 0,
 
     @get:DynamoDBAttribute(attributeName = "ToFailure")
+    @ColumnInfo(name = "toFailure")
     val isToFailure: Boolean = false,
 
     @get:DynamoDBAttribute(attributeName = "Rest")
