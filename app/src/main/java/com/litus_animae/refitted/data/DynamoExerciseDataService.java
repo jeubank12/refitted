@@ -23,9 +23,8 @@ public class DynamoExerciseDataService extends DynamoDataService {
 
     @Override
     protected Void doInBackground(String... dayAndWorkoutId) {
-        ExerciseSet keyValues = new ExerciseSet();
         // TODO check the array
-        keyValues.setWorkout(dayAndWorkoutId[1]);
+        ExerciseSet keyValues = new ExerciseSet(dayAndWorkoutId[1]);
 
         Condition rangeCondition = new Condition()
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)

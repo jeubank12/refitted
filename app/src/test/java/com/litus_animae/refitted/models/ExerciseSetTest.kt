@@ -2,16 +2,12 @@ package com.litus_animae.refitted.models;
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeEach
 
 class ExerciseSetTest {
-    private val testExerciseSet = ExerciseSet()
-
-    @BeforeEach
-    fun setUp() {
-        testExerciseSet.id = "1.5"
-        testExerciseSet.name = "Tricep_Alternating Woodchopper Pushdowns"
-    }
+    private var testExerciseSet = ExerciseSet(
+            id = "1.5",
+            name = "Tricep_Alternating Woodchopper Pushdowns"
+    )
 
     @Test
     fun getDay() {
@@ -25,7 +21,11 @@ class ExerciseSetTest {
 
     @Test
     fun getStepWithAlternate() {
-        testExerciseSet.id = "1.5.a"
+        testExerciseSet = ExerciseSet(
+                workout = "AX1",
+                id = "1.5.a",
+                name = "Tricep_Alternating Woodchopper Pushdowns"
+        )
         assertThat(testExerciseSet.step).isEqualTo("5.a")
     }
 
@@ -36,21 +36,10 @@ class ExerciseSetTest {
 
     @Test
     fun getExerciseNameNotNullNotFound() {
-        testExerciseSet.name = "test"
-        assertThat(testExerciseSet.exerciseName).isNotNull()
+        testExerciseSet = ExerciseSet(
+                id = "1.5.a",
+                name = "test"
+        )
         assertThat(testExerciseSet.exerciseName).isEqualTo("")
-    }
-
-    @Test
-    fun getExerciseNameNotNull() {
-        testExerciseSet.name = null
-        assertThat(testExerciseSet.exerciseName).isNotNull()
-        assertThat(testExerciseSet.exerciseName).isEqualTo("")
-    }
-
-    @Test
-    fun getRepsUnitNotNull() {
-        assertThat(testExerciseSet.repsUnit).isNotNull()
-        assertThat(testExerciseSet.repsUnit).isEqualTo("")
     }
 }
