@@ -9,21 +9,14 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 
-// TODO generate migration to remove category
 @Entity(primaryKeys = ["exercise_name", "exercise_workout"])
-@DynamoDBTable(tableName = "refitted-exercise")
 data class Exercise(
-        @get:DynamoDBAttribute(attributeName = "Disc")
-        @get:DynamoDBRangeKey(attributeName = "Disc")
         @ColumnInfo(name = "exercise_workout")
         val workout: String,
 
-        @get:DynamoDBAttribute(attributeName = "Id")
-        @get:DynamoDBHashKey(attributeName = "Id")
         @ColumnInfo(name = "exercise_name")
         val id: String,
 
-        @get:DynamoDBAttribute(attributeName = "Note")
         val description: String? = null
 ) : Parcelable {
 
@@ -32,6 +25,9 @@ data class Exercise(
         id = parcel.readString()!!,
         description = parcel.readString()
     )
+
+    constructor(mutableExercise: MutableExercise):
+            this(mutableExercise.workout, mutableExercise.id, mutableExercise.description)
 
     constructor(workout: String, id: String) : this(workout, id, description = null)
 
