@@ -432,7 +432,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         final List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (copyExerciseSets == null || copyExerciseSets.size() < 1) {
             Log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default");
-            return new ExerciseSet();
+            return new ExerciseSet(new MutableExerciseSet());
         }
         // TODO might be able to remove this since the method is only called by livedata transformation
         // leaving this as a warning as I don't know when this would be null

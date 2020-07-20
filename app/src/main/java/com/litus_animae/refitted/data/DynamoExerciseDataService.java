@@ -10,10 +10,12 @@ import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.models.MutableExercise;
+import com.litus_animae.refitted.models.MutableExerciseSet;
 
 public class DynamoExerciseDataService extends DynamoDataService {
     private static final String TAG = "DynamoExerciseDataService";
-    private DynamoDBQueryExpression<ExerciseSet> queryExpression;
+    private DynamoDBQueryExpression<MutableExerciseSet> queryExpression;
     private String day;
     private String workout;
 
@@ -24,13 +26,13 @@ public class DynamoExerciseDataService extends DynamoDataService {
     @Override
     protected Void doInBackground(String... dayAndWorkoutId) {
         // TODO check the array
-        ExerciseSet keyValues = new ExerciseSet(dayAndWorkoutId[1]);
+        MutableExerciseSet keyValues = new MutableExerciseSet(dayAndWorkoutId[1]);
 
         Condition rangeCondition = new Condition()
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
                 .withAttributeValueList(new AttributeValue().withS(dayAndWorkoutId[0] + "."));
 
-        queryExpression = new DynamoDBQueryExpression<ExerciseSet>()
+        queryExpression = new DynamoDBQueryExpression<MutableExerciseSet>()
                 .withHashKeyValues(keyValues)
                 .withIndexName("Reverse-index")
                 .withRangeKeyCondition("Id", rangeCondition)
@@ -49,7 +51,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
     @Override
     protected void runAfterConnect() {
         try {
-            PaginatedQueryList<ExerciseSet> result = dynamoDb.query(ExerciseSet.class, queryExpression);
+            PaginatedQueryList<MutableExerciseSet> result = dynamoDb.query(MutableExerciseSet.class, queryExpression);
 
             Log.i(TAG, "doInBackground: Query results received");
             Log.i(TAG, "doInBackground: storing " + result.size() + " values in cache");
@@ -59,18 +61,21 @@ public class DynamoExerciseDataService extends DynamoDataService {
                     return;
                 }
                 try {
-                    Exercise e = dynamoDb.load(Exercise.class, set.getName(), set.getWorkout());
+                    MutableExercise e = dynamoDb.load(MutableExercise.class, set.getName(), set.getWorkout());
                     if (e == null){
                         Log.w(TAG, "doInBackground: loaded exercise was null, replacing with default");
-                        e = new Exercise(set.getWorkout(), set.getName());
+                        e = new MutableExercise(set.getWorkout(), set.getName());
                     }
-                    room.getExerciseDao().storeExercise(e);
-                    room.getExerciseDao().storeExerciseSet(set);
+                    Exercise modelExercise = new Exercise(e);
+                    room.getExerciseDao().storeExercise(modelExercise);
+                    ExerciseSet modelSet = new ExerciseSet(set);
+                    room.getExerciseDao().storeExerciseSet(modelSet);
                 } catch (Exception ex) {
                     Log.e(TAG, "doInBackground: error loading Exercise", ex);
                     Exercise e = new Exercise(set.getWorkout(), set.getName());
                     room.getExerciseDao().storeExercise(e);
-                    room.getExerciseDao().storeExerciseSet(set);
+                    ExerciseSet modelSet = new ExerciseSet(set);
+                    room.getExerciseDao().storeExerciseSet(modelSet);
                 }
             }));
         } catch (Exception ex) {
