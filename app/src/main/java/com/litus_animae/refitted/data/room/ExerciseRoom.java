@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data;
+package com.litus_animae.refitted.data.room;
 
 import androidx.annotation.NonNull;
 import androidx.room.Database;
@@ -7,6 +7,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+import com.litus_animae.refitted.data.Converters;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;

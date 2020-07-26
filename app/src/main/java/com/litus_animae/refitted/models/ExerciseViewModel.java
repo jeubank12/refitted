@@ -14,8 +14,8 @@ import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
+import com.litus_animae.refitted.data.room.RoomDynamoExerciseRepository;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -150,7 +150,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     public ExerciseViewModel(@NonNull Application application) {
         super(application);
-        exerciseRepo = new ExerciseRepository(application);
+        exerciseRepo = new RoomDynamoExerciseRepository(application);
 
         isLoadingBool = new MutableLiveData<>();
         isLoadingBool.setValue(true);

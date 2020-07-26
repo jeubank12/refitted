@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data;
+package com.litus_animae.refitted.data.dynamo;
 
 import android.content.Context;
 import android.util.Log;
@@ -8,6 +8,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryLi
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.MutableExercise;
@@ -19,7 +20,7 @@ public class DynamoExerciseDataService extends DynamoDataService {
     private String day;
     private String workout;
 
-    DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
+    public DynamoExerciseDataService(Context applicationContext, ExerciseRoom room) {
         super(applicationContext, room);
     }
 

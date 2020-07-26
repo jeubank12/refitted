@@ -1,15 +1,11 @@
-package com.litus_animae.refitted.data;
+package com.litus_animae.refitted.data.dynamo;
 
 import android.content.Context;
 import android.util.Log;
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryList;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
-import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.litus_animae.refitted.models.Exercise;
-import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.models.WorkoutPlan;
 
 public class DynamoPlanDataService extends DynamoDataService {

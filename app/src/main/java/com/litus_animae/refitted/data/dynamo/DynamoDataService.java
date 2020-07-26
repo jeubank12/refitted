@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data;
+package com.litus_animae.refitted.data.dynamo;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -15,6 +15,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GetTokenResult;
 import com.litus_animae.refitted.R;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 
 import java.time.Duration;
 import java.time.Instant;
