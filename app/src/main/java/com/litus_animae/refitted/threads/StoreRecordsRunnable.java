@@ -3,8 +3,8 @@ package com.litus_animae.refitted.threads;
 import android.content.Context;
 import android.util.Log;
 
-import com.litus_animae.refitted.data.ExerciseRoom;
-import com.litus_animae.refitted.data.RoomDataService;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
+import com.litus_animae.refitted.data.room.RoomExerciseDataService;
 import com.litus_animae.refitted.models.SetRecord;
 
 public class StoreRecordsRunnable implements Runnable {
@@ -20,7 +20,7 @@ public class StoreRecordsRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            ExerciseRoom roomDb = RoomDataService.getExerciseRoom(applicationContext);
+            ExerciseRoom roomDb = RoomExerciseDataService.getExerciseRoom(applicationContext);
             roomDb.getExerciseDao().storeExerciseRecord(record);
         } catch (Exception ex){
             Log.e(TAG, "run: exception during store", ex);
