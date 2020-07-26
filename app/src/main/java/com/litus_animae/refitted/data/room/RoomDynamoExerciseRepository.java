@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.qualifiers.ApplicationContext;
+
 public class RoomDynamoExerciseRepository implements ExerciseRepository {
 
     private static final String TAG = "ExerciseRepository";
@@ -42,7 +46,7 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
     private Comparator<ExerciseSet> compareByStep = Comparator.comparing(ExerciseSet::getStep);
 
     @Inject
-    public RoomDynamoExerciseRepository(Context context) {
+    public RoomDynamoExerciseRepository(@ApplicationContext Context context) {
         applicationContext = new WeakReference<>(context.getApplicationContext());
         threadPoolService = Executors.newCachedThreadPool();
 

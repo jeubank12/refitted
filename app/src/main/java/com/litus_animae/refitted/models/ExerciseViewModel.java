@@ -7,6 +7,7 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.hilt.lifecycle.ViewModelInject;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -14,7 +15,6 @@ import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
-import com.litus_animae.refitted.data.room.RoomDynamoExerciseRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -148,9 +148,10 @@ public class ExerciseViewModel extends AndroidViewModel {
     // endregion
     private LiveData<Boolean> isBarbellExercise;
 
-    public ExerciseViewModel(@NonNull Application application) {
+    @ViewModelInject
+    public ExerciseViewModel(@NonNull Application application, ExerciseRepository exerciseRepo) {
         super(application);
-        exerciseRepo = new RoomDynamoExerciseRepository(application);
+        this.exerciseRepo = exerciseRepo;
 
         isLoadingBool = new MutableLiveData<>();
         isLoadingBool.setValue(true);
@@ -159,7 +160,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         setupLeftRightTransforms();
 
         exerciseIndex.setValue(0);
-        exerciseSets.addSource(exerciseRepo.getExercises(),
+        exerciseSets.addSource(this.exerciseRepo.getExercises(),
                 exercises -> {
                     Instant endLoad = java.time.Instant.now();
                     exerciseSets.setValue(exercises);
@@ -167,7 +168,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                         startLoad = null;
                     }
                 });
-        exerciseRecords = exerciseRepo.getRecords();
+        exerciseRecords = this.exerciseRepo.getRecords();
         currentExercise = Transformations.switchMap(exerciseSets,
                 set -> Transformations.switchMap(exerciseRecords,
                         records -> Transformations.map(exerciseIndex,
