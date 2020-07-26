@@ -25,6 +25,9 @@ import com.litus_animae.refitted.models.ExerciseViewModel;
 import java.util.EnumSet;
 import java.util.Locale;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class ExerciseDetailViewActivity extends AppCompatActivity
 implements ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener {
 

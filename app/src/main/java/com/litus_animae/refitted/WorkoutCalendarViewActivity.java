@@ -9,6 +9,7 @@ import android.widget.Switch;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,6 +31,9 @@ import com.litus_animae.refitted.models.ExerciseViewModel;
 
 import java.lang.ref.WeakReference;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class WorkoutCalendarViewActivity extends AppCompatActivity {
 
     private static final String TAG = "WorkoutCalendarViewActi";
@@ -40,7 +44,7 @@ public class WorkoutCalendarViewActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        viewModel = ViewModelProviders.of(this).get(ExerciseViewModel.class);
+        viewModel = new ViewModelProvider(this).get(ExerciseViewModel.class);
 
         setContentView(R.layout.activity_workout_calendar_view);
         Toolbar toolbar = findViewById(R.id.toolbar);
