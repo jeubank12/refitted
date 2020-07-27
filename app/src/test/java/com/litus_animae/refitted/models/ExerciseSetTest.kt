@@ -4,10 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
 class ExerciseSetTest {
-    private var testExerciseSet = ExerciseSet(
+    private var mutableExerciseSet = MutableExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
     )
+    private var testExerciseSet = ExerciseSet(mutableExerciseSet)
 
     @Test
     fun getDay() {
@@ -21,11 +22,11 @@ class ExerciseSetTest {
 
     @Test
     fun getStepWithAlternate() {
-        testExerciseSet = ExerciseSet(
+        testExerciseSet = ExerciseSet(MutableExerciseSet(
                 workout = "AX1",
                 id = "1.5.a",
                 name = "Tricep_Alternating Woodchopper Pushdowns"
-        )
+        ))
         assertThat(testExerciseSet.step).isEqualTo("5.a")
     }
 
@@ -36,10 +37,10 @@ class ExerciseSetTest {
 
     @Test
     fun getExerciseNameNotNullNotFound() {
-        testExerciseSet = ExerciseSet(
+        testExerciseSet = ExerciseSet(MutableExerciseSet(
                 id = "1.5.a",
                 name = "test"
-        )
+        ))
         assertThat(testExerciseSet.exerciseName).isEqualTo("")
     }
 }
