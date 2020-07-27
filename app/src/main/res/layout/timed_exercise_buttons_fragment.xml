@@ -52,7 +52,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:enabled="@{viewmodel.completeSetButtonEnabled}"
-            android:text="@{viewmodel.completeSetMessage}"
+            android:text="@{completeSetButtonText}"
             app:layout_constraintBottom_toTopOf="@+id/restProgressBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -162,7 +162,7 @@
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="16dp"
             android:gravity="center"
-            android:text="@{viewmodel.restValue}"
+            android:text="@{restValueText}"
             android:textSize="30sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -188,5 +188,13 @@
         <variable
             name="viewmodel"
             type="com.litus_animae.refitted.models.ExerciseViewModel" />
+
+        <variable
+            name="completeSetButtonText"
+            type="androidx.lifecycle.LiveData&lt;String&gt;" />
+
+        <variable
+            name="restValueText"
+            type="androidx.lifecycle.LiveData&lt;String&gt;" />
     </data>
 </layout>

@@ -10,6 +10,7 @@ import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.databinding.CommonButtonsFragmentBinding;
@@ -108,6 +109,10 @@ public class CommonButtonsFragment extends ButtonsFragment {
         binding = CommonButtonsFragmentBinding.inflate(inflater, container, false);
         binding.setLifecycleOwner(getViewLifecycleOwner());
         binding.setViewmodel(model);
+        binding.setCompleteSetButtonText(Transformations.map(model.getCompleteSetMessage(),
+                messageResources -> messageResources.getStringValue(requireContext())));
+        binding.setRestValueText(Transformations.map(model.getRestValue(),
+                messageResources -> messageResources.getStringValue(requireContext())));
         return binding.getRoot();
     }
 

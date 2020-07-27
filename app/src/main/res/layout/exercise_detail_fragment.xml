@@ -84,7 +84,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text='@{viewmodel.targetExerciseReps}'
+                android:text='@{targetExerciseReps}'
                 app:layout_constraintBottom_toBottomOf="@+id/exerciseRepsTargetLabel"
                 app:layout_constraintStart_toEndOf="@+id/exerciseRepsTargetLabel"
                 app:layout_constraintTop_toTopOf="@+id/exerciseRepsTargetLabel"
@@ -110,6 +110,10 @@
         <variable
             name="viewmodel"
             type="com.litus_animae.refitted.models.ExerciseViewModel" />
+
+        <variable
+            name="targetExerciseReps"
+            type="androidx.lifecycle.LiveData&lt;String&gt;" />
 
         <variable
             name="locale"
