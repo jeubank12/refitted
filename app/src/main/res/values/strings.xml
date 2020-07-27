@@ -23,8 +23,7 @@
     <string name="move_right"><![CDATA[>]]></string>
     <string name="move_left"><![CDATA[<]]></string>
     <string name="word_of">of</string>
-    <string name="seconds_abbrev">s</string>
-    <string name="rest">rest</string>
+    <string name="seconds_rest_phrase">%.1fs rest"</string>
     <string name="switch_to_alternate">Switch To Alternate</string>
     <string name="target_reps">Target Reps:</string>
     <string name="target_sets">Target Sets:</string>
@@ -46,7 +45,7 @@
     <string name="ax1">AX1</string>
     <string name="inferno_size">Inferno Size</string>
     <string name="improvement_prefix">Improvement:</string>
-    <string name="improvement_starter">I want this page to...</string>
+    <string name="improvement_starter">I want this page to…</string>
     <string name="request_a_feature">Request a Feature</string>
     <string name="report_a_bug">Report a Bug</string>
     <string name="configure_weight_buttons">Configure Weight Buttons</string>
@@ -56,4 +55,18 @@
     <string name="weight_label">Weight</string>
     <string name="reps_label">Reps</string>
     <string name="doubled_label">Barbell\nMode?</string>
+    <string name="complete_superset_part_1">Complete Superset Part 1 (%1$d of %2$d)</string>
+    <string name="complete_set_of_workout">Complete Set %1$d of %2$d</string>
+    <string-array name="exercise_reps_range">
+        <item>%1$d-%2$d</item>
+        <item>%1$d-%2$d (To Failure)</item>
+        <item>%1$d-%2$d %3$s</item>
+        <item>%1$d-%2$d %3$s (To Failure)</item>
+    </string-array>
+    <string-array name="exercise_reps">
+        <item>%1$d</item>
+        <item>%1$d (To Failure)</item>
+        <item>%1$d %3$s</item>
+        <item>%1$d %3$s (To Failure)</item>
+    </string-array>
 </resources>

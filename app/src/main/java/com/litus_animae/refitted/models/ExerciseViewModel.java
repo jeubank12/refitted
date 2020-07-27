@@ -1,26 +1,28 @@
 package com.litus_animae.refitted.models;
 
-import android.app.Application;
 import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.hilt.lifecycle.ViewModelInject;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
+import androidx.lifecycle.ViewModel;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
+import com.litus_animae.refitted.util.EmptyStringResource;
+import com.litus_animae.refitted.util.ParameterizedResource;
+import com.litus_animae.refitted.util.ParameterizedStringArrayResource;
+import com.litus_animae.refitted.util.ParameterizedStringResource;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 
-public class ExerciseViewModel extends AndroidViewModel {
+public class ExerciseViewModel extends ViewModel {
     private static final String TAG = "ExerciseViewModel";
     private static final double defaultDbWeight = 25;
     private static final double defaultBbWeight = 45;
@@ -31,7 +33,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 
     // region livedata
     private LiveData<ExerciseSet> currentExercise;
-    private LiveData<String> targetExerciseReps;
+    private LiveData<ParameterizedResource> targetExerciseReps;
     private LiveData<Integer> isLoading;
     private MutableLiveData<Boolean> isLoadingBool;
     private LiveData<Integer> hasLeft;
@@ -81,17 +83,17 @@ public class ExerciseViewModel extends AndroidViewModel {
         return Transformations.map(restRemaining, rest -> (int) (max - rest * 1000));
     });
     // TODO new text
-    private LiveData<String> restValue = Transformations.map(restRemaining, rest ->
-            String.format(Locale.getDefault(), "%.1f%s %s",
-                    rest, getString(R.string.seconds_abbrev),
-                    getString(R.string.rest)));
+    private LiveData<ParameterizedResource> restValue = Transformations.map(restRemaining, rest ->
+            new ParameterizedStringResource(R.string.seconds_rest_phrase, new Double[] {
+                rest
+            }));
 
     // FIXME optimize the layers of transformations
-    private LiveData<String> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
+    private LiveData<ParameterizedResource> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
         if (record == null) {
             Log.w(TAG, "completeSetMessage: record was null");
-            MutableLiveData<String> result = new MutableLiveData<>();
-            result.setValue(getString(R.string.complete_set));
+            MutableLiveData<ParameterizedResource> result = new MutableLiveData<>();
+            result.setValue(new ParameterizedStringResource(R.string.complete_set));
             return result;
         }
         return Transformations.switchMap(timerMutableLiveData, timer -> {
@@ -102,7 +104,7 @@ public class ExerciseViewModel extends AndroidViewModel {
                         restRemaining.setValue((double) exercise.getRest());
 
                         if (completeSetsCount == exercise.getSets()) {
-                            return getString(R.string.complete_exercise);
+                            return new ParameterizedStringResource(R.string.complete_exercise);
                         } else {
                             // TODO if time unit, display "Start Circuit"
 //                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
@@ -111,17 +113,18 @@ public class ExerciseViewModel extends AndroidViewModel {
 //                            }
                             if (exercise.getStep().contains(".1")) {
                                 // TODO determine if in sync with part 2
-                                return "Complete Superset Part 1" +
-                                        String.format(Locale.getDefault(), " (%d %s %d)",
+                                return new ParameterizedStringResource(R.string.complete_superset_part_1,
+                                        new Integer[]{
                                                 // using the LiveData here because the value may have changed
                                                 completeSetsCount + 1,
-                                                getString(R.string.word_of), exercise.getSets());
+                                                exercise.getSets()
+                                        });
                             }
-                            return getString(R.string.complete_set) +
-                                    String.format(Locale.getDefault(), " %d %s %d",
-                                            // using the LiveData here because the value may have changed
+                            return new ParameterizedStringResource(R.string.complete_set_of_workout,
+                                    new Integer[]{
                                             completeSetsCount + 1,
-                                            getString(R.string.word_of), exercise.getSets());
+                                            exercise.getSets()
+                                    });
                         }
                     });
                 });
@@ -137,7 +140,7 @@ public class ExerciseViewModel extends AndroidViewModel {
 //                    if (exercise.getStep().endsWith("a")){
 //                        return "Complete superset then come back";
 //                    }
-                    return getString(R.string.cancel_rest);
+                    return new ParameterizedStringResource(R.string.cancel_rest);
                 });
             }
         });
@@ -149,8 +152,7 @@ public class ExerciseViewModel extends AndroidViewModel {
     private LiveData<Boolean> isBarbellExercise;
 
     @ViewModelInject
-    public ExerciseViewModel(@NonNull Application application, ExerciseRepository exerciseRepo) {
-        super(application);
+    public ExerciseViewModel(ExerciseRepository exerciseRepo) {
         this.exerciseRepo = exerciseRepo;
 
         isLoadingBool = new MutableLiveData<>();
@@ -230,28 +232,24 @@ public class ExerciseViewModel extends AndroidViewModel {
         targetExerciseReps = Transformations.map(currentExercise, exercise ->
         {
             if (exercise == null) {
-                return "";
+                return new EmptyStringResource();
             }
             if (exercise.getReps() < 0) {
-                return getString(R.string.to_failure);
+                return new ParameterizedStringResource(R.string.to_failure);
             }
-            String result;
-            if (exercise.getRepsRange() > 0) {
-                result = String.format(Locale.getDefault(), "%d-%d",
-                        exercise.getReps(),
-                        exercise.getReps() + exercise.getRepsRange());
-            } else {
-                result = String.format(Locale.getDefault(), "%d", exercise.getReps());
+            int resource = exercise.getRepsRange() > 0 ? R.array.exercise_reps_range : R.array.exercise_reps;
+            int index = 0;
+            if (exercise.getRepsUnit() != null){
+                index += 2;
             }
-            if (exercise.getRepsUnit() != null) {
-                result = String.format(Locale.getDefault(), "%s %s",
-                        result, exercise.getRepsUnit());
+            if (exercise.isToFailure()){
+                index += 1;
             }
-            if (exercise.isToFailure()) {
-                return String.format(Locale.getDefault(), "%s %s",
-                        result, getString(R.string.to_failure_note));
-            }
-            return result;
+            return new ParameterizedStringArrayResource(resource, index,
+                    new Object[] {exercise.getReps(),
+                    exercise.getReps()+exercise.getRepsRange(),
+                    exercise.getRepsUnit()
+            });
         });
         LiveData<String> weightSeedValue = Transformations.switchMap(currentRecord,
                 record -> {
@@ -465,10 +463,6 @@ public class ExerciseViewModel extends AndroidViewModel {
         return e;
     }
 
-    private String getString(int resourceId) {
-        return getApplication().getResources().getString(resourceId);
-    }
-
     public void swapToAlternate() {
         final List<ExerciseSet> copyExerciseSet = exerciseSets.getValue();
         // leaving this as a warning as I don't know when this would be null
@@ -595,7 +589,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         return hasRight;
     }
 
-    public LiveData<String> getCompleteSetMessage() {
+    public LiveData<ParameterizedResource> getCompleteSetMessage() {
         return completeSetMessage;
     }
 
@@ -607,7 +601,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         return restProgress;
     }
 
-    public LiveData<String> getRestValue() {
+    public LiveData<ParameterizedResource> getRestValue() {
         return restValue;
     }
 
@@ -619,7 +613,7 @@ public class ExerciseViewModel extends AndroidViewModel {
         return repsDisplayValue;
     }
 
-    public LiveData<String> getTargetExerciseReps() {
+    public LiveData<ParameterizedResource> getTargetExerciseReps() {
         return targetExerciseReps;
     }
 
