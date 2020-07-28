@@ -44,6 +44,9 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeExercise() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(ExerciseSet(MutableExerciseSet()))
     }
 
     @Test
@@ -58,11 +61,12 @@ internal class ExerciseViewModelTest {
     }
 
     @Test
-    fun loadExercises() {
-    }
-
-    @Test
     fun updateWeightDisplay() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        model.weightDisplayValue.getOrAwaitValue()
+        model.updateWeightDisplay(1.0)
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("${defaultDbWeight + 1.0}")
     }
 
     @Test

@@ -49,14 +49,13 @@ public class ExerciseViewModel extends ViewModel {
 
     private MutableLiveData<CountDownTimer> timerMutableLiveData = new MutableLiveData<>();
 
-    private LiveData<ExerciseRecord> currentRecord = Transformations.switchMap(exerciseIndex, index -> {
-        return Transformations.map(exerciseRecords, records -> {
-            if (index == null || records == null || index >= records.size()) {
-                return null;
-            }
-            return records.get(index);
-        });
-    });
+    private LiveData<ExerciseRecord> currentRecord = Transformations.switchMap(exerciseIndex, index ->
+            Transformations.map(exerciseRecords, records -> {
+                if (index == null || records == null || index >= records.size()) {
+                    return null;
+                }
+                return records.get(index);
+            }));
 
     // TODO make disabled for a second after click
     private LiveData<Boolean> completeSetButtonEnabled = Transformations.switchMap(currentRecord, record -> {
@@ -85,8 +84,8 @@ public class ExerciseViewModel extends ViewModel {
     });
     // TODO new text
     private LiveData<ParameterizedResource> restValue = Transformations.map(restRemaining, rest ->
-            new ParameterizedStringResource(R.string.seconds_rest_phrase, new Double[] {
-                rest
+            new ParameterizedStringResource(R.string.seconds_rest_phrase, new Double[]{
+                    rest
             }));
 
     // FIXME optimize the layers of transformations
@@ -247,17 +246,17 @@ public class ExerciseViewModel extends ViewModel {
             }
             int resource = exercise.getRepsRange() > 0 ? R.array.exercise_reps_range : R.array.exercise_reps;
             int index = 0;
-            if (exercise.getRepsUnit() != null){
+            if (exercise.getRepsUnit() != null) {
                 index += 2;
             }
-            if (exercise.isToFailure()){
+            if (exercise.isToFailure()) {
                 index += 1;
             }
             return new ParameterizedStringArrayResource(resource, index,
-                    new Object[] {exercise.getReps(),
-                    exercise.getReps()+exercise.getRepsRange(),
-                    exercise.getRepsUnit()
-            });
+                    new Object[]{exercise.getReps(),
+                            exercise.getReps() + exercise.getRepsRange(),
+                            exercise.getRepsUnit()
+                    });
         });
         LiveData<String> weightSeedValue = Transformations.switchMap(currentRecord,
                 record -> {
