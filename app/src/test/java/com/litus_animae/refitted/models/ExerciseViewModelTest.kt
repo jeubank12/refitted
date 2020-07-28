@@ -2,6 +2,7 @@ package com.litus_animae.refitted.models
 
 import android.view.View
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
 import com.litus_animae.refitted.models.ExerciseViewModel.defaultDbWeight
 import com.litus_animae.refitted.util.TestLogUtil
@@ -10,6 +11,8 @@ import com.litus_animae.util.getOrAwaitValue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 
 @ExtendWith(InstantExecutorExtension::class)
 internal class ExerciseViewModelTest {
@@ -58,6 +61,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun onCleared() {
+        val mockRepository = mock(ExerciseRepository::class.java)
+        val model = ExerciseViewModel(mockRepository, TestLogUtil)
+        model.onCleared()
+        verify(mockRepository).shutdown()
     }
 
     @Test
