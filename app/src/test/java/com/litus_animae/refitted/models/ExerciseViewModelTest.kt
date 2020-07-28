@@ -1,11 +1,13 @@
 package com.litus_animae.refitted.models
 
 import android.view.View
+import androidx.lifecycle.MutableLiveData
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
 import com.litus_animae.refitted.models.ExerciseViewModel.defaultDbWeight
+import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.refitted.util.EmptyStringResource
 import com.litus_animae.refitted.util.TestLogUtil
 import com.litus_animae.util.InstantExecutorExtension
@@ -52,6 +54,16 @@ internal class ExerciseViewModelTest {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.exercise.getOrAwaitValue()).isEqualTo(ExerciseSet(MutableExerciseSet()))
+    }
+
+    @Test
+    fun intializeExerciseWithValue() {
+        val exercise = ExerciseSet(MutableExerciseSet(
+                name = "abcd"
+        ))
+        val model = ExerciseViewModel(InMemoryExerciseRepository(listOf(exercise)), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exercise)
     }
 
     @Test
@@ -229,6 +241,49 @@ internal class ExerciseViewModelTest {
         assertThat(params.getOrNull(2)).isEqualTo(2)
         assertThat(params.getOrNull(3)).isEqualTo(4)
         assertThat(params.getOrNull(4)).isEqualTo("abcd")
+    }
+
+    @Test
+    fun initializeRecord(){
+
+    }
+
+    @Test
+    fun initializeRepsDisplay(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2
+        ))
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(exercise),
+                records = listOf(ExerciseRecord(
+                        targetSet = exercise,
+                        latestSet = MutableLiveData(null),
+                        sets = MutableLiveData(emptyList()),
+                        allSets = TestDataSourceFactory(emptyList())
+                ))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("2")
+    }
+
+    @Test
+    fun initializeRepsDisplayRange(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2
+        ))
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(exercise),
+                records = listOf(ExerciseRecord(
+                        targetSet = exercise,
+                        latestSet = MutableLiveData(null),
+                        sets = MutableLiveData(emptyList()),
+                        allSets = TestDataSourceFactory(emptyList())
+                ))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("4")
+
     }
 
     @Test
