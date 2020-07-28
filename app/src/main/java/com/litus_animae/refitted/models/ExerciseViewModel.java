@@ -238,15 +238,14 @@ public class ExerciseViewModel extends ViewModel {
     private void setupWeightAndRepsTransforms() {
         targetExerciseReps = Transformations.map(currentExercise, exercise ->
         {
-            if (exercise == null) {
-                return new EmptyStringResource();
-            }
+            // TODO kt, enforce exercise not null
             if (exercise.getReps() < 0) {
                 return new ParameterizedStringResource(R.string.to_failure);
             }
             int resource = exercise.getRepsRange() > 0 ? R.array.exercise_reps_range : R.array.exercise_reps;
             int index = 0;
-            if (exercise.getRepsUnit() != null) {
+            // TODO kt, replace with empty
+            if (!exercise.getRepsUnit().equals("")) {
                 index += 2;
             }
             if (exercise.isToFailure()) {
