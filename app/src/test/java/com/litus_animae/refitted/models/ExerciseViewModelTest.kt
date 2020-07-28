@@ -60,6 +60,13 @@ internal class ExerciseViewModelTest {
     }
 
     @Test
+    fun intializeRepsDisplay() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("0")
+    }
+
+    @Test
     fun onCleared() {
         val mockRepository = mock(ExerciseRepository::class.java)
         val model = ExerciseViewModel(mockRepository, TestLogUtil)
@@ -77,7 +84,30 @@ internal class ExerciseViewModelTest {
     }
 
     @Test
+    fun updateWeightDisplayLessThanZero() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        model.weightDisplayValue.getOrAwaitValue()
+        model.updateWeightDisplay(-100.0)
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("0.0")
+    }
+
+    @Test
     fun updateRepsDisplay() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        model.repsDisplayValue.getOrAwaitValue()
+        model.updateRepsDisplay(true)
+        assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("1")
+    }
+
+    @Test
+    fun updateRepsDisplayLessThanZero() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        model.repsDisplayValue.getOrAwaitValue()
+        model.updateRepsDisplay(false)
+        assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("0")
     }
 
     @Test
