@@ -9,4 +9,8 @@ class ParameterizedStringResource @JvmOverloads constructor(
     override fun getStringValue(context: Context): String {
         return context.getString(resourceId, *parameters)
     }
+
+    override fun getParameters(): Array<Any> {
+        return arrayOf(resourceId, *parameters)
+    }
 }

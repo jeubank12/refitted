@@ -2,9 +2,11 @@ package com.litus_animae.refitted.models
 
 import android.view.View
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
 import com.litus_animae.refitted.models.ExerciseViewModel.defaultDbWeight
+import com.litus_animae.refitted.util.EmptyStringResource
 import com.litus_animae.refitted.util.TestLogUtil
 import com.litus_animae.util.InstantExecutorExtension
 import com.litus_animae.util.getOrAwaitValue
@@ -64,6 +66,169 @@ internal class ExerciseViewModelTest {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("0")
+    }
+
+    @Test
+    fun intializeTargetRepsNone() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
+        assertThat(params.getOrNull(1)).isEqualTo(0)
+        assertThat(params.getOrNull(2)).isEqualTo(0)
+        assertThat(params.getOrNull(3)).isEqualTo(0)
+        assertThat(params.getOrNull(4)).isEqualTo("")
+    }
+
+    @Test
+    fun intializeTargetRepsFailure() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = -1
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.targetExerciseReps.getOrAwaitValue().getParameters().getOrNull(0)).isEqualTo(R.string.to_failure)
+    }
+
+    @Test
+    fun intializeTargetReps() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
+        assertThat(params.getOrNull(1)).isEqualTo(0)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(2)
+        assertThat(params.getOrNull(4)).isEqualTo("")
+    }
+
+    @Test
+    fun intializeTargetRepsWithToFailure() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        isToFailure = true
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
+        assertThat(params.getOrNull(1)).isEqualTo(1)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(2)
+        assertThat(params.getOrNull(4)).isEqualTo("")
+    }
+
+    @Test
+    fun intializeTargetRepsWithUnit() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsUnit = "abcd"
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
+        assertThat(params.getOrNull(1)).isEqualTo(2)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(2)
+        assertThat(params.getOrNull(4)).isEqualTo("abcd")
+    }
+
+    @Test
+    fun intializeTargetRepsWithUnitToFailure() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsUnit = "abcd",
+                        isToFailure = true
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
+        assertThat(params.getOrNull(1)).isEqualTo(3)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(2)
+        assertThat(params.getOrNull(4)).isEqualTo("abcd")
+    }
+
+    @Test
+    fun intializeTargetRepsRange() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsRange = 2
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps_range)
+        assertThat(params.getOrNull(1)).isEqualTo(0)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(4)
+        assertThat(params.getOrNull(4)).isEqualTo("")
+    }
+
+    @Test
+    fun intializeTargetRepsRangeWithToFailure() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsRange = 2,
+                        isToFailure = true
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps_range)
+        assertThat(params.getOrNull(1)).isEqualTo(1)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(4)
+        assertThat(params.getOrNull(4)).isEqualTo("")
+    }
+
+    @Test
+    fun intializeTargetRepsRangeWithUnit() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsRange = 2,
+                        repsUnit = "abcd"
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps_range)
+        assertThat(params.getOrNull(1)).isEqualTo(2)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(4)
+        assertThat(params.getOrNull(4)).isEqualTo("abcd")
+    }
+
+    @Test
+    fun intializeTargetRepsRangeWithUnitToFailure() {
+        val model = ExerciseViewModel(InMemoryExerciseRepository(
+                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                        reps = 2,
+                        repsRange = 2,
+                        repsUnit = "abcd",
+                        isToFailure = true
+                )))
+        ), TestLogUtil)
+        model.loadExercises("", "")
+        val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
+        assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps_range)
+        assertThat(params.getOrNull(1)).isEqualTo(3)
+        assertThat(params.getOrNull(2)).isEqualTo(2)
+        assertThat(params.getOrNull(3)).isEqualTo(4)
+        assertThat(params.getOrNull(4)).isEqualTo("abcd")
     }
 
     @Test

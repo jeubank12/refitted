@@ -14,4 +14,8 @@ class ParameterizedStringArrayResource @JvmOverloads constructor(
         val locale = Locale.getDefault()
         return String.format(locale, parameterizedString, *parameters)
     }
+
+    override fun getParameters(): Array<Any> {
+        return arrayOf(resourceId, arrayIndex, *parameters)
+    }
 }
