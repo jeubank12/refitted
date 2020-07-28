@@ -24,9 +24,9 @@ import java.util.Locale;
 
 public class ExerciseViewModel extends ViewModel {
     private static final String TAG = "ExerciseViewModel";
-    private static final double defaultDbWeight = 25;
-    private static final double defaultBbWeight = 45;
-    private static final double defaultBodyweight = 45;
+    public static final double defaultDbWeight = 25;
+    public static final double defaultBbWeight = 45;
+    public static final double defaultBodyweight = 45;
     private final LogUtil log;
 
     private ExerciseRepository exerciseRepo;
