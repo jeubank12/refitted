@@ -1,7 +1,6 @@
 package com.litus_animae.refitted.models;
 
 import android.os.CountDownTimer;
-import android.util.Log;
 import android.view.View;
 
 import androidx.hilt.lifecycle.ViewModelInject;
@@ -14,6 +13,7 @@ import androidx.lifecycle.ViewModel;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
 import com.litus_animae.refitted.util.EmptyStringResource;
+import com.litus_animae.refitted.util.LogUtil;
 import com.litus_animae.refitted.util.ParameterizedResource;
 import com.litus_animae.refitted.util.ParameterizedStringArrayResource;
 import com.litus_animae.refitted.util.ParameterizedStringResource;
@@ -27,6 +27,7 @@ public class ExerciseViewModel extends ViewModel {
     private static final double defaultDbWeight = 25;
     private static final double defaultBbWeight = 45;
     private static final double defaultBodyweight = 45;
+    private final LogUtil log;
 
     private ExerciseRepository exerciseRepo;
     private CountDownTimer timer;
@@ -89,62 +90,7 @@ public class ExerciseViewModel extends ViewModel {
             }));
 
     // FIXME optimize the layers of transformations
-    private LiveData<ParameterizedResource> completeSetMessage = Transformations.switchMap(currentRecord, record -> {
-        if (record == null) {
-            Log.w(TAG, "completeSetMessage: record was null");
-            MutableLiveData<ParameterizedResource> result = new MutableLiveData<>();
-            result.setValue(new ParameterizedStringResource(R.string.complete_set));
-            return result;
-        }
-        return Transformations.switchMap(timerMutableLiveData, timer -> {
-            if (timer == null) {
-                return Transformations.switchMap(record.getSetsCount(), completeSetsCount -> {
-                    return Transformations.map(currentExercise, exercise -> {
-                        restMax.setValue(exercise.getRest() * 1000);
-                        restRemaining.setValue((double) exercise.getRest());
-
-                        if (completeSetsCount == exercise.getSets()) {
-                            return new ParameterizedStringResource(R.string.complete_exercise);
-                        } else {
-                            // TODO if time unit, display "Start Circuit"
-//                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
-//                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
-//                                return "TODO Start Exercise";
-//                            }
-                            if (exercise.getStep().contains(".1")) {
-                                // TODO determine if in sync with part 2
-                                return new ParameterizedStringResource(R.string.complete_superset_part_1,
-                                        new Integer[]{
-                                                // using the LiveData here because the value may have changed
-                                                completeSetsCount + 1,
-                                                exercise.getSets()
-                                        });
-                            }
-                            return new ParameterizedStringResource(R.string.complete_set_of_workout,
-                                    new Integer[]{
-                                            completeSetsCount + 1,
-                                            exercise.getSets()
-                                    });
-                        }
-                    });
-                });
-            } else {
-                return Transformations.map(currentExercise, exercise -> {
-                    //restMax.setValue(exercise.getRest() * 1000);
-                    //restRemaining.setValue((double) exercise.getRest());
-
-//                    if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
-//                            exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
-//                        return "TODO Start Rest Early";
-//                    }
-//                    if (exercise.getStep().endsWith("a")){
-//                        return "Complete superset then come back";
-//                    }
-                    return new ParameterizedStringResource(R.string.cancel_rest);
-                });
-            }
-        });
-    });
+    private LiveData<ParameterizedResource> completeSetMessage;
     private MediatorLiveData<Boolean> showAsDouble = new MediatorLiveData<>();
 
     private Instant startLoad;
@@ -152,14 +98,17 @@ public class ExerciseViewModel extends ViewModel {
     private LiveData<Boolean> isBarbellExercise;
 
     @ViewModelInject
-    public ExerciseViewModel(ExerciseRepository exerciseRepo) {
+    public ExerciseViewModel(ExerciseRepository exerciseRepo, LogUtil logUtil) {
         this.exerciseRepo = exerciseRepo;
+        this.log = logUtil;
 
         isLoadingBool = new MutableLiveData<>();
         isLoadingBool.setValue(true);
         isLoading = Transformations.map(isLoadingBool, isLoad -> isLoad ? View.VISIBLE : View.GONE);
 
         setupLeftRightTransforms();
+
+        setupCompleteSetMessage();
 
         exerciseIndex.setValue(0);
         exerciseSets.addSource(this.exerciseRepo.getExercises(),
@@ -210,6 +159,65 @@ public class ExerciseViewModel extends ViewModel {
             } else {
                 showAsDouble.setValue(false);
             }
+        });
+    }
+
+    private void setupCompleteSetMessage() {
+        completeSetMessage = completeSetMessage = Transformations.switchMap(currentRecord, record -> {
+            if (record == null) {
+                log.w(TAG, "completeSetMessage: record was null");
+                MutableLiveData<ParameterizedResource> result = new MutableLiveData<>();
+                result.setValue(new ParameterizedStringResource(R.string.complete_set));
+                return result;
+            }
+            return Transformations.switchMap(timerMutableLiveData, timer -> {
+                if (timer == null) {
+                    return Transformations.switchMap(record.getSetsCount(), completeSetsCount -> {
+                        return Transformations.map(currentExercise, exercise -> {
+                            restMax.setValue(exercise.getRest() * 1000);
+                            restRemaining.setValue((double) exercise.getRest());
+
+                            if (completeSetsCount == exercise.getSets()) {
+                                return new ParameterizedStringResource(R.string.complete_exercise);
+                            } else {
+                                // TODO if time unit, display "Start Circuit"
+//                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
+//                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
+//                                return "TODO Start Exercise";
+//                            }
+                                if (exercise.getStep().contains(".1")) {
+                                    // TODO determine if in sync with part 2
+                                    return new ParameterizedStringResource(R.string.complete_superset_part_1,
+                                            new Integer[]{
+                                                    // using the LiveData here because the value may have changed
+                                                    completeSetsCount + 1,
+                                                    exercise.getSets()
+                                            });
+                                }
+                                return new ParameterizedStringResource(R.string.complete_set_of_workout,
+                                        new Integer[]{
+                                                completeSetsCount + 1,
+                                                exercise.getSets()
+                                        });
+                            }
+                        });
+                    });
+                } else {
+                    return Transformations.map(currentExercise, exercise -> {
+                        //restMax.setValue(exercise.getRest() * 1000);
+                        //restRemaining.setValue((double) exercise.getRest());
+
+//                    if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
+//                            exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
+//                        return "TODO Start Rest Early";
+//                    }
+//                    if (exercise.getStep().endsWith("a")){
+//                        return "Complete superset then come back";
+//                    }
+                        return new ParameterizedStringResource(R.string.cancel_rest);
+                    });
+                }
+            });
         });
     }
 
@@ -294,16 +302,16 @@ public class ExerciseViewModel extends ViewModel {
         weightDisplayValue.addSource(weightDisplayValue, v ->
         {
             // is this going to be heavy?
-            Log.d(TAG, "setupWeightAndRepsTransforms: reviewing changing weightDisplayValue");
+            log.d(TAG, "setupWeightAndRepsTransforms: reviewing changing weightDisplayValue");
             double value;
             try {
                 value = Double.parseDouble(v);
             } catch (Exception ex) {
-                Log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
+                log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
                 value = 0;
             }
             if (value != Math.round(value * 2) / 2.0) {
-                Log.d(TAG, "setupWeightAndRepsTransforms: had to reformat weightDisplayValue");
+                log.d(TAG, "setupWeightAndRepsTransforms: had to reformat weightDisplayValue");
                 weightDisplayValue.setValue(formatWeightDisplay(value));
             }
         });
@@ -312,16 +320,16 @@ public class ExerciseViewModel extends ViewModel {
         repsDisplayValue.addSource(repsDisplayValue, v ->
         {
             // is this going to be heavy?
-            Log.d(TAG, "setupWeightAndRepsTransforms: reviewing changing repsDisplayValue");
+            log.d(TAG, "setupWeightAndRepsTransforms: reviewing changing repsDisplayValue");
             int value;
             try {
                 value = Integer.parseInt(v);
             } catch (Exception ex) {
-                Log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
+                log.e(TAG, "setupWeightAndRepsTransforms: ", ex);
                 value = 0;
             }
             if (value < 0) {
-                Log.d(TAG, "setupWeightAndRepsTransforms: had to reformat repsDisplayValue");
+                log.d(TAG, "setupWeightAndRepsTransforms: had to reformat repsDisplayValue");
                 repsDisplayValue.setValue(formatRepsDisplay(value));
             }
         });
@@ -408,18 +416,18 @@ public class ExerciseViewModel extends ViewModel {
     private boolean checkForAlternateExerciseSet(int index, ExerciseSet e) {
         boolean result = false;
         if (!e.hasAlternate() && e.getStep().endsWith(".a")) {
-            Log.d(TAG, "checkForAlternateExerciseSet: setting up new alternate for .a");
+            log.d(TAG, "checkForAlternateExerciseSet: setting up new alternate for .a");
             // leaving this as a warning as I don't know when this would be null
             e.setAlternate(exerciseSets.getValue().get(index + 1));
             e.getAlternate().setActive(false);
             e.getAlternate().setAlternate(e);
             result = true;
         } else if (!e.isActive() && e.getStep().endsWith(".a")) {
-            Log.d(TAG, "checkForAlternateExerciseSet: navigated to .a, but .b is active");
+            log.d(TAG, "checkForAlternateExerciseSet: navigated to .a, but .b is active");
             exerciseIndex.setValue(index + 1);
             e = e.getAlternate();
         } else if (!e.isActive() && e.getStep().endsWith(".b")) {
-            Log.d(TAG, "checkForAlternateExerciseSet: navigated to .b, but .a is active");
+            log.d(TAG, "checkForAlternateExerciseSet: navigated to .b, but .a is active");
             exerciseIndex.setValue(index - 1);
             e = e.getAlternate();
         }
@@ -430,7 +438,7 @@ public class ExerciseViewModel extends ViewModel {
     private ExerciseSet updateVisibleExercise(int index) {
         final List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (copyExerciseSets == null || copyExerciseSets.size() < 1) {
-            Log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default");
+            log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default");
             return new ExerciseSet(new MutableExerciseSet());
         }
         // TODO might be able to remove this since the method is only called by livedata transformation
@@ -438,11 +446,11 @@ public class ExerciseViewModel extends ViewModel {
         if (isLoadingBool.getValue()) {
             isLoadingBool.setValue(false);
         }
-        Log.d(TAG, "updateVisibleExercise: updating to index " + index);
+        log.d(TAG, "updateVisibleExercise: updating to index " + index);
         ExerciseSet e = copyExerciseSets.get(index);
         boolean wasChanged = false;
         if (e.hasAlternate() || e.getStep().endsWith(".a")) {
-            Log.d(TAG, "updateVisibleExercise: checking for alternate...");
+            log.d(TAG, "updateVisibleExercise: checking for alternate...");
             wasChanged = checkForAlternateExerciseSet(index, e);
             // leaving this as a warning as I don't know when this would be null
             e = copyExerciseSets.get(exerciseIndex.getValue());
@@ -474,7 +482,7 @@ public class ExerciseViewModel extends ViewModel {
         // leaving this as a warning as I don't know when this would be null
         int index = exerciseIndex.getValue();
         if (index < 1) {
-            Log.e(TAG, "handleNavigateLeft: already furthest left");
+            log.e(TAG, "handleNavigateLeft: already furthest left");
             exerciseIndex.setValue(0);
         } else {
             ExerciseSet e = exerciseSets.getValue().get(index);
@@ -495,7 +503,7 @@ public class ExerciseViewModel extends ViewModel {
         int index = exerciseIndex.getValue();
         List<ExerciseSet> copyExerciseSets = exerciseSets.getValue();
         if (index >= copyExerciseSets.size() - 1) {
-            Log.e(TAG, "handleNavigateLeft: already furthest right");
+            log.e(TAG, "handleNavigateLeft: already furthest right");
             exerciseIndex.setValue(copyExerciseSets.size() - 1);
         } else {
             ExerciseSet e = copyExerciseSets.get(index);
@@ -528,7 +536,7 @@ public class ExerciseViewModel extends ViewModel {
 
         // FIXME this won't be correct if not observed, but it would only be necessary if not observed either, double negative
         if (!completeSetButtonEnabled.getValue()) {
-            Log.w(TAG, "completeSet: someone isn't using the enabled value");
+            log.w(TAG, "completeSet: someone isn't using the enabled value");
             return;
         }
 
