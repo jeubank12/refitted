@@ -6,7 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
-import com.litus_animae.refitted.models.ExerciseViewModel.defaultDbWeight
+import com.litus_animae.refitted.models.ExerciseViewModel.*
 import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.refitted.util.EmptyStringResource
 import com.litus_animae.refitted.util.TestLogUtil
@@ -328,6 +328,235 @@ internal class ExerciseViewModelTest {
         model.repsDisplayValue.getOrAwaitValue()
         model.updateRepsDisplay(false)
         assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("0")
+    }
+
+    @Test
+    fun weightDisplayTimeSeconds(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                repsUnit = "Seconds"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBodyweight")
+    }
+
+    @Test
+    fun weightDisplayTimeMinutes(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                repsUnit = "Minutes",
+                name = "x_DB BB DUMBBELL BARBELL"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBodyweight")
+    }
+
+    @Test
+    fun weightDisplayDbName(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_DB BB BARBELL",
+                note = "BB BARBELL"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultDbWeight")
+    }
+
+    @Test
+    fun weightDisplayDumbbellName(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_DumBbell BB BARBELL",
+                note = "BB BARBELL"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultDbWeight")
+    }
+
+    @Test
+    fun weightDisplayBbName(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_BB",
+                note = "Dumbbell Db"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBbWeight")
+    }
+
+    @Test
+    fun weightDisplayBarbellName(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_Barbell",
+                note = "Dumbbell Db"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBbWeight")
+    }
+
+    @Test
+    fun weightDisplayDbNote(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_None of the above",
+                note = "Db BB Barbell"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultDbWeight")
+    }
+
+    @Test
+    fun weightDisplayDumbbellNote(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_None of the above",
+                note = "Dumbbell BB Barbell"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultDbWeight")
+    }
+
+    @Test
+    fun weightDisplayBbNote(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_None of the above",
+                note = "BB"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBbWeight")
+    }
+
+    @Test
+    fun weightDisplayBarbellNote(){
+        val exercise = ExerciseSet(MutableExerciseSet(
+                reps = 2,
+                repsRange = 2,
+                name = "x_None of the above",
+                note = "BB"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exercise),
+                        records = listOf(ExerciseRecord(
+                                targetSet = exercise,
+                                latestSet = MutableLiveData(null),
+                                sets = MutableLiveData(emptyList()),
+                                allSets = TestDataSourceFactory(emptyList())
+                        ))
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultBbWeight")
     }
 
     @Test
