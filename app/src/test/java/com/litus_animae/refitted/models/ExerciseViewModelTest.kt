@@ -38,15 +38,51 @@ internal class ExerciseViewModelTest {
     }
 
     @Test
-    fun intializeHasLeft() {
+    fun intializeDoesNotHasLeft() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         assertThat(model.hasLeft.getOrAwaitValue()).isEqualTo(View.GONE)
+    }
+
+    @Test
+    fun intializeHasLeftSecondExercise() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.2"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
+                TestLogUtil)
+        model.loadExercises("", "")
+        model.exercise.getOrAwaitValue()
+        model.navigateRight()
+        model.exercise.getOrAwaitValue()
+        assertThat(model.hasLeft.getOrAwaitValue()).isEqualTo(View.VISIBLE)
     }
 
     @Test
     fun intializeHasRight() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         assertThat(model.hasRight.getOrAwaitValue()).isEqualTo(View.VISIBLE)
+    }
+
+    @Test
+    fun intializeDoesNotHasRightSecondExercise() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.2"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
+                TestLogUtil)
+        model.loadExercises("", "")
+        model.exercise.getOrAwaitValue()
+        model.navigateRight()
+        model.exercise.getOrAwaitValue()
+        assertThat(model.hasRight.getOrAwaitValue()).isEqualTo(View.GONE)
     }
 
     @Test
@@ -614,40 +650,47 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun navigateLeft() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.2"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exerciseA, exerciseB)
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        model.exercise.getOrAwaitValue()
+        model.navigateRight()
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseB)
+        model.navigateLeft()
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseA)
     }
 
     @Test
     fun navigateRight() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.2"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exerciseA, exerciseB)
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseA)
+        model.navigateRight()
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseB)
     }
 
     @Test
     fun completeSet() {
     }
-
-    @get:Test
-    val exercise: Unit
-        get() {
-        }
-
-    @get:Test
-    val isLoading: Unit
-        get() {
-        }
-
-    @get:Test
-    val isLoadingBool: Unit
-        get() {
-        }
-
-    @get:Test
-    val hasLeft: Unit
-        get() {
-        }
-
-    @get:Test
-    val hasRight: Unit
-        get() {
-        }
 
     @get:Test
     val completeSetMessage: Unit
