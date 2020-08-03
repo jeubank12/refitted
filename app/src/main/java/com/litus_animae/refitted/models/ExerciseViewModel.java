@@ -12,7 +12,6 @@ import androidx.lifecycle.ViewModel;
 
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.data.ExerciseRepository;
-import com.litus_animae.refitted.util.EmptyStringResource;
 import com.litus_animae.refitted.util.LogUtil;
 import com.litus_animae.refitted.util.ParameterizedResource;
 import com.litus_animae.refitted.util.ParameterizedStringArrayResource;

@@ -560,7 +560,56 @@ internal class ExerciseViewModelTest {
     }
 
     @Test
+    fun initializeHasAlternate() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1.a"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.1.b"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exerciseA, exerciseB)
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue().hasAlternate()).isTrue()
+    }
+
+    @Test
+    fun initializeNoAlternate() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.2"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exerciseA, exerciseB)
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue().hasAlternate()).isFalse()
+    }
+
+    @Test
     fun swapToAlternate() {
+        val exerciseA = ExerciseSet(MutableExerciseSet(
+                id = "1.1.a"
+        ))
+        val exerciseB = ExerciseSet(MutableExerciseSet(
+                id = "1.1.b"
+        ))
+        val model = ExerciseViewModel(
+                InMemoryExerciseRepository(
+                        exercises = listOf(exerciseA, exerciseB)
+                ),
+                TestLogUtil)
+        model.loadExercises("", "")
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseA)
+        model.swapToAlternate()
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exerciseB)
     }
 
     @Test
