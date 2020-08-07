@@ -16,11 +16,14 @@ import androidx.lifecycle.Transformations;
 import com.litus_animae.refitted.R;
 import com.litus_animae.refitted.databinding.CommonButtonsFragmentBinding;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link TimedExerciseButtonsFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
+@AndroidEntryPoint
 public class TimedExerciseButtonsFragment extends ButtonsFragment {
 
     private static final String TAG = "CommonButtonsFragment";

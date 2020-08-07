@@ -6,9 +6,10 @@ import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
-import com.litus_animae.refitted.models.ExerciseViewModel.*
+import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBbWeight
+import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBodyweight
+import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultDbWeight
 import com.litus_animae.refitted.models.util.TestDataSourceFactory
-import com.litus_animae.refitted.util.EmptyStringResource
 import com.litus_animae.refitted.util.TestLogUtil
 import com.litus_animae.util.InstantExecutorExtension
 import com.litus_animae.util.getOrAwaitValue
@@ -23,12 +24,6 @@ internal class ExerciseViewModelTest {
 
     @BeforeEach
     fun setUp() {
-    }
-
-    @Test
-    fun intializeIsLoadingBool() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
-        assertThat(model.isLoadingBool.getOrAwaitValue()).isTrue()
     }
 
     @Test
@@ -321,14 +316,14 @@ internal class ExerciseViewModelTest {
         assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("4")
 
     }
-
-    @Test
-    fun onCleared() {
-        val mockRepository = mock(ExerciseRepository::class.java)
-        val model = ExerciseViewModel(mockRepository, TestLogUtil)
-        model.onCleared()
-        verify(mockRepository).shutdown()
-    }
+//
+//    @Test
+//    fun onCleared() {
+//        val mockRepository = mock(ExerciseRepository::class.java)
+//        val model = ExerciseViewModel(mockRepository, TestLogUtil)
+//        model.onCleared()
+//        verify(mockRepository).shutdown()
+//    }
 
     @Test
     fun updateWeightDisplay() {
@@ -690,60 +685,54 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun completeSet() {
+        TODO()
     }
 
     @get:Test
     val completeSetMessage: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val restMax: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val restProgress: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val restValue: Unit
         get() {
-        }
-
-    @get:Test
-    val weightDisplayValue: Unit
-        get() {
-        }
-
-    @get:Test
-    val repsDisplayValue: Unit
-        get() {
-        }
-
-    @get:Test
-    val targetExerciseReps: Unit
-        get() {
+            TODO()
         }
 
     @get:Test
     val completeSetButtonEnabled: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val currentRecord: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val isBarbellExercise: Unit
         get() {
+            TODO()
         }
 
     @get:Test
     val showAsDouble: Unit
         get() {
+            TODO()
         }
 }

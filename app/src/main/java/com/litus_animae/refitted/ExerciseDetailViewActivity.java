@@ -90,7 +90,7 @@ implements ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener {
         binding.setViewmodel(model);
         binding.exerciseDetailSwipeLayout.setOnRefreshListener(() ->
                 model.loadExercises(Integer.toString(day), workout));
-        model.getIsLoadingBool().observe(this, isLoading -> {
+        model.isLoadingBool().observe(this, isLoading -> {
             if (isLoading) {
                 binding.exerciseDetailSwipeLayout.setRefreshing(true);
             } else {
