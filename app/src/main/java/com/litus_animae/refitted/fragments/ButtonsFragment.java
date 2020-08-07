@@ -15,6 +15,8 @@ import com.litus_animae.refitted.models.ExerciseViewModel;
 import java.util.ArrayList;
 import java.util.EnumSet;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
 import static android.content.Context.MODE_PRIVATE;
 
 public abstract class ButtonsFragment extends Fragment implements
