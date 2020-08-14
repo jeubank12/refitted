@@ -56,8 +56,7 @@ dependencies {
     def room_version = '2.2.5'
     def android_core_version = '2.1.0'
     def hilt_compiler_version = '1.0.0-alpha02'
-
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    def arrow_version = "0.10.4"
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
@@ -107,6 +106,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore:21.5.0'
     implementation 'com.google.firebase:firebase-analytics:17.5.0'
 
+    implementation "io.arrow-kt:arrow-fx:$arrow_version"
+    implementation "io.arrow-kt:arrow-syntax:$arrow_version"
+    kapt    "io.arrow-kt:arrow-meta:$arrow_version"
 }
 
 apply plugin: 'com.google.gms.google-services'
