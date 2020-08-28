@@ -8,7 +8,6 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryLi
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
 import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.models.Exercise;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.MutableExercise;

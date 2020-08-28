@@ -71,9 +71,9 @@ class ExerciseDetailViewActivity : AppCompatActivity(), OnButtonConfigurationCha
         workout = intent.getStringExtra("workout")
         title = getString(R.string.app_name) + getString(R.string.colon) + " " +
                 workout + " " + getString(R.string.day) + " " + day
-        model!!.loadExercises(day.toString(), workout)
+        model!!.loadExercises(day.toString(), workout!!)
         binding.viewmodel = model
-        binding.exerciseDetailSwipeLayout.setOnRefreshListener { model!!.loadExercises(day.toString(), workout) }
+        binding.exerciseDetailSwipeLayout.setOnRefreshListener { model!!.loadExercises(day.toString(), workout!!) }
         model!!.isLoadingBool.observe(this, Observer { isLoading: Boolean ->
             binding.exerciseDetailSwipeLayout.isRefreshing = isLoading
         })

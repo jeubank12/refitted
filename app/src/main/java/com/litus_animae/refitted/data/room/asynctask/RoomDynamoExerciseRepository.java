@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.room;
+package com.litus_animae.refitted.data.room.asynctask;
 
 import android.content.Context;
 import android.util.Log;
@@ -12,6 +12,7 @@ import com.litus_animae.refitted.data.ExerciseRepository;
 import com.litus_animae.refitted.data.dynamo.DynamoExerciseDataService;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
+import com.litus_animae.refitted.models.RoomExerciseSet;
 import com.litus_animae.refitted.models.SetRecord;
 import com.litus_animae.refitted.threads.StoreRecordsRunnable;
 
@@ -41,9 +42,9 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
     private MediatorLiveData<List<ExerciseSet>> exercises = new MediatorLiveData<>();
     private MediatorLiveData<HashSet<String>> changedStepsSource = new MediatorLiveData<>();
     private LiveData<HashSet<String>> currentStepsSource = null;
-    private LiveData<List<ExerciseSet>> currentSetsSource = null;
+    private LiveData<List<RoomExerciseSet>> currentSetsSource = null;
     private LiveData<List<ExerciseRecord>> records;
-    private Comparator<ExerciseSet> compareByStep = Comparator.comparing(ExerciseSet::getStep);
+    private Comparator<RoomExerciseSet> compareByStep = Comparator.comparing(RoomExerciseSet::getStep);
 
     @Inject
     public RoomDynamoExerciseRepository(@ApplicationContext Context context) {
@@ -65,10 +66,10 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
                 ArrayList<ExerciseRecord> recordObjects = new ArrayList<>();
                 for (ExerciseSet e : loadedExercises) {
                     ExerciseRecord record = new ExerciseRecord(e,
-                        roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()),
-                        roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()),
-                        roomDb.getExerciseDao()
-                                .getSetRecords(tonightMidnight, e.getExerciseName()));
+                            roomDb.getExerciseDao().getLatestSetRecord(e.getExerciseName()),
+                            roomDb.getExerciseDao().getAllSetRecord(e.getExerciseName()),
+                            roomDb.getExerciseDao()
+                                    .getSetRecords(tonightMidnight, e.getExerciseName()));
                     recordObjects.add(record);
                 }
                 Log.i(TAG, "getRecordsForLoadedExercises: records loaded");
@@ -109,7 +110,7 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
                 exerciseSets -> updateExercisesWithMinimumChange(room, exerciseSets));
     }
 
-    private void updateExercisesWithMinimumChange(LiveData<ExerciseRoom> room, List<ExerciseSet> exerciseSets) {
+    private void updateExercisesWithMinimumChange(LiveData<ExerciseRoom> room, List<RoomExerciseSet> exerciseSets) {
         if (exerciseSets == null) {
             Log.d(TAG, "updateExercisesWithMinimumChange: null exerciseSets");
             return;
@@ -121,33 +122,35 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
             oldVals = new ArrayList<>();
         }
 
-        for (ExerciseSet set : exerciseSets) {
+        List<ExerciseSet> resultSets = new ArrayList<>();
+        for (RoomExerciseSet set : exerciseSets) {
             ExerciseSet existing = getSetWithMatchingExercise(oldVals, set);
             if (existing != null) {
                 Log.d(TAG, "updateExercisesWithMinimumChange: reusing existing query for " + existing.getName());
-                set.setExercise(existing.getExercise());
+                resultSets.add(new ExerciseSet(set, null, existing.getExercise()));
             } else {
-                set.setExercise(Transformations.switchMap(room, roomDb -> {
+                resultSets.add(new ExerciseSet(set, null, Transformations.switchMap(room, roomDb -> {
                     if (roomDb != null) {
                         Log.d(TAG, "updateExercisesWithMinimumChange: getting new query for " + set.getName());
                         return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());
                     }
                     Log.w(TAG, "updateExercisesWithMinimumChange: somehow Room was null, returning null for exercise description");
                     return new MutableLiveData<>();
-                }));
+                })));
             }
         }
         Log.i(TAG, "updateExercisesWithMinimumChange: setting final value of exercise livedata");
-        exercises.setValue(exerciseSets);
+        exercises.setValue(resultSets);
     }
 
-    private LiveData<List<ExerciseSet>> getExercisesFromSteps(String day, String workoutId, ExerciseRoom roomDb) {
+    private LiveData<List<RoomExerciseSet>> getExercisesFromSteps(String day, String workoutId, ExerciseRoom roomDb) {
         if (roomDb != null) {
             return Transformations.switchMap(changedStepsSource,
                     steps -> {
                         Log.i(TAG, "getExercisesFromSteps: steps updated, reloading sets");
                         return roomDb.getExerciseDao().getExerciseSets(day, workoutId, steps.toArray(new String[0]));
-                    });
+                    }
+            );
         }
         Log.i(TAG, "getExercisesFromSteps: Room not yet initialized, returning null");
         return new MutableLiveData<>();
@@ -155,11 +158,11 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
 
     private void updateSetsIfChanged(HashSet<String> stepKeys) {
         Log.i(TAG, "updateSetsIfChanged: received new values for steps");
-        if (stepKeys.size() < 1){
+        if (stepKeys.size() < 1) {
             Log.i(TAG, "updateSetsIfChanged: no keys loaded yet, waiting...");
             return;
         }
-        List<ExerciseSet> lastExercises = currentSetsSource.getValue();
+        List<RoomExerciseSet> lastExercises = currentSetsSource.getValue();
         if (lastExercises != null && stepKeys.size() == lastExercises.size()) {
             if (doListsFullyIntersect(new ArrayList<>(stepKeys), lastExercises)) {
                 Log.i(TAG, "updateSetsIfChanged: exercise set numbers were updated, but there are no changes");
@@ -188,7 +191,7 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
         return new MutableLiveData<>();
     }
 
-    private ExerciseSet getSetWithMatchingExercise(List<ExerciseSet> oldVals, ExerciseSet set) {
+    private ExerciseSet getSetWithMatchingExercise(List<ExerciseSet> oldVals, RoomExerciseSet set) {
         for (ExerciseSet oldVal : oldVals) {
             if (oldVal.getName().equals(set.getName())) {
                 return oldVal;
@@ -197,14 +200,14 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
         return null;
     }
 
-    private boolean doListsFullyIntersect(List<String> stepKeys, List<ExerciseSet> lastExercises) {
+    private boolean doListsFullyIntersect(List<String> stepKeys, List<RoomExerciseSet> lastExercises) {
         stepKeys.sort(String::compareTo);
         lastExercises.sort(compareByStep);
         Iterator<String> newVals = stepKeys.iterator();
-        Iterator<ExerciseSet> oldVals = lastExercises.iterator();
+        Iterator<RoomExerciseSet> oldVals = lastExercises.iterator();
         while (newVals.hasNext()) {
             String newVal = newVals.next();
-            ExerciseSet oldVal = oldVals.next();
+            RoomExerciseSet oldVal = oldVals.next();
             if (!newVal.equals(oldVal.getStep())) {
                 return false;
             }
