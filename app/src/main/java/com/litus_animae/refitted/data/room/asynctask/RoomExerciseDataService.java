@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.room;
+package com.litus_animae.refitted.data.room.asynctask;
 
 import android.content.Context;
 import android.util.Log;
@@ -8,10 +8,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.room.Room;
 
 
-import com.litus_animae.refitted.data.room.CloseDatabaseTask;
 import com.litus_animae.refitted.data.room.ContextWeakReference;
-import com.litus_animae.refitted.data.room.ExerciseRoom;
-import com.litus_animae.refitted.data.room.GetDatabaseTask;
 
 import java.lang.ref.WeakReference;
 
@@ -31,7 +28,7 @@ public class RoomExerciseDataService {
                 if (room.getValue() == null) {
                     ExerciseRoom newRoom = Room.databaseBuilder(context.getApplicationContext(),
                             ExerciseRoom.class, db_name)
-                            .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3, ExerciseRoom.MIGRATION_3_4)
+                            .addMigrations(ExerciseRoom.Companion.getMIGRATION_1_2(), ExerciseRoom.Companion.getMIGRATION_2_3(), ExerciseRoom.Companion.getMIGRATION_3_4())
                             .build();
                     Log.i(TAG, "getExerciseRoom: context " + context.toString() + " opened the database, " + Thread.currentThread().getName());
                     room.setValue(newRoom);

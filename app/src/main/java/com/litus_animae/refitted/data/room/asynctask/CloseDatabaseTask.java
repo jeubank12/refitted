@@ -1,7 +1,9 @@
-package com.litus_animae.refitted.data.room;
+package com.litus_animae.refitted.data.room.asynctask;
 
 import android.os.AsyncTask;
 import android.util.Log;
+
+import com.litus_animae.refitted.data.room.ContextWeakReference;
 
 
 public class CloseDatabaseTask extends AsyncTask<ContextWeakReference, Void, Void> {

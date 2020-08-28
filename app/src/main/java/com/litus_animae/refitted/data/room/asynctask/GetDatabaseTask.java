@@ -1,10 +1,12 @@
-package com.litus_animae.refitted.data.room;
+package com.litus_animae.refitted.data.room.asynctask;
 
 import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
 import androidx.room.Room;
+
+import com.litus_animae.refitted.data.room.ContextWeakReference;
 
 import java.time.Instant;
 
@@ -28,7 +30,7 @@ public class GetDatabaseTask extends AsyncTask<ContextWeakReference, Void, Void>
                 if (result.getValue() == null) {
                     ExerciseRoom room = Room.databaseBuilder(context.get(),
                             ExerciseRoom.class, RoomExerciseDataService.db_name)
-                            .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3, ExerciseRoom.MIGRATION_3_4)
+                            .addMigrations(ExerciseRoom.Companion.getMIGRATION_1_2(), ExerciseRoom.Companion.getMIGRATION_2_3(), ExerciseRoom.Companion.getMIGRATION_3_4())
                             .build();
                     Log.i(TAG, "doInBackground: context " + context.get().toString() + " opened the database, " + Thread.currentThread().getName());
                     result.postValue(room);

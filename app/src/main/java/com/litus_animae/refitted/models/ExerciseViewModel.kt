@@ -52,7 +52,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
     val weightDisplayValue = MediatorLiveData<String>()
     val repsDisplayValue = MediatorLiveData<String>()
     private val timerMutableLiveData = MutableLiveData<CountDownTimer?>(null)
-    val currentRecord = Transformations.switchMap(exerciseIndex) { index: Int ->
+    val currentRecord: LiveData<ExerciseRecord?> = Transformations.switchMap(exerciseIndex) { index: Int ->
         Transformations.map(exerciseRecords) { records: List<ExerciseRecord> ->
             records.getOrNull(index)
         }
@@ -216,7 +216,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
         exerciseRepo.shutdown()
     }
 
-    fun loadExercises(day: String?, workoutId: String?) {
+    fun loadExercises(day: String, workoutId: String) {
         _isLoadingBool.value = true
 //        startLoad = Instant.now()
         exerciseRepo.loadExercises(day, workoutId)
