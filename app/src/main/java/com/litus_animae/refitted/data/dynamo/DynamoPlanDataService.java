@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.PaginatedQueryList;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.models.WorkoutPlan;
 
 public class DynamoPlanDataService extends DynamoDataService {

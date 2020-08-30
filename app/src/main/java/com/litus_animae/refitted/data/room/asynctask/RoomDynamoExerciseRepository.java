@@ -10,6 +10,7 @@ import androidx.lifecycle.Transformations;
 
 import com.litus_animae.refitted.data.ExerciseRepository;
 import com.litus_animae.refitted.data.dynamo.DynamoExerciseDataService;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.models.ExerciseRecord;
 import com.litus_animae.refitted.models.ExerciseSet;
 import com.litus_animae.refitted.models.RoomExerciseSet;

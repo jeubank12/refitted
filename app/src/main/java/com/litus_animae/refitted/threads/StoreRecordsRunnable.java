@@ -3,6 +3,7 @@ package com.litus_animae.refitted.threads;
 import android.content.Context;
 import android.util.Log;
 
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 import com.litus_animae.refitted.data.room.asynctask.RoomExerciseDataService;
 import com.litus_animae.refitted.models.SetRecord;
 
