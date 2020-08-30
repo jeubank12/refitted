@@ -30,7 +30,7 @@ interface ExerciseDao {
     fun storeExercise(exercise: Exercise)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun storeExerciseSet(exerciseSet: ExerciseSet)
+    fun storeExerciseSet(exerciseSet: RoomExerciseSet)
 
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
     fun getSetRecords(minDate: Date, targetExercise: String): LiveData<List<SetRecord>>

@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import com.litus_animae.refitted.databinding.ActivityExerciseDetailViewBinding
 import com.litus_animae.refitted.fragments.ButtonsFragment
 import com.litus_animae.refitted.fragments.CommonButtonsFragment
@@ -33,7 +32,9 @@ class ExerciseDetailViewActivity : AppCompatActivity(), OnButtonConfigurationCha
         val inflater = menuInflater
         inflater.inflate(R.menu.alternate_menu, menu)
         val switchToAlternateButton = menu.findItem(R.id.switch_to_alternate_menu_item)
-        model!!.exercise.observe(this, Observer { exerciseSet: ExerciseSet -> switchToAlternateButton.isVisible = exerciseSet.hasAlternate() })
+        model!!.exercise.observe(this, Observer { exerciseSet: ExerciseSet ->
+            switchToAlternateButton.isVisible = exerciseSet.hasAlternate
+        })
         return true
     }
 

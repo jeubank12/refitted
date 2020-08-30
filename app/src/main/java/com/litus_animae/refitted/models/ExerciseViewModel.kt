@@ -4,6 +4,7 @@ import android.os.CountDownTimer
 import android.view.View
 import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.*
+import arrow.core.getOrElse
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
@@ -16,27 +17,33 @@ import kotlin.math.roundToInt
 class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: ExerciseRepository, private val log: LogUtil) : ViewModel() {
     private var timer: CountDownTimer? = null
 
-    private val exerciseSets = MediatorLiveData<List<ExerciseSet>>()
+    private val exerciseSets = exerciseRepo.exercises
     val exercise: LiveData<ExerciseSet> = Transformations.switchMap(exerciseSets
-    ) {
+    ) { sets ->
         Transformations.switchMap(exerciseRecords
-        ) { Transformations.map(exerciseIndex) { index: Int -> updateVisibleExercise(index) } }
+        ) {
+            Transformations.switchMap(exerciseIndex
+            ) { index: Int ->
+                Transformations.map(sets[index].isActive
+                ) { isActive -> updateVisibleExercise(index, isActive) }
+            }
+        }
     }
-    var targetExerciseReps: LiveData<ParameterizedResource> = Transformations.map(exercise) { (_, _, _, _, reps, _, isToFailure, _, repsUnit, repsRange) ->
-        if (reps < 0) {
+    val targetExerciseReps: LiveData<ParameterizedResource> = Transformations.map(exercise) { exercise ->
+        if (exercise.reps < 0) {
             ParameterizedStringResource(R.string.to_failure)
         } else {
-            val resource = if (repsRange > 0) R.array.exercise_reps_range else R.array.exercise_reps
+            val resource = if (exercise.repsRange > 0) R.array.exercise_reps_range else R.array.exercise_reps
             var index = 0
-            if (repsUnit.isNotEmpty()) {
+            if (exercise.repsUnit.isNotEmpty()) {
                 index += 2
             }
-            if (isToFailure) {
+            if (exercise.isToFailure) {
                 index += 1
             }
-            ParameterizedStringArrayResource(resource, index, arrayOf(reps,
-                    reps + repsRange,
-                    repsUnit
+            ParameterizedStringArrayResource(resource, index, arrayOf(exercise.reps,
+                    exercise.reps + exercise.repsRange,
+                    exercise.repsUnit
             ))
         }
     }
@@ -63,10 +70,10 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
         if (record == null) {
             MutableLiveData<Boolean>(false)
         } else {
-            Transformations.switchMap(exercise) { (_, _, _, _, _, sets) ->
+            Transformations.switchMap(exercise) { exercise ->
                 Transformations.switchMap(record.setsCount) { setsCompleted: Int ->
                     Transformations.map(timerMutableLiveData) { timer: CountDownTimer? ->
-                        timer == null || setsCompleted < sets
+                        timer == null || setsCompleted < exercise.sets
                     }
                 }
             }
@@ -255,67 +262,40 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
         repsDisplayValue.value = formatRepsDisplay(value)
     }
 
-    private fun checkForAlternateExerciseSet(index: Int, e: ExerciseSet): Boolean {
-        var resultantExercise: ExerciseSet = e
-        var result = false
-        if (!resultantExercise.hasAlternate() && resultantExercise.step.endsWith(".a")) {
-            log.d(TAG, "checkForAlternateExerciseSet: setting up new alternate for .a")
-            resultantExercise.alternate = exerciseSets.value!![index + 1]
-            resultantExercise.alternate!!.isActive = false
-            resultantExercise.alternate!!.alternate = resultantExercise
-            result = true
-        } else if (!resultantExercise.isActive && resultantExercise.step.endsWith(".a")) {
-            log.d(TAG, "checkForAlternateExerciseSet: navigated to .a, but .b is active")
-            exerciseIndex.value = index + 1
-            resultantExercise = resultantExercise.alternate ?: resultantExercise
-        } else if (!resultantExercise.isActive && resultantExercise.step.endsWith(".b")) {
-            log.d(TAG, "checkForAlternateExerciseSet: navigated to .b, but .a is active")
-            exerciseIndex.value = index - 1
-            resultantExercise = resultantExercise.alternate ?: resultantExercise
-        }
-        resultantExercise.isActive = true
-        return result
-    }
-
-    private fun updateVisibleExercise(index: Int): ExerciseSet {
+    private fun updateVisibleExercise(index: Int, isActive: Boolean): ExerciseSet {
         val copyExerciseSets = exerciseSets.value
         if (copyExerciseSets == null || copyExerciseSets.isEmpty()) {
             log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default")
-            return ExerciseSet(MutableExerciseSet())
+            return ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), MutableLiveData())
         }
         // TODO might be able to remove this since the method is only called by livedata transformation
         if (_isLoadingBool.value!!) {
             _isLoadingBool.value = false
         }
         log.d(TAG, "updateVisibleExercise: updating to index $index")
-        var e = copyExerciseSets[index]
-        var wasChanged = false
-        if (e.hasAlternate() || e.step.endsWith(".a")) {
-            log.d(TAG, "updateVisibleExercise: checking for alternate...")
-            wasChanged = checkForAlternateExerciseSet(index, e)
-            e = copyExerciseSets[exerciseIndex.value!!]
+        val e = copyExerciseSets[index]
+        val altIndex = e.getAlternateIndex(copyExerciseSets)
+        if (altIndex.isDefined()) {
             //switchToAlternateButton.setVisible(true);
             hasLeftBool.value = index > if (e.step.endsWith(".b")) 1 else 0
-            hasRightBool.setValue(index < copyExerciseSets.size -
-                    if (e.step.endsWith(".a")) 2 else 1)
+            hasRightBool.value = index < copyExerciseSets.size -
+                    if (e.step.endsWith(".a")) 2 else 1
+            if (!isActive) {
+                val alt = e.getAlternate(copyExerciseSets).getOrElse { e }
+                alt.isActive.value = true
+                exerciseIndex.value = altIndex.getOrElse { index }
+                return alt
+            }
         } else {
             //switchToAlternateButton.setVisible(false);
             hasLeftBool.value = index > 0
             hasRightBool.setValue(index < copyExerciseSets.size - 1)
         }
-
-        //setTimerText(e);
-        if (wasChanged) {
-            exerciseSets.value = copyExerciseSets
-        }
         return e
     }
 
     fun swapToAlternate() {
-        val copyExerciseSet = exerciseSets.value!!
-        // leaving this as a warning as I don't know when this would be null
-        copyExerciseSet[exerciseIndex.value!!].isActive = false
-        exerciseSets.value = copyExerciseSet
+        exercise.value?.isActive?.value = false
     }
 
     fun navigateLeft() {
@@ -344,7 +324,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
         val copyExerciseSets = exerciseSets.value!!
         if (index >= copyExerciseSets.size - 1) {
             log.e(TAG, "handleNavigateLeft: already furthest right")
-            exerciseIndex.setValue(copyExerciseSets.size - 1)
+            exerciseIndex.value = copyExerciseSets.size - 1
         } else {
             val e = copyExerciseSets[index]
             if (e.step.endsWith(".a")) {
@@ -426,9 +406,6 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
     }
 
     init {
-        exerciseSets.addSource(exerciseRepo.exercises) { exercises: List<ExerciseSet> ->
-            exerciseSets.value = exercises
-        }
         weightDisplayValue.addSource(weightSeedValue) { v: String -> weightDisplayValue.setValue(v) }
         weightDisplayValue.addSource(weightDisplayValue) { v: String ->
             // is this going to be heavy?
