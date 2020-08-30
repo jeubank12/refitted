@@ -127,9 +127,9 @@ public class RoomDynamoExerciseRepository implements ExerciseRepository {
             ExerciseSet existing = getSetWithMatchingExercise(oldVals, set);
             if (existing != null) {
                 Log.d(TAG, "updateExercisesWithMinimumChange: reusing existing query for " + existing.getName());
-                resultSets.add(new ExerciseSet(set, null, existing.getExercise()));
+                resultSets.add(new ExerciseSet(set, existing.getExercise()));
             } else {
-                resultSets.add(new ExerciseSet(set, null, Transformations.switchMap(room, roomDb -> {
+                resultSets.add(new ExerciseSet(set, Transformations.switchMap(room, roomDb -> {
                     if (roomDb != null) {
                         Log.d(TAG, "updateExercisesWithMinimumChange: getting new query for " + set.getName());
                         return roomDb.getExerciseDao().getExercise(set.getName(), set.getWorkout());

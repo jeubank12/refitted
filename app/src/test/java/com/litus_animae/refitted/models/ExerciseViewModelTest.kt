@@ -4,7 +4,6 @@ import android.view.View
 import androidx.lifecycle.MutableLiveData
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
 import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBbWeight
 import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBodyweight
@@ -16,8 +15,6 @@ import com.litus_animae.util.getOrAwaitValue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 
 @ExtendWith(InstantExecutorExtension::class)
 internal class ExerciseViewModelTest {
@@ -40,10 +37,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeHasLeftSecondExercise() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         ))
         val model = ExerciseViewModel(
@@ -64,10 +61,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeDoesNotHasRightSecondExercise() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         ))
         val model = ExerciseViewModel(
@@ -84,12 +81,12 @@ internal class ExerciseViewModelTest {
     fun intializeExercise() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
-        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(ExerciseSet(MutableExerciseSet()))
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(ExerciseSet(DynamoExerciseSet()))
     }
 
     @Test
     fun intializeExerciseWithValue() {
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 name = "abcd"
         ))
         val model = ExerciseViewModel(InMemoryExerciseRepository(listOf(exercise)), TestLogUtil)
@@ -126,7 +123,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = -1
                 )))
         ), TestLogUtil)
@@ -137,7 +134,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetReps() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2
                 )))
         ), TestLogUtil)
@@ -153,7 +150,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         isToFailure = true
                 )))
@@ -170,7 +167,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithUnit() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd"
                 )))
@@ -187,7 +184,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithUnitToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd",
                         isToFailure = true
@@ -205,7 +202,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRange() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2
                 )))
@@ -222,7 +219,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         isToFailure = true
@@ -240,7 +237,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithUnit() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         repsUnit = "abcd"
@@ -258,7 +255,7 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithUnitToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(MutableExerciseSet(
+                exercises = listOf(ExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         repsUnit = "abcd",
@@ -281,7 +278,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeRepsDisplay(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2
         ))
         val model = ExerciseViewModel(InMemoryExerciseRepository(
@@ -299,7 +296,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeRepsDisplayRange(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2
         ))
@@ -363,7 +360,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayTimeSeconds(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 repsUnit = "Seconds"
@@ -385,7 +382,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayTimeMinutes(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 repsUnit = "Minutes",
@@ -408,7 +405,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDbName(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_DB BB BARBELL",
@@ -431,7 +428,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDumbbellName(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_DumBbell BB BARBELL",
@@ -454,7 +451,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBbName(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_BB",
@@ -477,7 +474,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBarbellName(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_Barbell",
@@ -500,7 +497,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDbNote(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
@@ -523,7 +520,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDumbbellNote(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
@@ -546,7 +543,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBbNote(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
@@ -569,7 +566,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBarbellNote(){
-        val exercise = ExerciseSet(MutableExerciseSet(
+        val exercise = ExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
@@ -592,10 +589,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeHasAlternate() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1.a"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
         ))
         val model = ExerciseViewModel(
@@ -609,10 +606,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeNoAlternate() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         ))
         val model = ExerciseViewModel(
@@ -626,10 +623,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun swapToAlternate() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1.a"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
         ))
         val model = ExerciseViewModel(
@@ -645,10 +642,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun navigateLeft() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         ))
         val model = ExerciseViewModel(
@@ -666,10 +663,10 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun navigateRight() {
-        val exerciseA = ExerciseSet(MutableExerciseSet(
+        val exerciseA = ExerciseSet(DynamoExerciseSet(
                 id = "1.1"
         ))
-        val exerciseB = ExerciseSet(MutableExerciseSet(
+        val exerciseB = ExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         ))
         val model = ExerciseViewModel(

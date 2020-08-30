@@ -11,7 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(InstantExecutorExtension::class)
 class ExerciseRecordTest {
-    private var testExerciseSet = ExerciseSet(MutableExerciseSet(
+    private var testExerciseSet = ExerciseSet(DynamoExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
     ))

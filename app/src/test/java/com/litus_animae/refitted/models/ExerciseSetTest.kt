@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
 class ExerciseSetTest {
-    private var mutableExerciseSet = MutableExerciseSet(
+    private var mutableExerciseSet = DynamoExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
     )
@@ -22,7 +22,7 @@ class ExerciseSetTest {
 
     @Test
     fun getStepWithAlternate() {
-        testExerciseSet = ExerciseSet(MutableExerciseSet(
+        testExerciseSet = ExerciseSet(DynamoExerciseSet(
                 workout = "AX1",
                 id = "1.5.a",
                 name = "Tricep_Alternating Woodchopper Pushdowns"
@@ -37,7 +37,7 @@ class ExerciseSetTest {
 
     @Test
     fun getExerciseNameNotNullNotFound() {
-        testExerciseSet = ExerciseSet(MutableExerciseSet(
+        testExerciseSet = ExerciseSet(DynamoExerciseSet(
                 id = "1.5.a",
                 name = "test"
         ))

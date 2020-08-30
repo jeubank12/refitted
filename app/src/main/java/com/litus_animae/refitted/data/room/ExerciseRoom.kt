@@ -8,9 +8,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.litus_animae.refitted.data.Converters
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 
-@Database(entities = [Exercise::class, ExerciseSet::class, SetRecord::class], version = 4)
+@Database(entities = [Exercise::class, RoomExerciseSet::class, SetRecord::class], version = 4)
 @TypeConverters(Converters::class)
 abstract class ExerciseRoom : RoomDatabase() {
     abstract fun getExerciseDao(): ExerciseDao
@@ -40,7 +41,6 @@ abstract class ExerciseRoom : RoomDatabase() {
                         "`day` TEXT NOT NULL, " +
                         "`step` TEXT NOT NULL, " +
                         "`workout` TEXT NOT NULL, " +
-                        "`id` TEXT NOT NULL, " +
                         "`name` TEXT NOT NULL, " +
                         "`note` TEXT NOT NULL, " +
                         "`reps` INTEGER NOT NULL, " +
@@ -51,9 +51,9 @@ abstract class ExerciseRoom : RoomDatabase() {
                         "`repsRange` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`day`, `step`, `workout`), " +
                         "FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
-                database.execSQL("INSERT INTO `ExerciseSet` (day, step, workout, id, name, note, reps, sets, toFailure, rest, repsUnit, repsRange) " +
+                database.execSQL("INSERT INTO `ExerciseSet` (day, step, workout, name, note, reps, sets, toFailure, rest, repsUnit, repsRange) " +
                         "SELECT day, step, workout, " +
-                        "coalesce(id, ``), coalesce(name,``), coalesce(note, ``), " +
+                        "coalesce(name,``), coalesce(note, ``), " +
                         "reps, sets, toFailure, rest, repsUnit, repsRange " +
                         "FROM _exercise_set_old")
                 database.execSQL("DROP TABLE _exercise_set_old")

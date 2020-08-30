@@ -110,7 +110,6 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         exercises.value = exerciseSets.sortedWith(compareByStep).map { exerciseSet ->
             ExerciseSet(
                     roomExerciseSet = exerciseSet,
-                    alternate = null,
                     exercise = exercises.value?.find { oldVal -> oldVal.name == exerciseSet.name }?.exercise
                             ?: roomDb.getExerciseDao().getExercise(exerciseSet.name, exerciseSet.workout))
         }

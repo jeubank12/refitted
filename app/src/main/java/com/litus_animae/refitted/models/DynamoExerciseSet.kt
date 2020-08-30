@@ -7,7 +7,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.*
 import com.litus_animae.refitted.models.Exercise
 
 @DynamoDBTable(tableName = "refitted-exercise")
-data class MutableExerciseSet @JvmOverloads constructor(
+data class DynamoExerciseSet @JvmOverloads constructor(
     @get:DynamoDBIndexHashKey(attributeName = "Disc", globalSecondaryIndexName = "Reverse-index")
     @get:DynamoDBAttribute(attributeName = "Disc")
     @get:DynamoDBRangeKey(attributeName = "Disc")
