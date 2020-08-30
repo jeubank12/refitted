@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.room.Room;
 
 import com.litus_animae.refitted.data.room.ContextWeakReference;
+import com.litus_animae.refitted.data.room.ExerciseRoom;
 
 import java.time.Instant;
 

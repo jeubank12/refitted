@@ -18,8 +18,9 @@ android {
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments += [
-                        "room.schemaLocation": "$projectDir/schemas".toString(),
-                        "room.incremental"   : "true"]
+                        "room.schemaLocation"  : "$projectDir/schemas".toString(),
+                        "room.incremental"     : "true",
+                        "room.expandProjection": "true"]
             }
         }
     }
@@ -108,7 +109,7 @@ dependencies {
 
     implementation "io.arrow-kt:arrow-fx:$arrow_version"
     implementation "io.arrow-kt:arrow-syntax:$arrow_version"
-    kapt    "io.arrow-kt:arrow-meta:$arrow_version"
+    kapt "io.arrow-kt:arrow-meta:$arrow_version"
 
     implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.2"
 }
