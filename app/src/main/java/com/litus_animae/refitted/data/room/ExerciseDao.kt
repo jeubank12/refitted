@@ -2,10 +2,7 @@ package com.litus_animae.refitted.data.room
 
 import androidx.lifecycle.LiveData
 import androidx.paging.DataSource
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
@@ -31,6 +28,12 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun storeExerciseSet(exerciseSet: RoomExerciseSet)
+
+    @Transaction
+    suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet){
+        storeExercise(exercise)
+        storeExerciseSet(exerciseSet)
+    }
 
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
     fun getSetRecords(minDate: Date, targetExercise: String): LiveData<List<SetRecord>>
