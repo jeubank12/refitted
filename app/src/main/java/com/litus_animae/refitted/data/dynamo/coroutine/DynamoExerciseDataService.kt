@@ -45,7 +45,7 @@ class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom)
             Log.i(TAG, "doInBackground: Query results received")
             Log.i(TAG, "doInBackground: storing " + result.size + " values in cache")
             //TODO should this be parTraverse?
-            !result.traverse_(IO.applicative()) { set ->
+            !result.toList().traverse_(IO.applicative()) { set ->
                 IO.fx {
                     continueOn(Dispatchers.IO)
                     val mutableExercise = !effect { dynamoDb!!.load(MutableExercise::class.java, set.name, set.workout) }
