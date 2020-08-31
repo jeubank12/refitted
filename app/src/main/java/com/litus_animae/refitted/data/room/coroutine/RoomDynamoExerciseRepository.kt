@@ -6,7 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Transformations
 import com.litus_animae.refitted.data.ExerciseRepository
-import com.litus_animae.refitted.data.dynamo.DynamoExerciseDataService
+import com.litus_animae.refitted.data.dynamo.coroutine.DynamoExerciseDataService
 import com.litus_animae.refitted.data.room.ExerciseRoom
 import com.litus_animae.refitted.models.ExerciseRecord
 import com.litus_animae.refitted.models.ExerciseSet
@@ -61,7 +61,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
 
     private fun getStepsForDayAndWorkout(day: String, workoutId: String, roomDb: ExerciseRoom): LiveData<Set<String>> {
         Log.i(TAG, "getStepsForDayAndWorkout: submitting dynamo query for workout $workoutId, day $day")
-        val dynamoService = DynamoExerciseDataService(applicationContext.get(), roomDb)
+        val dynamoService = DynamoExerciseDataService(applicationContext.get()!!, roomDb)
         dynamoService.execute(day, workoutId)
         Log.i(TAG, "getStepsForDayAndWorkout: returning query for workout steps")
         return Transformations.map<List<String>, Set<String>>(

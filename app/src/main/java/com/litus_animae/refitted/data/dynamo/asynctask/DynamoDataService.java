@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.dynamo;
+package com.litus_animae.refitted.data.dynamo.asynctask;
 
 import android.content.Context;
 import android.os.AsyncTask;
@@ -46,7 +46,7 @@ public abstract class DynamoDataService extends AsyncTask<String, Void, Void> {
 
     }
 
-    void connectAndRun() {
+    protected void connectAndRun() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
         if (currentUser == null){

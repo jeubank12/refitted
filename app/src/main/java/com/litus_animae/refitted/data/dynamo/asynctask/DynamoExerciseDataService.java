@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.dynamo;
+package com.litus_animae.refitted.data.dynamo.asynctask;
 
 import android.content.Context;
 import android.util.Log;
