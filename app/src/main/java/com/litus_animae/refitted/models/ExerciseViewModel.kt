@@ -25,7 +25,8 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
             Transformations.switchMap(exerciseIndex
             ) { index: Int ->
                 Transformations.map(sets[index].isActive
-                ) { isActive -> updateVisibleExercise(index, isActive) }
+                ) { isActive ->
+                    updateVisibleExercise(index, isActive) }
             }
         }
     }
@@ -68,7 +69,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
     // TODO make disabled for a second after click
     val completeSetButtonEnabled = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
         if (record == null) {
-            MutableLiveData<Boolean>(false)
+            MutableLiveData(false)
         } else {
             Transformations.switchMap(exercise) { exercise ->
                 Transformations.switchMap(record.setsCount) { setsCompleted: Int ->
@@ -98,7 +99,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
             Transformations.switchMap(timerMutableLiveData) { timer: CountDownTimer? ->
                 if (timer == null) {
                     Transformations.switchMap(record.setsCount) { completeSetsCount: Int ->
-                        Transformations.map<ExerciseSet, ParameterizedResource>(exercise) { exercise: ExerciseSet ->
+                        Transformations.map(exercise) { exercise: ExerciseSet ->
                             _restMax.value = exercise.rest * 1000
                             restRemaining.value = exercise.rest.toDouble()
                             when {
@@ -127,7 +128,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
                         }
                     }
                 } else {
-                    Transformations.map<ExerciseSet, ParameterizedResource>(exercise) { ParameterizedStringResource(R.string.cancel_rest) }
+                    Transformations.map(exercise) { ParameterizedStringResource(R.string.cancel_rest) }
                 }
             }
         }
@@ -162,7 +163,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
 
     private val weightSeedValue = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
         if (record == null) {
-            MutableLiveData<String>(formatWeightDisplay(defaultDbWeight))
+            MutableLiveData(formatWeightDisplay(defaultDbWeight))
         } else {
             Transformations.map(record.latestSet) { latestSet: SetRecord? ->
                 if (latestSet != null) {
@@ -175,7 +176,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
     }
     private val repsSeedValue = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
         if (record == null) {
-            MutableLiveData<String>(formatRepsDisplay(0))
+            MutableLiveData(formatRepsDisplay(0))
         } else {
             Transformations.switchMap(record.setsCount) { count: Int ->
                 if (count > 0) {
@@ -183,7 +184,7 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
                     ) { latestSet: SetRecord? -> formatRepsDisplay(latestSet!!.reps) }
                 } else {
                     // TODO target set should be a livedata
-                    MutableLiveData<String>(
+                    MutableLiveData(
                             if (record.targetSet.repsRange > 0) {
                                 formatRepsDisplay(
                                         record.targetSet.reps +

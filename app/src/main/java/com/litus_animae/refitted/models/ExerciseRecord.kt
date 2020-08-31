@@ -5,7 +5,7 @@ import androidx.lifecycle.Transformations
 import androidx.paging.DataSource
 
 class ExerciseRecord(val targetSet: ExerciseSet,
-                     val latestSet: LiveData<SetRecord>,
+                     val latestSet: LiveData<SetRecord?>,
                      val allSets: DataSource.Factory<Int, SetRecord>,
                      val sets: LiveData<List<SetRecord>>) {
     fun getSet(set: Int): LiveData<SetRecord?> {
