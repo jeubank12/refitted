@@ -1,7 +1,9 @@
 language: android
 dist: trusty
-components:
-  - tools
-  - platform-tools
-  - android-29
-  - build-tools-29.0.2
+android:
+  components:
+    - tools
+    - platform-tools
+    - android-29
+    - build-tools-29.0.3
+script: gradle build -PRefitted_IdentityPoolId="X" -PRefitted_OpenIdSource="X"
