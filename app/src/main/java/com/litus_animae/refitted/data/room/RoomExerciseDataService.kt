@@ -1,14 +1,13 @@
-package com.litus_animae.refitted.data.room.coroutine
+package com.litus_animae.refitted.data.room
 
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
-import com.litus_animae.refitted.data.room.ExerciseRoom
-import com.litus_animae.refitted.data.room.asynctask.RoomExerciseDataService
 import java.lang.ref.WeakReference
 
 object RoomExerciseDataService {
     private const val TAG = "RoomExerciseDataService"
+    private const val db_name = "dev01.2.db"
 
     @Volatile
     private var roomDatabase: ExerciseRoom? = null
@@ -21,7 +20,7 @@ object RoomExerciseDataService {
                 if (roomDatabase == null) {
                     Log.d(TAG, "getExerciseRoomAsync: creating room connection")
                     roomDatabase = Room.databaseBuilder(context.get()!!,
-                            ExerciseRoom::class.java, RoomExerciseDataService.db_name)
+                            ExerciseRoom::class.java, db_name)
                             .addMigrations(ExerciseRoom.MIGRATION_1_2, ExerciseRoom.MIGRATION_2_3, ExerciseRoom.MIGRATION_3_4)
                             .build()
                 } else {

@@ -24,10 +24,10 @@ interface ExerciseDao {
     fun getExercise(name: String, workout: String): LiveData<Exercise>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun storeExercise(exercise: Exercise)
+    suspend fun storeExercise(exercise: Exercise)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun storeExerciseSet(exerciseSet: RoomExerciseSet)
+    suspend fun storeExerciseSet(exerciseSet: RoomExerciseSet)
 
     @Transaction
     suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet){
@@ -45,5 +45,5 @@ interface ExerciseDao {
     fun getAllSetRecord(targetExercise: String): DataSource.Factory<Int, SetRecord>
 
     @Insert
-    fun storeExerciseRecord(exerciseRecord: SetRecord)
+    suspend fun storeExerciseRecord(exerciseRecord: SetRecord)
 }
