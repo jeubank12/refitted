@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.dynamo.coroutine
+package com.litus_animae.refitted.data.dynamo
 
 import android.content.Context
 import android.util.Log

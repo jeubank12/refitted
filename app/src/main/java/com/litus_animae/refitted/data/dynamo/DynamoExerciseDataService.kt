@@ -1,16 +1,12 @@
-package com.litus_animae.refitted.data.dynamo.coroutine
+package com.litus_animae.refitted.data.dynamo
 
 import android.content.Context
 import android.util.Log
 import arrow.core.extensions.list.foldable.traverse_
-import arrow.core.extensions.list.traverse.traverse
 import arrow.fx.IO
 import arrow.fx.extensions.fx
 import arrow.fx.extensions.io.applicative.applicative
-import arrow.fx.extensions.io.concurrent.parTraverse
-import arrow.fx.fix
 import arrow.fx.handleError
-import arrow.fx.handleErrorWith
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator

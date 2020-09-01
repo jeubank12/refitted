@@ -5,6 +5,7 @@ import android.view.View
 import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.*
 import arrow.core.getOrElse
+import arrow.integrations.kotlinx.unsafeRunScoped
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
@@ -14,220 +15,265 @@ import com.litus_animae.refitted.util.ParameterizedStringResource
 import java.util.*
 import kotlin.math.roundToInt
 
-class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: ExerciseRepository, private val log: LogUtil) : ViewModel() {
+class ExerciseViewModel @ViewModelInject constructor(
+    private val exerciseRepo: ExerciseRepository,
+    private val log: LogUtil
+) : ViewModel() {
     private var timer: CountDownTimer? = null
 
     private val exerciseSets = exerciseRepo.exercises
-    val exercise: LiveData<ExerciseSet> = Transformations.switchMap(exerciseSets
+    val exercise: LiveData<ExerciseSet> = Transformations.switchMap(
+        exerciseSets
     ) { sets ->
-        Transformations.switchMap(exerciseRecords
+        Transformations.switchMap(
+            exerciseRecords
         ) {
-            Transformations.switchMap(exerciseIndex
+            Transformations.switchMap(
+                exerciseIndex
             ) { index: Int ->
-                Transformations.map(sets[index].isActive
+                Transformations.map(
+                    sets[index].isActive
                 ) { isActive ->
-                    updateVisibleExercise(index, isActive) }
+                    updateVisibleExercise(index, isActive)
+                }
             }
         }
     }
-    val targetExerciseReps: LiveData<ParameterizedResource> = Transformations.map(exercise) { exercise ->
-        if (exercise.reps < 0) {
-            ParameterizedStringResource(R.string.to_failure)
-        } else {
-            val resource = if (exercise.repsRange > 0) R.array.exercise_reps_range else R.array.exercise_reps
-            var index = 0
-            if (exercise.repsUnit.isNotEmpty()) {
-                index += 2
+    val targetExerciseReps: LiveData<ParameterizedResource> =
+        Transformations.map(exercise) { exercise ->
+            if (exercise.reps < 0) {
+                ParameterizedStringResource(R.string.to_failure)
+            } else {
+                val resource =
+                    if (exercise.repsRange > 0) R.array.exercise_reps_range else R.array.exercise_reps
+                var index = 0
+                if (exercise.repsUnit.isNotEmpty()) {
+                    index += 2
+                }
+                if (exercise.isToFailure) {
+                    index += 1
+                }
+                ParameterizedStringArrayResource(
+                    resource, index, arrayOf(
+                        exercise.reps,
+                        exercise.reps + exercise.repsRange,
+                        exercise.repsUnit
+                    )
+                )
             }
-            if (exercise.isToFailure) {
-                index += 1
-            }
-            ParameterizedStringArrayResource(resource, index, arrayOf(exercise.reps,
-                    exercise.reps + exercise.repsRange,
-                    exercise.repsUnit
-            ))
         }
-    }
     private val _isLoadingBool: MutableLiveData<Boolean> = MutableLiveData(true)
     val isLoadingBool: LiveData<Boolean> = _isLoadingBool
-    val isLoading: LiveData<Int> = Transformations.map(_isLoadingBool) { isLoad: Boolean -> if (isLoad) View.VISIBLE else View.GONE }
+    val isLoading: LiveData<Int> =
+        Transformations.map(_isLoadingBool) { isLoad: Boolean -> if (isLoad) View.VISIBLE else View.GONE }
     private val hasLeftBool: MutableLiveData<Boolean> = MutableLiveData(false)
-    val hasLeft: LiveData<Int> = Transformations.map(hasLeftBool) { enable: Boolean -> if (enable) View.VISIBLE else View.GONE }
+    val hasLeft: LiveData<Int> =
+        Transformations.map(hasLeftBool) { enable: Boolean -> if (enable) View.VISIBLE else View.GONE }
     private val hasRightBool: MutableLiveData<Boolean> = MutableLiveData(true)
-    val hasRight: LiveData<Int> = Transformations.map(hasRightBool) { enable: Boolean -> if (enable) View.VISIBLE else View.GONE }
+    val hasRight: LiveData<Int> =
+        Transformations.map(hasRightBool) { enable: Boolean -> if (enable) View.VISIBLE else View.GONE }
     private val exerciseRecords: LiveData<List<ExerciseRecord>> = exerciseRepo.records
     private val exerciseIndex = MutableLiveData(0)
     val weightDisplayValue = MediatorLiveData<String>()
     val repsDisplayValue = MediatorLiveData<String>()
     private val timerMutableLiveData = MutableLiveData<CountDownTimer?>(null)
-    val currentRecord: LiveData<ExerciseRecord?> = Transformations.switchMap(exerciseIndex) { index: Int ->
-        Transformations.map(exerciseRecords) { records: List<ExerciseRecord> ->
-            records.getOrNull(index)
+    val currentRecord: LiveData<ExerciseRecord?> =
+        Transformations.switchMap(exerciseIndex) { index: Int ->
+            Transformations.map(exerciseRecords) { records: List<ExerciseRecord> ->
+                records.getOrNull(index)
+            }
         }
-    }
 
     // TODO make disabled for a second after click
-    val completeSetButtonEnabled = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
-        if (record == null) {
-            MutableLiveData(false)
-        } else {
-            Transformations.switchMap(exercise) { exercise ->
-                Transformations.switchMap(record.setsCount) { setsCompleted: Int ->
-                    Transformations.map(timerMutableLiveData) { timer: CountDownTimer? ->
-                        timer == null || setsCompleted < exercise.sets
+    val completeSetButtonEnabled =
+        Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
+            if (record == null) {
+                MutableLiveData(false)
+            } else {
+                Transformations.switchMap(exercise) { exercise ->
+                    Transformations.switchMap(record.setsCount) { setsCompleted: Int ->
+                        Transformations.map(timerMutableLiveData) { timer: CountDownTimer? ->
+                            timer == null || setsCompleted < exercise.sets
+                        }
                     }
                 }
             }
         }
-    }
     private val restRemaining = MutableLiveData<Double>(0.0)
     private val _restMax = MutableLiveData(0)
     val restMax: LiveData<Int> = _restMax
-    val restProgress = Transformations.switchMap(_restMax) { max: Int -> Transformations.map(restRemaining) { rest: Double -> (max - rest * 1000).toInt() } }
+    val restProgress =
+        Transformations.switchMap(_restMax) { max: Int -> Transformations.map(restRemaining) { rest: Double -> (max - rest * 1000).toInt() } }
 
     // TODO new text
-    val restValue = Transformations.map<Double, ParameterizedResource>(restRemaining) { rest: Double ->
-        ParameterizedStringResource(R.string.seconds_rest_phrase, arrayOf(rest))
-    }
+    val restValue =
+        Transformations.map<Double, ParameterizedResource>(restRemaining) { rest: Double ->
+            ParameterizedStringResource(R.string.seconds_rest_phrase, arrayOf(rest))
+        }
 
     // FIXME optimize the layers of transformations
-    var completeSetMessage: LiveData<ParameterizedResource> = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
-        if (record == null) {
-            log.w(TAG, "completeSetMessage: record was null")
-            MutableLiveData<ParameterizedResource>(ParameterizedStringResource(R.string.complete_set))
-        } else {
-            Transformations.switchMap(timerMutableLiveData) { timer: CountDownTimer? ->
-                if (timer == null) {
-                    Transformations.switchMap(record.setsCount) { completeSetsCount: Int ->
-                        Transformations.map(exercise) { exercise: ExerciseSet ->
-                            _restMax.value = exercise.rest * 1000
-                            restRemaining.value = exercise.rest.toDouble()
-                            when {
-                                completeSetsCount == exercise.sets -> {
-                                    ParameterizedStringResource(R.string.complete_exercise)
-                                }
-                                // TODO if time unit, display "Start Circuit"
-                                //                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
-                                //                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
-                                //                                return "TODO Start Exercise";
-                                //                            }
-                                exercise.step.contains(".1") -> {
-                                    // TODO determine if in sync with part 2
-                                    ParameterizedStringResource(R.string.complete_superset_part_1, arrayOf( // using the LiveData here because the value may have changed
-                                            completeSetsCount + 1,
-                                            exercise.sets
-                                    ))
-                                }
-                                else -> {
-                                    ParameterizedStringResource(R.string.complete_set_of_workout, arrayOf(
-                                            completeSetsCount + 1,
-                                            exercise.sets
-                                    ))
+    var completeSetMessage: LiveData<ParameterizedResource> =
+        Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
+            if (record == null) {
+                log.w(TAG, "completeSetMessage: record was null")
+                MutableLiveData(ParameterizedStringResource(R.string.complete_set))
+            } else {
+                Transformations.switchMap(timerMutableLiveData) { timer: CountDownTimer? ->
+                    if (timer == null) {
+                        Transformations.switchMap(record.setsCount) { completeSetsCount: Int ->
+                            Transformations.map(exercise) { exercise: ExerciseSet ->
+                                _restMax.value = exercise.rest * 1000
+                                restRemaining.value = exercise.rest.toDouble()
+                                when {
+                                    completeSetsCount == exercise.sets -> {
+                                        ParameterizedStringResource(R.string.complete_exercise)
+                                    }
+                                    // TODO if time unit, display "Start Circuit"
+                                    //                            if (exercise.getRepsUnit() != null && (exercise.getRepsUnit().equalsIgnoreCase("minutes") ||
+                                    //                                    exercise.getRepsUnit().equalsIgnoreCase("seconds"))) {
+                                    //                                return "TODO Start Exercise";
+                                    //                            }
+                                    exercise.step.contains(".1") -> {
+                                        // TODO determine if in sync with part 2
+                                        ParameterizedStringResource(
+                                            R.string.complete_superset_part_1,
+                                            arrayOf( // using the LiveData here because the value may have changed
+                                                completeSetsCount + 1,
+                                                exercise.sets
+                                            )
+                                        )
+                                    }
+                                    else -> {
+                                        ParameterizedStringResource(
+                                            R.string.complete_set_of_workout, arrayOf(
+                                                completeSetsCount + 1,
+                                                exercise.sets
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        Transformations.map(exercise) { ParameterizedStringResource(R.string.cancel_rest) }
                     }
-                } else {
-                    Transformations.map(exercise) { ParameterizedStringResource(R.string.cancel_rest) }
                 }
             }
         }
-    }
 
     // endregion
-    private val isBarbellExercise: LiveData<Boolean> = Transformations.map(exercise) { targetSet: ExerciseSet? ->
-        when {
-            targetSet == null -> {
-                false
-            }
-            targetSet.repsUnit.equals("minutes", ignoreCase = true) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
-                false
-            }
-            targetSet.exerciseName.toLowerCase().contains("db") || targetSet.exerciseName.toLowerCase().contains("dumbbell") -> {
-                false
-            }
-            targetSet.exerciseName.toLowerCase().contains("bb") || targetSet.exerciseName.toLowerCase().contains("barbell") || targetSet.exerciseName.toLowerCase().contains("press") -> {
-                true
-            }
-            targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase().contains("dumbbell") -> {
-                false
-            }
-            else -> {
-                targetSet.note.toLowerCase().contains("bb") ||
-                        targetSet.note.toLowerCase().contains("barbell") ||
-                        targetSet.note.toLowerCase().contains("press")
-            }
-        }
-    }
-    val showAsDouble = MediatorLiveData<Boolean>()
-
-    private val weightSeedValue = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
-        if (record == null) {
-            MutableLiveData(formatWeightDisplay(defaultDbWeight))
-        } else {
-            Transformations.map(record.latestSet) { latestSet: SetRecord? ->
-                if (latestSet != null) {
-                    formatWeightDisplay(latestSet.weight)
-                } else {
-                    formatWeightDisplay(determineSetDefaultWeight(record.targetSet))
+    private val isBarbellExercise: LiveData<Boolean> =
+        Transformations.map(exercise) { targetSet: ExerciseSet? ->
+            when {
+                targetSet == null -> {
+                    false
+                }
+                targetSet.repsUnit.equals(
+                    "minutes",
+                    ignoreCase = true
+                ) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
+                    false
+                }
+                targetSet.exerciseName.toLowerCase()
+                    .contains("db") || targetSet.exerciseName.toLowerCase()
+                    .contains("dumbbell") -> {
+                    false
+                }
+                targetSet.exerciseName.toLowerCase()
+                    .contains("bb") || targetSet.exerciseName.toLowerCase()
+                    .contains("barbell") || targetSet.exerciseName.toLowerCase()
+                    .contains("press") -> {
+                    true
+                }
+                targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase()
+                    .contains("dumbbell") -> {
+                    false
+                }
+                else -> {
+                    targetSet.note.toLowerCase().contains("bb") ||
+                            targetSet.note.toLowerCase().contains("barbell") ||
+                            targetSet.note.toLowerCase().contains("press")
                 }
             }
         }
-    }
-    private val repsSeedValue = Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
-        if (record == null) {
-            MutableLiveData(formatRepsDisplay(0))
-        } else {
-            Transformations.switchMap(record.setsCount) { count: Int ->
-                if (count > 0) {
-                    Transformations.map(record.getSet(-1)
-                    ) { latestSet: SetRecord? -> formatRepsDisplay(latestSet!!.reps) }
-                } else {
-                    // TODO target set should be a livedata
-                    MutableLiveData(
+    val showAsDouble = MediatorLiveData<Boolean>()
+
+    private val weightSeedValue =
+        Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
+            if (record == null) {
+                MutableLiveData(formatWeightDisplay(defaultDbWeight))
+            } else {
+                Transformations.map(record.latestSet) { latestSet: SetRecord? ->
+                    if (latestSet != null) {
+                        formatWeightDisplay(latestSet.weight)
+                    } else {
+                        formatWeightDisplay(determineSetDefaultWeight(record.targetSet))
+                    }
+                }
+            }
+        }
+    private val repsSeedValue =
+        Transformations.switchMap(currentRecord) { record: ExerciseRecord? ->
+            if (record == null) {
+                MutableLiveData(formatRepsDisplay(0))
+            } else {
+                Transformations.switchMap(record.setsCount) { count: Int ->
+                    if (count > 0) {
+                        Transformations.map(
+                            record.getSet(-1)
+                        ) { latestSet: SetRecord? -> formatRepsDisplay(latestSet!!.reps) }
+                    } else {
+                        // TODO target set should be a livedata
+                        MutableLiveData(
                             if (record.targetSet.repsRange > 0) {
                                 formatRepsDisplay(
-                                        record.targetSet.reps +
-                                                record.targetSet.repsRange)
+                                    record.targetSet.reps +
+                                            record.targetSet.repsRange
+                                )
                             } else {
                                 // TODO if timed, default to last record reps if exists
                                 formatRepsDisplay(record.targetSet.reps)
-                            })
+                            }
+                        )
+                    }
                 }
             }
         }
-    }
 
     private fun determineSetDefaultWeight(targetSet: ExerciseSet): Double =
-            when {
-                targetSet.repsUnit.equals("minutes", ignoreCase = true) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
-                    defaultBodyweight
-                }
-                targetSet.exerciseName.toLowerCase().contains("db") || targetSet.exerciseName.toLowerCase().contains("dumbbell") -> {
-                    defaultDbWeight
-                }
-                targetSet.exerciseName.toLowerCase().contains("bb") || targetSet.exerciseName.toLowerCase().contains("barbell") || targetSet.exerciseName.toLowerCase().contains("press") -> {
-                    defaultBbWeight
-                }
-                targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase().contains("dumbbell") -> {
-                    defaultDbWeight
-                }
-                targetSet.note.toLowerCase().contains("bb") || targetSet.note.toLowerCase().contains("barbell") || targetSet.note.toLowerCase().contains("press") -> {
-                    defaultBbWeight
-                }
-                else -> defaultBodyweight
+        when {
+            targetSet.repsUnit.equals(
+                "minutes",
+                ignoreCase = true
+            ) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
+                defaultBodyweight
             }
-
-
-    override fun onCleared() {
-        super.onCleared()
-        exerciseRepo.shutdown()
-    }
+            targetSet.exerciseName.toLowerCase()
+                .contains("db") || targetSet.exerciseName.toLowerCase().contains("dumbbell") -> {
+                defaultDbWeight
+            }
+            targetSet.exerciseName.toLowerCase()
+                .contains("bb") || targetSet.exerciseName.toLowerCase()
+                .contains("barbell") || targetSet.exerciseName.toLowerCase().contains("press") -> {
+                defaultBbWeight
+            }
+            targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase()
+                .contains("dumbbell") -> {
+                defaultDbWeight
+            }
+            targetSet.note.toLowerCase().contains("bb") || targetSet.note.toLowerCase()
+                .contains("barbell") || targetSet.note.toLowerCase().contains("press") -> {
+                defaultBbWeight
+            }
+            else -> defaultBodyweight
+        }
 
     fun loadExercises(day: String, workoutId: String) {
         _isLoadingBool.value = true
 //        startLoad = Instant.now()
-        exerciseRepo.loadExercises(day, workoutId)
+        exerciseRepo.loadExercises(day, workoutId).unsafeRunScoped(viewModelScope) { res ->
+            res.mapLeft { ex -> log.e(TAG, "error loading exercises", ex) }
+        }
     }
 
     fun updateWeightDisplay(change: Double) {
@@ -360,9 +406,13 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
             log.w(TAG, "completeSet: someone isn't using the enabled value")
             return
         }
-        val newRecord = SetRecord(weight.toDouble(), reps.toInt(),
-                exerciseSet)
-        exerciseRepo.storeSetRecord(newRecord)
+        val newRecord = SetRecord(
+            weight.toDouble(), reps.toInt(),
+            exerciseSet
+        )
+        exerciseRepo.storeSetRecord(newRecord).unsafeRunScoped(viewModelScope) { res ->
+            res.mapLeft { ex -> log.e(TAG, "error storing record", ex) }
+        }
 
         // TODO if this is superset part a then move to the next exercise
         if (exerciseSet.step.contains(".1")) {
@@ -373,8 +423,9 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
             navigateLeft()
         }
         timer = object : CountDownTimer(
-                (exerciseSet.rest * 1000).toLong(),
-                50) {
+            (exerciseSet.rest * 1000).toLong(),
+            50
+        ) {
             override fun onTick(millisUntilFinished: Long) {
                 //updateRestTimerProgress(millisUntilFinished / 1000.0);
                 restRemaining.value = millisUntilFinished / 1000.0
@@ -398,7 +449,11 @@ class ExerciseViewModel @ViewModelInject constructor(private val exerciseRepo: E
         const val defaultBodyweight = 45.0
         private fun formatWeightDisplay(value: Double): String {
             val cleanValue = (value * 2).roundToInt() / 2.0
-            return String.format(Locale.getDefault(), "%.1f", if (cleanValue < 0) 0.0 else cleanValue)
+            return String.format(
+                Locale.getDefault(),
+                "%.1f",
+                if (cleanValue < 0) 0.0 else cleanValue
+            )
         }
 
         private fun formatRepsDisplay(value: Int): String {
