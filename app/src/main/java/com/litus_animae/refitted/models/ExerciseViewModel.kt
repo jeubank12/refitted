@@ -2,7 +2,6 @@ package com.litus_animae.refitted.models
 
 import android.os.CountDownTimer
 import android.view.View
-import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.*
 import arrow.core.getOrElse
 import arrow.integrations.kotlinx.unsafeRunScoped
@@ -12,10 +11,13 @@ import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.ParameterizedResource
 import com.litus_animae.refitted.util.ParameterizedStringArrayResource
 import com.litus_animae.refitted.util.ParameterizedStringResource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.*
+import javax.inject.Inject
 import kotlin.math.roundToInt
 
-class ExerciseViewModel @ViewModelInject constructor(
+@HiltViewModel
+class ExerciseViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val log: LogUtil
 ) : ViewModel() {
