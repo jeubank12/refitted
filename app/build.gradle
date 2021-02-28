@@ -21,6 +21,7 @@ android {
                         "room.expandProjection": "true"]
             }
         }
+        kotlinOptions.useIR = true
     }
     buildTypes {
         release {
