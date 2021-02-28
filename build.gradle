@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '1.4.0'
-    ext.hilt_android_version = '2.28.3-alpha'
+    ext.kotlin_version = '1.4.31'
+    ext.hilt_android_version = '2.33-beta'
     apply plugin: 'idea'
     idea {
         module {
@@ -16,8 +16,8 @@ buildscript {
         maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.1'
-        classpath 'com.google.gms:google-services:4.3.3'
+        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath 'com.google.gms:google-services:4.3.5'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$hilt_android_version"
 

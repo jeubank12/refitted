@@ -1,16 +1,15 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'dagger.hilt.android.plugin'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     defaultConfig {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 2614116
         versionName "1.0.18-SNAPSHOT"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -53,26 +52,27 @@ android {
 }
 
 dependencies {
-    def room_version = '2.3.0-alpha02'
+    def room_version = '2.3.0-beta02'
     def android_core_version = '2.1.0'
-    def hilt_compiler_version = '1.0.0-alpha02'
+    def hilt_compiler_version = '1.0.0-alpha03'
     def arrow_version = "0.10.5"
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation "androidx.activity:activity-ktx:1.1.0"
-    implementation "androidx.fragment:fragment-ktx:1.2.5"
+    implementation "androidx.activity:activity-ktx:1.2.0"
+    implementation "androidx.fragment:fragment-ktx:1.3.0"
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     kapt 'com.android.databinding:compiler:3.1.4'
-    implementation 'com.google.android.material:material:1.2.0'
+    implementation 'com.google.android.material:material:1.3.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation "androidx.arch.core:core-runtime:$android_core_version"
     implementation "androidx.arch.core:core-common:$android_core_version"
+    implementation "androidx.work:work-runtime-ktx:2.5.0"
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-    implementation 'androidx.core:core-ktx:1.3.1'
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0"
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0"
 
     implementation 'androidx.paging:paging-common:2.1.2'
     implementation 'androidx.paging:paging-runtime:2.1.2'
@@ -102,11 +102,11 @@ dependencies {
     kapt "androidx.hilt:hilt-compiler:$hilt_compiler_version"
     annotationProcessor "androidx.hilt:hilt-compiler:$hilt_compiler_version"
 
-    implementation 'com.google.android.gms:play-services-auth:18.1.0'
+    implementation 'com.google.android.gms:play-services-auth:19.0.0'
 
-    implementation 'com.google.firebase:firebase-auth:19.3.2'
-    implementation 'com.google.firebase:firebase-firestore:21.6.0'
-    implementation 'com.google.firebase:firebase-analytics:17.5.0'
+    implementation 'com.google.firebase:firebase-auth:20.0.2'
+    implementation 'com.google.firebase:firebase-firestore:22.1.0'
+    implementation 'com.google.firebase:firebase-analytics:18.0.2'
 
     implementation "io.arrow-kt:arrow-fx:$arrow_version"
     implementation "io.arrow-kt:arrow-fx-kotlinx-coroutines:$arrow_version"
@@ -114,7 +114,7 @@ dependencies {
     kapt "io.arrow-kt:arrow-meta:$arrow_version"
 
     implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.2"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.9'
 }
 
