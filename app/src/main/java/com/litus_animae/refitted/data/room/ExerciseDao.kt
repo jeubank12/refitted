@@ -46,4 +46,9 @@ interface ExerciseDao {
 
     @Insert
     suspend fun storeExerciseRecord(exerciseRecord: SetRecord)
+
+    @Query("select completed, exercise from setrecord where target_set LIKE ':day' || '.%' group by exercise order by completed desc")
+    fun getDayCompletedSets(day: Int): LiveData<List<ExerciseCompletionRecord>>
+
+    data class ExerciseCompletionRecord(val completed: Date, val exercise: String)
 }
