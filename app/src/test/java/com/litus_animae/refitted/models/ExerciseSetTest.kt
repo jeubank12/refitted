@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.models;
 
+import androidx.lifecycle.MutableLiveData
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
@@ -8,7 +9,7 @@ class ExerciseSetTest {
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
     )
-    private var testExerciseSet = ExerciseSet(mutableExerciseSet)
+    private var testExerciseSet = ExerciseSet(RoomExerciseSet(mutableExerciseSet), MutableLiveData())
 
     @Test
     fun getDay() {
@@ -22,11 +23,11 @@ class ExerciseSetTest {
 
     @Test
     fun getStepWithAlternate() {
-        testExerciseSet = ExerciseSet(DynamoExerciseSet(
+        testExerciseSet = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 workout = "AX1",
                 id = "1.5.a",
                 name = "Tricep_Alternating Woodchopper Pushdowns"
-        ))
+        )), MutableLiveData())
         assertThat(testExerciseSet.step).isEqualTo("5.a")
     }
 
@@ -37,10 +38,10 @@ class ExerciseSetTest {
 
     @Test
     fun getExerciseNameNotNullNotFound() {
-        testExerciseSet = ExerciseSet(DynamoExerciseSet(
+        testExerciseSet = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.5.a",
                 name = "test"
-        ))
+        )), MutableLiveData())
         assertThat(testExerciseSet.exerciseName).isEqualTo("")
     }
 }

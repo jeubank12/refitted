@@ -37,12 +37,12 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeHasLeftSecondExercise() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
                 TestLogUtil)
@@ -61,12 +61,12 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeDoesNotHasRightSecondExercise() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
                 TestLogUtil)
@@ -81,14 +81,15 @@ internal class ExerciseViewModelTest {
     fun intializeExercise() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
-        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(ExerciseSet(DynamoExerciseSet()))
+        assertThat(model.exercise.getOrAwaitValue()).isEqualTo(
+            ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), MutableLiveData()))
     }
 
     @Test
     fun intializeExerciseWithValue() {
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 name = "abcd"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(InMemoryExerciseRepository(listOf(exercise)), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exercise)
@@ -123,9 +124,9 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = -1
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.targetExerciseReps.getOrAwaitValue().getParameters().getOrNull(0)).isEqualTo(R.string.to_failure)
@@ -134,9 +135,9 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetReps() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -150,10 +151,10 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         isToFailure = true
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -167,10 +168,10 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithUnit() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd"
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -184,11 +185,11 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsWithUnitToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd",
                         isToFailure = true
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -202,10 +203,10 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRange() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -219,11 +220,11 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         isToFailure = true
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -237,11 +238,11 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithUnit() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         repsUnit = "abcd"
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -255,12 +256,12 @@ internal class ExerciseViewModelTest {
     @Test
     fun intializeTargetRepsRangeWithUnitToFailure() {
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(ExerciseSet(DynamoExerciseSet(
+                initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
                         repsUnit = "abcd",
                         isToFailure = true
-                )))
+                )), MutableLiveData()))
         ), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
@@ -278,12 +279,12 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeRepsDisplay(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(exercise),
-                records = listOf(ExerciseRecord(
+                initialExercises = listOf(exercise),
+                initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
                         latestSet = MutableLiveData(null),
                         sets = MutableLiveData(emptyList()),
@@ -296,13 +297,13 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeRepsDisplayRange(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(InMemoryExerciseRepository(
-                exercises = listOf(exercise),
-                records = listOf(ExerciseRecord(
+                initialExercises = listOf(exercise),
+                initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
                         latestSet = MutableLiveData(null),
                         sets = MutableLiveData(emptyList()),
@@ -360,15 +361,15 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayTimeSeconds(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 repsUnit = "Seconds"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -382,16 +383,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayTimeMinutes(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 repsUnit = "Minutes",
                 name = "x_DB BB DUMBBELL BARBELL"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -405,16 +406,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDbName(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_DB BB BARBELL",
                 note = "BB BARBELL"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -428,16 +429,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDumbbellName(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_DumBbell BB BARBELL",
                 note = "BB BARBELL"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -451,16 +452,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBbName(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_BB",
                 note = "Dumbbell Db"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -474,16 +475,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBarbellName(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_Barbell",
                 note = "Dumbbell Db"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -497,16 +498,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDbNote(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
                 note = "Db BB Barbell"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -520,16 +521,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayDumbbellNote(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
                 note = "Dumbbell BB Barbell"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -543,16 +544,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBbNote(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
                 note = "BB"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -566,16 +567,16 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun weightDisplayBarbellNote(){
-        val exercise = ExerciseSet(DynamoExerciseSet(
+        val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2,
                 repsRange = 2,
                 name = "x_None of the above",
                 note = "BB"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exercise),
-                        records = listOf(ExerciseRecord(
+                        initialExercises = listOf(exercise),
+                        initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
                                 latestSet = MutableLiveData(null),
                                 sets = MutableLiveData(emptyList()),
@@ -589,49 +590,49 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun initializeHasAlternate() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.a"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exerciseA, exerciseB)
+                        initialExercises = listOf(exerciseA, exerciseB)
                 ),
                 TestLogUtil)
         model.loadExercises("", "")
-        assertThat(model.exercise.getOrAwaitValue().hasAlternate()).isTrue()
+        assertThat(model.exercise.getOrAwaitValue().hasAlternate).isTrue()
     }
 
     @Test
     fun initializeNoAlternate() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exerciseA, exerciseB)
+                        initialExercises = listOf(exerciseA, exerciseB)
                 ),
                 TestLogUtil)
         model.loadExercises("", "")
-        assertThat(model.exercise.getOrAwaitValue().hasAlternate()).isFalse()
+        assertThat(model.exercise.getOrAwaitValue().hasAlternate).isFalse()
     }
 
     @Test
     fun swapToAlternate() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.a"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exerciseA, exerciseB)
+                        initialExercises = listOf(exerciseA, exerciseB)
                 ),
                 TestLogUtil)
         model.loadExercises("", "")
@@ -642,15 +643,15 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun navigateLeft() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exerciseA, exerciseB)
+                        initialExercises = listOf(exerciseA, exerciseB)
                 ),
                 TestLogUtil)
         model.loadExercises("", "")
@@ -663,15 +664,15 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun navigateRight() {
-        val exerciseA = ExerciseSet(DynamoExerciseSet(
+        val exerciseA = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1"
-        ))
-        val exerciseB = ExerciseSet(DynamoExerciseSet(
+        )), MutableLiveData())
+        val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
-        ))
+        )), MutableLiveData())
         val model = ExerciseViewModel(
                 InMemoryExerciseRepository(
-                        exercises = listOf(exerciseA, exerciseB)
+                        initialExercises = listOf(exerciseA, exerciseB)
                 ),
                 TestLogUtil)
         model.loadExercises("", "")

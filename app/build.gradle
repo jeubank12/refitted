@@ -57,6 +57,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.3.0'
     def room_version = '2.3.0-beta02'
     def android_core_version = '2.1.0'
     def hilt_compiler_version = '1.0.0-alpha03'

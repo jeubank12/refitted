@@ -11,10 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(InstantExecutorExtension::class)
 class ExerciseRecordTest {
-    private var testExerciseSet = ExerciseSet(DynamoExerciseSet(
+    private var testExerciseSet = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
-    ))
+    )), MutableLiveData())
     private val testSets = mutableListOf<SetRecord>()
     private val liveDataList = MutableLiveData<List<SetRecord>>(testSets)
 
