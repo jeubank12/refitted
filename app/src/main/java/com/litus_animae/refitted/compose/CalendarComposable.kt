@@ -1,26 +1,45 @@
 package com.litus_animae.refitted.compose
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.ExerciseDetailViewActivity
+import kotlin.math.ceil
 
-class CalendarComposable {
+object CalendarComposable {
 
     @Composable
-    fun Calendar(days: Map<Int, Boolean>, daysPerRow: Int = 7) {
-        Column(Modifier.fillMaxWidth().padding(10.dp, 10.dp)) {
-            days.keys.sorted().chunked(daysPerRow).map { chunk ->
+    fun Calendar(
+        days: Int,
+        dayStatus: Map<Int, Boolean>,
+        daysPerRow: Int = 7
+    ) {
+        val cellsInGrid = ceil(days.toDouble() / daysPerRow).toInt() * daysPerRow
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(10.dp, 10.dp)
+        ) {
+            (1..cellsInGrid).chunked(daysPerRow).map { chunk ->
                 Row(Modifier.fillMaxWidth()) {
                     chunk.map {
-                        Column(Modifier.weight(1f).height(75.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                            CalendarDayButton(it, days.get(it))
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (it > days) Box {}
+                            else CalendarDayButton(it, dayStatus[it])
                         }
                     }
                 }
@@ -29,16 +48,25 @@ class CalendarComposable {
     }
 
     @Composable
-    fun CalendarDayButton(day: Int, isComplete: Boolean?){
-        Button(onClick = { /*TODO*/ },
-        Modifier.padding(1.dp, 8.dp)) {
+    fun CalendarDayButton(
+        day: Int,
+        isComplete: Boolean?
+    ) {
+        val context = LocalContext.current
+        Button(
+            onClick = {
+                val intent = Intent(context, ExerciseDetailViewActivity::class.java)
+//            if (planSwitch != null && planSwitch.isChecked) {
+//                intent.putExtra("workout", "Inferno Size")
+//            } else {
+                intent.putExtra("workout", "AX1")
+//            }
+                intent.putExtra("day", day)
+                context.startActivity(intent)
+                      },
+            Modifier.padding(1.dp, 8.dp)
+        ) {
             Text(String.format("%d", day))
         }
-    }
-
-    @Preview(showSystemUi = true)
-    @Composable
-    fun PreviewCalendar() {
-        Calendar((1..25).map{it to true}.toMap())
     }
 }

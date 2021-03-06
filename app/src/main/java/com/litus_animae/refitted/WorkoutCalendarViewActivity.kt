@@ -10,9 +10,7 @@ import android.widget.Switch
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.ui.platform.ComposeView
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -24,9 +22,9 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.litus_animae.refitted.compose.CalendarComposable
 import com.litus_animae.refitted.models.ExerciseViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import java.lang.ref.WeakReference
 
 @AndroidEntryPoint
 class WorkoutCalendarViewActivity : AppCompatActivity() {
@@ -54,15 +52,20 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         }
         val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
         planSwitch.isChecked = prefs.getString("workout", "AX1") != "AX1"
-        val list = findViewById<RecyclerView>(R.id.calendar_recycler)
-        list.adapter = CalendarAdapter(84, WeakReference(planSwitch))
-        list.layoutManager = LinearLayoutManager(this)
+
+        val cal = findViewById<ComposeView>(R.id.calendar_recycler)
+        cal.setContent {
+            CalendarComposable.Calendar(
+                days = 84,
+                dayStatus = emptyMap()
+            )
+        }
         mAuth = FirebaseAuth.getInstance()
         googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestProfile()
-                .requestIdToken(getString(R.string.default_web_client_id))
-                .build()
+            .requestEmail()
+            .requestProfile()
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .build()
         val currentUser = mAuth!!.currentUser
         if (currentUser != null) {
             updateUI(currentUser)
@@ -81,20 +84,20 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         Log.d(TAG, "firebaseAuthWithGoogle:" + acct!!.id)
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
         mAuth!!.signInWithCredential(credential)
-                .addOnCompleteListener(this) { task: Task<AuthResult?> ->
-                    if (task.isSuccessful) {
-                        // Sign in success, update UI with the signed-in user's information
-                        Log.d(TAG, "signInWithCredential:success")
-                        val user = mAuth!!.currentUser
-                        updateUI(user)
-                    } else {
-                        // If sign in fails, display a message to the user.
-                        Log.w(TAG, "signInWithCredential:failure", task.exception)
-                        //Snackbar.make(findViewById(R.id.main_layout), "Authentication Failed.", Snackbar.LENGTH_SHORT).show();
-                        //updateUI(null);
-                        doFullSignIn()
-                    }
+            .addOnCompleteListener(this) { task: Task<AuthResult?> ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "signInWithCredential:success")
+                    val user = mAuth!!.currentUser
+                    updateUI(user)
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInWithCredential:failure", task.exception)
+                    //Snackbar.make(findViewById(R.id.main_layout), "Authentication Failed.", Snackbar.LENGTH_SHORT).show();
+                    //updateUI(null);
+                    doFullSignIn()
                 }
+            }
     }
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -142,7 +145,8 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         try {
             val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
             val activityClass = Class.forName(
-                    prefs.getString("lastActivity", javaClass.name)!!)
+                prefs.getString("lastActivity", javaClass.name)!!
+            )
             val intent = Intent(this, activityClass)
             val workout = prefs.getString("workout", "-1")!!
             val day = prefs.getInt("day", -1)
