@@ -7,9 +7,11 @@ import android.util.Log
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.Switch
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.platform.ComposeView
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -23,6 +25,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.litus_animae.refitted.compose.CalendarComposable
+import com.litus_animae.refitted.compose.Layout
+import com.litus_animae.refitted.compose.Theme
 import com.litus_animae.refitted.models.ExerciseViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -35,31 +39,13 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val model: ExerciseViewModel by viewModels()
         viewModel = model
-        setContentView(R.layout.activity_workout_calendar_view)
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        (findViewById<View>(R.id.toolbar_layout) as CollapsingToolbarLayout).title = "Athlean-X"
-        val planSwitch = findViewById<Switch>(R.id.switch1)
-        planSwitch.setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
-            val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
-            val editor = prefs.edit()
-            if (isChecked) {
-                editor.putString("workout", "Inferno Size")
-            } else {
-                editor.putString("workout", "AX1")
-            }
-            editor.apply()
-        }
-        val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
-        planSwitch.isChecked = prefs.getString("workout", "AX1") != "AX1"
 
-        val cal = findViewById<ComposeView>(R.id.calendar_recycler)
-        cal.setContent {
-            CalendarComposable.Calendar(
-                days = 84,
-                dayStatus = emptyMap()
-            )
+        setContent{
+            MaterialTheme(colors = Theme.darkColors) {
+                Layout.Main()
+            }
         }
+
         mAuth = FirebaseAuth.getInstance()
         googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()

@@ -1,9 +1,9 @@
 package com.litus_animae.refitted.compose
 
-import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ExerciseDetailViewActivity
+import com.litus_animae.refitted.compose.CalendarComposable.Calendar
 import kotlin.math.ceil
 
 object CalendarComposable {
@@ -34,7 +35,8 @@ object CalendarComposable {
                         Column(
                             Modifier
                                 .weight(1f)
-                                .height(50.dp),
+                                .height(50.dp)
+                                .padding(horizontal = 3.dp),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -67,6 +69,16 @@ object CalendarComposable {
             Modifier.padding(1.dp, 8.dp)
         ) {
             Text(String.format("%d", day))
+        }
+    }
+}
+
+class CalendarCompose {
+    @Preview
+    @Composable
+    fun PreviewCalendar() {
+        MaterialTheme(colors = Theme.lightColors) {
+            Calendar(84, emptyMap())
         }
     }
 }
