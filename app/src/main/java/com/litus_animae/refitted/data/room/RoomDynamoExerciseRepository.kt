@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import arrow.fx.IO
 import arrow.fx.extensions.fx
@@ -25,6 +26,8 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
     private val applicationContext: WeakReference<Context> = WeakReference(context.applicationContext)
     override val exercises = MediatorLiveData<List<ExerciseSet>>()
     override val records = Transformations.map(exercises, this::getRecordsForLoadedExercises)
+    private var currentWorkout = MutableLiveData<String>()
+    override val workoutRecords = Transformations.switchMap(currentWorkout){roomDb.getExerciseDao().getDayCompletedSets(it)}
     private val changedStepsSource = MediatorLiveData<Set<String>>()
     private var currentStepsSource: LiveData<Set<String>>? = null
     private var currentSetsSource: LiveData<List<RoomExerciseSet>>? = null
@@ -37,6 +40,10 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
             !effect { roomDb.getExerciseDao().storeExerciseRecord(record) }
             Log.d(TAG, "stored set record")
         }
+    }
+
+    override fun loadWorkoutRecords(workoutId: String): Unit {
+        currentWorkout.value = workoutId
     }
 
     override fun loadExercises(day: String, workoutId: String): IO<Unit> {

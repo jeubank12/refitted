@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.compose.material.MaterialTheme
 import androidx.compose.ui.platform.ComposeView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -28,17 +29,18 @@ import com.litus_animae.refitted.compose.CalendarComposable
 import com.litus_animae.refitted.compose.Layout
 import com.litus_animae.refitted.compose.Theme
 import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.WorkoutViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class WorkoutCalendarViewActivity : AppCompatActivity() {
     private var googleSignInOptions: GoogleSignInOptions? = null
     private var mAuth: FirebaseAuth? = null
-    private var viewModel: ExerciseViewModel? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val model: ExerciseViewModel by viewModels()
-        viewModel = model
+        val model: WorkoutViewModel by viewModels()
+
+        model.loadWorkoutDaysCompleted("AX1")
 
         setContent{
             MaterialTheme(colors = Theme.darkColors) {

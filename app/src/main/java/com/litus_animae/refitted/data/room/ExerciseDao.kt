@@ -47,8 +47,13 @@ interface ExerciseDao {
     @Insert
     suspend fun storeExerciseRecord(exerciseRecord: SetRecord)
 
-    @Query("select completed, exercise from setrecord where target_set LIKE ':day' || '.%' group by exercise order by completed desc")
-    fun getDayCompletedSets(day: Int): LiveData<List<ExerciseCompletionRecord>>
+    @Query("select max(completed) as latest_completion, target_set from setrecord " +
+            "where workout = :workout group by target_set")
+    fun getDayCompletedSets(workout: String): LiveData<List<ExerciseCompletionRecord>>
 
-    data class ExerciseCompletionRecord(val completed: Date, val exercise: String)
+    data class ExerciseCompletionRecord(@ColumnInfo(name = "latest_completion") val latestCompletion: Date,
+                                        @ColumnInfo(name = "target_set") val dayAndSet: String) {
+        @Ignore
+        val day = dayAndSet.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" }
+    }
 }

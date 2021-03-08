@@ -19,8 +19,7 @@ object Layout {
             )
         }) {
             CalendarComposable.Calendar(
-                days = 84,
-                dayStatus = emptyMap()
+                days = 84
             )
         }
     }
