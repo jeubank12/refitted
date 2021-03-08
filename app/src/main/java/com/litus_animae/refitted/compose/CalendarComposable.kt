@@ -2,6 +2,8 @@ package com.litus_animae.refitted.compose
 
 import android.content.Intent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ExerciseDetailViewActivity
 import com.litus_animae.refitted.compose.CalendarComposable.Calendar
 import kotlin.math.ceil
+import kotlin.math.min
 
 object CalendarComposable {
 
@@ -24,13 +27,16 @@ object CalendarComposable {
         dayStatus: Map<Int, Boolean>,
         daysPerRow: Int = 7
     ) {
-        val cellsInGrid = ceil(days.toDouble() / daysPerRow).toInt() * daysPerRow
-        Column(
+        // TODO adjust TextSize to handle 3 digit numbers
+        val daysInCalendar = min(days, 99)
+        val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
+        LazyColumn(
             Modifier
                 .fillMaxWidth()
                 .padding(10.dp, 10.dp)
         ) {
-            (1..cellsInGrid).chunked(daysPerRow).map { chunk ->
+            val rows: List<List<Int>> = (1..cellsInGrid).chunked(daysPerRow)
+            items(rows) { chunk ->
                 Row(Modifier.fillMaxWidth()) {
                     chunk.map {
                         Column(
@@ -41,7 +47,7 @@ object CalendarComposable {
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            if (it > days) Box {}
+                            if (it > daysInCalendar) Box {}
                             else CalendarDayButton(it, dayStatus[it])
                         }
                     }
