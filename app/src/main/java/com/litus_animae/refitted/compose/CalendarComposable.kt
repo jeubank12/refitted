@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ExerciseDetailViewActivity
@@ -65,10 +66,10 @@ object CalendarComposable {
 //            }
                 intent.putExtra("day", day)
                 context.startActivity(intent)
-                      },
-            Modifier.padding(1.dp, 8.dp)
+                      }
         ) {
-            Text(String.format("%d", day))
+            Text(String.format("%d", day),
+            textAlign = TextAlign.Center)
         }
     }
 }
