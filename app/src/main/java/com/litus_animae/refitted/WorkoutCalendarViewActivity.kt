@@ -4,31 +4,23 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.widget.CompoundButton
-import android.widget.Switch
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.compose.material.MaterialTheme
-import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
-import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.litus_animae.refitted.compose.CalendarComposable
 import com.litus_animae.refitted.compose.Layout
+import com.litus_animae.refitted.compose.Main
 import com.litus_animae.refitted.compose.Theme
-import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -44,7 +36,7 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
 
         setContent{
             MaterialTheme(colors = Theme.darkColors) {
-                Layout.Main()
+                Main.Top()
             }
         }
 

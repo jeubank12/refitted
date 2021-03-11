@@ -126,6 +126,7 @@ class ExerciseViewModel @Inject constructor(
                             Transformations.map(exercise) { exercise: ExerciseSet ->
                                 _restMax.value = exercise.rest * 1000
                                 restRemaining.value = exercise.rest.toDouble()
+                                // TODO I was able to go beyond!!
                                 when {
                                     completeSetsCount == exercise.sets -> {
                                         ParameterizedStringResource(R.string.complete_exercise)
@@ -440,7 +441,7 @@ class ExerciseViewModel @Inject constructor(
             }
         }
         //setTimerText(exerciseSet);
-        timerMutableLiveData.value = timer
+        timerMutableLiveData.value = timer!!
         timer!!.start()
     }
 
