@@ -17,7 +17,7 @@ import javax.inject.Inject
 import kotlin.math.roundToInt
 
 @HiltViewModel
-class ExerciseViewModel @Inject constructor(
+class ExerciseViewModelDeprecated @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val log: LogUtil
 ) : ViewModel() {
@@ -446,7 +446,7 @@ class ExerciseViewModel @Inject constructor(
     }
 
     companion object {
-        private const val TAG = "ExerciseViewModel"
+        private const val TAG = "ExerciseViewModelDeprecated"
         const val defaultDbWeight = 25.0
         const val defaultBbWeight = 45.0
         const val defaultBodyweight = 45.0

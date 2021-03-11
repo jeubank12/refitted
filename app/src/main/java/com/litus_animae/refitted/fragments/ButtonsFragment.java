@@ -12,12 +12,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProviders;
 
-import com.litus_animae.refitted.models.ExerciseViewModel;
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-
-import dagger.hilt.android.AndroidEntryPoint;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -25,7 +23,7 @@ public abstract class ButtonsFragment extends Fragment implements
         ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener,
         WeightButtonConfigurationManager {
 
-    ExerciseViewModel model;
+    ExerciseViewModelDeprecated model;
     private boolean show25;
     private boolean show5;
     private boolean showMore;
@@ -88,7 +86,7 @@ public abstract class ButtonsFragment extends Fragment implements
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModel.class);
+        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModelDeprecated.class);
     }
 
     @Override

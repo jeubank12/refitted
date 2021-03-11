@@ -17,7 +17,7 @@ import androidx.paging.PagedList;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.litus_animae.refitted.R;
-import com.litus_animae.refitted.models.ExerciseViewModel;
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated;
 import com.litus_animae.refitted.models.SetRecord;
 
 public class ExerciseHistoryDialogFragment extends DialogFragment {
@@ -26,12 +26,12 @@ public class ExerciseHistoryDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        ExerciseViewModel model;
+        ExerciseViewModelDeprecated model;
         if (getActivity() != null) {
-            model = ViewModelProviders.of(getActivity()).get(ExerciseViewModel.class);
+            model = ViewModelProviders.of(getActivity()).get(ExerciseViewModelDeprecated.class);
         } else {
             Log.e(TAG, "onCreate: already detached, getting dummy model...");
-            model = ViewModelProviders.of(this).get(ExerciseViewModel.class);
+            model = ViewModelProviders.of(this).get(ExerciseViewModelDeprecated.class);
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         PagedSetRecordAdapter adapter = new PagedSetRecordAdapter();

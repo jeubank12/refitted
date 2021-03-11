@@ -42,6 +42,8 @@ data class ExerciseSet(private val roomExerciseSet: RoomExerciseSet,
         return None
     }
 
+    val primaryStep = step.removeSuffix(".a").removeSuffix(".b")
+
     val hasAlternate = step.endsWith(".a") || step.endsWith(".b")
 
 }

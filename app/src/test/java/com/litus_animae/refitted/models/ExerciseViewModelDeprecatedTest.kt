@@ -5,9 +5,9 @@ import androidx.lifecycle.MutableLiveData
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.InMemoryExerciseRepository
-import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBbWeight
-import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultBodyweight
-import com.litus_animae.refitted.models.ExerciseViewModel.Companion.defaultDbWeight
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated.Companion.defaultBbWeight
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated.Companion.defaultBodyweight
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated.Companion.defaultDbWeight
 import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.refitted.util.TestLogUtil
 import com.litus_animae.util.InstantExecutorExtension
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(InstantExecutorExtension::class)
-internal class ExerciseViewModelTest {
+internal class ExerciseViewModelDeprecatedTest {
 
     @BeforeEach
     fun setUp() {
@@ -25,13 +25,13 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeIsLoading() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         assertThat(model.isLoading.getOrAwaitValue()).isEqualTo(View.VISIBLE)
     }
 
     @Test
     fun intializeDoesNotHasLeft() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         assertThat(model.hasLeft.getOrAwaitValue()).isEqualTo(View.GONE)
     }
 
@@ -43,7 +43,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
                 TestLogUtil)
         model.loadExercises("", "")
@@ -55,7 +55,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeHasRight() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         assertThat(model.hasRight.getOrAwaitValue()).isEqualTo(View.VISIBLE)
     }
 
@@ -67,7 +67,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(listOf(exerciseA, exerciseB)),
                 TestLogUtil)
         model.loadExercises("", "")
@@ -79,7 +79,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeExercise() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.exercise.getOrAwaitValue()).isEqualTo(
             ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), MutableLiveData()))
@@ -90,28 +90,28 @@ internal class ExerciseViewModelTest {
         val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 name = "abcd"
         )), MutableLiveData())
-        val model = ExerciseViewModel(InMemoryExerciseRepository(listOf(exercise)), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(listOf(exercise)), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.exercise.getOrAwaitValue()).isEqualTo(exercise)
     }
 
     @Test
     fun intializeWeightDisplay() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.weightDisplayValue.getOrAwaitValue()).isEqualTo("$defaultDbWeight")
     }
 
     @Test
     fun intializeRepsDisplay() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         assertThat(model.repsDisplayValue.getOrAwaitValue()).isEqualTo("0")
     }
 
     @Test
     fun intializeTargetRepsNone() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         val params = model.targetExerciseReps.getOrAwaitValue().getParameters()
         assertThat(params.getOrNull(0)).isEqualTo(R.array.exercise_reps)
@@ -123,7 +123,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsFailure() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = -1
                 )), MutableLiveData()))
@@ -134,7 +134,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetReps() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2
                 )), MutableLiveData()))
@@ -150,7 +150,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsWithToFailure() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         isToFailure = true
@@ -167,7 +167,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsWithUnit() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd"
@@ -184,7 +184,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsWithUnitToFailure() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsUnit = "abcd",
@@ -202,7 +202,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsRange() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2
@@ -219,7 +219,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsRangeWithToFailure() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
@@ -237,7 +237,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsRangeWithUnit() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
@@ -255,7 +255,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun intializeTargetRepsRangeWithUnitToFailure() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                         reps = 2,
                         repsRange = 2,
@@ -282,7 +282,7 @@ internal class ExerciseViewModelTest {
         val exercise = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 reps = 2
         )), MutableLiveData())
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(exercise),
                 initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
@@ -301,7 +301,7 @@ internal class ExerciseViewModelTest {
                 reps = 2,
                 repsRange = 2
         )), MutableLiveData())
-        val model = ExerciseViewModel(InMemoryExerciseRepository(
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(
                 initialExercises = listOf(exercise),
                 initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
@@ -325,7 +325,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun updateWeightDisplay() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         model.weightDisplayValue.getOrAwaitValue()
         model.updateWeightDisplay(1.0)
@@ -334,7 +334,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun updateWeightDisplayLessThanZero() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         model.weightDisplayValue.getOrAwaitValue()
         model.updateWeightDisplay(-100.0)
@@ -343,7 +343,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun updateRepsDisplay() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         model.repsDisplayValue.getOrAwaitValue()
         model.updateRepsDisplay(true)
@@ -352,7 +352,7 @@ internal class ExerciseViewModelTest {
 
     @Test
     fun updateRepsDisplayLessThanZero() {
-        val model = ExerciseViewModel(InMemoryExerciseRepository(), TestLogUtil)
+        val model = ExerciseViewModelDeprecated(InMemoryExerciseRepository(), TestLogUtil)
         model.loadExercises("", "")
         model.repsDisplayValue.getOrAwaitValue()
         model.updateRepsDisplay(false)
@@ -366,7 +366,7 @@ internal class ExerciseViewModelTest {
                 repsRange = 2,
                 repsUnit = "Seconds"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -389,7 +389,7 @@ internal class ExerciseViewModelTest {
                 repsUnit = "Minutes",
                 name = "x_DB BB DUMBBELL BARBELL"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -412,7 +412,7 @@ internal class ExerciseViewModelTest {
                 name = "x_DB BB BARBELL",
                 note = "BB BARBELL"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -435,7 +435,7 @@ internal class ExerciseViewModelTest {
                 name = "x_DumBbell BB BARBELL",
                 note = "BB BARBELL"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -458,7 +458,7 @@ internal class ExerciseViewModelTest {
                 name = "x_BB",
                 note = "Dumbbell Db"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -481,7 +481,7 @@ internal class ExerciseViewModelTest {
                 name = "x_Barbell",
                 note = "Dumbbell Db"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -504,7 +504,7 @@ internal class ExerciseViewModelTest {
                 name = "x_None of the above",
                 note = "Db BB Barbell"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -527,7 +527,7 @@ internal class ExerciseViewModelTest {
                 name = "x_None of the above",
                 note = "Dumbbell BB Barbell"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -550,7 +550,7 @@ internal class ExerciseViewModelTest {
                 name = "x_None of the above",
                 note = "BB"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -573,7 +573,7 @@ internal class ExerciseViewModelTest {
                 name = "x_None of the above",
                 note = "BB"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
@@ -596,7 +596,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exerciseA, exerciseB)
                 ),
@@ -613,7 +613,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exerciseA, exerciseB)
                 ),
@@ -630,7 +630,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.1.b"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exerciseA, exerciseB)
                 ),
@@ -649,7 +649,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exerciseA, exerciseB)
                 ),
@@ -670,7 +670,7 @@ internal class ExerciseViewModelTest {
         val exerciseB = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
                 id = "1.2"
         )), MutableLiveData())
-        val model = ExerciseViewModel(
+        val model = ExerciseViewModelDeprecated(
                 InMemoryExerciseRepository(
                         initialExercises = listOf(exerciseA, exerciseB)
                 ),
