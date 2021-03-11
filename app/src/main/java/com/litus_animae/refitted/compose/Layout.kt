@@ -56,6 +56,9 @@ class LayoutCompose {
     @Preview
     @Composable
     fun PreviewExercise() {
-        Exercise("AX1", "2")
+        Exercise(
+            workoutId = "AX1",
+            day = "2"
+        )
     }
 }
