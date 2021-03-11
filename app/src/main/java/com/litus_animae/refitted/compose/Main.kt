@@ -24,9 +24,9 @@ object Main {
                 val day = it.arguments?.getString("day")
                 if (workoutId != null && day != null)
                     Layout.Exercise(
-                        workoutId,
-                        day,
-                        model
+                        day = day,
+                        workoutId = workoutId,
+                        model = model
                     )
             }
         }
