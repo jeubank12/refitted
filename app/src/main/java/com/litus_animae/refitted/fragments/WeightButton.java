@@ -21,7 +21,7 @@ import com.litus_animae.refitted.databinding.FragmentWeightButton2Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton3Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton4Binding;
 import com.litus_animae.refitted.databinding.FragmentWeightButton5Binding;
-import com.litus_animae.refitted.models.ExerciseViewModel;
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -32,7 +32,7 @@ import java.util.Collection;
 
 /**
  * A simple {@link Fragment} subclass. Presents a widget of buttons that
- * call {@link ExerciseViewModel#updateWeightDisplay(double)} with their value
+ * call {@link ExerciseViewModelDeprecated#updateWeightDisplay(double)} with their value
  * Use the {@link WeightButton#newInstance} factory method to
  * create an instance of this fragment.
  */
@@ -52,7 +52,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     private MutableLiveData<double[]> buttonValues = new MutableLiveData<>();
     private MutableLiveData<Boolean> isPositive = new MutableLiveData<>();
     private boolean isDoubled = false;
-    private ExerciseViewModel model;
+    private ExerciseViewModelDeprecated model;
     private LiveData<String[]> buttonLabels;
 
     public WeightButton() {
@@ -106,7 +106,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModel.class);
+        model = ViewModelProviders.of(requireActivity()).get(ExerciseViewModelDeprecated.class);
         if (getArguments() != null) {
             setButtonValues(LAYOUT.valueOf(getArguments().getString(ARG_LAYOUT)),
                     (double[]) getArguments().getSerializable(ARG_VALUES));
@@ -205,7 +205,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
             binding.setLifecycleOwner(owner);
         }
 
-        abstract void setViewmodel(ExerciseViewModel model);
+        abstract void setViewmodel(ExerciseViewModelDeprecated model);
 
         abstract void setButtonLabels(LiveData<String[]> labels);
 
@@ -221,7 +221,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         genericBinding = new ButtonBinding(binding) {
 
             @Override
-            public void setViewmodel(ExerciseViewModel model) {
+            public void setViewmodel(ExerciseViewModelDeprecated model) {
                 binding.setViewmodel(model);
             }
 
@@ -243,7 +243,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         ButtonBinding genericBinding;
         genericBinding = new ButtonBinding(binding) {
             @Override
-            public void setViewmodel(ExerciseViewModel model) {
+            public void setViewmodel(ExerciseViewModelDeprecated model) {
                 binding.setViewmodel(model);
             }
 
@@ -265,7 +265,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         ButtonBinding genericBinding;
         genericBinding = new ButtonBinding(binding) {
             @Override
-            public void setViewmodel(ExerciseViewModel model) {
+            public void setViewmodel(ExerciseViewModelDeprecated model) {
                 binding.setViewmodel(model);
             }
 
@@ -287,7 +287,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         ButtonBinding genericBinding;
         genericBinding = new ButtonBinding(binding) {
             @Override
-            public void setViewmodel(ExerciseViewModel model) {
+            public void setViewmodel(ExerciseViewModelDeprecated model) {
                 binding.setViewmodel(model);
             }
 
@@ -308,7 +308,7 @@ public class WeightButton extends Fragment implements View.OnClickListener {
         ButtonBinding genericBinding;
         genericBinding = new ButtonBinding(binding) {
             @Override
-            public void setViewmodel(ExerciseViewModel model) {
+            public void setViewmodel(ExerciseViewModelDeprecated model) {
                 binding.setViewmodel(model);
             }
 

@@ -231,7 +231,7 @@
 
         <variable
             name="viewmodel"
-            type="com.litus_animae.refitted.models.ExerciseViewModel" />
+            type="com.litus_animae.refitted.models.ExerciseViewModelDeprecated" />
 
         <variable
             name="completeSetButtonText"

@@ -18,13 +18,13 @@ import com.litus_animae.refitted.fragments.ConfigureButtonsDialogFragment.Button
 import com.litus_animae.refitted.fragments.ConfigureButtonsDialogFragment.OnButtonConfigurationChangeListener
 import com.litus_animae.refitted.fragments.ExerciseHistoryDialogFragment
 import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.ExerciseViewModelDeprecated
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.*
 
 @AndroidEntryPoint
 class ExerciseDetailViewActivity : AppCompatActivity(), OnButtonConfigurationChangeListener {
-    private var model: ExerciseViewModel? = null
+    private var model: ExerciseViewModelDeprecated? = null
     private var workout: String? = null
     private var day = 0
     private var lowerFragment: ButtonsFragment? = null
@@ -62,7 +62,7 @@ class ExerciseDetailViewActivity : AppCompatActivity(), OnButtonConfigurationCha
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val viewmodel: ExerciseViewModel by viewModels()
+        val viewmodel: ExerciseViewModelDeprecated by viewModels()
         model = viewmodel
         val binding: ActivityExerciseDetailViewBinding = DataBindingUtil.setContentView(this, R.layout.activity_exercise_detail_view)
         binding.lifecycleOwner = this
