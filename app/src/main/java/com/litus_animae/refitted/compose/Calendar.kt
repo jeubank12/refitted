@@ -9,6 +9,7 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -19,21 +20,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.navigate
 import com.litus_animae.refitted.ExerciseDetailViewActivity
-import com.litus_animae.refitted.compose.CalendarComposable.Calendar
+import com.litus_animae.refitted.compose.Calendar.Calendar
 import com.litus_animae.refitted.models.WorkoutViewModel
-import java.time.Instant
 import java.util.*
 import kotlin.math.ceil
 import kotlin.math.min
 
-object CalendarComposable {
+object Calendar {
 
     @Composable
     fun Calendar(
+        navController: NavController,
         days: Int,
+        model: WorkoutViewModel = viewModel(),
         daysPerRow: Int = 7
     ) {
+        model.loadWorkoutDaysCompleted("AX1")
         // TODO adjust TextSize to handle 3 digit numbers
         val daysInCalendar = min(days, 99)
         val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
@@ -55,7 +60,7 @@ object CalendarComposable {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (it > daysInCalendar) Box {}
-                            else CalendarDayButton(it)
+                            else CalendarDayButton(navController, it, model)
                         }
                     }
                 }
@@ -64,11 +69,12 @@ object CalendarComposable {
     }
 
     @Composable
-    fun CalendarDayButton(
+    private fun CalendarDayButton(
+        navController: NavController,
         day: Int,
         workoutViewModel: WorkoutViewModel = viewModel()
     ) {
-        val context = LocalContext.current
+        // TODO move into viewModel
         val isCompletedState = Transformations.map(workoutViewModel.completedDays) { dayRecords ->
             val maxDay = dayRecords.keys.maxOrNull() ?: day
             val maxDayCompletionDate =
@@ -78,32 +84,13 @@ object CalendarComposable {
         }.observeAsState(initial = false)
         val isCompleted: Boolean by isCompletedState
         Button(
-            onClick = {
-                val intent = Intent(context, ExerciseDetailViewActivity::class.java)
-//            if (planSwitch != null && planSwitch.isChecked) {
-//                intent.putExtra("workout", "Inferno Size")
-//            } else {
-                intent.putExtra("workout", "AX1")
-//            }
-                intent.putExtra("day", day)
-                context.startActivity(intent)
-            },
+            onClick = { navController.navigate("exercise/AX1/$day") },
             colors = ButtonDefaults.buttonColors(backgroundColor = if (isCompleted) MaterialTheme.colors.secondary else MaterialTheme.colors.primary)
         ) {
             Text(
                 String.format("%d", day),
                 textAlign = TextAlign.Center
             )
-        }
-    }
-}
-
-class CalendarCompose {
-    @Preview
-    @Composable
-    fun PreviewCalendar() {
-        MaterialTheme(colors = Theme.lightColors) {
-            Calendar(84)
         }
     }
 }
