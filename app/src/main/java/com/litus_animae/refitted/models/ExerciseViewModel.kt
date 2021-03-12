@@ -33,7 +33,7 @@ class ExerciseViewModel @Inject constructor(
     val exerciseSet = Transformations.switchMap(currentExerciseIndex) {
         log.d(TAG, "Saw updated currentExerciseIndex $it")
         Transformations.switchMap(exercises) { sets ->
-            val currentSet = sets[it].set
+            val currentSet = sets.getOrNull(it)?.set
             log.d(TAG, "Current set is now: $currentSet")
             currentSet
         }
