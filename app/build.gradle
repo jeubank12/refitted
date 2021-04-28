@@ -55,18 +55,18 @@ android {
         kotlinCompilerExtensionVersion '1.0.0-beta01'
     }
     buildToolsVersion = '30.0.3'
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            freeCompilerArgs += [
-                    "-P",
-                    "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
-            ]
-        }
-    }
+//    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+//        kotlinOptions {
+//            freeCompilerArgs += [
+//                    "-P",
+//                    "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+//            ]
+//        }
+//    }
 }
 
 dependencies {
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.3.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.3.1'
     def room_version = '2.3.0-beta02'
     def android_core_version = '2.1.0'
     def hilt_compiler_version = '1.0.0-alpha03'
@@ -74,8 +74,8 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation "androidx.activity:activity-ktx:1.2.0"
-    implementation "androidx.fragment:fragment-ktx:1.3.0"
+    implementation "androidx.activity:activity-ktx:1.2.2"
+    implementation "androidx.fragment:fragment-ktx:1.3.3"
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     kapt 'com.android.databinding:compiler:3.1.4'
@@ -87,7 +87,7 @@ dependencies {
     implementation "androidx.work:work-runtime-ktx:2.5.0"
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation 'androidx.core:core-ktx:1.3.2'
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1"
 
     implementation 'androidx.paging:paging-common-ktx:2.1.2'
     implementation 'androidx.paging:paging-runtime-ktx:2.1.2'
@@ -120,9 +120,9 @@ dependencies {
 
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
 
-    implementation 'com.google.firebase:firebase-auth:20.0.3'
-    implementation 'com.google.firebase:firebase-firestore:22.1.1'
-    implementation 'com.google.firebase:firebase-analytics:18.0.2'
+    implementation 'com.google.firebase:firebase-auth:20.0.4'
+    implementation 'com.google.firebase:firebase-firestore:22.1.2'
+    implementation 'com.google.firebase:firebase-analytics:18.0.3'
 
     implementation "io.arrow-kt:arrow-fx:$arrow_version"
     implementation "io.arrow-kt:arrow-fx-kotlinx-coroutines:$arrow_version"
@@ -133,31 +133,30 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.9'
 
-    implementation 'androidx.compose.ui:ui:1.0.0-beta01'
+    implementation 'androidx.compose.ui:ui:1.0.0-beta05'
     // Tooling support (Previews, etc.)
-    debugImplementation 'androidx.compose.ui:ui-tooling:1.0.0-beta01'
-    debugImplementation "org.jetbrains.kotlin:kotlin-reflect:1.4.31"
+    debugImplementation 'androidx.compose.ui:ui-tooling:1.0.0-beta05'
+    debugImplementation "org.jetbrains.kotlin:kotlin-reflect:1.4.32"
     // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
-    implementation 'androidx.compose.foundation:foundation:1.0.0-beta01'
+    implementation 'androidx.compose.foundation:foundation:1.0.0-beta05'
     // Material Design
-    implementation 'androidx.compose.material:material:1.0.0-beta01'
+    implementation 'androidx.compose.material:material:1.0.0-beta05'
     // Material design icons
-    implementation 'androidx.compose.material:material-icons-core:1.0.0-beta01'
-    implementation 'androidx.compose.material:material-icons-extended:1.0.0-beta01'
+    implementation 'androidx.compose.material:material-icons-core:1.0.0-beta05'
+    implementation 'androidx.compose.material:material-icons-extended:1.0.0-beta05'
     // Integration with activities
-    implementation 'androidx.activity:activity-compose:1.3.0-alpha03'
+    implementation 'androidx.activity:activity-compose:1.3.0-alpha07'
     // Integration with ViewModels
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha02'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha04'
     // Integration with observables
-    implementation 'androidx.compose.runtime:runtime-livedata:1.0.0-beta01'
-    implementation "androidx.navigation:navigation-compose:1.0.0-alpha08"
+    implementation 'androidx.compose.runtime:runtime-livedata:1.0.0-beta05'
+    implementation "androidx.navigation:navigation-compose:1.0.0-alpha10"
 
     // UI Tests
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.0.0-beta01'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.0.0-beta05'
 }
 
 apply plugin: 'com.google.gms.google-services'
 repositories {
-    jcenter()
     mavenCentral()
 }
