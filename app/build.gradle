@@ -52,7 +52,7 @@ android {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.0.0-beta01'
+        kotlinCompilerExtensionVersion '1.0.5'
     }
     buildToolsVersion = '30.0.3'
 }
@@ -101,6 +101,7 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
     implementation 'com.amazonaws:aws-android-sdk-ddb-mapper:2.35.0'
+    implementation "aws.sdk.kotlin:dynamodb:0.4.0-alpha"
 
     implementation "com.google.dagger:hilt-android:$hilt_android_version"
     kapt "com.google.dagger:hilt-android-compiler:$hilt_android_version"
@@ -124,27 +125,28 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2-native-mt'
 
-    implementation 'androidx.compose.ui:ui:1.1.0-beta02'
+    implementation("androidx.compose.ui:ui:1.0.5")
     // Tooling support (Previews, etc.)
-    debugImplementation 'androidx.compose.ui:ui-tooling:1.1.0-beta02'
-    debugImplementation "org.jetbrains.kotlin:kotlin-reflect:1.5.30"
+    implementation("androidx.compose.ui:ui-tooling:1.0.5")
     // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
-    implementation 'androidx.compose.foundation:foundation:1.1.0-beta02'
+    implementation("androidx.compose.foundation:foundation:1.0.5")
     // Material Design
-    implementation 'androidx.compose.material:material:1.1.0-beta02'
+    implementation("androidx.compose.material:material:1.0.5")
     // Material design icons
-    implementation 'androidx.compose.material:material-icons-core:1.1.0-beta02'
-    implementation 'androidx.compose.material:material-icons-extended:1.1.0-beta02'
+    implementation("androidx.compose.material:material-icons-core:1.0.5")
+    implementation("androidx.compose.material:material-icons-extended:1.0.5")
+    // Integration with observables
+    implementation("androidx.compose.runtime:runtime-livedata:1.0.5")
+    implementation("androidx.compose.runtime:runtime-rxjava2:1.0.5")
     // Integration with activities
     implementation 'androidx.activity:activity-compose:1.4.0'
+    // Animations
+    implementation 'androidx.compose.animation:animation:1.0.5'
     // Integration with ViewModels
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0'
-    // Integration with observables
-    implementation 'androidx.compose.runtime:runtime-livedata:1.1.0-beta02'
-    implementation 'androidx.navigation:navigation-compose:2.4.0-beta02'
 
     // UI Tests
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.1.0-beta02'
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.0.5")
 }
 
 apply plugin: 'com.google.gms.google-services'
