@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.MaterialTheme
@@ -18,7 +20,6 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.litus_animae.refitted.compose.Layout
 import com.litus_animae.refitted.compose.Main
 import com.litus_animae.refitted.compose.Theme
 import com.litus_animae.refitted.models.WorkoutViewModel
@@ -26,15 +27,16 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class WorkoutCalendarViewActivity : AppCompatActivity() {
-    private var googleSignInOptions: GoogleSignInOptions? = null
-    private var mAuth: FirebaseAuth? = null
+    private lateinit var googleSignInOptions: GoogleSignInOptions
+    private lateinit var mAuth: FirebaseAuth
+    private lateinit var launchSignInForResult: ActivityResultLauncher<Intent>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val model: WorkoutViewModel by viewModels()
 
         model.loadWorkoutDaysCompleted("AX1")
 
-        setContent{
+        setContent {
             MaterialTheme(colors = Theme.darkColors) {
                 Main.Top()
             }
@@ -46,6 +48,18 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
             .requestProfile()
             .requestIdToken(getString(R.string.default_web_client_id))
             .build()
+
+        launchSignInForResult =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
+                if (result.resultCode == GoogleSignInStatusCodes.SUCCESS) {
+                    // The Task returned from this call is always completed, no need to attach
+                    // a listener.
+                    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    handleSignInResult(task)
+                }
+            }
+
         val currentUser = mAuth!!.currentUser
         if (currentUser != null) {
             updateUI(currentUser)
@@ -80,17 +94,6 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
             }
     }
 
-    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
-        if (requestCode == GoogleSignInStatusCodes.SUCCESS) {
-            // The Task returned from this call is always completed, no need to attach
-            // a listener.
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            handleSignInResult(task)
-        }
-    }
-
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)
@@ -108,9 +111,9 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
     }
 
     private fun doFullSignIn() {
-        val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions!!)
+        val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions)
         val signInIntent = mGoogleSignInClient.signInIntent
-        startActivityForResult(signInIntent, GoogleSignInStatusCodes.SUCCESS)
+        launchSignInForResult.launch(signInIntent)
     }
 
     override fun onResume() {
