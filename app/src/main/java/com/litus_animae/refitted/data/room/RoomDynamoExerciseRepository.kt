@@ -10,6 +10,7 @@ import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
@@ -18,6 +19,7 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.inject.Inject
 
+@FlowPreview
 class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext context: Context) :
     ExerciseRepository {
     private val applicationContext: WeakReference<Context> =

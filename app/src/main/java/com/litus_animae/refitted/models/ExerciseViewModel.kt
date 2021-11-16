@@ -6,10 +6,12 @@ import arrow.core.flattenOption
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import kotlin.math.max
 
+@FlowPreview
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,

@@ -60,11 +60,11 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
                 }
             }
 
-        val currentUser = mAuth!!.currentUser
+        val currentUser = mAuth.currentUser
         if (currentUser != null) {
-            updateUI(currentUser)
+            updateUI()
         } else {
-            val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions!!)
+            val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions)
             val silentSignInTask = mGoogleSignInClient.silentSignIn()
             if (silentSignInTask.isSuccessful) {
                 handleSignInResult(silentSignInTask)
@@ -77,13 +77,12 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
     private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount?) {
         Log.d(TAG, "firebaseAuthWithGoogle:" + acct!!.id)
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
-        mAuth!!.signInWithCredential(credential)
+        mAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task: Task<AuthResult?> ->
-                if (task.isSuccessful) {
+                if (task.isSuccessful && mAuth.currentUser != null) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
-                    val user = mAuth!!.currentUser
-                    updateUI(user)
+                    updateUI()
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -124,7 +123,7 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         editor.apply()
     }
 
-    private fun updateUI(account: FirebaseUser?) {
+    private fun updateUI() {
         try {
             val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
             val activityClass = Class.forName(
