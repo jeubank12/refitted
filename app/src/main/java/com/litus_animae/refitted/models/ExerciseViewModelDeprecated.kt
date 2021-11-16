@@ -4,7 +4,6 @@ import android.os.CountDownTimer
 import android.view.View
 import androidx.lifecycle.*
 import arrow.core.getOrElse
-import arrow.integrations.kotlinx.unsafeRunScoped
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
@@ -12,6 +11,9 @@ import com.litus_animae.refitted.util.ParameterizedResource
 import com.litus_animae.refitted.util.ParameterizedStringArrayResource
 import com.litus_animae.refitted.util.ParameterizedStringResource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -23,7 +25,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
 ) : ViewModel() {
     private var timer: CountDownTimer? = null
 
-    private val exerciseSets = exerciseRepo.exercises
+    private val exerciseSets = exerciseRepo.exercises.asLiveData(viewModelScope.coroutineContext)
     val exercise: LiveData<ExerciseSet> = Transformations.switchMap(
         exerciseSets
     ) { sets ->
@@ -34,13 +36,15 @@ class ExerciseViewModelDeprecated @Inject constructor(
                 exerciseIndex
             ) { index: Int ->
                 Transformations.map(
-                    sets[index].isActive
+                    sets[index].isActive.asLiveData(viewModelScope.coroutineContext)
                 ) { isActive ->
                     updateVisibleExercise(index, isActive)
                 }
             }
         }
     }
+    val exerciseSet = Transformations.switchMap(exercise) {it.exercise.asLiveData(viewModelScope.coroutineContext)}
+    val exerciseDescription = Transformations.map(exerciseSet) {it.description}
     val targetExerciseReps: LiveData<ParameterizedResource> =
         Transformations.map(exercise) { exercise ->
             if (exercise.reps < 0) {
@@ -74,7 +78,8 @@ class ExerciseViewModelDeprecated @Inject constructor(
     private val hasRightBool: MutableLiveData<Boolean> = MutableLiveData(true)
     val hasRight: LiveData<Int> =
         Transformations.map(hasRightBool) { enable: Boolean -> if (enable) View.VISIBLE else View.GONE }
-    private val exerciseRecords: LiveData<List<ExerciseRecord>> = exerciseRepo.records
+    private val exerciseRecords: LiveData<List<ExerciseRecord>> =
+        exerciseRepo.records.asLiveData(viewModelScope.coroutineContext)
     private val exerciseIndex = MutableLiveData(0)
     val weightDisplayValue = MediatorLiveData<String>()
     val repsDisplayValue = MediatorLiveData<String>()
@@ -93,7 +98,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
                 MutableLiveData(false)
             } else {
                 Transformations.switchMap(exercise) { exercise ->
-                    Transformations.switchMap(record.setsCount) { setsCompleted: Int ->
+                    Transformations.switchMap(record.setsCount.asLiveData(viewModelScope.coroutineContext)) { setsCompleted: Int ->
                         Transformations.map(timerMutableLiveData) { timer: CountDownTimer? ->
                             timer == null || setsCompleted < exercise.sets
                         }
@@ -122,7 +127,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
             } else {
                 Transformations.switchMap(timerMutableLiveData) { timer: CountDownTimer? ->
                     if (timer == null) {
-                        Transformations.switchMap(record.setsCount) { completeSetsCount: Int ->
+                        Transformations.switchMap(record.setsCount.asLiveData(viewModelScope.coroutineContext)) { completeSetsCount: Int ->
                             Transformations.map(exercise) { exercise: ExerciseSet ->
                                 _restMax.value = exercise.rest * 1000
                                 restRemaining.value = exercise.rest.toDouble()
@@ -206,7 +211,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
             if (record == null) {
                 MutableLiveData(formatWeightDisplay(defaultDbWeight))
             } else {
-                Transformations.map(record.latestSet) { latestSet: SetRecord? ->
+                Transformations.map(record.latestSet.asLiveData(viewModelScope.coroutineContext)) { latestSet: SetRecord? ->
                     if (latestSet != null) {
                         formatWeightDisplay(latestSet.weight)
                     } else {
@@ -220,10 +225,10 @@ class ExerciseViewModelDeprecated @Inject constructor(
             if (record == null) {
                 MutableLiveData(formatRepsDisplay(0))
             } else {
-                Transformations.switchMap(record.setsCount) { count: Int ->
+                Transformations.switchMap(record.setsCount.asLiveData(viewModelScope.coroutineContext)) { count: Int ->
                     if (count > 0) {
                         Transformations.map(
-                            record.getSet(-1)
+                            record.getSet(-1).asLiveData(viewModelScope.coroutineContext)
                         ) { latestSet: SetRecord? -> formatRepsDisplay(latestSet!!.reps) }
                     } else {
                         // TODO target set should be a livedata
@@ -274,8 +279,10 @@ class ExerciseViewModelDeprecated @Inject constructor(
     fun loadExercises(day: String, workoutId: String) {
         _isLoadingBool.value = true
 //        startLoad = Instant.now()
-        exerciseRepo.loadExercises(day, workoutId).unsafeRunScoped(viewModelScope) { res ->
-            res.mapLeft { ex -> log.e(TAG, "error loading exercises", ex) }
+        try {
+            viewModelScope.launch(Dispatchers.IO) { exerciseRepo.loadExercises(day, workoutId) }
+        } catch (ex: Throwable) {
+            log.e(TAG, "error loading exercises", ex)
         }
     }
 
@@ -316,7 +323,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
         val copyExerciseSets = exerciseSets.value
         if (copyExerciseSets == null || copyExerciseSets.isEmpty()) {
             log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default")
-            return ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), MutableLiveData())
+            return ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), flow { })
         }
         // TODO might be able to remove this since the method is only called by livedata transformation
         if (_isLoadingBool.value!!) {
@@ -413,8 +420,10 @@ class ExerciseViewModelDeprecated @Inject constructor(
             weight.toDouble(), reps.toInt(),
             exerciseSet
         )
-        exerciseRepo.storeSetRecord(newRecord).unsafeRunScoped(viewModelScope) { res ->
-            res.mapLeft { ex -> log.e(TAG, "error storing record", ex) }
+        try {
+            viewModelScope.launch(Dispatchers.IO) { exerciseRepo.storeSetRecord(newRecord) }
+        } catch (ex: Throwable) {
+            log.e(TAG, "error storing record", ex)
         }
 
         // TODO if this is superset part a then move to the next exercise
