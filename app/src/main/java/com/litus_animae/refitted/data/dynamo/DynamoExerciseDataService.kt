@@ -12,25 +12,32 @@ import com.litus_animae.refitted.models.DynamoExerciseSet
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.MutableExercise
 import com.litus_animae.refitted.models.RoomExerciseSet
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 @WorkerThread
 class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom) :
     DynamoDataService(applicationContext, room) {
     private var queryExpression: DynamoDBQueryExpression<DynamoExerciseSet>? = null
-    suspend fun execute(day: String, workoutId: String): Unit {
-        val keyValues = DynamoExerciseSet(workoutId)
-        val rangeCondition = Condition()
-            .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
-            .withAttributeValueList(AttributeValue().withS("$day."))
-        queryExpression = DynamoDBQueryExpression<DynamoExerciseSet>()
-            .withHashKeyValues(keyValues)
-            .withIndexName("Reverse-index")
-            .withRangeKeyCondition("Id", rangeCondition)
-            .withConsistentRead(false)
-        Log.i(TAG, "doInBackground: Sending query request to load day $day from workout $workoutId")
-        return connectAndRun()
+    suspend fun execute(day: String, workoutId: String) {
+        return withContext(Dispatchers.IO) {
+            val keyValues = DynamoExerciseSet(workoutId)
+            val rangeCondition = Condition()
+                .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
+                .withAttributeValueList(AttributeValue().withS("$day."))
+            queryExpression = DynamoDBQueryExpression<DynamoExerciseSet>()
+                .withHashKeyValues(keyValues)
+                .withIndexName("Reverse-index")
+                .withRangeKeyCondition("Id", rangeCondition)
+                .withConsistentRead(false)
+            Log.i(
+                TAG,
+                "doInBackground: Sending query request to load day $day from workout $workoutId"
+            )
+            connectAndRun()
+        }
     }
 
     override suspend fun runAfterConnect() {

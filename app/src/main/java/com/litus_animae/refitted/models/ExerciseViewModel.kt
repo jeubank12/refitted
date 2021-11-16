@@ -30,7 +30,7 @@ class ExerciseViewModel @Inject constructor(
         }
 
     val canMoveLeft =
-        currentExerciseIndex.map { it > 0 }.asLiveData(viewModelScope.coroutineContext)
+        currentExerciseIndex.map { it > 0 }
 
     fun moveLeft() {
         currentExerciseIndex.update { max(it - 1, 0) }
@@ -38,24 +38,23 @@ class ExerciseViewModel @Inject constructor(
 
     val canMoveRight = exercises.combine(currentExerciseIndex) { primaryExercises, idx ->
         idx < primaryExercises.size - 1
-    }.asLiveData(viewModelScope.coroutineContext)
+    }
 
     fun moveRight() {
         currentExerciseIndex.update{ max(it + 1, 0) }
     }
 
-    private val _exerciseSet = currentExerciseIndex.combineTransform(exercises) { idx, sets ->
+    val exerciseSet = currentExerciseIndex.combineTransform(exercises) { idx, sets ->
         log.d(TAG, "Saw updated currentExerciseIndex $idx")
         val currentSet = sets.getOrNull(idx)?.set ?: return@combineTransform
         log.d(TAG, "Current set is now: $currentSet")
         emit(currentSet)
     }.flattenConcat()
-    val exerciseSet = _exerciseSet.asLiveData(viewModelScope.coroutineContext)
 
-    val exercise = _exerciseSet.flatMapConcat {
+    val exercise = exerciseSet.flatMapConcat {
         log.d(TAG, "Getting exercise for ${it.id}")
         it.exercise
-    }.asLiveData(viewModelScope.coroutineContext)
+    }
 
     private class ExerciseInstruction(
         private val sets: NonEmptyList<ExerciseSet>
