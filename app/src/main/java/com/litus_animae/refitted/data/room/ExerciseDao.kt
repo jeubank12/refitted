@@ -1,27 +1,26 @@
 package com.litus_animae.refitted.data.room
 
-import androidx.lifecycle.LiveData
 import androidx.paging.DataSource
 import androidx.room.*
 import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
+import kotlinx.coroutines.flow.Flow
 import java.util.*
 
 @Dao
 interface ExerciseDao {
     @Query("select distinct step from exerciseset where day = :day and workout = :workout")
-    fun getSteps(day: String, workout: String): LiveData<List<String>>
+    fun getSteps(day: String, workout: String): Flow<List<String>>
 
     @Query("select * from exerciseset where day = :day and workout = :workout and step = :step")
-    fun getExerciseSet(day: String, workout: String, step: String): RoomExerciseSet?
+    fun getExerciseSet(day: String, workout: String, step: String): Flow<RoomExerciseSet?>
 
     @Query("select * from exerciseset where day = :day and workout = :workout and step in (:steps) order by step")
-    fun getExerciseSets(day: String, workout: String, vararg steps: String): LiveData<List<RoomExerciseSet>>
+    fun getExerciseSets(day: String, workout: String, vararg steps: String): Flow<List<RoomExerciseSet>>
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
-    fun getExercise(name: String, workout: String): LiveData<Exercise>
+    fun getExercise(name: String, workout: String): Flow<Exercise>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun storeExercise(exercise: Exercise)
@@ -36,10 +35,10 @@ interface ExerciseDao {
     }
 
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
-    fun getSetRecords(minDate: Date, targetExercise: String): LiveData<List<SetRecord>>
+    fun getSetRecords(minDate: Date, targetExercise: String): Flow<List<SetRecord>>
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    fun getLatestSetRecord(targetExercise: String): LiveData<SetRecord?>
+    fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
     fun getAllSetRecord(targetExercise: String): DataSource.Factory<Int, SetRecord>
@@ -49,7 +48,7 @@ interface ExerciseDao {
 
     @Query("select max(completed) as latest_completion, target_set from setrecord " +
             "where workout = :workout group by target_set")
-    fun getDayCompletedSets(workout: String): LiveData<List<ExerciseCompletionRecord>>
+    fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
 
     data class ExerciseCompletionRecord(@ColumnInfo(name = "latest_completion") val latestCompletion: Date,
                                         @ColumnInfo(name = "target_set") val dayAndSet: String) {

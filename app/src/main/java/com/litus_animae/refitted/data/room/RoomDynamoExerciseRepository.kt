@@ -2,12 +2,6 @@ package com.litus_animae.refitted.data.room
 
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
-import arrow.fx.IO
-import arrow.fx.extensions.fx
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.dynamo.DynamoExerciseDataService
 import com.litus_animae.refitted.models.ExerciseRecord
@@ -16,6 +10,8 @@ import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -28,83 +24,74 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         WeakReference(context.applicationContext)
     private val roomDb = RoomExerciseDataService.getExerciseRoom(applicationContext)
 
-    private var currentWorkout = MutableLiveData<String>()
-    override val workoutRecords = Transformations.switchMap(currentWorkout) {
+    private var currentWorkout = MutableStateFlow("")
+    override val workoutRecords = currentWorkout.flatMapConcat {
         roomDb.getExerciseDao().getDayCompletedSets(it)
     }
 
     data class WorkoutAndDay(val day: String, val workoutId: String)
 
-    private val currentWorkoutDay = MutableLiveData<WorkoutAndDay>()
-
-    override val exercises = MediatorLiveData<List<ExerciseSet>>()
-    override val records = Transformations.map(exercises, this::getRecordsForLoadedExercises)
+    private val currentWorkoutDay = MutableStateFlow(WorkoutAndDay("", ""))
 
     private val currentStepsSource =
-        Transformations.switchMap(currentWorkoutDay) {
-            Transformations.map(
-                roomDb.getExerciseDao().getSteps(it.day, it.workoutId)
-            ) { collection: List<String> ->
+        currentWorkoutDay.flatMapConcat {
+            roomDb.getExerciseDao().getSteps(it.day, it.workoutId).map { collection: List<String> ->
                 Log.i(TAG, "currentStepsSource: updated to workout ${it.workoutId}, day ${it.day}")
                 collection.toSet()
             }
         }
 
-    private val changedStepsSource: LiveData<Set<String>> =
-        Transformations.map(currentStepsSource) { stepKeys ->
+    private val changedStepsSource: Flow<Set<String>> =
+        currentStepsSource.flatMapConcat { stepKeys ->
             Log.i(TAG, "changedStepsSource: received new values for steps")
             if (stepKeys.isEmpty()) {
                 Log.i(TAG, "changedStepsSource: no keys loaded yet, waiting...")
-                emptySet()
+                flow { emit(emptySet<String>()) }
             } else {
-                val lastExercises = currentSetsSource.value
-                if (lastExercises != null && stepKeys.size == lastExercises.size
-                    && doListsFullyIntersect(stepKeys, lastExercises)
-                ) {
-                    Log.i(
-                        TAG,
-                        "changedStepsSource: exercise set numbers were updated, but there are no changes"
-                    )
-                    emptySet()
-                } else {
-                    if (lastExercises == null) {
+                currentSetsSource.map { lastExercises ->
+                    if (stepKeys.size == lastExercises.size && doListsFullyIntersect(
+                            stepKeys,
+                            lastExercises
+                        )
+                    ) {
                         Log.i(
                             TAG,
-                            "changedStepsSource: found exercise set numbers, updating the livedata"
+                            "changedStepsSource: exercise set numbers were updated, but there are no changes"
                         )
+                        emptySet()
                     } else {
                         Log.i(
                             TAG,
                             "changedStepsSource: found new exercise set numbers, updating the livedata"
                         )
+                        stepKeys
                     }
-                    stepKeys
                 }
             }
         }
 
-    private val currentSetsSource = Transformations.switchMap(currentWorkoutDay) {
-        Transformations.switchMap(
-            changedStepsSource
-        ) { steps: Set<String> ->
+    private val currentSetsSource =
+        currentWorkoutDay.combine(changedStepsSource) { workoutDay, steps ->
             Log.i(TAG, "currentSetsSource: steps updated, reloading sets")
-            roomDb.getExerciseDao().getExerciseSets(it.day, it.workoutId, *steps.toTypedArray())
-        }
-    }
+            roomDb.getExerciseDao()
+                .getExerciseSets(workoutDay.day, workoutDay.workoutId, *steps.toTypedArray())
+        }.flattenConcat()
 
-    init {
-        exercises.addSource(currentSetsSource) { exerciseSets: List<RoomExerciseSet> ->
-            updateExercisesWithMinimumChange(
-                exerciseSets
+    override val exercises = currentSetsSource.map {
+        it.sortedWith(compareByStep).map { exerciseSet ->
+            ExerciseSet(
+                roomExerciseSet = exerciseSet,
+                exercise = roomDb.getExerciseDao()
+                    .getExercise(exerciseSet.name, exerciseSet.workout)
             )
         }
     }
+    override val records = exercises.map(this::getRecordsForLoadedExercises)
 
-    override fun storeSetRecord(record: SetRecord): IO<Unit> {
-        return IO.fx {
-            continueOn(Dispatchers.IO)
+    override suspend fun storeSetRecord(record: SetRecord) {
+        withContext(Dispatchers.IO) {
             Log.d(TAG, "storing set record")
-            !effect { roomDb.getExerciseDao().storeExerciseRecord(record) }
+            roomDb.getExerciseDao().storeExerciseRecord(record)
             Log.d(TAG, "stored set record")
         }
     }
@@ -113,7 +100,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         currentWorkout.value = workoutId
     }
 
-    override fun loadExercises(day: String, workoutId: String): IO<Unit> {
+    override suspend fun loadExercises(day: String, workoutId: String) {
         Log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
         currentWorkoutDay.value = WorkoutAndDay(day, workoutId)
 
@@ -131,21 +118,6 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
     }
 
     private val compareByStep = Comparator.comparing(RoomExerciseSet::step)
-
-    private fun updateExercisesWithMinimumChange(exerciseSets: List<RoomExerciseSet>) {
-        Log.i(
-            TAG,
-            "updateExercisesWithMinimumChange: detected " + exerciseSets.size + " new exercise sets, loading exercise descriptions"
-        )
-
-        exercises.value = exerciseSets.sortedWith(compareByStep).map { exerciseSet ->
-            ExerciseSet(
-                roomExerciseSet = exerciseSet,
-                exercise = exercises.value?.find { oldVal -> oldVal.name == exerciseSet.name }?.exercise
-                    ?: roomDb.getExerciseDao().getExercise(exerciseSet.name, exerciseSet.workout)
-            )
-        }
-    }
 
     private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): List<ExerciseRecord> {
         Log.i(

@@ -1,13 +1,14 @@
 package com.litus_animae.refitted.models
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.toOption
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 data class ExerciseSet(private val roomExerciseSet: RoomExerciseSet,
-                       val exercise: LiveData<Exercise>) {
+                       val exercise: Flow<Exercise>
+) {
     val workout: String = roomExerciseSet.workout
     val day: String = roomExerciseSet.day
     val step: String = roomExerciseSet.step
@@ -21,7 +22,7 @@ data class ExerciseSet(private val roomExerciseSet: RoomExerciseSet,
     val repsUnit: String = roomExerciseSet.repsUnit
     val repsRange: Int = roomExerciseSet.repsRange
 
-    val isActive = MutableLiveData(true)
+    val isActive = MutableStateFlow(true)
 
     val exerciseName: String
         get() = if (name.isEmpty() || !name.contains("_")) ""

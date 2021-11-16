@@ -1,62 +1,76 @@
 package com.litus_animae.refitted.models
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import arrow.core.NonEmptyList
-import arrow.core.extensions.nonemptylist.foldable.get
-import arrow.core.getOrElse
-import arrow.integrations.kotlinx.unsafeRunScoped
-import arrow.syntax.collections.flatten
+import arrow.core.flattenOption
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
+import kotlin.math.max
 
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val log: LogUtil
 ) : ViewModel() {
-    private val currentExerciseIndex = MutableLiveData(0)
+    private val currentExerciseIndex = MutableStateFlow(0)
     private val exercises =
-        Transformations.map(exerciseRepo.exercises) { sets ->
+        exerciseRepo.exercises.map { sets ->
             log.d(TAG, "Received new set of exercises: $sets")
             val instructions = sets.groupBy { it.primaryStep }
                 .map { NonEmptyList.fromList(it.value) }
-                .flatten()
+                .flattenOption()
                 .map { ExerciseInstruction(it) }
             log.d(TAG, "Processed set of exercises to: $instructions")
             instructions
         }
-    val exerciseSet = Transformations.switchMap(currentExerciseIndex) {
-        log.d(TAG, "Saw updated currentExerciseIndex $it")
-        Transformations.switchMap(exercises) { sets ->
-            val currentSet = sets.getOrNull(it)?.set
-            log.d(TAG, "Current set is now: $currentSet")
-            currentSet
-        }
+
+    val canMoveLeft =
+        currentExerciseIndex.map { it > 0 }.asLiveData(viewModelScope.coroutineContext)
+
+    fun moveLeft() {
+        currentExerciseIndex.update { max(it - 1, 0) }
     }
-    val exercise = Transformations.switchMap(exerciseSet) {
+
+    val canMoveRight = exercises.combine(currentExerciseIndex) { primaryExercises, idx ->
+        idx < primaryExercises.size - 1
+    }.asLiveData(viewModelScope.coroutineContext)
+
+    fun moveRight() {
+        currentExerciseIndex.update{ max(it + 1, 0) }
+    }
+
+    private val _exerciseSet = currentExerciseIndex.combineTransform(exercises) { idx, sets ->
+        log.d(TAG, "Saw updated currentExerciseIndex $idx")
+        val currentSet = sets.getOrNull(idx)?.set ?: return@combineTransform
+        log.d(TAG, "Current set is now: $currentSet")
+        emit(currentSet)
+    }.flattenConcat()
+    val exerciseSet = _exerciseSet.asLiveData(viewModelScope.coroutineContext)
+
+    val exercise = _exerciseSet.flatMapConcat {
         log.d(TAG, "Getting exercise for ${it.id}")
         it.exercise
-    }
+    }.asLiveData(viewModelScope.coroutineContext)
 
     private class ExerciseInstruction(
         private val sets: NonEmptyList<ExerciseSet>
     ) {
         val hasAlternate = sets.size > 1
         val prefix = sets.head.primaryStep
-        private val activeIndex = MutableLiveData(1)
-        val set = Transformations.map(activeIndex) { sets.get(it.toLong()).getOrElse { sets.head } }
+        private val activeIndex = MutableStateFlow(1)
+        val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
     }
 
-    fun loadExercises(day: String, workoutId: String) {
+    suspend fun loadExercises(day: String, workoutId: String) {
 //        _isLoadingBool.value = true
 //        startLoad = Instant.now()
-        exerciseRepo.loadExercises(day, workoutId).unsafeRunScoped(viewModelScope) { res ->
-            res.mapLeft { ex -> log.e(ExerciseViewModel.TAG, "error loading exercises", ex) }
+        try {
+            exerciseRepo.loadExercises(day, workoutId)
+        } catch (ex: Throwable) {
+            log.e(TAG, "error loading exercises", ex)
         }
     }
 

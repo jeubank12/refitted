@@ -101,7 +101,6 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
     implementation 'com.amazonaws:aws-android-sdk-ddb-mapper:2.35.0'
-    implementation "aws.sdk.kotlin:dynamodb:0.4.0-alpha"
 
     implementation "com.google.dagger:hilt-android:$hilt_android_version"
     kapt "com.google.dagger:hilt-android-compiler:$hilt_android_version"
