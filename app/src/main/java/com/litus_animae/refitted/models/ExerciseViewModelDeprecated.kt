@@ -182,25 +182,25 @@ class ExerciseViewModelDeprecated @Inject constructor(
                 ) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
                     false
                 }
-                targetSet.exerciseName.toLowerCase()
-                    .contains("db") || targetSet.exerciseName.toLowerCase()
+                targetSet.exerciseName.lowercase()
+                    .contains("db") || targetSet.exerciseName.lowercase()
                     .contains("dumbbell") -> {
                     false
                 }
-                targetSet.exerciseName.toLowerCase()
-                    .contains("bb") || targetSet.exerciseName.toLowerCase()
-                    .contains("barbell") || targetSet.exerciseName.toLowerCase()
+                targetSet.exerciseName.lowercase()
+                    .contains("bb") || targetSet.exerciseName.lowercase()
+                    .contains("barbell") || targetSet.exerciseName.lowercase()
                     .contains("press") -> {
                     true
                 }
-                targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase()
+                targetSet.note.lowercase().contains("db") || targetSet.note.lowercase()
                     .contains("dumbbell") -> {
                     false
                 }
                 else -> {
-                    targetSet.note.toLowerCase().contains("bb") ||
-                            targetSet.note.toLowerCase().contains("barbell") ||
-                            targetSet.note.toLowerCase().contains("press")
+                    targetSet.note.lowercase().contains("bb") ||
+                            targetSet.note.lowercase().contains("barbell") ||
+                            targetSet.note.lowercase().contains("press")
                 }
             }
         }
@@ -256,21 +256,21 @@ class ExerciseViewModelDeprecated @Inject constructor(
             ) || targetSet.repsUnit.equals("seconds", ignoreCase = true) -> {
                 defaultBodyweight
             }
-            targetSet.exerciseName.toLowerCase()
-                .contains("db") || targetSet.exerciseName.toLowerCase().contains("dumbbell") -> {
+            targetSet.exerciseName.lowercase()
+                .contains("db") || targetSet.exerciseName.lowercase().contains("dumbbell") -> {
                 defaultDbWeight
             }
-            targetSet.exerciseName.toLowerCase()
-                .contains("bb") || targetSet.exerciseName.toLowerCase()
-                .contains("barbell") || targetSet.exerciseName.toLowerCase().contains("press") -> {
+            targetSet.exerciseName.lowercase()
+                .contains("bb") || targetSet.exerciseName.lowercase()
+                .contains("barbell") || targetSet.exerciseName.lowercase().contains("press") -> {
                 defaultBbWeight
             }
-            targetSet.note.toLowerCase().contains("db") || targetSet.note.toLowerCase()
+            targetSet.note.lowercase().contains("db") || targetSet.note.lowercase()
                 .contains("dumbbell") -> {
                 defaultDbWeight
             }
-            targetSet.note.toLowerCase().contains("bb") || targetSet.note.toLowerCase()
-                .contains("barbell") || targetSet.note.toLowerCase().contains("press") -> {
+            targetSet.note.lowercase().contains("bb") || targetSet.note.lowercase()
+                .contains("barbell") || targetSet.note.lowercase().contains("press") -> {
                 defaultBbWeight
             }
             else -> defaultBodyweight
