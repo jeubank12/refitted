@@ -43,37 +43,37 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
             }
         }
 
-    private val changedStepsSource: Flow<Set<String>> =
-        currentStepsSource.flatMapConcat { stepKeys ->
-            Log.i(TAG, "changedStepsSource: received new values for steps")
-            if (stepKeys.isEmpty()) {
-                Log.i(TAG, "changedStepsSource: no keys loaded yet, waiting...")
-                flow { emit(emptySet<String>()) }
-            } else {
-                currentSetsSource.map { lastExercises ->
-                    if (stepKeys.size == lastExercises.size && doListsFullyIntersect(
-                            stepKeys,
-                            lastExercises
-                        )
-                    ) {
-                        Log.i(
-                            TAG,
-                            "changedStepsSource: exercise set numbers were updated, but there are no changes"
-                        )
-                        emptySet()
-                    } else {
-                        Log.i(
-                            TAG,
-                            "changedStepsSource: found new exercise set numbers, updating the livedata"
-                        )
-                        stepKeys
-                    }
-                }
-            }
-        }
+//    private val changedStepsSource: Flow<Set<String>> =
+//        currentStepsSource.flatMapConcat { stepKeys ->
+//            Log.i(TAG, "changedStepsSource: received new values for steps")
+//            if (stepKeys.isEmpty()) {
+//                Log.i(TAG, "changedStepsSource: no keys loaded yet, waiting...")
+//                flow { emit(emptySet<String>()) }
+//            } else {
+//                currentSetsSource.map { lastExercises ->
+//                    if (stepKeys.size == lastExercises.size && doListsFullyIntersect(
+//                            stepKeys,
+//                            lastExercises
+//                        )
+//                    ) {
+//                        Log.i(
+//                            TAG,
+//                            "changedStepsSource: exercise set numbers were updated, but there are no changes"
+//                        )
+//                        emptySet()
+//                    } else {
+//                        Log.i(
+//                            TAG,
+//                            "changedStepsSource: found new exercise set numbers, updating the livedata"
+//                        )
+//                        stepKeys
+//                    }
+//                }
+//            }
+//        }
 
     private val currentSetsSource =
-        currentWorkoutDay.combine(changedStepsSource) { workoutDay, steps ->
+        currentWorkoutDay.combine(currentStepsSource) { workoutDay, steps ->
             Log.i(TAG, "currentSetsSource: steps updated, reloading sets")
             roomDb.getExerciseDao()
                 .getExerciseSets(workoutDay.day, workoutDay.workoutId, *steps.toTypedArray())

@@ -13,7 +13,9 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.Layout.Exercise
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutViewModel
+import kotlinx.coroutines.FlowPreview
 
+@FlowPreview
 object Layout {
 
     @Composable
@@ -51,6 +53,7 @@ object Layout {
     }
 }
 
+@FlowPreview
 class LayoutCompose {
 
     @Preview
