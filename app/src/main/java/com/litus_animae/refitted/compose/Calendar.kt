@@ -85,10 +85,16 @@ object Calendar {
             day == maxDay || currentDayCompletionDate.after(maxDayCompletionDate)
         }.observeAsState(initial = false)
         val isCompleted: Boolean by isCompletedState
+        val borderColor = if (isCompleted) MaterialTheme.colors.secondaryVariant else MaterialTheme.colors.primaryVariant
+        val backgroundColor = when {
+            isLastViewedDay -> MaterialTheme.colors.background
+            isCompleted -> MaterialTheme.colors.secondary
+            else -> MaterialTheme.colors.primary
+        }
         Button(
             onClick = { navigateToDay(day.toString()) },
-            border = if (isLastViewedDay) BorderStroke(2.dp, MaterialTheme.colors.primaryVariant) else null,
-            colors = ButtonDefaults.buttonColors(backgroundColor = if (isCompleted) MaterialTheme.colors.secondary else MaterialTheme.colors.primary)
+            border = if (isLastViewedDay) BorderStroke(2.dp, borderColor) else null,
+            colors = ButtonDefaults.buttonColors(backgroundColor = backgroundColor)
         ) {
             Text(
                 String.format("%d", day),
