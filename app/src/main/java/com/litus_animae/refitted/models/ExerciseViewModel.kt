@@ -17,8 +17,7 @@ class ExerciseViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val log: LogUtil
 ) : ViewModel() {
-    private val currentExerciseIndex = MutableStateFlow(0)
-    private val exercises =
+    val exercises =
         exerciseRepo.exercises.map { sets ->
             log.d(TAG, "Received new set of exercises: $sets")
             val instructions = sets.groupBy { it.primaryStep }
@@ -29,34 +28,7 @@ class ExerciseViewModel @Inject constructor(
             instructions
         }
 
-    val canMoveLeft =
-        currentExerciseIndex.map { it > 0 }
-
-    fun moveLeft() {
-        currentExerciseIndex.update { max(it - 1, 0) }
-    }
-
-    val canMoveRight = exercises.combine(currentExerciseIndex) { primaryExercises, idx ->
-        idx < primaryExercises.size - 1
-    }
-
-    fun moveRight() {
-        currentExerciseIndex.update{ max(it + 1, 0) }
-    }
-
-    val exerciseSet = currentExerciseIndex.combineTransform(exercises) { idx, sets ->
-        log.d(TAG, "Saw updated currentExerciseIndex $idx")
-        val currentSet = sets.getOrNull(idx)?.set ?: return@combineTransform
-        log.d(TAG, "Current set is now: $currentSet")
-        emit(currentSet)
-    }.flattenConcat()
-
-    val exercise = exerciseSet.flatMapConcat {
-        log.d(TAG, "Getting exercise for ${it.id}")
-        it.exercise
-    }
-
-    private class ExerciseInstruction(
+    class ExerciseInstruction(
         private val sets: NonEmptyList<ExerciseSet>
     ) {
         val hasAlternate = sets.size > 1
