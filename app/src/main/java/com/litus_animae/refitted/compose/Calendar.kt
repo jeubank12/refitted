@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.compose
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +17,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.litus_animae.refitted.models.WorkoutViewModel
 import java.util.*
 import kotlin.math.ceil
@@ -26,12 +26,15 @@ object Calendar {
 
     @Composable
     fun Calendar(
-        navController: NavController,
+        navigateToDay: (String) -> Unit,
+        workout: String,
         days: Int,
+        lastViewedDay: String,
         model: WorkoutViewModel = viewModel(),
-        daysPerRow: Int = 7
     ) {
-        model.loadWorkoutDaysCompleted("AX1")
+        model.loadWorkoutDaysCompleted(workout)
+        // TODO handle different screen sizes
+        val daysPerRow = 7
         // TODO adjust TextSize to handle 3 digit numbers
         val daysInCalendar = min(days, 99)
         val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
@@ -53,7 +56,12 @@ object Calendar {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (it > daysInCalendar) Box {}
-                            else CalendarDayButton(navController, it, model)
+                            else CalendarDayButton(
+                                navigateToDay,
+                                it,
+                                it.toString() == lastViewedDay,
+                                model
+                            )
                         }
                     }
                 }
@@ -63,8 +71,9 @@ object Calendar {
 
     @Composable
     private fun CalendarDayButton(
-        navController: NavController,
+        navigateToDay: (String) -> Unit,
         day: Int,
+        isLastViewedDay: Boolean,
         workoutViewModel: WorkoutViewModel = viewModel()
     ) {
         // TODO move into viewModel
@@ -77,7 +86,8 @@ object Calendar {
         }.observeAsState(initial = false)
         val isCompleted: Boolean by isCompletedState
         Button(
-            onClick = { navController.navigate("exercise/AX1/$day") },
+            onClick = { navigateToDay(day.toString()) },
+            border = if (isLastViewedDay) BorderStroke(2.dp, MaterialTheme.colors.primaryVariant) else null,
             colors = ButtonDefaults.buttonColors(backgroundColor = if (isCompleted) MaterialTheme.colors.secondary else MaterialTheme.colors.primary)
         ) {
             Text(
