@@ -18,13 +18,14 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.litus_animae.refitted.compose.Main
 import com.litus_animae.refitted.compose.Theme
+import com.litus_animae.refitted.compose.Top
 import com.litus_animae.refitted.models.WorkoutViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.FlowPreview
 
+@FlowPreview
 @AndroidEntryPoint
 class WorkoutCalendarViewActivity : AppCompatActivity() {
     private lateinit var googleSignInOptions: GoogleSignInOptions
@@ -38,7 +39,7 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
 
         setContent {
             MaterialTheme(colors = Theme.darkColors) {
-                Main.Top()
+                Top()
             }
         }
 
