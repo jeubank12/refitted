@@ -19,7 +19,10 @@ import kotlinx.coroutines.FlowPreview
 object Layout {
 
     @Composable
-    fun Main(navController: NavController, model: WorkoutViewModel = viewModel()) {
+    fun Main(navigateToWorkoutDay: (WorkoutDay) -> Unit, lastWorkout: WorkoutDay, model: WorkoutViewModel = viewModel()) {
+        val defaultWorkout = stringResource(R.string.ax1)
+        val navigateToDay: (String) -> Unit =
+            { navigateToWorkoutDay(WorkoutDay(defaultWorkout, it)) }
         Scaffold(topBar = {
             TopAppBar(
                 title = { Text("Athlean-X") },
@@ -27,8 +30,10 @@ object Layout {
             )
         }) {
             Calendar.Calendar(
-                navController,
+                navigateToDay,
+                defaultWorkout,
                 days = 84,
+                lastWorkout.day,
                 model
             )
         }
