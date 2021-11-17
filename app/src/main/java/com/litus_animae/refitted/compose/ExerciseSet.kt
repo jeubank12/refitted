@@ -7,46 +7,38 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.ExerciseViewModel
-import kotlinx.coroutines.FlowPreview
 
-@FlowPreview
-object ExerciseSet {
-
-    @Composable
-    fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit) {
-        Column(Modifier.fillMaxSize()) {
-            Row(Modifier.weight(3f)) {}
-            Row(Modifier.weight(1f).fillMaxWidth()) {
-                Column(Modifier.weight(1f)) {
-                    val enabled = currentIndex > 0
-                    Button(
-                        onClick = { updateIndex(currentIndex - 1) },
-                        enabled = enabled
-                    ) {
-                        val text = stringResource(id = R.string.move_left)
-                        Text(text)
-                    }
+@Composable
+fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.weight(3f)) {}
+        Row(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                val enabled = currentIndex > 0
+                Button(
+                    onClick = { updateIndex(currentIndex - 1) },
+                    enabled = enabled
+                ) {
+                    val text = stringResource(id = R.string.move_left)
+                    Text(text)
                 }
-                Column(Modifier.weight(3f)) {
-                }
-                Column(Modifier.weight(1f)) {
-                    val enabled = currentIndex < maxIndex
-                    Button(
-                        onClick = { updateIndex(currentIndex + 1) },
-                        enabled = enabled
-                    ) {
-                        val text = stringResource(id = R.string.move_right)
-                        Text(text)
-                    }
+            }
+            Column(Modifier.weight(3f)) {
+            }
+            Column(Modifier.weight(1f)) {
+                val enabled = currentIndex < maxIndex
+                Button(
+                    onClick = { updateIndex(currentIndex + 1) },
+                    enabled = enabled
+                ) {
+                    val text = stringResource(id = R.string.move_right)
+                    Text(text)
                 }
             }
         }
