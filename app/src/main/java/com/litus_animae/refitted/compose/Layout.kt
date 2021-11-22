@@ -49,20 +49,10 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
             backgroundColor = MaterialTheme.colors.primary
         )
     }) {
-        DetailView(
+        ExerciseDetail(
             day = day,
             workoutId = workoutId,
             model
         )
     }
-}
-
-@FlowPreview
-@Preview
-@Composable
-fun PreviewExercise() {
-    Exercise(
-        workoutId = "AX1",
-        day = "2"
-    )
 }

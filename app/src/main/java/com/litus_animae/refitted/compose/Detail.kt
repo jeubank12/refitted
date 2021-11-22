@@ -8,42 +8,77 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.*
 import kotlinx.coroutines.FlowPreview
 
 @FlowPreview
 @Composable
-fun DetailView(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
+fun ExerciseDetail(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
     LaunchedEffect(day, workoutId) {
         model.loadExercises(day, workoutId)
     }
     var index by remember { mutableStateOf(0) }
     val instructions by model.exercises.collectAsState(initial = emptyList())
     val exerciseSet by instructions.getOrNull(index)?.set?.collectAsState(initial = null)
-        ?: remember { mutableStateOf<com.litus_animae.refitted.models.ExerciseSet?>(null) }
-    val exercise by exerciseSet?.exercise?.collectAsState(initial = null)
-        ?: remember { mutableStateOf<Exercise?>(null) }
+        ?: remember { mutableStateOf<ExerciseSet?>(null) }
+    DetailView(index, instructions.size - 1, exerciseSet) {
+        index = it
+    }
+}
+
+@Preview(showBackground = true)
+@FlowPreview
+@Composable
+fun PreviewDetailView() {
+    val exerciseSet = getExampleExerciseSet()
+    MaterialTheme(Theme.darkColors) {
+        DetailView(
+            index = 0,
+            maxIndex = 2,
+            exerciseSet = exerciseSet
+        ) {}
+    }
+}
+
+@FlowPreview
+@Composable
+fun DetailView(
+    index: Int,
+    maxIndex: Int,
+    exerciseSet: ExerciseSet?,
+    updateIndex: (Int) -> Unit
+) {
     Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {
-            ExerciseDetails(exercise, exerciseSet)
+            ExerciseDetails(exerciseSet)
         }
         Row(Modifier.weight(1f)) {
-            ExerciseSetView(index, instructions.size - 1) { updatedIndex ->
-                index = updatedIndex
-            }
+            ExerciseSetView(index, maxIndex, updateIndex)
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewExerciseDetails() {
+    val exerciseSet = getExampleExerciseSet()
+    MaterialTheme(Theme.darkColors) {
+        ExerciseDetails(
+            exerciseSet = exerciseSet
+        )
     }
 }
 
 @Composable
 private fun ExerciseDetails(
-    exercise: Exercise?,
-    exerciseSet: com.litus_animae.refitted.models.ExerciseSet?
+    exerciseSet: ExerciseSet?
 ) {
+    val exercise by exerciseSet?.exercise?.collectAsState(initial = null)
+        ?: remember { mutableStateOf<Exercise?>(null) }
     Column {
         Row {
             if (exerciseSet != null)
