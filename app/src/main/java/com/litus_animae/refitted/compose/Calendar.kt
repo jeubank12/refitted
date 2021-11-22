@@ -20,7 +20,7 @@ import java.util.*
 import kotlin.math.ceil
 import kotlin.math.min
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun PreviewCalendar() {
     MaterialTheme(colors = Theme.darkColors) {
