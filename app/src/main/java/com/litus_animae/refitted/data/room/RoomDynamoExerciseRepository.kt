@@ -10,6 +10,7 @@ import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
@@ -19,6 +20,7 @@ import java.time.ZoneOffset
 import java.util.*
 import javax.inject.Inject
 
+@ExperimentalCoroutinesApi
 @FlowPreview
 class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext context: Context) :
     ExerciseRepository {
@@ -26,8 +28,8 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         WeakReference(context.applicationContext)
     private val roomDb = RoomExerciseDataService.getExerciseRoom(applicationContext)
 
-    private var currentWorkout = MutableStateFlow("")
-    override val workoutRecords = currentWorkout.flatMapConcat {
+    private val currentWorkout = MutableStateFlow("")
+    override val workoutRecords = currentWorkout.flatMapLatest {
         roomDb.getExerciseDao().getDayCompletedSets(it)
     }
 
@@ -36,11 +38,14 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
     private val currentWorkoutDay = MutableStateFlow(WorkoutAndDay("", ""))
 
     private val currentStepsSource =
-        currentWorkoutDay.flatMapConcat {
+        currentWorkoutDay.flatMapLatest {
+            Log.i(TAG, "currentStepsSource: updated to workout ${it.workoutId}, day ${it.day}")
             roomDb.getExerciseDao().getSteps(it.day, it.workoutId).map { collection: List<String> ->
-                Log.i(TAG, "currentStepsSource: updated to workout ${it.workoutId}, day ${it.day}")
+                Log.i(TAG, "currentStepsSource: detected update in steps on workout ${it.workoutId}, day ${it.day}: $collection")
                 collection.toSet()
-            }
+            }.distinctUntilChanged()
+                .onEach { _ ->
+                    Log.i(TAG, "currentStepsSource: propagating change in steps on workout ${it.workoutId}, day ${it.day}") }
         }
 
     private val currentSetsSource =
@@ -48,9 +53,11 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
             Log.i(TAG, "currentSetsSource: steps updated, reloading sets")
             roomDb.getExerciseDao()
                 .getExerciseSets(workoutDay.day, workoutDay.workoutId, *steps.toTypedArray())
-        }.flattenConcat()
+                .onEach {
+                    Log.i(TAG, "currentSetsSource: steps updated, reloaded sets") }
+        }.flatMapLatest { it }
 
-    override val exercises = currentSetsSource.map {
+    override val exercises = currentSetsSource.mapLatest {
         it.sortedWith(compareByStep).map { exerciseSet ->
             ExerciseSet(
                 roomExerciseSet = exerciseSet,

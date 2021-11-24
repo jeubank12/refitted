@@ -7,6 +7,10 @@ object AndroidLogUtil : LogUtil{
         Log.d(tag, msg)
     }
 
+    override fun i(tag: String, msg: String) {
+        Log.i(tag, msg)
+    }
+
     override fun w(tag: String, msg: String) {
         Log.w(tag, msg)
     }

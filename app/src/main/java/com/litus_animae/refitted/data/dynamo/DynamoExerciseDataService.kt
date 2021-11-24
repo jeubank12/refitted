@@ -45,13 +45,15 @@ class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom)
             val result = dynamoDb!!.query(DynamoExerciseSet::class.java, queryExpression!!)
             Log.i(TAG, "doInBackground: Query results received")
             Log.i(TAG, "doInBackground: storing " + result.size + " values in cache")
-            result.toList().asFlow().map { set ->
+            result.toList().map { set ->
                 try {
+                    Log.i(TAG, "doInBackground: loading ${set.workout}: ${set.name} from dynamo")
                     val mutableExercise =
                         dynamoDb!!.load(MutableExercise::class.java, set.name, set.workout)
                     val exercise = Exercise(mutableExercise)
                     val exerciseSet = RoomExerciseSet(set)
                     room.getExerciseDao().storeExerciseAndSet(exercise, exerciseSet)
+                    Log.i(TAG, "doInBackground: stored ${set.workout}: ${set.name} in cache")
                 } catch (ex: Throwable) {
                     Log.e(TAG, "doInBackground: error loading Exercise", ex)
                     val exercise = Exercise(set.workout, set.name)
