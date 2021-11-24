@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.lang.Exception
 
 @WorkerThread
 class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom) :
@@ -54,14 +55,14 @@ class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom)
                     val exerciseSet = RoomExerciseSet(set)
                     room.getExerciseDao().storeExerciseAndSet(exercise, exerciseSet)
                     Log.i(TAG, "doInBackground: stored ${set.workout}: ${set.name} in cache")
-                } catch (ex: Throwable) {
+                } catch (ex: Exception) {
                     Log.e(TAG, "doInBackground: error loading Exercise", ex)
                     val exercise = Exercise(set.workout, set.name)
                     val exerciseSet = RoomExerciseSet(set)
                     room.getExerciseDao().storeExerciseAndSet(exercise, exerciseSet)
                 }
             }
-        } catch (ex: Throwable) {
+        } catch (ex: Exception) {
             Log.e(TAG, "doInBackground: error loading ExerciseSets", ex)
         }
     }
