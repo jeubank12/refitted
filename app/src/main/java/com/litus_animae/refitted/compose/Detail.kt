@@ -19,7 +19,7 @@ import kotlinx.coroutines.FlowPreview
 
 @FlowPreview
 @Composable
-fun ExerciseDetail(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
+fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
     var index by remember { mutableStateOf(0) }
     val instructions by model.exercises.collectAsState(initial = emptyList())
     val exerciseSet by instructions.getOrNull(index)?.set?.collectAsState(initial = null)
@@ -77,7 +77,7 @@ private fun ExerciseDetails(
     Column {
         Row {
             if (exerciseSet != null)
-                Text(text = exerciseSet.name, style = MaterialTheme.typography.h6)
+                Text(text = exerciseSet.exerciseName, style = MaterialTheme.typography.h6)
         }
         Row(Modifier.padding(vertical = 5.dp)) {
             Column(Modifier.weight(1f)) {
@@ -98,7 +98,7 @@ private fun ExerciseDetails(
         }
         Row(Modifier.padding(vertical = 5.dp)) {
             if (exerciseSet != null) {
-                val exercise by exerciseSet.exercise.collectAsState(initial = null)
+                val exercise by exerciseSet.exercise.collectAsState()
                 Text(exercise?.description ?: "")
             }
         }

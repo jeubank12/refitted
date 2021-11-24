@@ -18,7 +18,7 @@ class ExampleExerciseProvider : PreviewParameterProvider<ExerciseSet> {
                 workout = "AX1",
                 day = "1",
                 step = "1",
-                name = "Do Things",
+                name = "A_Do Things",
                 note = "Alternate reps (10-12 in each direction) for each completed set. If using a resistance band, step further away to increase tension on band and difficulty of exercise",
                 reps = -1,
                 sets = 3,

@@ -9,11 +9,8 @@ import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -63,6 +60,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
                 roomExerciseSet = exerciseSet,
                 exercise = roomDb.getExerciseDao()
                     .getExercise(exerciseSet.name, exerciseSet.workout)
+                    .stateIn(CoroutineScope(Dispatchers.IO))
             )
         }
     }
