@@ -9,7 +9,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
-import kotlin.math.max
 
 @FlowPreview
 @HiltViewModel
@@ -24,6 +23,7 @@ class ExerciseViewModel @Inject constructor(
                 .map { NonEmptyList.fromList(it.value) }
                 .flattenOption()
                 .map { ExerciseInstruction(it) }
+            if (instructions.isNotEmpty()) _isLoading.value = false
             log.i(TAG, "Processed set of exercises to: $instructions")
             instructions
         }
@@ -37,11 +37,14 @@ class ExerciseViewModel @Inject constructor(
         val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
     }
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     suspend fun loadExercises(day: String, workoutId: String) {
-//        _isLoadingBool.value = true
-//        startLoad = Instant.now()
+        _isLoading.value = true
         try {
             exerciseRepo.loadExercises(day, workoutId)
+            _isLoading.value = false
         } catch (ex: Throwable) {
             log.e(TAG, "error loading exercises", ex)
         }
