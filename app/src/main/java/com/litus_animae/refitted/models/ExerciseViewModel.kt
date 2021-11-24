@@ -19,12 +19,12 @@ class ExerciseViewModel @Inject constructor(
 ) : ViewModel() {
     val exercises =
         exerciseRepo.exercises.map { sets ->
-            log.d(TAG, "Received new set of exercises: $sets")
+            log.i(TAG, "Received new set of exercises: $sets")
             val instructions = sets.groupBy { it.primaryStep }
                 .map { NonEmptyList.fromList(it.value) }
                 .flattenOption()
                 .map { ExerciseInstruction(it) }
-            log.d(TAG, "Processed set of exercises to: $instructions")
+            log.i(TAG, "Processed set of exercises to: $instructions")
             instructions
         }
 
