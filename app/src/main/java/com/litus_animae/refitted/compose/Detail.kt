@@ -9,10 +9,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.models.*
+import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 
 @FlowPreview
@@ -33,8 +35,7 @@ fun ExerciseDetail(day: String, workoutId: String, model: ExerciseViewModel = vi
 @Preview(showBackground = true)
 @FlowPreview
 @Composable
-fun PreviewDetailView() {
-    val exerciseSet = getExampleExerciseSet()
+fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
     MaterialTheme(Theme.darkColors) {
         DetailView(
             index = 0,
@@ -64,8 +65,7 @@ fun DetailView(
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewExerciseDetails() {
-    val exerciseSet = getExampleExerciseSet()
+fun PreviewExerciseDetails(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
     MaterialTheme(Theme.darkColors) {
         ExerciseDetails(
             exerciseSet = exerciseSet
@@ -77,8 +77,6 @@ fun PreviewExerciseDetails() {
 private fun ExerciseDetails(
     exerciseSet: ExerciseSet?
 ) {
-    val exercise by exerciseSet?.exercise?.collectAsState(initial = null)
-        ?: remember { mutableStateOf<Exercise?>(null) }
     Column {
         Row {
             if (exerciseSet != null)
@@ -87,9 +85,12 @@ private fun ExerciseDetails(
         Row(Modifier.padding(vertical = 5.dp)) {
             Column(Modifier.weight(1f)) {
                 val label = stringResource(id = R.string.target_reps)
-                if (exerciseSet == null)
-                    Text(label)
-                else Text("$label ${exerciseSet.reps}")
+                val toFailureLabel = stringResource(id = R.string.to_failure)
+                when {
+                    exerciseSet == null -> Text(label)
+                    exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
+                    else -> Text("$label ${exerciseSet.reps}")
+                }
             }
             Column(Modifier.weight(1f)) {
                 val label = stringResource(id = R.string.target_sets)
@@ -99,7 +100,10 @@ private fun ExerciseDetails(
             }
         }
         Row(Modifier.padding(vertical = 5.dp)) {
-            Text(exercise?.description ?: "")
+            if (exerciseSet != null) {
+                val exercise by exerciseSet.exercise.collectAsState(initial = null)
+                Text(exercise?.description ?: "")
+            }
         }
         Row(Modifier.padding(vertical = 5.dp)) {
             Text(exerciseSet?.note ?: "")
