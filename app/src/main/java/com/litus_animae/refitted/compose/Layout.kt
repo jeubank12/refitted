@@ -5,10 +5,10 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
@@ -43,16 +43,24 @@ fun Main(
 fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
     val title = stringResource(id = R.string.app_name)
     val dayWord = stringResource(id = R.string.day)
+    val isLoading by model.isLoading.collectAsState()
+    LaunchedEffect(day, workoutId) {
+        model.loadExercises(day, workoutId)
+    }
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("$title: $workoutId $dayWord $day") },
             backgroundColor = MaterialTheme.colors.primary
         )
     }) {
-        ExerciseDetail(
-            day = day,
-            workoutId = workoutId,
-            model
-        )
+        if (isLoading) {
+            LoadingView()
+        } else {
+            ExerciseDetail(
+                day = day,
+                workoutId = workoutId,
+                model
+            )
+        }
     }
 }

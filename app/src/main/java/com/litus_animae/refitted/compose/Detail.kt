@@ -20,9 +20,6 @@ import kotlinx.coroutines.FlowPreview
 @FlowPreview
 @Composable
 fun ExerciseDetail(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
-    LaunchedEffect(day, workoutId) {
-        model.loadExercises(day, workoutId)
-    }
     var index by remember { mutableStateOf(0) }
     val instructions by model.exercises.collectAsState(initial = emptyList())
     val exerciseSet by instructions.getOrNull(index)?.set?.collectAsState(initial = null)
