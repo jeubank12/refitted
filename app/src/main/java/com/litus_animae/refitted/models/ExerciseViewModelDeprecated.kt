@@ -12,6 +12,7 @@ import com.litus_animae.refitted.util.ParameterizedStringArrayResource
 import com.litus_animae.refitted.util.ParameterizedStringResource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.util.*
@@ -44,7 +45,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
         }
     }
     val exerciseSet = Transformations.switchMap(exercise) {it.exercise.asLiveData(viewModelScope.coroutineContext)}
-    val exerciseDescription = Transformations.map(exerciseSet) {it.description}
+    val exerciseDescription = Transformations.map(exerciseSet) {it?.description}
     val targetExerciseReps: LiveData<ParameterizedResource> =
         Transformations.map(exercise) { exercise ->
             if (exercise.reps < 0) {
@@ -323,7 +324,7 @@ class ExerciseViewModelDeprecated @Inject constructor(
         val copyExerciseSets = exerciseSets.value
         if (copyExerciseSets == null || copyExerciseSets.isEmpty()) {
             log.d(TAG, "updateVisibleExercise: exerciseSets is not yet set, returning default")
-            return ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), flow { })
+            return ExerciseSet(RoomExerciseSet(DynamoExerciseSet()), MutableStateFlow(null))
         }
         // TODO might be able to remove this since the method is only called by livedata transformation
         if (_isLoadingBool.value!!) {

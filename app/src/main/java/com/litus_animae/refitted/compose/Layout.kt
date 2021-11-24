@@ -56,11 +56,7 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
         if (isLoading) {
             LoadingView()
         } else {
-            ExerciseDetail(
-                day = day,
-                workoutId = workoutId,
-                model
-            )
+            ExerciseDetail(model)
         }
     }
 }
