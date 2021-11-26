@@ -1,11 +1,12 @@
 package com.litus_animae.refitted.models;
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.util.InstantExecutorExtension
-import com.litus_animae.util.getOrAwaitValue
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
@@ -14,56 +15,70 @@ class ExerciseRecordTest {
     private var testExerciseSet = ExerciseSet(RoomExerciseSet(DynamoExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
-    )), MutableLiveData())
+    )), MutableStateFlow(null)
+    )
     private val testSets = mutableListOf<SetRecord>()
-    private val liveDataList = MutableLiveData<List<SetRecord>>(testSets)
+    private val flowList = MutableStateFlow<List<SetRecord>>(testSets)
 
     private val testExerciseRecord = ExerciseRecord(testExerciseSet,
-        Transformations.map(liveDataList){ list: List<SetRecord> -> list.last()},
+        flowList.map { list: List<SetRecord> -> list.last()},
         TestDataSourceFactory(testSets),
-        liveDataList)
+        flowList)
 
     @Test
     fun getSetsCountEmpty() {
-        assertThat(liveDataList.value).isNotNull()
-        assertThat(liveDataList.value?.size).isEqualTo(0)
-        assertThat(testExerciseRecord.setsCount.getOrAwaitValue()).isEqualTo(0)
+        runBlocking {
+            assertThat(flowList.value).isNotNull()
+            assertThat(flowList.value.size).isEqualTo(0)
+            assertThat(testExerciseRecord.setsCount.first()).isEqualTo(0)
+        }
     }
 
     @Test
     fun getSetsCountNull() {
         val testExerciseRecord = ExerciseRecord(testExerciseSet,
-                Transformations.map(liveDataList){ list: List<SetRecord> -> list.last()},
+                flowList.map{ list: List<SetRecord> -> list.last()},
                 TestDataSourceFactory(testSets),
-                MutableLiveData<List<SetRecord>>(null))
-        assertThat(testExerciseRecord.setsCount.getOrAwaitValue()).isEqualTo(0)
+                MutableStateFlow(emptyList())
+        )
+        runBlocking {
+            assertThat(testExerciseRecord.setsCount.first()).isEqualTo(0)
+        }
     }
 
     @Test
     fun getSetsCount() {
-        testSets.add(SetRecord(0.0, 0, testExerciseSet))
-        testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.setsCount.getOrAwaitValue()).isEqualTo(2)
+        runBlocking {
+            testSets.add(SetRecord(0.0, 0, testExerciseSet))
+            testSets.add(SetRecord(0.0, 1, testExerciseSet))
+            assertThat(testExerciseRecord.setsCount.first()).isEqualTo(2)
+        }
     }
 
     @Test
     fun getLastSet() {
-        testSets.add(SetRecord(0.0, 0, testExerciseSet))
-        testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.getSet(-1).getOrAwaitValue()?.reps).isEqualTo(1)
+        runBlocking {
+            testSets.add(SetRecord(0.0, 0, testExerciseSet))
+            testSets.add(SetRecord(0.0, 1, testExerciseSet))
+            assertThat(testExerciseRecord.getSet(-1).first()?.reps).isEqualTo(1)
+        }
     }
 
     @Test
     fun getFirstSet() {
-        testSets.add(SetRecord(0.0, 0, testExerciseSet))
-        testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.getSet(0).getOrAwaitValue()?.reps).isEqualTo(0)
+        runBlocking {
+            testSets.add(SetRecord(0.0, 0, testExerciseSet))
+            testSets.add(SetRecord(0.0, 1, testExerciseSet))
+            assertThat(testExerciseRecord.getSet(0).first()?.reps).isEqualTo(0)
+        }
     }
 
     @Test
     fun getBeyondLastSet() {
-        testSets.add(SetRecord(0.0, 0, testExerciseSet))
-        testSets.add(SetRecord(0.0, 1, testExerciseSet))
-        assertThat(testExerciseRecord.getSet(2).getOrAwaitValue()).isNull()
+        runBlocking {
+            testSets.add(SetRecord(0.0, 0, testExerciseSet))
+            testSets.add(SetRecord(0.0, 1, testExerciseSet))
+            assertThat(testExerciseRecord.getSet(2).first()).isNull()
+        }
     }
 }

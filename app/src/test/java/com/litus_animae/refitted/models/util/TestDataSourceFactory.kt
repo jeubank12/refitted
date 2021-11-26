@@ -3,7 +3,7 @@ package com.litus_animae.refitted.models.util
 import androidx.paging.DataSource
 import androidx.paging.PositionalDataSource
 
-class LiveDataSource<T>(val dataSource: List<T>) :
+class LiveDataSource<T : Any>(val dataSource: List<T>) :
         PositionalDataSource<T>() {
     override fun loadRange(params: LoadRangeParams,
                            callback: LoadRangeCallback<T>) {
@@ -16,7 +16,7 @@ class LiveDataSource<T>(val dataSource: List<T>) :
     }
 }
 
-class TestDataSourceFactory<T>(private val dataSource: List<T>):
+class TestDataSourceFactory<T : Any>(private val dataSource: List<T>):
         DataSource.Factory<Int, T>() {
 
     override fun create(): DataSource<Int, T> {
