@@ -1,28 +1,25 @@
 package com.litus_animae.refitted.data
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import arrow.fx.IO
-import arrow.fx.extensions.fx
 import com.litus_animae.refitted.data.room.ExerciseDao
 import com.litus_animae.refitted.models.ExerciseRecord
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.SetRecord
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class InMemoryExerciseRepository(
     private val initialExercises: List<ExerciseSet> = emptyList(),
     private val initialRecords: List<ExerciseRecord> = emptyList()
 ) : ExerciseRepository {
-    private val exerciseList = MutableLiveData<List<ExerciseSet>>()
-    private val recordList = MutableLiveData<List<ExerciseRecord>>()
+    private val exerciseList = MutableStateFlow(initialExercises)
+    private val recordList = MutableStateFlow(initialRecords)
 
-    override fun loadExercises(day: String, workoutId: String) =
-        IO.fx {
-            recordList.postValue(initialRecords)
-            exerciseList.postValue(initialExercises)
-        }
+    override suspend fun loadExercises(day: String, workoutId: String) {
+        recordList.value = initialRecords
+        exerciseList.value = initialExercises
+    }
 
-    override fun storeSetRecord(record: SetRecord): IO<Unit> {
+    override suspend fun storeSetRecord(record: SetRecord) {
         TODO("Not yet implemented")
     }
 
@@ -30,8 +27,8 @@ class InMemoryExerciseRepository(
         TODO("Not yet implemented")
     }
 
-    override val exercises: LiveData<List<ExerciseSet>> = exerciseList
-    override val records: LiveData<List<ExerciseRecord>> = recordList
-    override val workoutRecords: LiveData<List<ExerciseDao.ExerciseCompletionRecord>>
+    override val exercises: Flow<List<ExerciseSet>> = exerciseList
+    override val records: Flow<List<ExerciseRecord>> = recordList
+    override val workoutRecords: Flow<List<ExerciseDao.ExerciseCompletionRecord>>
         get() = TODO("Not yet implemented")
 }
