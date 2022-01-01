@@ -79,7 +79,7 @@ fun Calendar(
 }
 
 private fun isDayComplete(day: Int, completedDays: Map<Int, Date>): Boolean {
-    val maxDay = completedDays.keys.maxOrNull() ?: day
+    val maxDay = completedDays.keys.maxOrNull() ?: return false
     val maxDayCompletionDate =
         completedDays.getOrDefault(maxDay, Date(1L))
     val currentDayCompletionDate = completedDays.getOrDefault(day, Date(0L))
