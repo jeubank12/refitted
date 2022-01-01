@@ -9,22 +9,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.compose.model.Weight
 import java.text.DecimalFormat
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.math.withSign
 
 @Composable
-fun WeightButtons(initialWeight: Double) {
-    var weight by remember(initialWeight) {
-        mutableStateOf(initialWeight)
-    }
+fun WeightButtons(weight: Weight) {
+    val displayedWeight by weight.value
     Row {
         Column(Modifier.weight(3f)) {
-            ButtonSet(-1) {
-                if (it.sign < 0 && weight < it.absoluteValue) weight = 0.0
-                else weight += it
-            }
+            ButtonSet(-1, weight::update)
         }
         Column(
             Modifier
@@ -33,10 +29,10 @@ fun WeightButtons(initialWeight: Double) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.End
         ) {
-            Text(String.format("%.1f", weight))
+            Text(String.format("%.1f", displayedWeight))
         }
         Column(Modifier.weight(3f)) {
-            ButtonSet(1) { weight += it }
+            ButtonSet(1, weight::update)
         }
     }
 }
@@ -75,8 +71,9 @@ private fun WeightButton(weight: Double, onClick: (Double) -> Unit) {
 @Preview(heightDp = 300)
 fun PreviewWeightButtons() {
     MaterialTheme(Theme.lightColors) {
+        val weight = remember { Weight(10.5)}
         Column(Modifier.fillMaxSize()) {
-            WeightButtons(10.5)
+            WeightButtons(weight)
         }
     }
 }
