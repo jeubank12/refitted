@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.model
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
