@@ -11,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.model.WorkoutDay
+import com.litus_animae.refitted.compose.state.WorkoutDay
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.FlowPreview
