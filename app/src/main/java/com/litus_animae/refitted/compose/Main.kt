@@ -11,7 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.model.WorkoutDay
+import com.litus_animae.refitted.compose.state.WorkoutDay
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.FlowPreview

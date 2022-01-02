@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose.model
+package com.litus_animae.refitted.compose.state
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
