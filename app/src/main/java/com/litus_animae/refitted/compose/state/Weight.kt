@@ -8,7 +8,7 @@ import kotlin.math.sign
 class Weight(initialValue: Double) {
     private var weight = mutableStateOf(initialValue)
     val value: State<Double> = weight
-    fun update(change: Double) {
+    fun plus(change: Double) {
         if (change.sign < 0 && weight.value < change.absoluteValue) weight.value = 0.0
         else weight.value += change
     }

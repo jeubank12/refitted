@@ -21,19 +21,19 @@ fun WeightButtons(weight: Weight) {
     val displayedWeight by weight.value
     Row {
         Column(Modifier.weight(3f)) {
-            ButtonSet(-1, weight::update)
+            ButtonSet(-1, weight::plus)
         }
         Column(
             Modifier
                 .weight(2f)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.End
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(String.format("%.1f", displayedWeight))
         }
         Column(Modifier.weight(3f)) {
-            ButtonSet(1, weight::update)
+            ButtonSet(1, weight::plus)
         }
     }
 }
