@@ -1,8 +1,11 @@
 package com.litus_animae.refitted.models
 
-import androidx.lifecycle.*
+import android.util.Log
+import androidx.lifecycle.ViewModel
 import arrow.core.NonEmptyList
+import arrow.core.firstOrNone
 import arrow.core.flattenOption
+import arrow.core.getOrElse
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +31,14 @@ class ExerciseViewModel @Inject constructor(
             instructions
         }
 
+    fun recordsForSet(set: ExerciseSet): Flow<ExerciseRecord> {
+        return exerciseRepo.records.mapNotNull { allRecords ->
+            allRecords.firstOrNull {
+                it.targetSet.id == set.id
+            }
+        }
+    }
+
     class ExerciseInstruction(
         private val sets: NonEmptyList<ExerciseSet>
     ) {
@@ -48,6 +59,10 @@ class ExerciseViewModel @Inject constructor(
         } catch (ex: Throwable) {
             log.e(TAG, "error loading exercises", ex)
         }
+    }
+
+    suspend fun saveExercise(record: SetRecord) {
+        exerciseRepo.storeSetRecord(record)
     }
 
     companion object {

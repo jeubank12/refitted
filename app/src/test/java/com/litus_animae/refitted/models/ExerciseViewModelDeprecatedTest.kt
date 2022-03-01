@@ -13,6 +13,7 @@ import com.litus_animae.refitted.util.TestLogUtil
 import com.litus_animae.util.InstantExecutorExtension
 import com.litus_animae.util.getOrAwaitValue
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -287,7 +288,7 @@ internal class ExerciseViewModelDeprecatedTest {
                 initialExercises = listOf(exercise),
                 initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
-                        latestSet = MutableStateFlow(null),
+                        latestSet = emptyFlow(),
                         sets = MutableStateFlow(emptyList()),
                         allSets = TestDataSourceFactory(emptyList())
                 ))
@@ -306,7 +307,7 @@ internal class ExerciseViewModelDeprecatedTest {
                 initialExercises = listOf(exercise),
                 initialRecords = listOf(ExerciseRecord(
                         targetSet = exercise,
-                        latestSet = MutableStateFlow(null),
+                        latestSet = emptyFlow(),
                         sets = MutableStateFlow(emptyList()),
                         allSets = TestDataSourceFactory(emptyList())
                 ))
@@ -372,7 +373,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -395,7 +396,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -418,7 +419,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -441,7 +442,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -464,7 +465,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -487,7 +488,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -510,7 +511,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -533,7 +534,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -556,7 +557,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))
@@ -579,7 +580,7 @@ internal class ExerciseViewModelDeprecatedTest {
                         initialExercises = listOf(exercise),
                         initialRecords = listOf(ExerciseRecord(
                                 targetSet = exercise,
-                                latestSet = MutableStateFlow(null),
+                                latestSet = emptyFlow(),
                                 sets = MutableStateFlow(emptyList()),
                                 allSets = TestDataSourceFactory(emptyList())
                         ))

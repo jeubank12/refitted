@@ -13,11 +13,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import arrow.core.Option
+import arrow.core.getOrElse
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.state.Record
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.*
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 
 @FlowPreview
 @Composable
@@ -32,26 +35,69 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
         LoadingView()
     } else {
         val currentSet = exerciseSet!!
-        val setRecords = records.getOrElse(index) { mutableStateListOf() }
-        // TODO update weight with last record/setting/best default
-        val currentRecord =
-            setRecords.firstOrNull { !it.stored } ?: Record(25.0, currentSet.reps, currentSet)
+        var storedRecords by remember(currentSet) {
+            mutableStateOf(
+                ExerciseRecord(
+                    currentSet,
+                    emptyFlow(),
+                    EmptyDataSourceFactory(emptyList()),
+                    emptyFlow()
+                )
+            )
+        }
+        LaunchedEffect(currentSet) {
+            model.recordsForSet(currentSet).collect { storedRecords = it }
+        }
+        // TODO update default weight with best default
+        val defaultRecord = Record(25.0, currentSet.reps, currentSet)
+        val lastExerciseRecord by storedRecords.latestSet.collectAsState(initial = null)
+        val lastStoredRecord = Option.fromNullable(lastExerciseRecord).map {
+            Record(it.weight, it.reps, currentSet, stored = true)
+        }.getOrElse { defaultRecord }
+        val setRecords = records.getOrElse(index) { mutableStateListOf(lastStoredRecord) }
+        val unsavedRecord = setRecords.firstOrNull { !it.stored }
+        val lastRecord = setRecords.last().copy(stored = false)
+        val currentRecord = unsavedRecord ?: lastRecord
+
+        val scope = rememberCoroutineScope()
         DetailView(
             index,
             instructions.size - 1,
             currentSet,
-            currentRecord
-        ) { newIndex, updatedRecord ->
-            if (records.getOrNull(index) != null)
-                if (setRecords.firstOrNull { !it.stored } != null)
-                    setRecords[setRecords.lastIndex] = updatedRecord
-                else
-                    setRecords.add(updatedRecord)
-            else
-                records.add(index, mutableStateListOf(updatedRecord))
-            index = newIndex
-        }
+            currentRecord,
+            updateIndex = { newIndex, updatedRecord ->
+                saveRecordInState(records, index, setRecords, updatedRecord)
+                index = newIndex
+            },
+            onSave = { updatedRecord ->
+                val savedRecord = updatedRecord.copy(stored = true)
+                saveRecordInState(records, index, setRecords, savedRecord)
+                scope.launch {
+                    model.saveExercise(
+                        SetRecord(
+                            savedRecord.weight,
+                            savedRecord.reps,
+                            savedRecord.set
+                        )
+                    )
+                }
+            })
     }
+}
+
+private fun saveRecordInState(
+    records: SnapshotStateList<SnapshotStateList<Record>>,
+    index: Int,
+    setRecords: SnapshotStateList<Record>,
+    savedRecord: Record
+) {
+    if (records.getOrNull(index) != null)
+        if (setRecords.firstOrNull { !it.stored } != null)
+            setRecords[setRecords.lastIndex] = savedRecord
+        else
+            setRecords.add(savedRecord)
+    else
+        records.add(index, mutableStateListOf(savedRecord))
 }
 
 @Preview(showBackground = true)
@@ -62,8 +108,9 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
             index = 0,
             maxIndex = 2,
             exerciseSet = exerciseSet,
-            record = Record(25.0, exerciseSet.reps, exerciseSet)
-        ) { _, _ -> }
+            record = Record(25.0, exerciseSet.reps, exerciseSet),
+            updateIndex = { _, _ -> },
+            onSave = { })
     }
 }
 
@@ -73,14 +120,15 @@ fun DetailView(
     maxIndex: Int,
     exerciseSet: ExerciseSet,
     record: Record,
-    updateIndex: (Int, Record) -> Unit
+    updateIndex: (Int, Record) -> Unit,
+    onSave: (Record) -> Unit
 ) {
     Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {
             ExerciseDetails(exerciseSet)
         }
         Row(Modifier.weight(1f)) {
-            ExerciseSetView(exerciseSet, record, index, maxIndex, updateIndex)
+            ExerciseSetView(exerciseSet, record, index, maxIndex, updateIndex, onSave)
         }
     }
 }
