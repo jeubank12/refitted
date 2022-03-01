@@ -13,13 +13,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
+import com.litus_animae.refitted.models.ExerciseSet
 
 @Composable
-fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit) {
-    val weight = remember { Weight(0.0) }
-    val reps = remember { Repetitions(0) }
+fun ExerciseSetView(
+    exerciseSet: ExerciseSet,
+    record: Record,
+    currentIndex: Int,
+    maxIndex: Int,
+    updateIndex: (Int, Record) -> Unit
+) {
+    val weight = remember(exerciseSet, record) { Weight(record.weight) }
+    val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
+    val saveWeight by weight.value
+    val saveReps by reps.value
     Column {
         Row(Modifier.weight(3f)) {
             Column(Modifier.weight(4f)) {
@@ -37,7 +47,12 @@ fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit
             ) {
                 val enabled = currentIndex > 0
                 Button(
-                    onClick = { updateIndex(currentIndex - 1) },
+                    onClick = {
+                        updateIndex(
+                            currentIndex - 1,
+                            record.copy(weight = saveWeight, reps = saveReps)
+                        )
+                    },
                     enabled = enabled
                 ) {
                     val text = stringResource(id = R.string.move_left)
@@ -52,7 +67,12 @@ fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit
             ) {
                 val enabled = currentIndex < maxIndex
                 Button(
-                    onClick = { updateIndex(currentIndex + 1) },
+                    onClick = {
+                        updateIndex(
+                            currentIndex + 1,
+                            record.copy(weight = saveWeight, reps = saveReps)
+                        )
+                    },
                     enabled = enabled
                 ) {
                     val text = stringResource(id = R.string.move_right)
@@ -62,9 +82,7 @@ fun ExerciseSetView(currentIndex: Int, maxIndex: Int, updateIndex: (Int) -> Unit
         }
         Row(Modifier.weight(1f)) {
             Button(onClick = {}, Modifier.fillMaxWidth()) {
-                val storeWeight by weight.value
-                val storeReps by reps.value
-                Text("Will store: $storeWeight lbs $storeReps reps")
+                Text("Will store: $saveWeight lbs $saveReps reps")
             }
         }
     }
@@ -79,7 +97,12 @@ fun PreviewExerciseSetDetails() {
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            ExerciseSetView(currentIndex = 5, maxIndex = 5) { }
+            ExerciseSetView(
+                exampleExerciseSet,
+                Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
+                currentIndex = 5,
+                maxIndex = 5
+            ) { _, _ -> }
         }
     }
 }
