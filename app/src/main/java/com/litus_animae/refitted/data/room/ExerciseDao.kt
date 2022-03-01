@@ -37,8 +37,8 @@ interface ExerciseDao {
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
     fun getSetRecords(minDate: Date, targetExercise: String): Flow<List<SetRecord>>
 
-    @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
+    @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit 1")
+    fun getLatestSetRecord(targetExercise: String): Flow<SetRecord>
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
     fun getAllSetRecord(targetExercise: String): DataSource.Factory<Int, SetRecord>

@@ -24,7 +24,8 @@ fun ExerciseSetView(
     record: Record,
     currentIndex: Int,
     maxIndex: Int,
-    updateIndex: (Int, Record) -> Unit
+    updateIndex: (Int, Record) -> Unit,
+    onSave: (Record) -> Unit
 ) {
     val weight = remember(exerciseSet, record) { Weight(record.weight) }
     val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
@@ -81,7 +82,10 @@ fun ExerciseSetView(
             }
         }
         Row(Modifier.weight(1f)) {
-            Button(onClick = {}, Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { onSave(record.copy(weight = saveWeight, reps = saveReps)) },
+                Modifier.fillMaxWidth()
+            ) {
                 Text("Will store: $saveWeight lbs $saveReps reps")
             }
         }
@@ -101,8 +105,10 @@ fun PreviewExerciseSetDetails() {
                 exampleExerciseSet,
                 Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
                 currentIndex = 5,
-                maxIndex = 5
-            ) { _, _ -> }
+                maxIndex = 5,
+                updateIndex = { _, _ -> },
+                onSave = {}
+            )
         }
     }
 }

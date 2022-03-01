@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.map
 
 class ExerciseRecord(
     val targetSet: ExerciseSet,
-    val latestSet: Flow<SetRecord?>,
+    val latestSet: Flow<SetRecord>,
     val allSets: DataSource.Factory<Int, SetRecord>,
     val sets: Flow<List<SetRecord>>
 ) {
