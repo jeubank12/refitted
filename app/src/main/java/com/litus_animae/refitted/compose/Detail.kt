@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -13,6 +14,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
@@ -24,38 +26,61 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
     val instructions by model.exercises.collectAsState(initial = emptyList())
     val exerciseSet by instructions.getOrNull(index)?.set?.collectAsState(initial = null)
         ?: remember { mutableStateOf<ExerciseSet?>(null) }
-    DetailView(index, instructions.size - 1, exerciseSet) {
-        index = it
+    val records = remember { mutableStateListOf<SnapshotStateList<Record>>() }
+
+    if (exerciseSet == null) {
+        LoadingView()
+    } else {
+        val currentSet = exerciseSet!!
+        val setRecords = records.getOrElse(index) { mutableStateListOf() }
+        // TODO update weight with last record/setting/best default
+        val currentRecord =
+            setRecords.firstOrNull { !it.stored } ?: Record(25.0, currentSet.reps, currentSet)
+        DetailView(
+            index,
+            instructions.size - 1,
+            currentSet,
+            currentRecord
+        ) { newIndex, updatedRecord ->
+            if (records.getOrNull(index) != null)
+                if (setRecords.firstOrNull { !it.stored } != null)
+                    setRecords[setRecords.lastIndex] = updatedRecord
+                else
+                    setRecords.add(updatedRecord)
+            else
+                records.add(index, mutableStateListOf(updatedRecord))
+            index = newIndex
+        }
     }
 }
 
 @Preview(showBackground = true)
-@FlowPreview
 @Composable
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
     MaterialTheme(Theme.darkColors) {
         DetailView(
             index = 0,
             maxIndex = 2,
-            exerciseSet = exerciseSet
-        ) {}
+            exerciseSet = exerciseSet,
+            record = Record(25.0, exerciseSet.reps, exerciseSet)
+        ) { _, _ -> }
     }
 }
 
-@FlowPreview
 @Composable
 fun DetailView(
     index: Int,
     maxIndex: Int,
-    exerciseSet: ExerciseSet?,
-    updateIndex: (Int) -> Unit
+    exerciseSet: ExerciseSet,
+    record: Record,
+    updateIndex: (Int, Record) -> Unit
 ) {
     Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {
             ExerciseDetails(exerciseSet)
         }
         Row(Modifier.weight(1f)) {
-            ExerciseSetView(index, maxIndex, updateIndex)
+            ExerciseSetView(exerciseSet, record, index, maxIndex, updateIndex)
         }
     }
 }
