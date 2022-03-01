@@ -7,7 +7,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -16,54 +15,66 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import java.time.Instant
 
 @Composable
-fun Timer(running: Boolean, millisToElapse: Long, debugView: Boolean = false) {
-    val startTime = rememberSaveable(running, Instant::toEpochMilli) {
+fun Timer(
+    running: Boolean,
+    millisToElapse: Long,
+    resolutionMillis: Long = 100,
+    countDown: Boolean = false,
+    debugView: Boolean = false,
+    onFinish: () -> Unit = {}
+) {
+    val startTime = remember(running) {
         Instant.now()
     }
-    var isRunning by rememberSaveable(running) { mutableStateOf(running) }
+    var isRunning by remember(running) { mutableStateOf(running) }
     val timerScope = rememberCoroutineScope()
-    val elapsedMillis by flow {
-        while (isRunning) {
-            val elapsed = Instant.now().toEpochMilli() - startTime.toEpochMilli()
-            if (elapsed > millisToElapse) {
-                isRunning = false
-                emit(millisToElapse)
-            } else {
-                emit(Instant.now().toEpochMilli() - startTime.toEpochMilli())
-                delay(100)
+    var elapsedMillis by remember(running) { mutableStateOf(0L) }
+    LaunchedEffect(running, elapsedMillis) {
+        if (isRunning) {
+            timerScope.launch {
+                delay(resolutionMillis)
+                val nowElapsed = Instant.now().toEpochMilli() - startTime.toEpochMilli()
+                if (nowElapsed > millisToElapse) {
+                    isRunning = false
+                    elapsedMillis = millisToElapse
+                    onFinish()
+                } else {
+                    elapsedMillis = nowElapsed
+                }
             }
         }
-    }.collectAsState(initial = 0L, timerScope.coroutineContext)
+    }
     if (debugView) {
         Column {
-            drawTimer(millisToElapse, elapsedMillis)
+            drawTimer(millisToElapse, elapsedMillis, countDown)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Running: $running")
                 Text("IsRunning: $isRunning")
                 Text("millisToElapse: $millisToElapse")
-                Text("elapsedMillis: ${elapsedMillis.toString(6)}")
+                Text("elapsedMillis: $elapsedMillis")
             }
         }
     } else {
-        drawTimer(millisToElapse, elapsedMillis)
+        drawTimer(millisToElapse, elapsedMillis, countDown)
     }
 }
 
 @Composable
-private fun drawTimer(millisToElapse: Long, elapsedMillis: Long) {
+private fun drawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Boolean) {
     val drawColor = MaterialTheme.colors.onSurface
     val elapsedColor = MaterialTheme.colors.primary
     Canvas(
         Modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .height(10.dp)
             .background(MaterialTheme.colors.surface)
     ) {
-        val elapsedOffsetX = (size.width - 6f) / millisToElapse * elapsedMillis
+        val offsetMillis = if (countDown) millisToElapse - elapsedMillis else elapsedMillis
+        val elapsedOffsetX = (size.width - 6f) / millisToElapse * offsetMillis
         val startOffset = Offset(3f, size.height / 2f)
         val endOffset = Offset(size.width - 3f, size.height / 2f)
         val elapsedOffset = startOffset.plus(Offset(elapsedOffsetX, 0f))
@@ -94,7 +105,7 @@ class ElapsedMillisParameterProvider : PreviewParameterProvider<Long> {
 @Preview(widthDp = 800)
 fun PreviewTimer(@PreviewParameter(ElapsedMillisParameterProvider::class) elapsedMillis: Long) {
     MaterialTheme(Theme.lightColors) {
-        drawTimer(60000L, elapsedMillis)
+        drawTimer(60000L, elapsedMillis, countDown = false)
     }
 }
 
@@ -102,11 +113,17 @@ fun PreviewTimer(@PreviewParameter(ElapsedMillisParameterProvider::class) elapse
 @Preview(widthDp = 800)
 fun PreviewRunningTimer() {
     var running by remember { mutableStateOf(false) }
+    var down by remember { mutableStateOf(false) }
     MaterialTheme(Theme.lightColors) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Timer(running, 60000L, debugView = true)
-            Button(onClick = { running = !running }) {
-                Text(running.toString())
+            Timer(running, 15000L, debugView = true, countDown = down) { running = false }
+            Row{
+                Button(onClick = { running = !running }) {
+                    Text(running.toString())
+                }
+                Button(onClick = { down = !down }) {
+                    Text(if (down) "down" else "up")
+                }
             }
         }
     }
