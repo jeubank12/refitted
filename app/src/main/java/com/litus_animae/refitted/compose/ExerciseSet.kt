@@ -4,9 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -82,11 +80,19 @@ fun ExerciseSetView(
             }
         }
         Row(Modifier.weight(1f)) {
-            Button(
-                onClick = { onSave(record.copy(weight = saveWeight, reps = saveReps)) },
-                Modifier.fillMaxWidth()
-            ) {
-                Text("Will store: $saveWeight lbs $saveReps reps")
+            Column {
+                var timerRunning by remember { mutableStateOf(false) }
+                Timer(timerRunning, exerciseSet.rest * 1000L) { timerRunning = false }
+                Button(
+                    onClick = {
+                        onSave(record.copy(weight = saveWeight, reps = saveReps))
+                        timerRunning = true
+                    },
+                    Modifier.fillMaxWidth(),
+                    enabled = !timerRunning
+                ) {
+                    Text("Will store: $saveWeight lbs $saveReps reps")
+                }
             }
         }
     }
