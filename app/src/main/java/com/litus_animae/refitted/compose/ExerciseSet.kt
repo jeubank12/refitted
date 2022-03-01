@@ -20,6 +20,7 @@ import com.litus_animae.refitted.models.ExerciseSet
 fun ExerciseSetView(
     exerciseSet: ExerciseSet,
     record: Record,
+    numCompleted: Int,
     currentIndex: Int,
     maxIndex: Int,
     updateIndex: (Int, Record) -> Unit,
@@ -85,13 +86,18 @@ fun ExerciseSetView(
                 Timer(timerRunning, exerciseSet.rest * 1000L) { timerRunning = false }
                 Button(
                     onClick = {
-                        onSave(record.copy(weight = saveWeight, reps = saveReps))
-                        timerRunning = true
+                        if (!timerRunning)
+                            onSave(record.copy(weight = saveWeight, reps = saveReps))
+                        timerRunning = !timerRunning
                     },
                     Modifier.fillMaxWidth(),
-                    enabled = !timerRunning
+                    enabled = numCompleted < exerciseSet.sets
                 ) {
-                    Text("Will store: $saveWeight lbs $saveReps reps")
+                    val setText =
+                        if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
+                        else "Exercise Completed!"
+                    val buttonText = if (timerRunning) "Start Next Set Early" else setText
+                    Text(buttonText)
                 }
             }
         }
@@ -101,6 +107,8 @@ fun ExerciseSetView(
 @Composable
 @Preview(heightDp = 400)
 fun PreviewExerciseSetDetails() {
+    var numCompleted by remember { mutableStateOf(0) }
+    var currentIndex by remember { mutableStateOf(5) }
     MaterialTheme(Theme.lightColors) {
         Column(
             Modifier
@@ -110,10 +118,11 @@ fun PreviewExerciseSetDetails() {
             ExerciseSetView(
                 exampleExerciseSet,
                 Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
-                currentIndex = 5,
+                numCompleted = numCompleted,
+                currentIndex = currentIndex,
                 maxIndex = 5,
-                updateIndex = { _, _ -> },
-                onSave = {}
+                updateIndex = { newIndex, _ -> currentIndex = newIndex },
+                onSave = { numCompleted += 1 }
             )
         }
     }
