@@ -51,13 +51,21 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
         // TODO update default weight with best default
         val defaultRecord = Record(25.0, currentSet.reps, currentSet)
         val lastExerciseRecord by storedRecords.latestSet.collectAsState(initial = null)
-        val lastStoredRecord = Option.fromNullable(lastExerciseRecord).map {
+        val todayExerciseRecords by storedRecords.sets.collectAsState(initial = emptyList())
+        val todayRecords = todayExerciseRecords.map {
             Record(it.weight, it.reps, currentSet, stored = true)
+        }
+        val lastStoredRecord = Option.fromNullable(lastExerciseRecord).map {
+            Record(it.weight, it.reps, currentSet)
         }.getOrElse { defaultRecord }
-        val setRecords = records.getOrElse(index) { mutableStateListOf(lastStoredRecord) }
+        val setRecords = records.getOrElse(index) {
+            if (todayRecords.isEmpty()) mutableStateListOf(lastStoredRecord)
+            else mutableStateListOf(*todayRecords.toTypedArray())
+        }
         val unsavedRecord = setRecords.firstOrNull { !it.stored }
-        val lastRecord = setRecords.last().copy(stored = false)
+        val lastRecord = setRecords.last()
         val currentRecord = unsavedRecord ?: lastRecord
+        val setsCompleted by storedRecords.setsCount.collectAsState(initial = 0)
 
         val scope = rememberCoroutineScope()
         DetailView(
@@ -65,6 +73,7 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
             instructions.size - 1,
             currentSet,
             currentRecord,
+            numCompleted = setsCompleted,
             updateIndex = { newIndex, updatedRecord ->
                 saveRecordInState(records, index, setRecords, updatedRecord)
                 index = newIndex
@@ -109,6 +118,7 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
             maxIndex = 2,
             exerciseSet = exerciseSet,
             record = Record(25.0, exerciseSet.reps, exerciseSet),
+            numCompleted = 1,
             updateIndex = { _, _ -> },
             onSave = { })
     }
@@ -120,6 +130,7 @@ fun DetailView(
     maxIndex: Int,
     exerciseSet: ExerciseSet,
     record: Record,
+    numCompleted: Int,
     updateIndex: (Int, Record) -> Unit,
     onSave: (Record) -> Unit
 ) {
@@ -128,7 +139,7 @@ fun DetailView(
             ExerciseDetails(exerciseSet)
         }
         Row(Modifier.weight(1f)) {
-            ExerciseSetView(exerciseSet, record, index, maxIndex, updateIndex, onSave)
+            ExerciseSetView(exerciseSet, record, numCompleted, index, maxIndex, updateIndex, onSave)
         }
     }
 }
