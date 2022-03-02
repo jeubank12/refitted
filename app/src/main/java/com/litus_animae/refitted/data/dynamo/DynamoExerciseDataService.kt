@@ -7,19 +7,17 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExp
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.model.Condition
-import com.litus_animae.refitted.data.room.ExerciseRoom
+import com.litus_animae.refitted.data.room.RefittedRoom
 import com.litus_animae.refitted.models.DynamoExerciseSet
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.MutableExercise
 import com.litus_animae.refitted.models.RoomExerciseSet
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.lang.Exception
 
 @WorkerThread
-class DynamoExerciseDataService(applicationContext: Context, room: ExerciseRoom) :
+class DynamoExerciseDataService(applicationContext: Context, room: RefittedRoom) :
     DynamoDataService(applicationContext, room) {
     private var queryExpression: DynamoDBQueryExpression<DynamoExerciseSet>? = null
     suspend fun execute(day: String, workoutId: String) {

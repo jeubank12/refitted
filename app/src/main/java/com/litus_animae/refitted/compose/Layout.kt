@@ -1,20 +1,22 @@
 package com.litus_animae.refitted.compose
 
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.state.WorkoutDay
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.launch
 
 @Composable
 fun Main(
@@ -24,13 +26,35 @@ fun Main(
 ) {
     val defaultWorkout = stringResource(R.string.ax1)
     val completedDays by model.completedDays.collectAsState(initial = emptyMap())
+    val scaffoldState = rememberScaffoldState()
+    val scaffoldScope = rememberCoroutineScope()
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Athlean-X") },
-            backgroundColor = MaterialTheme.colors.primary
-        )
-    }) {
+    Scaffold(
+        scaffoldState = scaffoldState,
+        topBar = {
+            TopAppBar(
+                title = { Text("Athlean-X") },
+                navigationIcon = {
+                    Icon(
+                        Icons.Default.Menu,
+                        // TODO localize
+                        "menu",
+                        modifier = Modifier
+                            .clickable {
+                                scaffoldScope.launch {
+                                    if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                                    else scaffoldState.drawerState.close()
+                                }
+                            }
+                            .padding(start = 10.dp))
+                },
+                backgroundColor = MaterialTheme.colors.primary
+            )
+        },
+        drawerContent = {
+            val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
+            WorkoutPlanMenu(workoutPlanPagingItems)
+        }) {
         Calendar(
             days = 84,
             lastWorkout.day,

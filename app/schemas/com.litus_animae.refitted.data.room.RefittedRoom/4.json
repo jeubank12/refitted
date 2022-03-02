@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "18e548428f63054b66185e72a49628fa",
+    "identityHash": "e30bf5bf56cac15399fd15cb2caa468a",
     "entities": [
       {
         "tableName": "Exercise",
@@ -124,6 +124,7 @@
               "name",
               "workout"
             ],
+            "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_exerciseset_name_workout` ON `${TABLE_NAME}` (`name`, `workout`)"
           }
         ],
@@ -193,12 +194,32 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "workouts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, PRIMARY KEY(`workout`))",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "workout"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '18e548428f63054b66185e72a49628fa')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e30bf5bf56cac15399fd15cb2caa468a')"
     ]
   }
 }

@@ -21,9 +21,8 @@ import javax.inject.Inject
 @FlowPreview
 class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext context: Context) :
     ExerciseRepository {
-    private val applicationContext: WeakReference<Context> =
-        WeakReference(context.applicationContext)
-    private val roomDb = RoomExerciseDataService.getExerciseRoom(applicationContext)
+    private val applicationContext = context.applicationContext
+    private val roomDb = RoomRefittedDataService.getRefittedRoom(applicationContext)
 
     private val currentWorkout = MutableStateFlow("")
     override val workoutRecords = currentWorkout.flatMapLatest {
@@ -83,7 +82,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         currentWorkoutDay.value = WorkoutAndDay(day, workoutId)
 
         Log.i(TAG, "loadExercises: submitting dynamo query for workout $workoutId, day $day")
-        val dynamoService = DynamoExerciseDataService(applicationContext.get()!!, roomDb)
+        val dynamoService = DynamoExerciseDataService(applicationContext, roomDb)
         return dynamoService.execute(day, workoutId)
     }
 

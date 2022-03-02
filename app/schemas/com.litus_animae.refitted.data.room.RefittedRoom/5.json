@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 2,
-    "identityHash": "68079b6eae679355427aa693ecebc60e",
+    "version": 5,
+    "identityHash": "e30bf5bf56cac15399fd15cb2caa468a",
     "entities": [
       {
         "tableName": "Exercise",
@@ -38,32 +38,14 @@
         "foreignKeys": []
       },
       {
-        "tableName": "ExerciseSet",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, `id` TEXT, `note` TEXT, `name` TEXT, `day` TEXT NOT NULL, `step` TEXT NOT NULL, `reps` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `toFailure` INTEGER NOT NULL, `rest` INTEGER NOT NULL, PRIMARY KEY(`day`, `step`, `workout`), FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "tableName": "exerciseset",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, `day` TEXT NOT NULL, `step` TEXT NOT NULL, `name` TEXT NOT NULL, `note` TEXT NOT NULL, `reps` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `toFailure` INTEGER NOT NULL, `rest` INTEGER NOT NULL, `repsUnit` TEXT NOT NULL, `repsRange` INTEGER NOT NULL, PRIMARY KEY(`day`, `step`, `workout`), FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "workout",
             "columnName": "workout",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "note",
-            "columnName": "note",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "name",
-            "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
           },
           {
             "fieldPath": "day",
@@ -74,6 +56,18 @@
           {
             "fieldPath": "step",
             "columnName": "step",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -90,7 +84,7 @@
             "notNull": true
           },
           {
-            "fieldPath": "toFailure",
+            "fieldPath": "isToFailure",
             "columnName": "toFailure",
             "affinity": "INTEGER",
             "notNull": true
@@ -98,6 +92,18 @@
           {
             "fieldPath": "rest",
             "columnName": "rest",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsUnit",
+            "columnName": "repsUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsRange",
+            "columnName": "repsRange",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -112,13 +118,14 @@
         },
         "indices": [
           {
-            "name": "index_ExerciseSet_name_workout",
+            "name": "index_exerciseset_name_workout",
             "unique": false,
             "columnNames": [
               "name",
               "workout"
             ],
-            "createSql": "CREATE  INDEX `index_ExerciseSet_name_workout` ON `${TABLE_NAME}` (`name`, `workout`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exerciseset_name_workout` ON `${TABLE_NAME}` (`name`, `workout`)"
           }
         ],
         "foreignKeys": [
@@ -139,7 +146,7 @@
       },
       {
         "tableName": "SetRecord",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT, `target_set` TEXT, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, PRIMARY KEY(`exercise`, `completed`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT NOT NULL, `target_set` TEXT NOT NULL, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, PRIMARY KEY(`exercise`, `completed`))",
         "fields": [
           {
             "fieldPath": "weight",
@@ -157,13 +164,13 @@
             "fieldPath": "workout",
             "columnName": "workout",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
-            "fieldPath": "target_set",
+            "fieldPath": "targetSet",
             "columnName": "target_set",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "completed",
@@ -187,12 +194,32 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "workouts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, PRIMARY KEY(`workout`))",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "workout"
+          ],
+          "autoGenerate": false
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '68079b6eae679355427aa693ecebc60e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e30bf5bf56cac15399fd15cb2caa468a')"
     ]
   }
 }

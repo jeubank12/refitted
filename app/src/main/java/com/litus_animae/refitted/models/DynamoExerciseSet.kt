@@ -1,10 +1,7 @@
 package com.litus_animae.refitted.models
 
-import androidx.annotation.NonNull
-import androidx.lifecycle.LiveData
-import androidx.room.*
+import androidx.room.ColumnInfo
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.*
-import com.litus_animae.refitted.models.Exercise
 
 @DynamoDBTable(tableName = "refitted-exercise")
 data class DynamoExerciseSet @JvmOverloads constructor(
@@ -41,4 +38,5 @@ data class DynamoExerciseSet @JvmOverloads constructor(
     var repsUnit: String = "",
 
     @get:DynamoDBAttribute(attributeName = "RepsRange")
-    var repsRange: Int = 0)
+    var repsRange: Int = 0
+)

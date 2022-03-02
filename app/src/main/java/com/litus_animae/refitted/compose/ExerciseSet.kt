@@ -83,6 +83,7 @@ fun ExerciseSetView(
         Row(Modifier.weight(1f)) {
             Column {
                 var timerRunning by remember { mutableStateOf(false) }
+                // TODO persist between exercise pages....
                 Timer(timerRunning, exerciseSet.rest * 1000L) { timerRunning = false }
                 Button(
                     onClick = {
@@ -93,6 +94,7 @@ fun ExerciseSetView(
                     Modifier.fillMaxWidth(),
                     enabled = numCompleted < exerciseSet.sets
                 ) {
+                    // TODO localize
                     val setText =
                         if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
                         else "Exercise Completed!"
