@@ -6,22 +6,24 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.litus_animae.refitted.data.Converters
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.RoomExerciseSet
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.models.*
 
-@Database(entities = [Exercise::class, RoomExerciseSet::class, SetRecord::class], version = 4)
+@Database(entities = [Exercise::class, RoomExerciseSet::class, SetRecord::class, WorkoutPlan::class], version = 5)
 @TypeConverters(Converters::class)
-abstract class ExerciseRoom : RoomDatabase() {
+abstract class RefittedRoom : RoomDatabase() {
     abstract fun getExerciseDao(): ExerciseDao
+    abstract fun getWorkoutPlanDao(): WorkoutPlanDao
 
     companion object {
         val MIGRATION_1_2: Migration = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("CREATE TABLE IF NOT EXISTS `SetRecord` " +
-                        "(`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT, " +
-                        "`target_set` TEXT, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, " +
+                        "(`weight` REAL NOT NULL, " +
+                        "`reps` INTEGER NOT NULL, " +
+                        "`workout` TEXT, " +
+                        "`target_set` TEXT, " +
+                        "`completed` INTEGER NOT NULL, " +
+                        "`exercise` TEXT NOT NULL, " +
                         "PRIMARY KEY(`exercise`, `completed`))")
             }
         }
@@ -60,6 +62,14 @@ abstract class ExerciseRoom : RoomDatabase() {
                 database.setTransactionSuccessful()
                 database.endTransaction()
             }
+        }
+        val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE `workouts` (" +
+                        "`workout` TEXT NOT NULL PRIMARY KEY" +
+                        ")")
+            }
+
         }
     }
 }

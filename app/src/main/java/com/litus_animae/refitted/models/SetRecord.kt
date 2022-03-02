@@ -5,7 +5,6 @@ import androidx.room.Entity
 import java.time.Instant
 import java.util.*
 
-// TODO generate migration
 @Entity(primaryKeys = ["exercise", "completed"])
 data class SetRecord(val weight: Double,
                      val reps: Int,

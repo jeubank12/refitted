@@ -1,7 +1,9 @@
 package com.litus_animae.refitted.models
 
 import androidx.lifecycle.ViewModel
+import androidx.paging.PagingData
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -13,7 +15,8 @@ import javax.inject.Inject
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
-    private val log: LogUtil
+    private val log: LogUtil,
+    private val workoutPlanRepo: WorkoutPlanRepository
 ) : ViewModel() {
     val completedDays: Flow<Map<Int, Date>> =
         exerciseRepo.workoutRecords.map { records ->
@@ -37,4 +40,6 @@ class WorkoutViewModel @Inject constructor(
     fun loadWorkoutDaysCompleted(workoutId: String) {
         exerciseRepo.loadWorkoutRecords(workoutId)
     }
+
+    val workouts: Flow<PagingData<WorkoutPlan>> = workoutPlanRepo.workouts
 }
