@@ -9,11 +9,13 @@ import com.litus_animae.refitted.data.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.room.RefittedRoom
 import com.litus_animae.refitted.models.WorkoutPlan
 
+
 @OptIn(ExperimentalPagingApi::class)
 class WorkoutPlanRemoteMediator(
     private val database: RefittedRoom,
     private val networkService: WorkoutPlanNetworkService
 ): RemoteMediator<Int, WorkoutPlan>() {
+    // TODO initialize without refresh/as append
     override suspend fun load(
         loadType: LoadType,
         state: PagingState<Int, WorkoutPlan>

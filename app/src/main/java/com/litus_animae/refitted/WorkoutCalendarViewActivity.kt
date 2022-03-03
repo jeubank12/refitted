@@ -33,9 +33,6 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
     private lateinit var launchSignInForResult: ActivityResultLauncher<Intent>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val model: WorkoutViewModel by viewModels()
-
-        model.loadWorkoutDaysCompleted("AX1")
 
         setContent {
             MaterialTheme(colors = Theme.darkColors) {

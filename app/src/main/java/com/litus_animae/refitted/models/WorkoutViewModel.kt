@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.models
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.paging.PagingData
 import com.litus_animae.refitted.data.ExerciseRepository
@@ -16,7 +17,8 @@ import javax.inject.Inject
 class WorkoutViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
     private val log: LogUtil,
-    private val workoutPlanRepo: WorkoutPlanRepository
+    private val workoutPlanRepo: WorkoutPlanRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     val completedDays: Flow<Map<Int, Date>> =
         exerciseRepo.workoutRecords.map { records ->
@@ -25,19 +27,14 @@ class WorkoutViewModel @Inject constructor(
                 .mapKeys { it.key.toIntOrNull() ?: 0 }
         }
 
-    private val maxCompletedDay = completedDays.map { it.keys.maxOrNull() }
-
-    fun getIsDayCompleted(currentDay: Int) {
-        maxCompletedDay.combine(completedDays) { maxDayKey, dayRecords ->
-            val maxDay = maxDayKey ?: currentDay
-            val maxDayCompletionDate =
-                dayRecords.getOrDefault(maxDay, Date(1L))
-            val currentDayCompletionDate = dayRecords.getOrDefault(currentDay, Date(0L))
-            currentDay == maxDay || currentDayCompletionDate.after(maxDayCompletionDate)
-        }
+    fun getLastWorkout(): String? {
+        return savedStateHandle.get<String?>("selectedPlan")
     }
 
+    private val maxCompletedDay = completedDays.map { it.keys.maxOrNull() }
+
     fun loadWorkoutDaysCompleted(workoutId: String) {
+        savedStateHandle.set("selectedPlan", workoutId)
         exerciseRepo.loadWorkoutRecords(workoutId)
     }
 
