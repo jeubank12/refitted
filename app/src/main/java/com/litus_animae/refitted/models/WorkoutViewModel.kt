@@ -8,7 +8,9 @@ import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.*
 import javax.inject.Inject
 
@@ -27,28 +29,30 @@ class WorkoutViewModel @Inject constructor(
                 .mapKeys { it.key.toIntOrNull() ?: 0 }
         }
 
-    val savedStateLastWorkoutPlan: String? = savedStateHandle.get<String?>("selectedPlan")
-    val savedStateLastWorkoutDay: Int? = savedStateHandle.get<Int?>("lastDay")
-    val lastWorkout: Flow<String?> =
-        savedStateHandle.get<String?>("selectedPlan")?.let {
-            flowOf(it)
-        } ?: savedStateRepo.getState("selectedPlan").map { it?.value }
+    private val selectedPlan = "selectedPlan"
+    private val selectedPlanDays = "selectedPlanDays"
+    private val lastDay = "lastDay"
+
+    val savedStateLastWorkoutPlan: WorkoutPlan? =
+        savedStateHandle.get<String?>(selectedPlan)?.let { planName ->
+            savedStateHandle.get<Int?>(selectedPlanDays)?.let { totalDays ->
+                savedStateHandle.get<Int?>(lastDay)?.let { WorkoutPlan(planName, totalDays, it) }
+            }
+        }
 
     suspend fun loadWorkoutDaysCompleted(workoutId: String) {
-        savedStateHandle.set("selectedPlan", workoutId)
+        savedStateHandle.set(selectedPlan, workoutId)
         exerciseRepo.loadWorkoutRecords(workoutId)
-        savedStateRepo.setState("selectedPlan", workoutId)
+        savedStateRepo.setState(selectedPlan, workoutId)
+        val newWorkoutPlan = workoutPlanRepo.workoutByName(workoutId).first()
+
+        savedStateRepo.setState(lastDay, newWorkoutPlan.lastViewedDay.toString())
+        savedStateHandle.set(lastDay, newWorkoutPlan.lastViewedDay)
+
+        savedStateRepo.setState(selectedPlanDays, newWorkoutPlan.totalDays.toString())
+        savedStateHandle.set(selectedPlanDays, newWorkoutPlan.totalDays)
     }
 
     val workouts: Flow<PagingData<WorkoutPlan>> = workoutPlanRepo.workouts
 
-    val currentWorkoutPlan = MutableStateFlow(savedStateLastWorkoutPlan?.let{
-        plan -> savedStateLastWorkoutDay?.let{day -> WorkoutPlan(plan, day)}
-    })
-    val storedStateWorkoutPlan = savedStateRepo.getState("selectedPlan")
-        .filterNotNull()
-        .flatMapLatest { workoutPlanRepo.workoutByName(it.value) }
-    val currentWorkout = currentWorkoutPlan.combine(storedStateWorkoutPlan){
-        savedState, storedState -> if (savedState == storedState) savedState else if (storedState == null) savedState else storedState
-    }
 }

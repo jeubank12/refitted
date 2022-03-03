@@ -24,17 +24,13 @@ fun Main(
     model: WorkoutViewModel = viewModel()
 ) {
     val savedSelectedWorkout = model.savedStateLastWorkoutPlan
-    var selectedWorkoutPlanName: String? by remember { mutableStateOf(savedSelectedWorkout) }
-    val selectedWorkoutPlan by remember(selectedWorkoutPlanName) {
-        mutableStateOf(
-            selectedWorkoutPlanName?.let { WorkoutPlan(it) }
-        )
-    }
+    var selectedWorkoutPlan by remember { mutableStateOf(savedSelectedWorkout) }
+
     val completedDays by model.completedDays.collectAsState(initial = emptyMap())
     val scaffoldState = rememberScaffoldState()
     val scaffoldScope = rememberCoroutineScope()
-    LaunchedEffect(selectedWorkoutPlanName) {
-        selectedWorkoutPlanName?.let { model.loadWorkoutDaysCompleted(it) }
+    LaunchedEffect(selectedWorkoutPlan?.workout) {
+        selectedWorkoutPlan?.workout?.let { model.loadWorkoutDaysCompleted(it) }
     }
 
     Scaffold(
@@ -65,7 +61,7 @@ fun Main(
         drawerContent = {
             val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
             WorkoutPlanMenu(workoutPlanPagingItems) {
-                selectedWorkoutPlanName = it
+                selectedWorkoutPlan = it
                 scaffoldScope.launch { scaffoldState.drawerState.close() }
             }
         }) {
