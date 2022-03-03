@@ -80,7 +80,9 @@ fun WorkoutPlanMenu(
 
         if (items.loadState.refresh is LoadState.Loading) {
             item {
-                LoadingView()
+                Row(Modifier.fillMaxWidth()) {
+                    LoadingView()
+                }
             }
         } else {
             itemsIndexed(items) { _, plan ->

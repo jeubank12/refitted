@@ -24,4 +24,8 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         ) {
             database.getWorkoutPlanDao().pagingSource()
         }.flow
+
+    override fun workoutByName(name: String): Flow<WorkoutPlan?> {
+        return database.getWorkoutPlanDao().planByName(name)
+    }
 }

@@ -2,8 +2,10 @@ package com.litus_animae.refitted.compose
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -32,7 +34,9 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
     val records = remember { mutableStateListOf<SnapshotStateList<Record>>() }
 
     if (exerciseSet == null) {
-        LoadingView()
+        Surface(Modifier.fillMaxSize()) {
+            LoadingView()
+        }
     } else {
         val currentSet = exerciseSet!!
         var storedRecords by remember(currentSet) {

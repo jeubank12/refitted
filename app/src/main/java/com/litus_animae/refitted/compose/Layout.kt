@@ -1,6 +1,9 @@
 package com.litus_animae.refitted.compose
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -23,8 +26,16 @@ fun Main(
     navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
     model: WorkoutViewModel = viewModel()
 ) {
-    val savedSelectedWorkout = model.savedStateLastWorkoutPlan
-    var selectedWorkoutPlan by remember { mutableStateOf(savedSelectedWorkout) }
+    var selectedWorkoutPlan by remember { mutableStateOf(model.savedStateLastWorkoutPlan) }
+    var savedSelectedPlanLoading by remember { mutableStateOf(selectedWorkoutPlan == null) }
+    LaunchedEffect(true) {
+        if (selectedWorkoutPlan == null) {
+            model.storedStateLastWorkoutPlan.collect {
+                selectedWorkoutPlan = it
+                savedSelectedPlanLoading = false
+            }
+        }
+    }
 
     val completedDays by model.completedDays.collectAsState(initial = emptyMap())
     val scaffoldState = rememberScaffoldState()
@@ -65,9 +76,19 @@ fun Main(
                 scaffoldScope.launch { scaffoldState.drawerState.close() }
             }
         }) {
-        if (selectedWorkoutPlan == null) {
+        if (savedSelectedPlanLoading) {
+            Surface(Modifier.fillMaxSize()) {
+                LoadingView()
+            }
+        } else if (selectedWorkoutPlan == null) {
             // TODO instruction page
-            Text("Open the menu to pick a workout")
+            Row(
+                Modifier
+                    .padding(start = 10.dp, top = 10.dp)
+                    .fillMaxWidth()
+            ) {
+                Text("Open the menu to pick a workout")
+            }
         } else {
             Calendar(
                 // TODO actual number of days
@@ -94,7 +115,9 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
         )
     }) {
         if (isLoading) {
-            LoadingView()
+            Surface(Modifier.fillMaxSize()) {
+                LoadingView()
+            }
         } else {
             ExerciseDetail(model)
         }
