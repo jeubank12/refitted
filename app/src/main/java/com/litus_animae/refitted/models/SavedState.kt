@@ -7,10 +7,9 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 
-@Entity(tableName = "workouts")
-data class WorkoutPlan(
+@Entity(tableName = "SavedState")
+data class SavedState(
     @PrimaryKey
-    val workout: String,
-    val totalDays: Int = 84,
-    val lastViewedDay: Int = 1
+    val key: String,
+    val value: String
 )
