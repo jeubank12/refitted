@@ -24,16 +24,24 @@ fun Main(
     lastWorkout: WorkoutDay,
     model: WorkoutViewModel = viewModel()
 ) {
-    val defaultWorkout = stringResource(R.string.ax1)
+    var selectedWorkout by remember { mutableStateOf(model.getLastWorkout()) }
+    LaunchedEffect(selectedWorkout) {
+        selectedWorkout?.let { model.loadWorkoutDaysCompleted(it) }
+    }
     val completedDays by model.completedDays.collectAsState(initial = emptyMap())
-    val scaffoldState = rememberScaffoldState()
+    val scaffoldState = rememberScaffoldState(
+        drawerState = if (selectedWorkout == null) DrawerState(DrawerValue.Open)
+        else DrawerState(DrawerValue.Closed)
+    )
     val scaffoldScope = rememberCoroutineScope()
 
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
             TopAppBar(
-                title = { Text("Athlean-X") },
+                title = {
+                    selectedWorkout?.let { Text(it) } ?: Text("Refitted")
+                },
                 navigationIcon = {
                     Icon(
                         Icons.Default.Menu,
@@ -51,15 +59,20 @@ fun Main(
                 backgroundColor = MaterialTheme.colors.primary
             )
         },
+        drawerShape = MaterialTheme.shapes.medium,
         drawerContent = {
             val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
-            WorkoutPlanMenu(workoutPlanPagingItems)
+            WorkoutPlanMenu(workoutPlanPagingItems) {
+                selectedWorkout = it
+                scaffoldScope.launch { scaffoldState.drawerState.close() }
+            }
         }) {
         Calendar(
+            // TODO actual number of days
             days = 84,
             lastWorkout.day,
             completedDays
-        ) { navigateToWorkoutDay(WorkoutDay(defaultWorkout, it)) }
+        ) { navigateToWorkoutDay(WorkoutDay(selectedWorkout!!, it)) }
     }
 }
 
