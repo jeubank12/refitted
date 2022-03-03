@@ -83,7 +83,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
 
         Log.i(TAG, "loadExercises: submitting dynamo query for workout $workoutId, day $day")
         val dynamoService = DynamoExerciseDataService(applicationContext, roomDb)
-        return dynamoService.execute(day, workoutId)
+        dynamoService.execute(day, workoutId)
     }
 
     private fun doListsFullyIntersect(

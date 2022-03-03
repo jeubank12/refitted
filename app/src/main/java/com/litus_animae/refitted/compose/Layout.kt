@@ -12,34 +12,29 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.state.WorkoutDay
 import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 
 @Composable
 fun Main(
-    navigateToWorkoutDay: (WorkoutDay) -> Unit,
-    lastWorkout: WorkoutDay,
+    navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
     model: WorkoutViewModel = viewModel()
 ) {
-    val savedSelectedWorkout = model.getSavedStateLastWorkout()
-    var selectedWorkoutLoading by remember { mutableStateOf(savedSelectedWorkout == null) }
-    var selectedWorkout: String? by remember { mutableStateOf(savedSelectedWorkout) }
-    LaunchedEffect(true) {
-        model.getLastWorkout().collect {
-            if (selectedWorkoutLoading) {
-                selectedWorkout = it
-            }
-            selectedWorkoutLoading = false
-        }
+    val savedSelectedWorkout = model.savedStateLastWorkoutPlan
+    var selectedWorkoutPlanName: String? by remember { mutableStateOf(savedSelectedWorkout) }
+    val selectedWorkoutPlan by remember(selectedWorkoutPlanName) {
+        mutableStateOf(
+            selectedWorkoutPlanName?.let { WorkoutPlan(it) }
+        )
     }
     val completedDays by model.completedDays.collectAsState(initial = emptyMap())
     val scaffoldState = rememberScaffoldState()
     val scaffoldScope = rememberCoroutineScope()
-    LaunchedEffect(selectedWorkout) {
-        selectedWorkout?.let { model.loadWorkoutDaysCompleted(it) }
+    LaunchedEffect(selectedWorkoutPlanName) {
+        selectedWorkoutPlanName?.let { model.loadWorkoutDaysCompleted(it) }
     }
 
     Scaffold(
@@ -47,7 +42,7 @@ fun Main(
         topBar = {
             TopAppBar(
                 title = {
-                    selectedWorkout?.let { Text(it) } ?: Text("Refitted")
+                    selectedWorkoutPlan?.let { Text(it.workout) } ?: Text("Refitted")
                 },
                 navigationIcon = {
                     Icon(
@@ -70,22 +65,19 @@ fun Main(
         drawerContent = {
             val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
             WorkoutPlanMenu(workoutPlanPagingItems) {
-                selectedWorkout = it
+                selectedWorkoutPlanName = it
                 scaffoldScope.launch { scaffoldState.drawerState.close() }
             }
         }) {
-        if (selectedWorkoutLoading) {
-            LoadingView()
-        } else if (selectedWorkout == null) {
+        if (selectedWorkoutPlan == null) {
             // TODO instruction page
             Text("Open the menu to pick a workout")
         } else {
             Calendar(
                 // TODO actual number of days
-                days = 84,
-                lastWorkout.day,
+                selectedWorkoutPlan!!,
                 completedDays
-            ) { navigateToWorkoutDay(WorkoutDay(selectedWorkout!!, it)) }
+            ) { navigateToWorkoutDay(selectedWorkoutPlan!!, it) }
         }
     }
 }
