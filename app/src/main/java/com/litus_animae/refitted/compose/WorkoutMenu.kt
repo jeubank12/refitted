@@ -47,7 +47,7 @@ fun WorkoutPlanPreview() {
 @Composable
 fun WorkoutPlanMenu(
     items: LazyPagingItems<WorkoutPlan>,
-    onSelect: (String) -> Unit
+    onSelect: (WorkoutPlan) -> Unit
 ) {
     LazyColumn {
         item {
@@ -90,7 +90,7 @@ fun WorkoutPlanMenu(
                         Modifier
                             .padding(start = 10.dp, top = 15.dp, bottom = 15.dp)
                             .fillMaxWidth()
-                            .clickable { onSelect(plan.workout) },
+                            .clickable { onSelect(plan) },
                         style = MaterialTheme.typography.button
                     )
                     Divider()
