@@ -15,7 +15,7 @@ interface SavedStateDao {
     @Query("SELECT * FROM `SavedState`")
     fun allState(): Flow<List<SavedState>>
 
-    @Query("SELECT * FROM `SavedState` where `key` = :key limit 1")
+    @Query("SELECT * FROM `SavedState` where `key` = :key")
     fun getState(key: String): Flow<SavedState?>
 
     @Query("DELETE FROM `SavedState` WHERE `key` = :key")

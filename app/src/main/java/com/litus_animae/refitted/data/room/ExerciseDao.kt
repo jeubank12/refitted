@@ -20,7 +20,7 @@ interface ExerciseDao {
     fun getExerciseSets(day: String, workout: String, vararg steps: String): Flow<List<RoomExerciseSet>>
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
-    fun getExercise(name: String, workout: String): Flow<Exercise>
+    fun getExercise(name: String, workout: String): Flow<Exercise?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun storeExercise(exercise: Exercise)
@@ -37,8 +37,8 @@ interface ExerciseDao {
     @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise")
     fun getSetRecords(minDate: Date, targetExercise: String): Flow<List<SetRecord>>
 
-    @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit 1")
-    fun getLatestSetRecord(targetExercise: String): Flow<SetRecord>
+    @Query("select * from setrecord where exercise = :targetExercise order by completed")
+    fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
     fun getAllSetRecord(targetExercise: String): DataSource.Factory<Int, SetRecord>
