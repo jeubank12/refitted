@@ -24,16 +24,23 @@ fun Main(
     lastWorkout: WorkoutDay,
     model: WorkoutViewModel = viewModel()
 ) {
-    var selectedWorkout by remember { mutableStateOf(model.getLastWorkout()) }
+    val savedSelectedWorkout = model.getSavedStateLastWorkout()
+    var selectedWorkoutLoading by remember { mutableStateOf(savedSelectedWorkout == null) }
+    var selectedWorkout: String? by remember { mutableStateOf(savedSelectedWorkout) }
+    LaunchedEffect(true) {
+        model.getLastWorkout().collect {
+            if (selectedWorkoutLoading) {
+                selectedWorkout = it
+            }
+            selectedWorkoutLoading = false
+        }
+    }
+    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
+    val scaffoldState = rememberScaffoldState()
+    val scaffoldScope = rememberCoroutineScope()
     LaunchedEffect(selectedWorkout) {
         selectedWorkout?.let { model.loadWorkoutDaysCompleted(it) }
     }
-    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
-    val scaffoldState = rememberScaffoldState(
-        drawerState = if (selectedWorkout == null) DrawerState(DrawerValue.Open)
-        else DrawerState(DrawerValue.Closed)
-    )
-    val scaffoldScope = rememberCoroutineScope()
 
     Scaffold(
         scaffoldState = scaffoldState,
@@ -67,12 +74,19 @@ fun Main(
                 scaffoldScope.launch { scaffoldState.drawerState.close() }
             }
         }) {
-        Calendar(
-            // TODO actual number of days
-            days = 84,
-            lastWorkout.day,
-            completedDays
-        ) { navigateToWorkoutDay(WorkoutDay(selectedWorkout!!, it)) }
+        if (selectedWorkoutLoading) {
+            LoadingView()
+        } else if (selectedWorkout == null) {
+            // TODO instruction page
+            Text("Open the menu to pick a workout")
+        } else {
+            Calendar(
+                // TODO actual number of days
+                days = 84,
+                lastWorkout.day,
+                completedDays
+            ) { navigateToWorkoutDay(WorkoutDay(selectedWorkout!!, it)) }
+        }
     }
 }
 
