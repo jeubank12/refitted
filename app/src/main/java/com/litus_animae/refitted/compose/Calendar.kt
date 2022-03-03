@@ -16,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.models.WorkoutPlan
 import java.util.*
 import kotlin.math.ceil
 import kotlin.math.min
@@ -25,7 +26,7 @@ import kotlin.math.min
 fun PreviewCalendar() {
     MaterialTheme(colors = Theme.darkColors) {
         Calendar(
-            10, "4", mapOf(
+            WorkoutPlan("test", 10, 4), mapOf(
                 Pair(1, Date(1L)),
                 Pair(2, Date(2L))
             )
@@ -35,15 +36,14 @@ fun PreviewCalendar() {
 
 @Composable
 fun Calendar(
-    days: Int,
-    lastViewedDay: String,
+    plan: WorkoutPlan,
     completedDays: Map<Int, Date>,
-    navigateToDay: (String) -> Unit,
+    navigateToDay: (Int) -> Unit,
 ) {
     // TODO handle different screen sizes
     val daysPerRow = 7
     // TODO adjust TextSize to handle 3 digit numbers
-    val daysInCalendar = min(days, 99)
+    val daysInCalendar = min(plan.totalDays, 99)
     val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
     LazyColumn(
         Modifier
@@ -67,7 +67,7 @@ fun Calendar(
                             it,
                             DayProperties(
                                 isDayComplete(it, completedDays),
-                                isLastViewedDay = it.toString() == lastViewedDay
+                                isLastViewedDay = it == plan.lastViewedDay
                             ),
                             navigateToDay
                         )
@@ -110,7 +110,7 @@ fun PreviewCalendarDayButton(
 private fun CalendarDayButton(
     day: Int,
     properties: DayProperties,
-    navigateToDay: (String) -> Unit
+    navigateToDay: (Int) -> Unit
 ) {
     val borderColor =
         if (properties.isCompletedDay) MaterialTheme.colors.secondaryVariant else MaterialTheme.colors.primaryVariant
@@ -120,7 +120,7 @@ private fun CalendarDayButton(
         else -> MaterialTheme.colors.primary
     }
     Button(
-        onClick = { navigateToDay(day.toString()) },
+        onClick = { navigateToDay(day) },
         border = if (properties.isLastViewedDay) BorderStroke(2.dp, borderColor) else null,
         colors = ButtonDefaults.buttonColors(backgroundColor = backgroundColor)
     ) {

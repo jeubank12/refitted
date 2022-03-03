@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface WorkoutPlanRepository {
     val workouts: Flow<PagingData<WorkoutPlan>>
+    fun workoutByName(name: String): Flow<WorkoutPlan>
 }
