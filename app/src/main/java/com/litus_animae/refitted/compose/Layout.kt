@@ -18,31 +18,25 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @Composable
 fun Main(
     navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
     model: WorkoutViewModel = viewModel()
 ) {
-    var selectedWorkoutPlan by remember { mutableStateOf(model.savedStateLastWorkoutPlan) }
-    var savedSelectedPlanLoading by remember { mutableStateOf(selectedWorkoutPlan == null) }
-    LaunchedEffect(true) {
-        if (selectedWorkoutPlan == null) {
-            model.storedStateLastWorkoutPlan.collect {
-                selectedWorkoutPlan = it
-                savedSelectedPlanLoading = false
-            }
-        }
-    }
-
-    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
     val scaffoldState = rememberScaffoldState()
     val scaffoldScope = rememberCoroutineScope()
-    LaunchedEffect(selectedWorkoutPlan?.workout) {
-        selectedWorkoutPlan?.workout?.let { model.loadWorkoutDaysCompleted(it) }
-    }
+    val coroutineScope = rememberCoroutineScope()
+
+    val selectedWorkoutPlan by model.currentWorkout.collectAsState(initial = model.savedStateLastWorkoutPlan)
+    val savedSelectedPlanLoading = model.savedStateLoading
+    val completedDaysLoading = model.completedDaysLoading
+
+    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
 
     Scaffold(
         scaffoldState = scaffoldState,
@@ -72,11 +66,11 @@ fun Main(
         drawerContent = {
             val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
             WorkoutPlanMenu(workoutPlanPagingItems) {
-                selectedWorkoutPlan = it
                 scaffoldScope.launch { scaffoldState.drawerState.close() }
+                coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
             }
         }) {
-        if (savedSelectedPlanLoading) {
+        if (savedSelectedPlanLoading || completedDaysLoading) {
             Surface(Modifier.fillMaxSize()) {
                 LoadingView()
             }

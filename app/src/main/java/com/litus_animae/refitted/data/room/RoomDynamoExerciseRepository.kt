@@ -25,6 +25,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
     private val roomDb = RoomRefittedDataService.getRefittedRoom(applicationContext)
 
     private val currentWorkout = MutableStateFlow("")
+    // TODO distinct until changed?
     override val workoutRecords = currentWorkout.flatMapLatest {
         roomDb.getExerciseDao().getDayCompletedSets(it)
     }
@@ -34,6 +35,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
     private val currentWorkoutDay = MutableStateFlow(WorkoutAndDay("", ""))
 
     private val currentStepsSource =
+        // TODO distinct until changed?
         currentWorkoutDay.flatMapLatest {
             Log.i(TAG, "currentStepsSource: updated to workout ${it.workoutId}, day ${it.day}")
             roomDb.getExerciseDao().getSteps(it.day, it.workoutId).map { collection: List<String> ->
@@ -45,6 +47,7 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
         }
 
     private val currentSetsSource =
+        // TODO distinct until changed?
         currentWorkoutDay.combine(currentStepsSource) { workoutDay, steps ->
             Log.i(TAG, "currentSetsSource: steps updated, reloading sets")
             roomDb.getExerciseDao()
