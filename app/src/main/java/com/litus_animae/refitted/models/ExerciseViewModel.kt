@@ -49,7 +49,7 @@ class ExerciseViewModel @Inject constructor(
     }
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading = _isLoading.asStateFlow()
 
     suspend fun loadExercises(day: String, workoutId: String) {
         _isLoading.value = true

@@ -1,5 +1,9 @@
 package com.litus_animae.refitted.models
 
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.paging.PagingData
@@ -8,13 +12,14 @@ import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
 
+@ExperimentalCoroutinesApi
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
@@ -23,24 +28,10 @@ class WorkoutViewModel @Inject constructor(
     private val savedStateRepo: SavedStateRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    val completedDays: Flow<Map<Int, Date>> =
-        exerciseRepo.workoutRecords.map { records ->
-            records.groupBy { it.day }
-                .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
-                .mapKeys { it.key.toIntOrNull() ?: 0 }
-        }
 
     private val selectedPlan = "selectedPlan"
     private val selectedPlanDays = "selectedPlanDays"
     private val lastDay = "lastDay"
-
-    private fun hydratePlan(name: String?, totalDays: String?, lastDay: String?): WorkoutPlan? {
-        return hydratePlan(name, totalDays?.toIntOrNull(), lastDay?.toIntOrNull())
-    }
-
-    private fun hydratePlan(name: String?, totalDays: Int?, lastDay: Int?): WorkoutPlan? {
-        return name?.let { n -> totalDays?.let { t -> lastDay?.let { WorkoutPlan(n, t, it) } } }
-    }
 
     val savedStateLastWorkoutPlan: WorkoutPlan? =
         hydratePlan(
@@ -48,24 +39,77 @@ class WorkoutViewModel @Inject constructor(
             savedStateHandle.get<Int?>(selectedPlanDays),
             savedStateHandle.get<Int?>(lastDay)
         )
-    val storedStateLastWorkoutPlan = combine(
+    private val storedStateLastWorkoutPlan = combine(
         savedStateRepo.getState(selectedPlan).map { it?.value },
         savedStateRepo.getState(selectedPlanDays).map { it?.value },
-        savedStateRepo.getState(lastDay).map { it?.value },
-        this::hydratePlan
-    )
+        savedStateRepo.getState(lastDay).map { it?.value }) { n, t, p ->
+        log.d("WorkoutViewModel", "Loaded stored state from db $n $t $p")
+        hydratePlan(n, t, p)
+    }
 
-    suspend fun loadWorkoutDaysCompleted(workoutId: String) {
-        savedStateHandle.set(selectedPlan, workoutId)
-        exerciseRepo.loadWorkoutRecords(workoutId)
-        savedStateRepo.setState(selectedPlan, workoutId)
-        workoutPlanRepo.workoutByName(workoutId).first()?.let { newWorkoutPlan ->
+    var completedDaysLoading by mutableStateOf(false)
+        private set
+    var savedStateLoading by mutableStateOf(savedStateLastWorkoutPlan == null)
+        private set
+    private val _currentWorkout by lazy{ MutableStateFlow(savedStateLastWorkoutPlan) }
+    private val savedWorkout = flow {
+        val savedPlan = savedStateLastWorkoutPlan
+        savedStateLoading = savedPlan == null
+        emit(savedStateLastWorkoutPlan)
+        storedStateLastWorkoutPlan.collect {
+            savedStateLoading = false
+            if (it != null) emit(it)
+        }
+    }
+    val currentWorkout = combine(_currentWorkout, savedWorkout){
+        current, saved -> current ?: saved
+    }
 
-            savedStateRepo.setState(lastDay, newWorkoutPlan.lastViewedDay.toString())
-            savedStateHandle.set(lastDay, newWorkoutPlan.lastViewedDay)
+    private fun hydratePlan(name: String?, totalDays: String?, lastDay: String?): WorkoutPlan? {
+        return hydratePlan(name, totalDays?.toIntOrNull(), lastDay?.toIntOrNull())
+    }
 
-            savedStateRepo.setState(selectedPlanDays, newWorkoutPlan.totalDays.toString())
-            savedStateHandle.set(selectedPlanDays, newWorkoutPlan.totalDays)
+    private fun hydratePlan(name: String?, totalDays: Int?, lastDay: Int?): WorkoutPlan? {
+        log.d("WorkoutViewModel", "Hydrating workout day $name $totalDays $lastDay")
+        return name?.let { n -> totalDays?.let { t -> lastDay?.let { WorkoutPlan(n, t, it) } } }
+    }
+
+    val completedDays: Flow<Map<Int, Date>> =
+        // TODO distinct until changed?
+        currentWorkout.flatMapLatest { maybePlan ->
+            maybePlan?.let{plan ->
+                completedDaysLoading = true
+                Log.d("WorkoutViewModel", "Loading completed days for $plan")
+                exerciseRepo.loadWorkoutRecords(plan.workout) }
+            exerciseRepo.workoutRecords.map { records ->
+                completedDaysLoading = false
+                records.groupBy { it.day }
+                    .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
+                    .mapKeys { it.key.toIntOrNull() ?: 0 }
+            }
+        }
+
+    suspend fun loadWorkoutDaysCompleted(workout: WorkoutPlan) {
+        Log.d("WorkoutViewModel", "Setting currentWorkout $workout")
+        _currentWorkout.value = workout
+        log.d("WorkoutViewModel", "Saving selected plan $workout")
+        savedStateHandle.set(selectedPlan, workout.workout)
+        savedStateHandle.set(selectedPlanDays, workout.totalDays)
+        savedStateHandle.set(lastDay, workout.lastViewedDay)
+        withContext(Dispatchers.IO) {
+            savedStateRepo.setState(selectedPlan, workout.workout)
+            savedStateRepo.setState(lastDay, workout.lastViewedDay.toString())
+            savedStateRepo.setState(selectedPlanDays, workout.totalDays.toString())
+            workoutPlanRepo.workoutByName(workout.workout).first()?.let { newWorkoutPlan ->
+                if (newWorkoutPlan != workout) {
+                    log.w("WorkoutViewModel", "Updating saved selected plan with new values $newWorkoutPlan")
+                    savedStateRepo.setState(lastDay, newWorkoutPlan.lastViewedDay.toString())
+                    savedStateHandle.set(lastDay, newWorkoutPlan.lastViewedDay)
+
+                    savedStateRepo.setState(selectedPlanDays, newWorkoutPlan.totalDays.toString())
+                    savedStateHandle.set(selectedPlanDays, newWorkoutPlan.totalDays)
+                }
+            }
         }
     }
 
