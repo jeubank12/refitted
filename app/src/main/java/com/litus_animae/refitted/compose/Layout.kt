@@ -1,10 +1,7 @@
 package com.litus_animae.refitted.compose
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -104,10 +101,14 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
     LaunchedEffect(day, workoutId) {
         model.loadExercises(day, workoutId)
     }
+    var contextMenu by remember{ mutableStateOf<@Composable RowScope.() -> Unit>({})}
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("$title: $workoutId $dayWord $day") },
-            backgroundColor = MaterialTheme.colors.primary
+            backgroundColor = MaterialTheme.colors.primary,
+            actions = {
+                contextMenu()
+            }
         )
     }) {
         if (isLoading) {
@@ -115,7 +116,7 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
                 LoadingView()
             }
         } else {
-            ExerciseDetail(model)
+            ExerciseDetail(model){contextMenu = it}
         }
     }
 }

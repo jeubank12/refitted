@@ -1,14 +1,15 @@
+@file:OptIn(FlowPreview::class)
+
 package com.litus_animae.refitted.compose
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,10 +27,14 @@ import kotlinx.coroutines.launch
 
 @FlowPreview
 @Composable
-fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
+fun ExerciseDetail(
+    model: ExerciseViewModel = viewModel(),
+    setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
+) {
     var index by remember { mutableStateOf(0) }
     val instructions by model.exercises.collectAsState(initial = emptyList())
-    val exerciseSet by instructions.getOrNull(index)?.set?.collectAsState(initial = null)
+    val instruction by derivedStateOf { instructions.getOrNull(index) }
+    val exerciseSet by instruction?.set?.collectAsState(initial = null)
         ?: remember { mutableStateOf<ExerciseSet?>(null) }
     val records = remember { mutableStateListOf<SnapshotStateList<Record>>() }
 
@@ -50,6 +55,7 @@ fun ExerciseDetail(model: ExerciseViewModel = viewModel()) {
             )
         }
         LaunchedEffect(currentSet) {
+            setContextMenu { instruction?.let { this.ExerciseContextMenu(it) } }
             model.recordsForSet(currentSet).collect { storedRecords = it }
         }
         // TODO update default weight with best default
@@ -192,6 +198,19 @@ private fun ExerciseDetails(
         }
         Row(Modifier.padding(vertical = 5.dp)) {
             Text(exerciseSet?.note ?: "")
+        }
+    }
+}
+
+@Composable
+fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruction) {
+    if (instruction.hasAlternate) {
+        Column(Modifier
+            .clickable { instruction.activateNextAlternate() }
+            .fillMaxHeight(),
+        verticalArrangement = Arrangement.Center) {
+            // TODO localize
+            Text("Alternate")
         }
     }
 }
