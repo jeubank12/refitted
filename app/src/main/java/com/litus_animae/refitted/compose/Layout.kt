@@ -85,10 +85,12 @@ fun Main(
             }
         } else {
             Calendar(
-                // TODO actual number of days
                 selectedWorkoutPlan!!,
                 completedDays
-            ) { navigateToWorkoutDay(selectedWorkoutPlan!!, it) }
+            ) {
+                navigateToWorkoutDay(selectedWorkoutPlan!!, it)
+                coroutineScope.launch { model.setLastViewedDay(selectedWorkoutPlan!!, it) }
+            }
         }
     }
 }

@@ -90,9 +90,9 @@ fun WorkoutPlanMenu(
                     Text(
                         plan.workout,
                         Modifier
-                            .padding(start = 10.dp, top = 15.dp, bottom = 15.dp)
                             .fillMaxWidth()
-                            .clickable { onSelect(plan) },
+                            .clickable { onSelect(plan) }
+                            .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
                         style = MaterialTheme.typography.button
                     )
                     Divider()

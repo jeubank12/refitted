@@ -1,10 +1,7 @@
 package com.litus_animae.refitted.data.room
 
 import androidx.paging.PagingSource
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 interface WorkoutPlanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(plans: List<WorkoutPlan>)
+
+    @Update
+    fun update(workoutPlan: WorkoutPlan)
 
     @Query("SELECT * FROM workouts")
     fun pagingSource(): PagingSource<Int, WorkoutPlan>
