@@ -7,6 +7,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,12 +28,13 @@ fun Timer(
     debugView: Boolean = false,
     onFinish: () -> Unit = {}
 ) {
-    val startTime = remember(running) {
+    // TODO add on update
+    val startTime = rememberSaveable(running) {
         Instant.now()
     }
-    var isRunning by remember(running) { mutableStateOf(running) }
+    var isRunning by rememberSaveable(running) { mutableStateOf(running) }
     val timerScope = rememberCoroutineScope()
-    var elapsedMillis by remember(running) { mutableStateOf(0L) }
+    var elapsedMillis by rememberSaveable(running) { mutableStateOf(0L) }
     LaunchedEffect(running, elapsedMillis) {
         if (isRunning) {
             timerScope.launch {
