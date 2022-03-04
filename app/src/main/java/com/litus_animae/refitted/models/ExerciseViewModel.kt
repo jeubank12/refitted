@@ -44,7 +44,14 @@ class ExerciseViewModel @Inject constructor(
     ) {
         val hasAlternate = sets.size > 1
         val prefix = sets.head.primaryStep
-        private val activeIndex = MutableStateFlow(1)
+        private val activeIndex = MutableStateFlow(0)
+        fun activateNextAlternate(){
+            if (activeIndex.value < sets.size - 1){
+                activeIndex.value += 1
+            } else {
+                activeIndex.value = 0
+            }
+        }
         val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
     }
 
