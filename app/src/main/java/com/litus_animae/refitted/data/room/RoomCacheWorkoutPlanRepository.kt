@@ -28,4 +28,8 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
     override fun workoutByName(name: String): Flow<WorkoutPlan?> {
         return database.getWorkoutPlanDao().planByName(name)
     }
+
+    override suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int) {
+        return database.getWorkoutPlanDao().update(workoutPlan.copy(lastViewedDay = day))
+    }
 }

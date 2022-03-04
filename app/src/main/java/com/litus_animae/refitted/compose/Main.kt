@@ -8,8 +8,10 @@ import androidx.navigation.compose.rememberNavController
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @FlowPreview
 @Composable
 fun Top() {

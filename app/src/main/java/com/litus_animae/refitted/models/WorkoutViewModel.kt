@@ -33,18 +33,22 @@ class WorkoutViewModel @Inject constructor(
     private val selectedPlanDays = "selectedPlanDays"
     private val lastDay = "lastDay"
 
-    val savedStateLastWorkoutPlan: WorkoutPlan? =
-        hydratePlan(
+    val savedStateLastWorkoutPlan: WorkoutPlan? by lazy {
+        val plan = hydratePlan(
             savedStateHandle.get<String?>(selectedPlan),
             savedStateHandle.get<Int?>(selectedPlanDays),
             savedStateHandle.get<Int?>(lastDay)
         )
+        log.d("WorkoutViewModel", "Loaded saved state plan $plan")
+        plan
+    }
     private val storedStateLastWorkoutPlan = combine(
-        savedStateRepo.getState(selectedPlan).map { it?.value },
-        savedStateRepo.getState(selectedPlanDays).map { it?.value },
-        savedStateRepo.getState(lastDay).map { it?.value }) { n, t, p ->
-        log.d("WorkoutViewModel", "Loaded stored state from db $n $t $p")
-        hydratePlan(n, t, p)
+        savedStateRepo.getState(selectedPlan).map { it?.value }.distinctUntilChanged(),
+        savedStateRepo.getState(selectedPlanDays).map { it?.value }.distinctUntilChanged(),
+        savedStateRepo.getState(lastDay).map { it?.value }.distinctUntilChanged()) { n, t, p ->
+        val plan = hydratePlan(n, t, p)
+        log.d("WorkoutViewModel", "Loaded stored state from db $plan")
+        plan
     }
 
     var completedDaysLoading by mutableStateOf(false)
@@ -60,27 +64,27 @@ class WorkoutViewModel @Inject constructor(
             savedStateLoading = false
             if (it != null) emit(it)
         }
-    }
+    }.distinctUntilChanged()
     val currentWorkout = combine(_currentWorkout, savedWorkout){
         current, saved -> current ?: saved
-    }
+    }.distinctUntilChanged()
 
     private fun hydratePlan(name: String?, totalDays: String?, lastDay: String?): WorkoutPlan? {
         return hydratePlan(name, totalDays?.toIntOrNull(), lastDay?.toIntOrNull())
     }
 
     private fun hydratePlan(name: String?, totalDays: Int?, lastDay: Int?): WorkoutPlan? {
-        log.d("WorkoutViewModel", "Hydrating workout day $name $totalDays $lastDay")
         return name?.let { n -> totalDays?.let { t -> lastDay?.let { WorkoutPlan(n, t, it) } } }
     }
 
     val completedDays: Flow<Map<Int, Date>> =
-        // TODO distinct until changed?
-        currentWorkout.flatMapLatest { maybePlan ->
+        currentWorkout.map{it?.workout}
+            .distinctUntilChanged()
+            .flatMapLatest { maybePlan ->
             maybePlan?.let{plan ->
                 completedDaysLoading = true
                 Log.d("WorkoutViewModel", "Loading completed days for $plan")
-                exerciseRepo.loadWorkoutRecords(plan.workout) }
+                exerciseRepo.loadWorkoutRecords(plan) }
             exerciseRepo.workoutRecords.map { records ->
                 completedDaysLoading = false
                 records.groupBy { it.day }
@@ -110,6 +114,15 @@ class WorkoutViewModel @Inject constructor(
                     savedStateHandle.set(selectedPlanDays, newWorkoutPlan.totalDays)
                 }
             }
+        }
+    }
+
+    suspend fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
+        Log.d("WorkoutViewModel", "Setting last viewed day $day")
+        savedStateHandle.set(lastDay, day)
+        withContext(Dispatchers.IO){
+            savedStateRepo.setState(lastDay, day.toString())
+            workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
         }
     }
 
