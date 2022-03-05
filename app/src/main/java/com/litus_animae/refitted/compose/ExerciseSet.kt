@@ -18,7 +18,31 @@ import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.models.ExerciseSet
 
 @Composable
-fun ExerciseSetView(
+fun RowScope.ExerciseSetView(
+    exerciseSet: ExerciseSet,
+    record: Record,
+    numCompleted: Int,
+    currentIndex: Int,
+    maxIndex: Int,
+    updateIndex: (Int, Record) -> Unit,
+    onSave: (Record) -> Unit,
+    modifier: Modifier = Modifier,
+    ) {
+    Column(modifier) {
+        ExerciseSetView(
+            exerciseSet = exerciseSet,
+            record = record,
+            numCompleted = numCompleted,
+            currentIndex = currentIndex,
+            maxIndex = maxIndex,
+            updateIndex = updateIndex,
+            onSave = onSave
+        )
+    }
+}
+
+@Composable
+fun ColumnScope.ExerciseSetView(
     exerciseSet: ExerciseSet,
     record: Record,
     numCompleted: Int,
@@ -34,91 +58,89 @@ fun ExerciseSetView(
     val saveWeight by weight.value
     val saveReps by reps.value
 
-    Column {
-        Row(Modifier.weight(3f)) {
-            Column(Modifier.weight(4f)) {
-                WeightButtons(weight)
-            }
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                RepetitionsButtons(reps)
+    Row(Modifier.weight(3f)) {
+        Column(Modifier.weight(4f)) {
+            WeightButtons(weight)
+        }
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+            RepetitionsButtons(reps)
+        }
+    }
+    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            val enabled = currentIndex > 0
+            Button(
+                onClick = {
+                    updateIndex(
+                        currentIndex - 1,
+                        record.copy(weight = saveWeight, reps = saveReps)
+                    )
+                },
+                enabled = enabled
+            ) {
+                val text = stringResource(id = R.string.move_left)
+                Text(text)
             }
         }
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                val enabled = currentIndex > 0
-                Button(
-                    onClick = {
-                        updateIndex(
-                            currentIndex - 1,
-                            record.copy(weight = saveWeight, reps = saveReps)
-                        )
-                    },
-                    enabled = enabled
-                ) {
-                    val text = stringResource(id = R.string.move_left)
-                    Text(text)
-                }
+        Column(
+            Modifier.weight(3f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val localRestFormat = stringResource(R.string.seconds_rest_phrase)
+            val timerDisplayTime by derivedStateOf {
+                if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
+                else String.format(localRestFormat, exerciseSet.rest.toFloat())
             }
-            Column(
-                Modifier.weight(3f),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text(timerDisplayTime)
+        }
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            val enabled = currentIndex < maxIndex
+            Button(
+                onClick = {
+                    updateIndex(
+                        currentIndex + 1,
+                        record.copy(weight = saveWeight, reps = saveReps)
+                    )
+                },
+                enabled = enabled
             ) {
-                val localRestFormat = stringResource(R.string.seconds_rest_phrase)
-                val timerDisplayTime by derivedStateOf {
-                    if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
-                    else String.format(localRestFormat, exerciseSet.rest.toFloat())
-                }
-                Text(timerDisplayTime)
-            }
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                val enabled = currentIndex < maxIndex
-                Button(
-                    onClick = {
-                        updateIndex(
-                            currentIndex + 1,
-                            record.copy(weight = saveWeight, reps = saveReps)
-                        )
-                    },
-                    enabled = enabled
-                ) {
-                    val text = stringResource(id = R.string.move_right)
-                    Text(text)
-                }
+                val text = stringResource(id = R.string.move_right)
+                Text(text)
             }
         }
-        Row(Modifier.weight(1f)) {
-            Column {
-                val isTimerRunning by timerRunning
-                Timer(isTimerRunning,
-                    millisToElapse = exerciseSet.rest * 1000L,
-                    countDown = true,
-                    onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
-                Button(
-                    onClick = {
-                        if (!isTimerRunning) {
-                            onSave(record.copy(weight = saveWeight, reps = saveReps))
-                            timerMillis.value = exerciseSet.rest * 1000L
-                        }
-                        timerRunning.value = !isTimerRunning
-                    },
-                    Modifier.fillMaxWidth(),
-                    enabled = numCompleted < exerciseSet.sets
-                ) {
-                    // TODO localize
-                    val setText =
-                        if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
-                        else "Exercise Completed!"
-                    val buttonText = if (isTimerRunning) "Start Next Set Early" else setText
-                    Text(buttonText)
-                }
+    }
+    Row(Modifier.weight(1f)) {
+        Column {
+            val isTimerRunning by timerRunning
+            Timer(isTimerRunning,
+                millisToElapse = exerciseSet.rest * 1000L,
+                countDown = true,
+                onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
+            Button(
+                onClick = {
+                    if (!isTimerRunning) {
+                        onSave(record.copy(weight = saveWeight, reps = saveReps))
+                        timerMillis.value = exerciseSet.rest * 1000L
+                    }
+                    timerRunning.value = !isTimerRunning
+                },
+                Modifier.fillMaxWidth(),
+                enabled = numCompleted < exerciseSet.sets
+            ) {
+                // TODO localize
+                val setText =
+                    if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
+                    else "Exercise Completed!"
+                val buttonText = if (isTimerRunning) "Start Next Set Early" else setText
+                Text(buttonText)
             }
         }
     }
