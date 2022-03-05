@@ -1,4 +1,4 @@
-package com.litus_animae.refitted
+package com.litus_animae.refitted.module
 
 import com.litus_animae.refitted.data.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.dynamo.DynamoWorkoutPlanNetworkService
