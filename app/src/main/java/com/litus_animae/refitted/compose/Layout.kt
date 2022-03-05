@@ -116,7 +116,7 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
                 LoadingView()
             }
         } else {
-            ExerciseDetail(model){contextMenu = it}
+            ExerciseDetails(model){contextMenu = it}
         }
     }
 }

@@ -2,6 +2,7 @@
 
 package com.litus_animae.refitted.compose
 
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
@@ -9,8 +10,8 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -27,7 +28,7 @@ import kotlinx.coroutines.launch
 
 @FlowPreview
 @Composable
-fun ExerciseDetail(
+fun ExerciseDetails(
     model: ExerciseViewModel = viewModel(),
     setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
 ) {
@@ -123,14 +124,16 @@ private fun saveRecordInState(
 @Composable
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
     MaterialTheme(Theme.darkColors) {
-        DetailView(
-            index = 0,
-            maxIndex = 2,
-            exerciseSet = exerciseSet,
-            record = Record(25.0, exerciseSet.reps, exerciseSet),
-            numCompleted = 1,
-            updateIndex = { _, _ -> },
-            onSave = { })
+        Column {
+            DetailView(
+                index = 0,
+                maxIndex = 2,
+                exerciseSet = exerciseSet,
+                record = Record(25.0, exerciseSet.reps, exerciseSet),
+                numCompleted = 1,
+                updateIndex = { _, _ -> },
+                onSave = { })
+        }
     }
 }
 
@@ -144,13 +147,38 @@ fun DetailView(
     updateIndex: (Int, Record) -> Unit,
     onSave: (Record) -> Unit
 ) {
-    Column(Modifier.padding(16.dp)) {
-        Row(Modifier.weight(1f)) {
-            ExerciseDetails(exerciseSet)
-        }
-        Row(Modifier.weight(1f)) {
-            ExerciseSetView(exerciseSet, record, numCompleted, index, maxIndex, updateIndex, onSave)
-        }
+    when (LocalConfiguration.current.orientation) {
+        Configuration.ORIENTATION_LANDSCAPE ->
+            Row(Modifier.padding(16.dp)) {
+                ExerciseDetails(exerciseSet, Modifier.weight(1f))
+                ExerciseSetView(
+                    exerciseSet,
+                    record,
+                    numCompleted,
+                    index,
+                    maxIndex,
+                    updateIndex,
+                    onSave,
+                    Modifier.weight(1f)
+                )
+            }
+        else ->
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.weight(1f)) {
+                    ExerciseDetails(exerciseSet)
+                }
+                Row(Modifier.weight(1f)) {
+                    ExerciseSetView(
+                        exerciseSet,
+                        record,
+                        numCompleted,
+                        index,
+                        maxIndex,
+                        updateIndex,
+                        onSave
+                    )
+                }
+            }
     }
 }
 
@@ -158,47 +186,55 @@ fun DetailView(
 @Composable
 fun PreviewExerciseDetails(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
     MaterialTheme(Theme.darkColors) {
-        ExerciseDetails(
-            exerciseSet = exerciseSet
-        )
+        Column {
+            this.ExerciseDetails(
+                exerciseSet = exerciseSet
+            )
+        }
     }
 }
 
 @Composable
-private fun ExerciseDetails(
-    exerciseSet: ExerciseSet?
+private fun RowScope.ExerciseDetails(
+    exerciseSet: ExerciseSet?,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Row {
-            if (exerciseSet != null)
-                Text(text = exerciseSet.exerciseName, style = MaterialTheme.typography.h6)
-        }
-        Row(Modifier.padding(vertical = 5.dp)) {
-            Column(Modifier.weight(1f)) {
-                val label = stringResource(id = R.string.target_reps)
-                val toFailureLabel = stringResource(id = R.string.to_failure)
-                when {
-                    exerciseSet == null -> Text(label)
-                    exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
-                    else -> Text("$label ${exerciseSet.reps}")
-                }
-            }
-            Column(Modifier.weight(1f)) {
-                val label = stringResource(id = R.string.target_sets)
-                if (exerciseSet == null)
-                    Text(label)
-                else Text("$label ${exerciseSet.sets}")
-            }
-        }
-        Row(Modifier.padding(vertical = 5.dp)) {
-            if (exerciseSet != null) {
-                val exercise by exerciseSet.exercise.collectAsState()
-                Text(exercise?.description ?: "")
+    Column(modifier) {
+        ExerciseDetails(exerciseSet)
+    }
+}
+
+@Composable
+private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
+    Row {
+        if (exerciseSet != null)
+            Text(text = exerciseSet.exerciseName, style = MaterialTheme.typography.h6)
+    }
+    Row(Modifier.padding(vertical = 5.dp)) {
+        Column(Modifier.weight(1f)) {
+            val label = stringResource(id = R.string.target_reps)
+            val toFailureLabel = stringResource(id = R.string.to_failure)
+            when {
+                exerciseSet == null -> Text(label)
+                exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
+                else -> Text("$label ${exerciseSet.reps}")
             }
         }
-        Row(Modifier.padding(vertical = 5.dp)) {
-            Text(exerciseSet?.note ?: "")
+        Column(Modifier.weight(1f)) {
+            val label = stringResource(id = R.string.target_sets)
+            if (exerciseSet == null)
+                Text(label)
+            else Text("$label ${exerciseSet.sets}")
         }
+    }
+    Row(Modifier.padding(vertical = 5.dp)) {
+        if (exerciseSet != null) {
+            val exercise by exerciseSet.exercise.collectAsState()
+            Text(exercise?.description ?: "")
+        }
+    }
+    Row(Modifier.padding(vertical = 5.dp)) {
+        Text(exerciseSet?.note ?: "")
     }
 }
 
@@ -208,7 +244,7 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
         Column(Modifier
             .clickable { instruction.activateNextAlternate() }
             .fillMaxHeight(),
-        verticalArrangement = Arrangement.Center) {
+            verticalArrangement = Arrangement.Center) {
             // TODO localize
             Text("Alternate")
         }
