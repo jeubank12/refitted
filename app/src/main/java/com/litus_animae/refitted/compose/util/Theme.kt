@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.util
 
 import androidx.compose.material.Colors
 import androidx.compose.material.MaterialTheme

@@ -16,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import java.util.*
 import kotlin.math.ceil

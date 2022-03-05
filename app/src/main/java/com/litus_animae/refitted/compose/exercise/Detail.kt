@@ -20,7 +20,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.Option
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.exercise.ExampleExerciseProvider
 import com.litus_animae.refitted.compose.state.Record
+import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.*
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow

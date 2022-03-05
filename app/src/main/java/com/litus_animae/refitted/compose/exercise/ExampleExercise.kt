@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import com.litus_animae.refitted.models.Exercise
