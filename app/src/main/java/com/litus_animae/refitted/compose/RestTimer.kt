@@ -26,9 +26,9 @@ fun Timer(
     resolutionMillis: Long = 100,
     countDown: Boolean = false,
     debugView: Boolean = false,
+    onUpdate: (Long) -> Unit = {},
     onFinish: () -> Unit = {}
 ) {
-    // TODO add on update
     val startTime = rememberSaveable(running) {
         Instant.now()
     }
@@ -47,6 +47,7 @@ fun Timer(
                 } else {
                     elapsedMillis = nowElapsed
                 }
+                onUpdate(if (countDown) millisToElapse - elapsedMillis else elapsedMillis)
             }
         }
     }
@@ -119,7 +120,7 @@ fun PreviewRunningTimer() {
     MaterialTheme(Theme.lightColors) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Timer(running, 15000L, debugView = true, countDown = down) { running = false }
-            Row{
+            Row {
                 Button(onClick = { running = !running }) {
                     Text(running.toString())
                 }
