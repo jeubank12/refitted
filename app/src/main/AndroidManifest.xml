@@ -14,7 +14,7 @@
         android:allowBackup="true"
         android:fullBackupOnly="true">
         <activity
-            android:name=".WorkoutCalendarViewActivity"
+            android:name=".RefittedComposeActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -24,9 +24,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".ExerciseDetailViewActivity"
-            android:screenOrientation="portrait" />
 
         <service android:name="org.eclipse.paho.android.service.MqttService" />
     </application>

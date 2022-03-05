@@ -1,6 +1,5 @@
 package com.litus_animae.refitted
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -18,14 +17,14 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.compose.Top
+import com.litus_animae.refitted.compose.util.Theme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.FlowPreview
 
 @FlowPreview
 @AndroidEntryPoint
-class WorkoutCalendarViewActivity : AppCompatActivity() {
+class RefittedComposeActivity : AppCompatActivity() {
     private lateinit var googleSignInOptions: GoogleSignInOptions
     private lateinit var mAuth: FirebaseAuth
     private lateinit var launchSignInForResult: ActivityResultLauncher<Intent>
@@ -57,9 +56,7 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
             }
 
         val currentUser = mAuth.currentUser
-        if (currentUser != null) {
-            updateUI()
-        } else {
+        if (currentUser == null) {
             val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions)
             val silentSignInTask = mGoogleSignInClient.silentSignIn()
             if (silentSignInTask.isSuccessful) {
@@ -78,7 +75,6 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
                 if (task.isSuccessful && mAuth.currentUser != null) {
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "signInWithCredential:success")
-                    updateUI()
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -109,35 +105,6 @@ class WorkoutCalendarViewActivity : AppCompatActivity() {
         val mGoogleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions)
         val signInIntent = mGoogleSignInClient.signInIntent
         launchSignInForResult.launch(signInIntent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
-        val editor = prefs.edit()
-        editor.putString("lastActivity", javaClass.name)
-        editor.apply()
-    }
-
-    private fun updateUI() {
-        try {
-            val prefs = getSharedPreferences("RefittedMainPrefs", Context.MODE_PRIVATE)
-            val activityClass = Class.forName(
-                prefs.getString("lastActivity", javaClass.name)!!
-            )
-            val intent = Intent(this, activityClass)
-            val workout = prefs.getString("workout", "-1")!!
-            val day = prefs.getInt("day", -1)
-            intent.putExtra("workout", workout)
-            intent.putExtra("day", day)
-            if (activityClass != javaClass && day > 0 && workout != "-1") {
-                startActivity(intent)
-            }
-        } catch (ex: ClassNotFoundException) {
-            Log.e(TAG, "onCreate: bad class reference in shared preferences", ex)
-        } catch (ex: Exception) {
-            Log.e(TAG, "onCreate: shared preferences error", ex)
-        }
     }
 
     companion object {
