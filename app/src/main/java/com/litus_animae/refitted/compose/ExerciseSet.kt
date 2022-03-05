@@ -5,6 +5,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -28,8 +29,11 @@ fun ExerciseSetView(
 ) {
     val weight = remember(exerciseSet, record) { Weight(record.weight) }
     val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
+    val timerRunning = rememberSaveable { mutableStateOf(false) }
+    val timerMillis = rememberSaveable { mutableStateOf(0L) }
     val saveWeight by weight.value
     val saveReps by reps.value
+
     Column {
         Row(Modifier.weight(3f)) {
             Column(Modifier.weight(4f)) {
@@ -39,7 +43,7 @@ fun ExerciseSetView(
                 RepetitionsButtons(reps)
             }
         }
-        Row(Modifier.weight(1f)) {
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Column(
                 Modifier
                     .weight(1f)
@@ -59,7 +63,17 @@ fun ExerciseSetView(
                     Text(text)
                 }
             }
-            Column(Modifier.weight(3f)) { }
+            Column(
+                Modifier.weight(3f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val localRestFormat = stringResource(R.string.seconds_rest_phrase)
+                val timerDisplayTime by derivedStateOf {
+                    if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
+                    else String.format(localRestFormat, exerciseSet.rest.toFloat())
+                }
+                Text(timerDisplayTime)
+            }
             Column(
                 Modifier
                     .weight(1f)
@@ -82,14 +96,18 @@ fun ExerciseSetView(
         }
         Row(Modifier.weight(1f)) {
             Column {
-                var timerRunning by remember { mutableStateOf(false) }
-                // TODO persist between exercise pages....
-                Timer(timerRunning, exerciseSet.rest * 1000L) { timerRunning = false }
+                val isTimerRunning by timerRunning
+                Timer(isTimerRunning,
+                    millisToElapse = exerciseSet.rest * 1000L,
+                    countDown = true,
+                    onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
                 Button(
                     onClick = {
-                        if (!timerRunning)
+                        if (!isTimerRunning) {
                             onSave(record.copy(weight = saveWeight, reps = saveReps))
-                        timerRunning = !timerRunning
+                            timerMillis.value = exerciseSet.rest * 1000L
+                        }
+                        timerRunning.value = !isTimerRunning
                     },
                     Modifier.fillMaxWidth(),
                     enabled = numCompleted < exerciseSet.sets
@@ -98,7 +116,7 @@ fun ExerciseSetView(
                     val setText =
                         if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
                         else "Exercise Completed!"
-                    val buttonText = if (timerRunning) "Start Next Set Early" else setText
+                    val buttonText = if (isTimerRunning) "Start Next Set Early" else setText
                     Text(buttonText)
                 }
             }
