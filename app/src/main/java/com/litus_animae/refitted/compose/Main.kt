@@ -1,40 +1,122 @@
 package com.litus_animae.refitted.compose
 
-import androidx.compose.runtime.Composable
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Composable
+fun Main(
+    navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
+    model: WorkoutViewModel = viewModel()
+) {
+    val scaffoldState = rememberScaffoldState()
+    val scaffoldScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
+
+    val selectedWorkoutPlan by model.currentWorkout.collectAsState(initial = model.savedStateLastWorkoutPlan)
+    val savedSelectedPlanLoading = model.savedStateLoading
+    val completedDaysLoading = model.completedDaysLoading
+
+    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
+
+    Scaffold(
+        scaffoldState = scaffoldState,
+        topBar = {
+            TopAppBar(
+                title = {
+                    selectedWorkoutPlan?.let { Text(it.workout) } ?: Text("Refitted")
+                },
+                navigationIcon = {
+                    Icon(
+                        Icons.Default.Menu,
+                        // TODO localize
+                        "menu",
+                        modifier = Modifier
+                            .clickable {
+                                scaffoldScope.launch {
+                                    if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                                    else scaffoldState.drawerState.close()
+                                }
+                            }
+                            .padding(start = 10.dp))
+                },
+                backgroundColor = MaterialTheme.colors.primary
+            )
+        },
+        drawerShape = MaterialTheme.shapes.medium,
+        drawerContent = {
+            val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
+            WorkoutPlanMenu(workoutPlanPagingItems) {
+                scaffoldScope.launch { scaffoldState.drawerState.close() }
+                coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
+            }
+        }) {
+        if (savedSelectedPlanLoading || completedDaysLoading) {
+            Surface(Modifier.fillMaxSize()) {
+                LoadingView()
+            }
+        } else if (selectedWorkoutPlan == null) {
+            // TODO instruction page
+            Row(
+                Modifier
+                    .padding(start = 10.dp, top = 10.dp)
+                    .fillMaxWidth()
+            ) {
+                Text("Open the menu to pick a workout")
+            }
+        } else {
+            Calendar(
+                selectedWorkoutPlan!!,
+                completedDays
+            ) {
+                navigateToWorkoutDay(selectedWorkoutPlan!!, it)
+                coroutineScope.launch { model.setLastViewedDay(selectedWorkoutPlan!!, it) }
+            }
+        }
+    }
+}
+
 @FlowPreview
 @Composable
-fun Top() {
-    // TODO doesn't survive warm restarts....
-    val controller = rememberNavController()
-    NavHost(controller, startDestination = "calendar") {
-        composable("calendar") {
-            val model: WorkoutViewModel = hiltViewModel(it)
-            val navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit =
-                { wp, day -> controller.navigate("exercise/${wp.workout}/$day") }
-            Main(navigateToWorkoutDay, model)
-        }
-        composable("exercise/{workout}/{day}") {
-            val model: ExerciseViewModel = hiltViewModel(it)
-            val workoutId = it.arguments?.getString("workout")
-            val day = it.arguments?.getString("day")
-            if (workoutId != null && day != null) {
-                Exercise(
-                    day = day,
-                    workoutId = workoutId,
-                    model = model
-                )
+fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
+    val title = stringResource(id = R.string.app_name)
+    val dayWord = stringResource(id = R.string.day)
+    val isLoading by model.isLoading.collectAsState()
+    LaunchedEffect(day, workoutId) {
+        model.loadExercises(day, workoutId)
+    }
+    var contextMenu by remember{ mutableStateOf<@Composable RowScope.() -> Unit>({})}
+    Scaffold(topBar = {
+        TopAppBar(
+            title = { Text("$title: $workoutId $dayWord $day") },
+            backgroundColor = MaterialTheme.colors.primary,
+            actions = {
+                contextMenu()
             }
+        )
+    }) {
+        if (isLoading) {
+            Surface(Modifier.fillMaxSize()) {
+                LoadingView()
+            }
+        } else {
+            ExerciseDetails(model){contextMenu = it}
         }
     }
 }

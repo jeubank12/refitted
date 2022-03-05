@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.compose.state.Repetitions
+import com.litus_animae.refitted.compose.util.Theme
 
 @Composable
 fun RepetitionsButtons(reps: Repetitions) {

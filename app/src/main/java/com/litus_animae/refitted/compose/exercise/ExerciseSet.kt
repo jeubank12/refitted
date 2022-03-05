@@ -12,9 +12,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.exercise.Timer
+import com.litus_animae.refitted.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
+import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.ExerciseSet
 
 @Composable

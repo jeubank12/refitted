@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.compose.util.Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant

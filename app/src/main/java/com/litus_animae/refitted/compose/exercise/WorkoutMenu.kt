@@ -20,6 +20,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemsIndexed
+import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf
 
