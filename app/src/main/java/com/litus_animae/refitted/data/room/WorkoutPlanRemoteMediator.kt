@@ -5,8 +5,7 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
-import com.litus_animae.refitted.data.WorkoutPlanNetworkService
-import com.litus_animae.refitted.data.room.RefittedRoom
+import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
 
 

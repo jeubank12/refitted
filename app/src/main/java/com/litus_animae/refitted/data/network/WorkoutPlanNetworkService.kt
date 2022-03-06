@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data
+package com.litus_animae.refitted.data.network
 
 import com.litus_animae.refitted.models.WorkoutPlan
 
