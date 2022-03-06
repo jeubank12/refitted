@@ -12,8 +12,8 @@ android {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
         targetSdkVersion 32
-        versionCode 2614116
-        versionName "1.0.18-SNAPSHOT"
+        versionCode 3226118
+        versionName "1.0.18"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         javaCompileOptions {
