@@ -48,7 +48,7 @@ abstract class RefittedRoom : RoomDatabase() {
         val MIGRATION_3_4: Migration = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.beginTransaction()
-                database.execSQL("ALTER TABLE `ExerciseSet` RENAME TO _exercise_set_old")
+                database.execSQL("DROP TABLE `ExerciseSet`")
                 database.execSQL(
                     "CREATE TABLE `ExerciseSet` (" +
                             "`day` TEXT NOT NULL, " +
@@ -65,14 +65,6 @@ abstract class RefittedRoom : RoomDatabase() {
                             "PRIMARY KEY(`day`, `step`, `workout`), " +
                             "FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )"
                 )
-                database.execSQL(
-                    "INSERT INTO `ExerciseSet` (day, step, workout, name, note, reps, sets, toFailure, rest, repsUnit, repsRange) " +
-                            "SELECT day, step, workout, " +
-                            "coalesce(name,``), coalesce(note, ``), " +
-                            "reps, sets, toFailure, rest, repsUnit, repsRange " +
-                            "FROM _exercise_set_old"
-                )
-                database.execSQL("DROP TABLE _exercise_set_old")
                 database.setTransactionSuccessful()
                 database.endTransaction()
             }
