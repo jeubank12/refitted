@@ -5,7 +5,6 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.litus_animae.refitted.data.Converters
 import com.litus_animae.refitted.models.*
 
 @Database(

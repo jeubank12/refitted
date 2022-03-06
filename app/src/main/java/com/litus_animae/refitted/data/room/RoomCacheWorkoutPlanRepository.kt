@@ -4,7 +4,7 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.litus_animae.refitted.data.WorkoutPlanNetworkService
+import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow

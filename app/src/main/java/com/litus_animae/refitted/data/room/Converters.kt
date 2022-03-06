@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data
+package com.litus_animae.refitted.data.room
 
 import androidx.room.TypeConverter
 import java.util.*
