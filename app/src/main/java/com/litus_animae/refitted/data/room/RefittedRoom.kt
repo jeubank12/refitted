@@ -75,7 +75,7 @@ abstract class RefittedRoom : RoomDatabase() {
                         "`completed` INTEGER NOT NULL, " +
                         "`exercise` TEXT NOT NULL, " +
                         "PRIMARY KEY(`exercise`, `completed`))")
-                database.execSQL("INSERT INTO `SetRecord` (weight, reps, workout, target_set, complete, exercise) " +
+                database.execSQL("INSERT INTO `SetRecord` (weight, reps, workout, target_set, completed, exercise) " +
                         "SELECT weight, reps, COALESCE(workout, ''), COALESCE(target_set, ''), completed, exercise " +
                         "FROM _set_record_old")
                 database.execSQL("DROP TABLE _set_record_old")
