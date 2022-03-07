@@ -17,16 +17,20 @@ class ExerciseViewModel @Inject constructor(
     private val log: LogUtil
 ) : ViewModel() {
     val exercises =
-        exerciseRepo.exercises.map { sets ->
-            log.i(TAG, "Received new set of exercises: $sets")
-            val instructions = sets.groupBy { it.primaryStep }
-                .map { NonEmptyList.fromList(it.value) }
-                .flattenOption()
-                .map { ExerciseInstruction(it) }
-            if (instructions.isNotEmpty()) _isLoading.value = false
-            log.i(TAG, "Processed set of exercises to: $instructions")
-            instructions
-        }
+        exerciseRepo.exercises.distinctUntilChanged()
+            .map { sets ->
+                log.i(TAG, "Received new set of exercises: $sets")
+                val instructions = sets.groupBy { it.primaryStep }
+                    .map { NonEmptyList.fromList(it.value) }
+                    .flattenOption()
+                    .map { ExerciseInstruction(it) }
+                if (instructions.isNotEmpty()) {
+                    log.d("ExerciseViewModel", "Cache had values, setting loading false")
+                    _isLoading.value = false
+                }
+                log.i(TAG, "Processed set of exercises to: $instructions")
+                instructions
+            }
 
     fun recordForExercise(set: ExerciseSet): Flow<ExerciseRecord> {
         return exerciseRepo.records.mapNotNull { allRecords ->
@@ -60,7 +64,6 @@ class ExerciseViewModel @Inject constructor(
         _isLoading.value = true
         try {
             exerciseRepo.loadExercises(day, workoutId)
-            _isLoading.value = false
         } catch (ex: Throwable) {
             log.e(TAG, "error loading exercises", ex)
         }
