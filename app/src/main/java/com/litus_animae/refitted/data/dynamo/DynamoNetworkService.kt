@@ -1,7 +1,6 @@
 package com.litus_animae.refitted.data.dynamo
 
 import android.content.Context
-import android.util.Log
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapperConfig
@@ -11,6 +10,7 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.tasks.await
@@ -19,7 +19,7 @@ import java.time.Instant
 
 @ExperimentalCoroutinesApi
 @FlowPreview
-abstract class DynamoNetworkService(context: Context) {
+abstract class DynamoNetworkService(context: Context, protected val log: LogUtil) {
     private val applicationContext = context.applicationContext
     private val credentialsProvider: CognitoCachingCredentialsProvider =
         CognitoCachingCredentialsProvider(
@@ -39,7 +39,7 @@ abstract class DynamoNetworkService(context: Context) {
         val start = Instant.now()
         val dbClient = AmazonDynamoDBClient(credentialsProvider)
         dbClient.setRegion(Region.getRegion(Regions.US_EAST_2))
-        Log.d(TAG, "GetDatabaseMapper: generating mapper to table: $tableName")
+        log.d(TAG, "GetDatabaseMapper: generating mapper to table: $tableName")
         val dynamoDb = DynamoDBMapper.builder()
             .dynamoDBClient(dbClient)
             .dynamoDBMapperConfig(
@@ -49,7 +49,7 @@ abstract class DynamoNetworkService(context: Context) {
             )
             .build()
         val endOpen = Instant.now()
-        Log.d(
+        log.d(
             TAG,
             "connectToDynamo: Dynamo took " + Duration.between(
                 start,

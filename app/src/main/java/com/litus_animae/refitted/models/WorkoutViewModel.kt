@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.models
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,7 +44,8 @@ class WorkoutViewModel @Inject constructor(
     private val storedStateLastWorkoutPlan = combine(
         savedStateRepo.getState(selectedPlan).map { it?.value }.distinctUntilChanged(),
         savedStateRepo.getState(selectedPlanDays).map { it?.value }.distinctUntilChanged(),
-        savedStateRepo.getState(lastDay).map { it?.value }.distinctUntilChanged()) { n, t, p ->
+        savedStateRepo.getState(lastDay).map { it?.value }.distinctUntilChanged()
+    ) { n, t, p ->
         val plan = hydratePlan(n, t, p)
         log.d("WorkoutViewModel", "Loaded stored state from db $plan")
         plan
@@ -55,7 +55,7 @@ class WorkoutViewModel @Inject constructor(
         private set
     var savedStateLoading by mutableStateOf(savedStateLastWorkoutPlan == null)
         private set
-    private val _currentWorkout by lazy{ MutableStateFlow(savedStateLastWorkoutPlan) }
+    private val _currentWorkout by lazy { MutableStateFlow(savedStateLastWorkoutPlan) }
     private val savedWorkout = flow {
         val savedPlan = savedStateLastWorkoutPlan
         savedStateLoading = savedPlan == null
@@ -65,8 +65,8 @@ class WorkoutViewModel @Inject constructor(
             if (it != null) emit(it)
         }
     }.distinctUntilChanged()
-    val currentWorkout = combine(_currentWorkout, savedWorkout){
-        current, saved -> current ?: saved
+    val currentWorkout = combine(_currentWorkout, savedWorkout) { current, saved ->
+        current ?: saved
     }.distinctUntilChanged()
 
     private fun hydratePlan(name: String?, totalDays: String?, lastDay: String?): WorkoutPlan? {
@@ -78,23 +78,24 @@ class WorkoutViewModel @Inject constructor(
     }
 
     val completedDays: Flow<Map<Int, Date>> =
-        currentWorkout.map{it?.workout}
+        currentWorkout.map { it?.workout }
             .distinctUntilChanged()
             .flatMapLatest { maybePlan ->
-            maybePlan?.let{plan ->
-                completedDaysLoading = true
-                Log.d("WorkoutViewModel", "Loading completed days for $plan")
-                exerciseRepo.loadWorkoutRecords(plan) }
-            exerciseRepo.workoutRecords.map { records ->
-                completedDaysLoading = false
-                records.groupBy { it.day }
-                    .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
-                    .mapKeys { it.key.toIntOrNull() ?: 0 }
+                maybePlan?.let { plan ->
+                    completedDaysLoading = true
+                    log.d("WorkoutViewModel", "Loading completed days for $plan")
+                    exerciseRepo.loadWorkoutRecords(plan)
+                }
+                exerciseRepo.workoutRecords.map { records ->
+                    completedDaysLoading = false
+                    records.groupBy { it.day }
+                        .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
+                        .mapKeys { it.key.toIntOrNull() ?: 0 }
+                }
             }
-        }
 
     suspend fun loadWorkoutDaysCompleted(workout: WorkoutPlan) {
-        Log.d("WorkoutViewModel", "Setting currentWorkout $workout")
+        log.d("WorkoutViewModel", "Setting currentWorkout $workout")
         _currentWorkout.value = workout
         log.d("WorkoutViewModel", "Saving selected plan $workout")
         savedStateHandle.set(selectedPlan, workout.workout)
@@ -106,7 +107,10 @@ class WorkoutViewModel @Inject constructor(
             savedStateRepo.setState(selectedPlanDays, workout.totalDays.toString())
             workoutPlanRepo.workoutByName(workout.workout).first()?.let { newWorkoutPlan ->
                 if (newWorkoutPlan != workout) {
-                    log.w("WorkoutViewModel", "Updating saved selected plan with new values $newWorkoutPlan")
+                    log.w(
+                        "WorkoutViewModel",
+                        "Updating saved selected plan with new values $newWorkoutPlan"
+                    )
                     savedStateRepo.setState(lastDay, newWorkoutPlan.lastViewedDay.toString())
                     savedStateHandle.set(lastDay, newWorkoutPlan.lastViewedDay)
 
@@ -118,9 +122,9 @@ class WorkoutViewModel @Inject constructor(
     }
 
     suspend fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
-        Log.d("WorkoutViewModel", "Setting last viewed day $day")
+        log.d("WorkoutViewModel", "Setting last viewed day $day")
         savedStateHandle.set(lastDay, day)
-        withContext(Dispatchers.IO){
+        withContext(Dispatchers.IO) {
             savedStateRepo.setState(lastDay, day.toString())
             workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
         }

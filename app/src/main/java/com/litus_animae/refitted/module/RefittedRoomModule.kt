@@ -1,11 +1,8 @@
 package com.litus_animae.refitted.module
 
 import android.content.Context
-import com.litus_animae.refitted.data.WorkoutPlanNetworkService
-import com.litus_animae.refitted.data.dynamo.DynamoWorkoutPlanNetworkService
 import com.litus_animae.refitted.data.room.RefittedRoom
 import com.litus_animae.refitted.data.room.RoomRefittedDataService
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
