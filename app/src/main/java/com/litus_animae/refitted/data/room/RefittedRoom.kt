@@ -66,6 +66,19 @@ abstract class RefittedRoom : RoomDatabase() {
                             "FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )"
                 )
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_exerciseset_name_workout` ON `exerciseset` (`name`, `workout`)")
+                database.execSQL("ALTER TABLE `SetRecord` RENAME TO _set_record_old")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `SetRecord` " +
+                        "(`weight` REAL NOT NULL, " +
+                        "`reps` INTEGER NOT NULL, " +
+                        "`workout` TEXT NOT NULL, " +
+                        "`target_set` TEXT NOT NULL, " +
+                        "`completed` INTEGER NOT NULL, " +
+                        "`exercise` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`exercise`, `completed`))")
+                database.execSQL("INSERT INTO `SetRecord` (weight, reps, workout, target_set, complete, exercise) " +
+                        "SELECT weight, reps, COALESCE(workout, ''), COALESCE(target_set, ''), completed, exercise " +
+                        "FROM _set_record_old")
+                database.execSQL("DROP TABLE _set_record_old")
                 database.setTransactionSuccessful()
                 database.endTransaction()
             }
