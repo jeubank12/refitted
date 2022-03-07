@@ -65,6 +65,7 @@ abstract class RefittedRoom : RoomDatabase() {
                             "PRIMARY KEY(`day`, `step`, `workout`), " +
                             "FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )"
                 )
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_exerciseset_name_workout` ON `exerciseset` (`name`, `workout`)")
                 database.setTransactionSuccessful()
                 database.endTransaction()
             }
