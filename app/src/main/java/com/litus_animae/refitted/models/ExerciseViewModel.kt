@@ -1,11 +1,8 @@
 package com.litus_animae.refitted.models
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import arrow.core.NonEmptyList
-import arrow.core.firstOrNone
 import arrow.core.flattenOption
-import arrow.core.getOrElse
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel

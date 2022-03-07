@@ -5,6 +5,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExp
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.DynamoWorkoutPlan
 import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,8 +14,11 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-class DynamoWorkoutPlanNetworkService @Inject constructor(@ApplicationContext context: Context) :
-    DynamoNetworkService(context), WorkoutPlanNetworkService {
+class DynamoWorkoutPlanNetworkService @Inject constructor(
+    @ApplicationContext context: Context,
+    log: LogUtil
+) :
+    DynamoNetworkService(context, log), WorkoutPlanNetworkService {
     override suspend fun getWorkoutPlans(): List<WorkoutPlan> {
         return withContext(Dispatchers.IO) {
             val db = getDb()
