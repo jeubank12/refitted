@@ -14,3 +14,5 @@ data class WorkoutPlan(
     val totalDays: Int = 84,
     val lastViewedDay: Int = 1
 )
+
+data class DayAndWorkout(val day: String, val workoutId: String)
