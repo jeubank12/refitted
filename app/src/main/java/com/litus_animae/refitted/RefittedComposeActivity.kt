@@ -94,7 +94,12 @@ class RefittedComposeActivity : AppCompatActivity() {
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
-            Log.w(TAG, "signInResult:failed code=" + e.statusCode)
+            Log.w(TAG, "signInResult:failed code=" + e.statusCode, e)
+
+            // just loop
+            doFullSignIn()
+        } catch (e: Exception) {
+            Log.wtf(TAG, "Fatal Error", e)
 
             // just loop
             doFullSignIn()
