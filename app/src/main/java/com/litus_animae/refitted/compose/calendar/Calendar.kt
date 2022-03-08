@@ -41,6 +41,8 @@ fun Calendar(
     navigateToDay: (Int) -> Unit,
 ) {
     // TODO handle different screen sizes
+    // spacing between is 6dp so I am guessing that we are seeing 90x100 squares.
+    // we should calculate days per row to something that makes sense for orientation
     val daysPerRow = 7
     val daysInCalendar = plan.totalDays
     val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
