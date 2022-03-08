@@ -5,6 +5,8 @@ package com.litus_animae.refitted.compose
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -229,14 +231,20 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
             else Text("$label ${exerciseSet.sets}")
         }
     }
-    Row(Modifier.padding(vertical = 5.dp)) {
-        if (exerciseSet != null) {
-            val exercise by exerciseSet.exercise.collectAsState()
-            Text(exercise?.description ?: "")
+    val scrollState = rememberScrollState()
+    Row {
+        // TODO is there a way to show the scrollbar to indicate scrollability?
+        Column(Modifier.verticalScroll(scrollState)) {
+            Row(Modifier.padding(vertical = 5.dp)) {
+                if (exerciseSet != null) {
+                    val exercise by exerciseSet.exercise.collectAsState()
+                    Text(exercise?.description ?: "")
+                }
+            }
+            Row(Modifier.padding(vertical = 5.dp)) {
+                Text(exerciseSet?.note ?: "")
+            }
         }
-    }
-    Row(Modifier.padding(vertical = 5.dp)) {
-        Text(exerciseSet?.note ?: "")
     }
 }
 
