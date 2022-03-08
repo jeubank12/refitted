@@ -6,13 +6,14 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
+import dagger.hilt.components.SingletonComponent
 
 @Module
-@InstallIn(ViewModelComponent::class)
+@InstallIn(ViewModelComponent::class, SingletonComponent::class)
 object LogModule {
 
     @Provides
-    fun bindLogUtil(): LogUtil{
+    fun bindLogUtil(): LogUtil {
         return AndroidLogUtil
     }
 }

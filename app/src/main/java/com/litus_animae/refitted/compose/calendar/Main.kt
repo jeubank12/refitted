@@ -19,8 +19,12 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.compose.LoadingView
 import com.litus_animae.refitted.compose.WorkoutCalendar
 import com.litus_animae.refitted.compose.WorkoutPlanMenu
+import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.exercise.ExerciseDetails
+import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 
@@ -34,11 +38,14 @@ fun Calendar(
     val scaffoldScope = rememberCoroutineScope()
     val coroutineScope = rememberCoroutineScope()
 
-    val selectedWorkoutPlan by model.currentWorkout.collectAsState(initial = model.savedStateLastWorkoutPlan)
+    val selectedWorkoutPlan by model.currentWorkout.collectAsState(
+        initial = model.savedStateLastWorkoutPlan,
+        Dispatchers.IO
+    )
     val savedSelectedPlanLoading = model.savedStateLoading
     val completedDaysLoading = model.completedDaysLoading
 
-    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
+    val completedDays by model.completedDays.collectAsState(initial = emptyMap(), Dispatchers.IO)
 
     Scaffold(
         scaffoldState = scaffoldState,

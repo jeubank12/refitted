@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.models
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.flattenOption
 import com.litus_animae.refitted.data.ExerciseRepository
@@ -17,7 +18,7 @@ class ExerciseViewModel @Inject constructor(
     private val log: LogUtil
 ) : ViewModel() {
     val exercises =
-        exerciseRepo.exercises.distinctUntilChanged()
+        exerciseRepo.exercises
             .map { sets ->
                 log.i(TAG, "Received new set of exercises: $sets")
                 val instructions = sets.groupBy { it.primaryStep }
@@ -25,12 +26,12 @@ class ExerciseViewModel @Inject constructor(
                     .flattenOption()
                     .map { ExerciseInstruction(it) }
                 if (instructions.isNotEmpty()) {
-                    log.d("ExerciseViewModel", "Cache had values, setting loading false")
+                    log.d(TAG, "Finished Loading")
                     _isLoading.value = false
                 }
                 log.i(TAG, "Processed set of exercises to: $instructions")
                 instructions
-            }
+            }.flowOn(viewModelScope.coroutineContext)
 
     fun recordForExercise(set: ExerciseSet): Flow<ExerciseRecord> {
         return exerciseRepo.records.mapNotNull { allRecords ->
@@ -65,6 +66,7 @@ class ExerciseViewModel @Inject constructor(
         try {
             exerciseRepo.loadExercises(day, workoutId)
         } catch (ex: Throwable) {
+            // TODO error state
             log.e(TAG, "error loading exercises", ex)
         }
     }

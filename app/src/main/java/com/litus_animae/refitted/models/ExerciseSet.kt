@@ -3,12 +3,12 @@ package com.litus_animae.refitted.models
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.toOption
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 data class ExerciseSet(
     private val roomExerciseSet: RoomExerciseSet,
-    val exercise: StateFlow<Exercise?>
+    val exercise: Flow<Exercise?>
 ) {
     val workout: String = roomExerciseSet.workout
     val day: String = roomExerciseSet.day
