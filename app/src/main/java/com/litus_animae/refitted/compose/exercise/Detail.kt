@@ -1,6 +1,6 @@
 @file:OptIn(FlowPreview::class)
 
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise
 
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
@@ -23,10 +23,12 @@ import androidx.paging.PagingData
 import arrow.core.Option
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.ExampleExerciseProvider
+import com.litus_animae.refitted.compose.ExerciseSetView
+import com.litus_animae.refitted.compose.LoadingView
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -39,10 +41,10 @@ fun ExerciseDetails(
     setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
     setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
 ) {
-    var index by remember { mutableStateOf(0) }
-    val instructions by model.exercises.collectAsState(initial = emptyList())
+    val (index, setIndex) = remember { mutableStateOf(0) }
+    val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
     val instruction by derivedStateOf { instructions.getOrNull(index) }
-    val exerciseSet by instruction?.set?.collectAsState(initial = null)
+    val exerciseSet by instruction?.set?.collectAsState(initial = null, Dispatchers.IO)
         ?: remember { mutableStateOf<ExerciseSet?>(null) }
     val records = remember { mutableStateListOf<SnapshotStateList<Record>>() }
 
@@ -70,23 +72,37 @@ fun ExerciseDetails(
             }
         }
         // TODO update default weight with best default
-        val defaultRecord = Record(25.0, currentSet.reps, currentSet)
-        val lastExerciseRecord by storedRecords.latestSet.collectAsState(initial = null)
-        val todayExerciseRecords by storedRecords.sets.collectAsState(initial = emptyList())
-        val todayRecords = todayExerciseRecords.map {
-            Record(it.weight, it.reps, currentSet, stored = true)
+        val defaultRecord by derivedStateOf { Record(25.0, currentSet.reps, currentSet) }
+        val lastExerciseRecord by storedRecords.latestSet.collectAsState(
+            initial = null,
+            Dispatchers.IO
+        )
+        val todayExerciseRecords by storedRecords.sets.collectAsState(
+            initial = emptyList(),
+            Dispatchers.IO
+        )
+        val todayRecords by derivedStateOf {
+            todayExerciseRecords.map {
+                Record(it.weight, it.reps, currentSet, stored = true)
+            }
         }
-        val lastStoredRecord = Option.fromNullable(lastExerciseRecord).map {
-            Record(it.weight, it.reps, currentSet)
-        }.getOrElse { defaultRecord }
-        val setRecords = records.getOrElse(index) {
-            if (todayRecords.isEmpty()) mutableStateListOf(lastStoredRecord)
-            else mutableStateListOf(*todayRecords.toTypedArray())
+        val lastStoredRecord by derivedStateOf {
+            Option.fromNullable(lastExerciseRecord).map {
+                Record(it.weight, it.reps, currentSet)
+            }.getOrElse { defaultRecord }
         }
-        val unsavedRecord = setRecords.firstOrNull { !it.stored }
-        val lastRecord = setRecords.last()
-        val currentRecord = unsavedRecord ?: lastRecord
-        val setsCompleted by storedRecords.setsCount.collectAsState(initial = 0)
+        val setRecords by derivedStateOf {
+            records.getOrElse(index) {
+                if (todayRecords.isEmpty()) mutableStateListOf(lastStoredRecord)
+                else mutableStateListOf(*todayRecords.toTypedArray())
+            }
+        }
+        val currentRecord by derivedStateOf {
+            val unsavedRecord by derivedStateOf { setRecords.firstOrNull { !it.stored } }
+            val lastRecord by derivedStateOf { setRecords.last() }
+            unsavedRecord ?: lastRecord
+        }
+        val setsCompleted by storedRecords.setsCount.collectAsState(initial = 0, Dispatchers.IO)
 
         val scope = rememberCoroutineScope()
         DetailView(
@@ -97,7 +113,7 @@ fun ExerciseDetails(
             numCompleted = setsCompleted,
             updateIndex = { newIndex, updatedRecord ->
                 saveRecordInState(records, index, setRecords, updatedRecord)
-                index = newIndex
+                setIndex(newIndex)
             },
             onSave = { updatedRecord ->
                 val savedRecord = updatedRecord.copy(stored = true)

@@ -1,7 +1,7 @@
 package com.litus_animae.refitted.module
 
 import com.litus_animae.refitted.data.ExerciseRepository
-import com.litus_animae.refitted.data.room.RoomDynamoExerciseRepository
+import com.litus_animae.refitted.data.room.RoomCacheExerciseRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -16,6 +16,6 @@ abstract class ExerciseRepositoryModule {
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     @Binds
     abstract fun bindRepository(
-            repositoryImpl: RoomDynamoExerciseRepository
+        repositoryImpl: RoomCacheExerciseRepository
     ): ExerciseRepository
 }
