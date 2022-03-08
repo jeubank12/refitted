@@ -7,19 +7,33 @@ import com.litus_animae.refitted.models.RoomExerciseSet
 import kotlinx.coroutines.flow.MutableStateFlow
 
 val exampleExercise = Exercise(
-    workout = "AX1",
+    workout = "Refitted Exercise",
     id = "1.1",
-    description = "Attach a rope to a high pulley or drape a band over a pullup bar and grab an end in each hand with your elbows bent and held close to your chest to start. Begin by bringing your hands down and across your body, extending the elbows straight to fully contract the triceps. As you bring the rope down, consciously contract your core as well to help with the rotation of the body and increase your trunk stability at the same time. Return the hands to the starting position to repeat the same movement over the opposite leg on the next rep. Continue repeating this alternating pattern for the prescribed number of reps per set. blah blah blah filling up the space until its so overflowed that its going to burst so that we can see what will happen. Even more stuff to fit into the space come on just overflow already why don't you. now we are getting there, yeah come on just a little further wow there is just so much text in this box that it fills up so much space its impossible to believe"
+    description = "These are the instructions for how to do the exercise. " +
+            "There could be a lot of information present here. Begin by starting the exercise, " +
+            "slowly performing the exercise to fully gain the benfits of the exercise. " +
+            "As you perform the exercise, consciously think about the motion you are performing. " +
+            "New line \n \n Start the exercise over again once you have finished it. " +
+            "Continue repeating these exercises for all the reps in all the sets. " +
+            "blah blah blah filling up the space until its so overflowed that its going to " +
+            "burst so that we can see what will happen. Even more stuff to fit into the " +
+            "space come on just overflow already why don't you. now we are getting there, " +
+            "yeah come on just a little further wow there is just so much text in this box " +
+            "that it fills up so much space it's impossible to believe. \n\nDid you know if there" +
+            "is too much text that you might not be able to see it? I don't know if that is true" +
+            " but if it is then the developer should really do something about it so that all sizes" +
+            " of screens can use this app"
 )
 
 val exampleExerciseSet =
     ExerciseSet(
         RoomExerciseSet(
-            workout = "AX1",
+            workout = "Refitted Exercise",
             day = "1",
             step = "1",
             name = "A_Do Things",
-            note = "Alternate reps (10-12 in each direction) for each completed set. If using a resistance band, step further away to increase tension on band and difficulty of exercise",
+            note = "These are instructions that are specific to this particular set. " +
+                    "They are usually fairly short",
             reps = -1,
             sets = 3,
             isToFailure = true,
