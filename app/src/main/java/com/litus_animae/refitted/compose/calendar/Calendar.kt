@@ -11,7 +11,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -20,14 +20,13 @@ import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import java.util.*
 import kotlin.math.ceil
-import kotlin.math.min
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendar() {
     MaterialTheme(colors = Theme.darkColors) {
         Calendar(
-            WorkoutPlan("test", 10, 4), mapOf(
+            WorkoutPlan("test", 110, 4), mapOf(
                 Pair(1, Date(1L)),
                 Pair(2, Date(2L))
             )
@@ -43,8 +42,7 @@ fun Calendar(
 ) {
     // TODO handle different screen sizes
     val daysPerRow = 7
-    // TODO adjust TextSize to handle 3 digit numbers
-    val daysInCalendar = min(plan.totalDays, 99)
+    val daysInCalendar = plan.totalDays
     val cellsInGrid = ceil(daysInCalendar.toDouble() / daysPerRow).toInt() * daysPerRow
     LazyColumn(
         Modifier
@@ -59,7 +57,7 @@ fun Calendar(
                         Modifier
                             .weight(1f)
                             .height(50.dp)
-                            .padding(horizontal = 3.dp),
+                            .padding(horizontal = 3.dp, vertical = 5.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -97,7 +95,7 @@ class DayPropertiesPreviewParameterProvider : PreviewParameterProvider<DayProper
     )
 }
 
-@Preview
+@Preview(widthDp = 60, heightDp = 40)
 @Composable
 fun PreviewCalendarDayButton(
     @PreviewParameter(DayPropertiesPreviewParameterProvider::class) properties: DayProperties
@@ -123,11 +121,22 @@ private fun CalendarDayButton(
     Button(
         onClick = { navigateToDay(day) },
         border = if (properties.isLastViewedDay) BorderStroke(2.dp, borderColor) else null,
-        colors = ButtonDefaults.buttonColors(backgroundColor = backgroundColor)
+        colors = ButtonDefaults.buttonColors(backgroundColor = backgroundColor),
+        contentPadding = PaddingValues(1.dp)
     ) {
-        Text(
-            String.format("%d", day),
-            textAlign = TextAlign.Center
-        )
+        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            val availableWidth = maxWidth
+            with(LocalDensity.current) {
+                val maxSize = MaterialTheme.typography.button.fontSize
+                val desiredSize = if (day >= 100) availableWidth.toSp() * 0.6f
+                else if (day >= 10) availableWidth.toSp() * 0.7f
+                else availableWidth.toSp()
+                val size = if (desiredSize > maxSize) maxSize else desiredSize
+                Text(
+                    String.format("%d", day),
+                    fontSize = size
+                )
+            }
+        }
     }
 }
