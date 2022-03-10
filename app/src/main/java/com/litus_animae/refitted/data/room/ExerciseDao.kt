@@ -1,6 +1,6 @@
 package com.litus_animae.refitted.data.room
 
-import androidx.paging.DataSource
+import androidx.paging.PagingSource
 import androidx.room.*
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.RoomExerciseSet
@@ -17,7 +17,11 @@ interface ExerciseDao {
     fun getExerciseSet(day: String, workout: String, step: String): Flow<RoomExerciseSet?>
 
     @Query("select * from exerciseset where day = :day and workout = :workout and step in (:steps) order by step")
-    fun getExerciseSets(day: String, workout: String, vararg steps: String): Flow<List<RoomExerciseSet>>
+    fun getExerciseSets(
+        day: String,
+        workout: String,
+        vararg steps: String
+    ): Flow<List<RoomExerciseSet>>
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
     fun getExercise(name: String, workout: String): Flow<Exercise?>
@@ -29,7 +33,7 @@ interface ExerciseDao {
     suspend fun storeExerciseSet(exerciseSet: RoomExerciseSet)
 
     @Transaction
-    suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet){
+    suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet) {
         storeExercise(exercise)
         storeExerciseSet(exerciseSet)
     }
@@ -41,17 +45,21 @@ interface ExerciseDao {
     fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
 
     @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-    fun getAllSetRecord(targetExercise: String): DataSource.Factory<Int, SetRecord>
+    fun getAllSetRecord(targetExercise: String): PagingSource<Int, SetRecord>
 
     @Insert
     suspend fun storeExerciseRecord(exerciseRecord: SetRecord)
 
-    @Query("select max(completed) as latest_completion, target_set from setrecord " +
-            "where workout = :workout group by target_set")
+    @Query(
+        "select max(completed) as latest_completion, target_set from setrecord " +
+                "where workout = :workout group by target_set"
+    )
     fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
 
-    data class ExerciseCompletionRecord(@ColumnInfo(name = "latest_completion") val latestCompletion: Date,
-                                        @ColumnInfo(name = "target_set") val dayAndSet: String) {
+    data class ExerciseCompletionRecord(
+        @ColumnInfo(name = "latest_completion") val latestCompletion: Date,
+        @ColumnInfo(name = "target_set") val dayAndSet: String
+    ) {
         @Ignore
         val day = dayAndSet.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" }
     }

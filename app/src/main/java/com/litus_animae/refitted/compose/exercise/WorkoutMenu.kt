@@ -69,7 +69,7 @@ fun WorkoutPlanMenu(
                 Icon(
                     Icons.Default.Refresh,
                     // TODO localize
-                    "menu",
+                    "refresh",
                     modifier = Modifier
                         .clickable {
                             items.refresh()
