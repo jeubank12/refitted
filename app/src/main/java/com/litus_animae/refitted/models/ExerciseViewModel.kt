@@ -31,7 +31,7 @@ class ExerciseViewModel @Inject constructor(
             instructions
         }
 
-    fun recordsForSet(set: ExerciseSet): Flow<ExerciseRecord> {
+    fun recordForExercise(set: ExerciseSet): Flow<ExerciseRecord> {
         return exerciseRepo.records.mapNotNull { allRecords ->
             allRecords.firstOrNull {
                 it.targetSet.id == set.id

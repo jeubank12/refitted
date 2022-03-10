@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.PagingData
 import arrow.core.Option
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
@@ -27,6 +28,7 @@ import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.*
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ExerciseDetails(
     model: ExerciseViewModel = viewModel(),
+    setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
     setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
 ) {
     var index by remember { mutableStateOf(0) }
@@ -54,14 +57,17 @@ fun ExerciseDetails(
                 ExerciseRecord(
                     currentSet,
                     emptyFlow(),
-                    EmptyDataSourceFactory(emptyList()),
+                    emptyFlow(),
                     emptyFlow()
                 )
             )
         }
         LaunchedEffect(currentSet) {
             setContextMenu { instruction?.let { this.ExerciseContextMenu(it) } }
-            model.recordsForSet(currentSet).collect { storedRecords = it }
+            model.recordForExercise(currentSet).collect {
+                storedRecords = it
+                setHistoryList(it.allSets)
+            }
         }
         // TODO update default weight with best default
         val defaultRecord = Record(25.0, currentSet.reps, currentSet)
@@ -256,7 +262,7 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
             .fillMaxHeight(),
             verticalArrangement = Arrangement.Center) {
             // TODO localize
-            Text("Alternate")
+            Text("Alternate", Modifier.padding(end = 5.dp))
         }
     }
 }

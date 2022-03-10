@@ -2,6 +2,8 @@ package com.litus_animae.refitted.data.room
 
 import android.content.Context
 import android.util.Log
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.dynamo.DynamoExerciseDataService
 import com.litus_animae.refitted.models.ExerciseRecord
@@ -11,7 +13,6 @@ import com.litus_animae.refitted.models.SetRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.lang.ref.WeakReference
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -39,11 +40,18 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
             roomDb.getExerciseDao().getSteps(it.day, it.workoutId)
                 .distinctUntilChanged()
                 .map { collection: List<String> ->
-                Log.i(TAG, "currentStepsSource: detected update in steps on workout ${it.workoutId}, day ${it.day}: $collection")
-                collection.toSet()
-            }.distinctUntilChanged()
+                    Log.i(
+                        TAG,
+                        "currentStepsSource: detected update in steps on workout ${it.workoutId}, day ${it.day}: $collection"
+                    )
+                    collection.toSet()
+                }.distinctUntilChanged()
                 .onEach { _ ->
-                    Log.i(TAG, "currentStepsSource: propagating change in steps on workout ${it.workoutId}, day ${it.day}") }
+                    Log.i(
+                        TAG,
+                        "currentStepsSource: propagating change in steps on workout ${it.workoutId}, day ${it.day}"
+                    )
+                }
         }
 
     private val currentSetsSource =
@@ -53,7 +61,8 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
                 .getExerciseSets(workoutDay.day, workoutDay.workoutId, *steps.toTypedArray())
                 .distinctUntilChanged()
                 .onEach {
-                    Log.i(TAG, "currentSetsSource: steps updated, reloaded sets") }
+                    Log.i(TAG, "currentSetsSource: steps updated, reloaded sets")
+                }
         }.flatMapLatest { it }
 
     override val exercises = currentSetsSource.mapLatest {
@@ -111,7 +120,9 @@ class RoomDynamoExerciseRepository @Inject constructor(@ApplicationContext conte
             ExerciseRecord(
                 e,
                 roomDb.getExerciseDao().getLatestSetRecord(e.exerciseName),
-                roomDb.getExerciseDao().getAllSetRecord(e.exerciseName),
+                Pager(config = PagingConfig(pageSize = 20)) {
+                    roomDb.getExerciseDao().getAllSetRecord(e.exerciseName)
+                }.flow,
                 roomDb.getExerciseDao()
                     .getSetRecords(tonightMidnight, e.exerciseName)
             )

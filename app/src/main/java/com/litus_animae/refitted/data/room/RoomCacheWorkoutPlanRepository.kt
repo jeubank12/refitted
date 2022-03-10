@@ -8,14 +8,12 @@ import com.litus_animae.refitted.data.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.mapLatest
 import javax.inject.Inject
 
 class RoomCacheWorkoutPlanRepository @Inject constructor(
     private val database: RefittedRoom,
     networkService: WorkoutPlanNetworkService
-): WorkoutPlanRepository {
+) : WorkoutPlanRepository {
     @OptIn(ExperimentalPagingApi::class)
     override val workouts: Flow<PagingData<WorkoutPlan>> =
         Pager(

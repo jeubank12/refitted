@@ -1,13 +1,13 @@
 package com.litus_animae.refitted.models
 
-import androidx.paging.DataSource
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class ExerciseRecord(
     val targetSet: ExerciseSet,
     val latestSet: Flow<SetRecord?>,
-    val allSets: DataSource.Factory<Int, SetRecord>,
+    val allSets: Flow<PagingData<SetRecord>>,
     val sets: Flow<List<SetRecord>>
 ) {
     fun getSet(set: Int): Flow<SetRecord?> {
