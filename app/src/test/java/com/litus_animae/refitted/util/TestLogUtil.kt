@@ -1,6 +1,10 @@
 package com.litus_animae.refitted.util
 
 object TestLogUtil : LogUtil {
+    override fun v(tag: String, msg: String) {
+        println("VERBOSE: $tag$msg")
+    }
+
     override fun d(tag: String, msg: String) {
         println("DEBUG: $tag$msg")
     }
@@ -11,6 +15,10 @@ object TestLogUtil : LogUtil {
 
     override fun w(tag: String, msg: String) {
         println("WARN: $tag$msg")
+    }
+
+    override fun w(tag: String, msg: String, ex: Throwable) {
+        println("WARN: $tag$msg ${ex.message}")
     }
 
     override fun e(tag: String, msg: String) {

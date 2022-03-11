@@ -25,7 +25,7 @@ import kotlin.math.ceil
 @Composable
 fun PreviewCalendar() {
     MaterialTheme(colors = Theme.darkColors) {
-        Calendar(
+        WorkoutCalendar(
             WorkoutPlan("test", 110, 4), mapOf(
                 Pair(1, Date(1L)),
                 Pair(2, Date(2L))
@@ -35,7 +35,7 @@ fun PreviewCalendar() {
 }
 
 @Composable
-fun Calendar(
+fun WorkoutCalendar(
     plan: WorkoutPlan,
     completedDays: Map<Int, Date>,
     navigateToDay: (Int) -> Unit,
