@@ -3,6 +3,10 @@ package com.litus_animae.refitted.util
 import android.util.Log
 
 object AndroidLogUtil : LogUtil{
+    override fun v(tag: String, msg: String) {
+        Log.v(tag, msg)
+    }
+
     override fun d(tag: String, msg: String) {
         Log.d(tag, msg)
     }
@@ -13,6 +17,10 @@ object AndroidLogUtil : LogUtil{
 
     override fun w(tag: String, msg: String) {
         Log.w(tag, msg)
+    }
+
+    override fun w(tag: String, msg: String, ex: Throwable) {
+        Log.w(tag, msg, ex)
     }
 
     override fun e(tag: String, msg: String) {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,87 +21,11 @@ import androidx.paging.compose.itemsIndexed
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
-import com.litus_animae.refitted.models.WorkoutPlan
-import com.litus_animae.refitted.models.WorkoutViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.text.DateFormat
-
-@OptIn(ExperimentalCoroutinesApi::class)
-@Composable
-fun Main(
-    navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
-    model: WorkoutViewModel = viewModel()
-) {
-    val scaffoldState = rememberScaffoldState()
-    val scaffoldScope = rememberCoroutineScope()
-    val coroutineScope = rememberCoroutineScope()
-
-    val selectedWorkoutPlan by model.currentWorkout.collectAsState(initial = model.savedStateLastWorkoutPlan)
-    val savedSelectedPlanLoading = model.savedStateLoading
-    val completedDaysLoading = model.completedDaysLoading
-
-    val completedDays by model.completedDays.collectAsState(initial = emptyMap())
-
-    Scaffold(
-        scaffoldState = scaffoldState,
-        topBar = {
-            TopAppBar(
-                title = {
-                    selectedWorkoutPlan?.let { Text(it.workout) } ?: Text("Refitted")
-                },
-                navigationIcon = {
-                    Icon(
-                        Icons.Default.Menu,
-                        // TODO localize
-                        "menu",
-                        modifier = Modifier
-                            .clickable {
-                                scaffoldScope.launch {
-                                    if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                                    else scaffoldState.drawerState.close()
-                                }
-                            }
-                            .padding(start = 10.dp))
-                },
-                backgroundColor = MaterialTheme.colors.primary
-            )
-        },
-        drawerShape = MaterialTheme.shapes.medium,
-        drawerContent = {
-            val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
-            WorkoutPlanMenu(workoutPlanPagingItems) {
-                scaffoldScope.launch { scaffoldState.drawerState.close() }
-                coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
-            }
-        }) {
-        if (savedSelectedPlanLoading || completedDaysLoading) {
-            Surface(Modifier.fillMaxSize()) {
-                LoadingView()
-            }
-        } else if (selectedWorkoutPlan == null) {
-            // TODO instruction page
-            Row(
-                Modifier
-                    .padding(start = 10.dp, top = 10.dp)
-                    .fillMaxWidth()
-            ) {
-                Text("Open the menu to pick a workout")
-            }
-        } else {
-            Calendar(
-                selectedWorkoutPlan!!,
-                completedDays
-            ) {
-                navigateToWorkoutDay(selectedWorkoutPlan!!, it)
-                coroutineScope.launch { model.setLastViewedDay(selectedWorkoutPlan!!, it) }
-            }
-        }
-    }
-}
 
 @FlowPreview
 @Composable
