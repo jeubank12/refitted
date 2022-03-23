@@ -14,8 +14,19 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-renamesourcefileattribute SourceFile
+
+-dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncQueryCall
+-dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall$Callback
+-dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
+-dontwarn com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
+-dontwarn com.apollographql.apollo.GraphQLCall$Callback
+-dontwarn com.apollographql.apollo.api.Operation$Variables
+-dontwarn com.apollographql.apollo.api.Query
+-dontwarn com.apollographql.apollo.api.Response
+-dontwarn com.apollographql.apollo.api.Subscription
+-dontwarn com.apollographql.apollo.fetcher.ResponseFetcher
