@@ -26,7 +26,9 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
+            ndk { debugSymbolLevel 'FULL' }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
