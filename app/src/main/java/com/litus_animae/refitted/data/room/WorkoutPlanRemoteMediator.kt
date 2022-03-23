@@ -14,6 +14,8 @@ class WorkoutPlanRemoteMediator(
     private val database: RefittedRoom,
     private val networkService: WorkoutPlanNetworkService
 ): RemoteMediator<Int, WorkoutPlan>() {
+    private val workoutPlanDao = database.getWorkoutPlanDao()
+
     // TODO initialize without refresh/as append
     override suspend fun load(
         loadType: LoadType,
@@ -25,8 +27,13 @@ class WorkoutPlanRemoteMediator(
         }
         val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
         database.withTransaction {
-            database.getWorkoutPlanDao().clearAll()
-            database.getWorkoutPlanDao().insertAll(plans)
+            val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
+            workoutPlanDao.clearAll()
+            val upsertPlans = plans.map{
+                val existingPlan = currentPlansByName[it.workout] ?: return@map it
+                existingPlan.copy(totalDays = it.totalDays)
+            }
+            workoutPlanDao.insertAll(upsertPlans)
         }
         return MediatorResult.Success(endOfPaginationReached = true)
     }

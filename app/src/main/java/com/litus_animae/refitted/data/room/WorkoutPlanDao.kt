@@ -16,6 +16,9 @@ interface WorkoutPlanDao {
     @Query("SELECT * FROM workouts")
     fun pagingSource(): PagingSource<Int, WorkoutPlan>
 
+    @Query("SELECT * FROM workouts")
+    suspend fun getAll(): List<WorkoutPlan>
+
     @Query("SELECT * FROM workouts where `workout` = :name")
     fun planByName(name: String): Flow<WorkoutPlan?>
 
