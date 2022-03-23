@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.SavedStateRepository
@@ -14,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
@@ -124,9 +126,20 @@ class WorkoutViewModel @Inject constructor(
     suspend fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
         log.d("WorkoutViewModel", "Setting last viewed day $day")
         savedStateHandle.set(lastDay, day)
-        withContext(Dispatchers.IO) {
-            savedStateRepo.setState(lastDay, day.toString())
-            workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                savedStateRepo.setState(lastDay, day.toString())
+                workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
+            }
+        }
+    }
+
+    fun resetWorkoutCompletion(workout: WorkoutPlan) {
+        log.d("WorkoutViewModel", "Setting start date for plan $workout")
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                workoutPlanRepo.setWorkoutStartDate(workout, Date())
+            }
         }
     }
 
