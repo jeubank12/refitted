@@ -6,6 +6,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
+import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.models.*
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,16 +23,16 @@ class DynamoExerciseSetNetworkService @Inject constructor(
     log: LogUtil
 ) :
     DynamoNetworkService(context, log), ExerciseSetNetworkService {
-    override suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<ExerciseSet> {
+    override suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet> {
         val (workoutDay, workoutId) = dayAndWorkout
         return withContext(Dispatchers.IO) {
             val db = getDb()
 
-            val keyValues = DynamoExerciseSet(workoutId)
+            val keyValues = MutableExerciseSet(workoutId)
             val rangeCondition = Condition()
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
                 .withAttributeValueList(AttributeValue().withS("$workoutDay."))
-            val queryExpression = DynamoDBQueryExpression<DynamoExerciseSet>()
+            val queryExpression = DynamoDBQueryExpression<MutableExerciseSet>()
                 .withHashKeyValues(keyValues)
                 .withIndexName("Reverse-index")
                 .withRangeKeyCondition("Id", rangeCondition)
@@ -41,22 +42,21 @@ class DynamoExerciseSetNetworkService @Inject constructor(
                 "Sending query request to load day $workoutDay from workout $workoutId"
             )
 
-            val dynamoSets = db.query(DynamoExerciseSet::class.java, queryExpression)
+            val dynamoSets = db.query(MutableExerciseSet::class.java, queryExpression)
             log.i(TAG, "Query results received for day $workoutDay from workout $workoutId")
             val exerciseSets = dynamoSets.map { set ->
-                val roomSet = RoomExerciseSet(set)
                 try {
                     log.i(TAG, "loading exercise ${set.workout}: ${set.name} from dynamo")
                     val mutableExercise =
                         db.load(MutableExercise::class.java, set.name, set.workout)
                     val exercise = Exercise(mutableExercise)
                     // TODO this is bad form, should move the constructors over to converters on the Room/Dynamo classes
-                    ExerciseSet(roomSet, MutableStateFlow(exercise))
+                    NetworkExerciseSet(set, exercise)
                 } catch (ex: Exception) {
                     log.e(TAG, "error loading Exercise", ex)
                     // create an empty exercise
                     val exercise = Exercise(set.workout, set.name)
-                    ExerciseSet(roomSet, MutableStateFlow(exercise))
+                    NetworkExerciseSet(set, exercise)
                 }
             }
             log.d(TAG, "Finished dynamo load $dayAndWorkout: $exerciseSets")

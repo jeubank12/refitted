@@ -31,18 +31,18 @@ data class RoomExerciseSet(
 ) {
 
 
-    constructor(dynamoExerciseSet: DynamoExerciseSet) : this(
-        dynamoExerciseSet.workout,
-        dynamoExerciseSet.id.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" },
-        dynamoExerciseSet.id.split("\\.".toRegex(), 2).toTypedArray().getOrElse(1) { "" },
-        dynamoExerciseSet.name,
-        dynamoExerciseSet.note,
-        dynamoExerciseSet.reps,
-        dynamoExerciseSet.sets,
-        dynamoExerciseSet.isToFailure,
-        dynamoExerciseSet.rest,
-        dynamoExerciseSet.repsUnit,
-        dynamoExerciseSet.repsRange
+    constructor(mutableExerciseSet: MutableExerciseSet) : this(
+        mutableExerciseSet.workout,
+        mutableExerciseSet.id.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" },
+        mutableExerciseSet.id.split("\\.".toRegex(), 2).toTypedArray().getOrElse(1) { "" },
+        mutableExerciseSet.name,
+        mutableExerciseSet.note,
+        mutableExerciseSet.reps,
+        mutableExerciseSet.sets,
+        mutableExerciseSet.isToFailure,
+        mutableExerciseSet.rest,
+        mutableExerciseSet.repsUnit,
+        mutableExerciseSet.repsRange
     )
 
     constructor(exerciseSet: ExerciseSet) : this(
