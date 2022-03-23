@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.jupiter.api.Test
 
 class ExerciseSetTest {
-    private var mutableExerciseSet = DynamoExerciseSet(
+    private var mutableExerciseSet = MutableExerciseSet(
         id = "1.5",
         name = "Tricep_Alternating Woodchopper Pushdowns"
     )
@@ -26,7 +26,7 @@ class ExerciseSetTest {
     fun getStepWithAlternate() {
         testExerciseSet = ExerciseSet(
             RoomExerciseSet(
-                DynamoExerciseSet(
+                MutableExerciseSet(
                     workout = "AX1",
                     id = "1.5.a",
                     name = "Tricep_Alternating Woodchopper Pushdowns"
@@ -45,7 +45,7 @@ class ExerciseSetTest {
     fun getExerciseNameNotNullNotFound() {
         testExerciseSet = ExerciseSet(
             RoomExerciseSet(
-                DynamoExerciseSet(
+                MutableExerciseSet(
                     id = "1.5.a",
                     name = "test"
                 )

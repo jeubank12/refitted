@@ -8,7 +8,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.litus_animae.refitted.data.room.RefittedRoom
-import com.litus_animae.refitted.models.DynamoExerciseSet
+import com.litus_animae.refitted.models.MutableExerciseSet
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.MutableExercise
 import com.litus_animae.refitted.models.RoomExerciseSet
@@ -19,14 +19,14 @@ import java.lang.Exception
 @WorkerThread
 class DynamoExerciseDataService(applicationContext: Context, room: RefittedRoom) :
     DynamoDataService(applicationContext, room) {
-    private var queryExpression: DynamoDBQueryExpression<DynamoExerciseSet>? = null
+    private var queryExpression: DynamoDBQueryExpression<MutableExerciseSet>? = null
     suspend fun execute(day: String, workoutId: String) {
         return withContext(Dispatchers.IO) {
-            val keyValues = DynamoExerciseSet(workoutId)
+            val keyValues = MutableExerciseSet(workoutId)
             val rangeCondition = Condition()
                 .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
                 .withAttributeValueList(AttributeValue().withS("$day."))
-            queryExpression = DynamoDBQueryExpression<DynamoExerciseSet>()
+            queryExpression = DynamoDBQueryExpression<MutableExerciseSet>()
                 .withHashKeyValues(keyValues)
                 .withIndexName("Reverse-index")
                 .withRangeKeyCondition("Id", rangeCondition)
@@ -41,7 +41,7 @@ class DynamoExerciseDataService(applicationContext: Context, room: RefittedRoom)
 
     override suspend fun runAfterConnect() {
         try {
-            val result = dynamoDb!!.query(DynamoExerciseSet::class.java, queryExpression!!)
+            val result = dynamoDb!!.query(MutableExerciseSet::class.java, queryExpression!!)
             Log.i(TAG, "doInBackground: Query results received")
             Log.i(TAG, "doInBackground: storing " + result.size + " values in cache")
             result.toList().map { set ->

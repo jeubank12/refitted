@@ -3,6 +3,7 @@ package com.litus_animae.refitted.data.room
 import androidx.paging.*
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.models.DayAndWorkout
+import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
@@ -40,12 +41,9 @@ class ExerciseSetPager(
             log.d(TAG, "Storing to cache: $networkSets")
             networkSets
                 .onEach {
-                    // TODO lift exercise out of a flow
-                    val maybeExercise = it.exercise.firstOrNull()
-                    log.d(TAG, "Saving ${maybeExercise}, $it")
-                    maybeExercise?.let { exercise ->
-                        exerciseDao.storeExerciseAndSet(exercise, RoomExerciseSet(it))
-                    }
+                    val roomExerciseSet = RoomExerciseSet(it.set)
+                    log.d(TAG, "Saving ${it.exercise}, $roomExerciseSet")
+                        exerciseDao.storeExerciseAndSet(it.exercise, roomExerciseSet)
                 }
             return MediatorResult.Success(endOfPaginationReached = true)
         }
