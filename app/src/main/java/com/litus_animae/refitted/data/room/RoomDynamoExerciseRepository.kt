@@ -63,6 +63,9 @@ class RoomDynamoExerciseRepository @Inject constructor(
                 }
         }.flatMapLatest { it }
 
+    override val exercisesAreLoading: StateFlow<Boolean>
+        get() = MutableStateFlow(true)
+
     override val exercises = currentSetsSource.mapLatest {
         it.sortedWith(compareByStep).map { exerciseSet ->
             ExerciseSet(

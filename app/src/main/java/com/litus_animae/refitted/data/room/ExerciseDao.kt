@@ -13,6 +13,9 @@ interface ExerciseDao {
     @Query("select distinct step from exerciseset where day = :day and workout = :workout")
     fun getSteps(day: String, workout: String): Flow<List<String>>
 
+    @Query("select distinct step from exerciseset where day = :day and workout = :workout order by step")
+    fun getStepsPages(day: String, workout: String): PagingSource<Int, String>
+
     @Query("select distinct step from exerciseset where day = :day and workout = :workout")
     suspend fun loadSteps(day: String, workout: String): List<String>
 
@@ -28,6 +31,9 @@ interface ExerciseDao {
 
     @Query("select * from exerciseset where day = :day and workout = :workout and step in (:steps) order by step")
     suspend fun loadExerciseSets(day: String, workout: String, vararg steps: String): List<RoomExerciseSet>
+
+    @Query("select * from exerciseset where day = :day and workout = :workout and step = :step")
+    suspend fun loadExerciseSet(day: String, workout: String, step: String): RoomExerciseSet?
 
     @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
     fun getExercise(name: String, workout: String): Flow<Exercise?>

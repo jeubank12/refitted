@@ -27,11 +27,10 @@ class ExerciseViewModel @Inject constructor(
                     .map { ExerciseInstruction(it) }
                 if (instructions.isNotEmpty()) {
                     log.d(TAG, "Finished Loading")
-                    _isLoading.value = false
                 }
                 log.i(TAG, "Processed set of exercises to: $instructions")
                 instructions
-            }.flowOn(viewModelScope.coroutineContext)
+            }
 
     fun recordForExercise(set: ExerciseSet): Flow<ExerciseRecord> {
         return exerciseRepo.records.mapNotNull { allRecords ->
@@ -58,11 +57,9 @@ class ExerciseViewModel @Inject constructor(
         val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
     }
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading = _isLoading.asStateFlow()
+    val isLoading = exerciseRepo.exercisesAreLoading
 
     suspend fun loadExercises(day: String, workoutId: String) {
-        _isLoading.emit(true)
         try {
             exerciseRepo.loadExercises(day, workoutId)
         } catch (ex: Throwable) {
