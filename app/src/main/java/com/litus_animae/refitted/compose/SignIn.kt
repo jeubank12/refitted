@@ -15,12 +15,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.common.SignInButton
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.UserViewModel
+import com.litus_animae.refitted.util.AndroidLogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -73,13 +77,26 @@ fun SignInUser(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Button(onClick = {
-                    val googleClient = GoogleSignIn.getClient(context, googleSignInOptions)
-                    launcher.launch(googleClient.signInIntent)
-                }) {
-                    Text("Sign in with Google")
-                }
+                AndroidView(factory = ::SignInButton,
+                    update = {
+                        it.setSize(SignInButton.SIZE_WIDE)
+                        it.setOnClickListener {
+                            val googleClient = GoogleSignIn.getClient(context, googleSignInOptions)
+                            launcher.launch(googleClient.signInIntent)
+                        }
+                    })
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@Preview
+@Composable
+fun PreviewSignIn() {
+    MaterialTheme {
+        SignInUser(UserViewModel(AndroidLogUtil)) {
+
         }
     }
 }
