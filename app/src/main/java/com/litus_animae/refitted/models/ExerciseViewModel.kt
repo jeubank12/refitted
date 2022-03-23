@@ -62,7 +62,7 @@ class ExerciseViewModel @Inject constructor(
     val isLoading = _isLoading.asStateFlow()
 
     suspend fun loadExercises(day: String, workoutId: String) {
-        _isLoading.value = true
+        _isLoading.emit(true)
         try {
             exerciseRepo.loadExercises(day, workoutId)
         } catch (ex: Throwable) {

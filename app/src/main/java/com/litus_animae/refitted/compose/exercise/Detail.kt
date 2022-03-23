@@ -259,7 +259,7 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
         Column(Modifier.verticalScroll(scrollState)) {
             Row(Modifier.padding(vertical = 5.dp)) {
                 if (exerciseSet != null) {
-                    val exercise by exerciseSet.exercise.collectAsState()
+                    val exercise by exerciseSet.exercise.collectAsState(null, Dispatchers.IO)
                     Text(exercise?.description ?: "")
                 }
             }

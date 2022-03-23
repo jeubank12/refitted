@@ -1,5 +1,7 @@
 package com.litus_animae.refitted.data.room
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.models.DayAndWorkout
@@ -56,7 +58,7 @@ class RoomCacheExerciseRepository @Inject constructor(
 
     override suspend fun loadExercises(day: String, workoutId: String) {
         log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
-        currentWorkoutDay.value = DayAndWorkout(day, workoutId)
+        currentWorkoutDay.emit(DayAndWorkout(day, workoutId))
     }
 
     private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): List<ExerciseRecord> {
@@ -71,7 +73,9 @@ class RoomCacheExerciseRepository @Inject constructor(
             ExerciseRecord(
                 e,
                 refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName),
-                refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName),
+                Pager(config = PagingConfig(pageSize = 20)) {
+                    refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
+                }.flow,
                 refittedRoom.getExerciseDao()
                     .getSetRecords(tonightMidnight, e.exerciseName)
             )
