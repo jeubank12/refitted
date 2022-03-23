@@ -67,7 +67,7 @@ fun WorkoutCalendar(
                         else CalendarDayButton(
                             it,
                             DayProperties(
-                                isDayComplete(it, completedDays),
+                                isDayComplete(it, completedDays, plan.workoutStartDate),
                                 isLastViewedDay = it == plan.lastViewedDay
                             ),
                             navigateToDay
@@ -79,12 +79,9 @@ fun WorkoutCalendar(
     }
 }
 
-private fun isDayComplete(day: Int, completedDays: Map<Int, Date>): Boolean {
-    val maxDay = completedDays.keys.maxOrNull() ?: return false
-    val maxDayCompletionDate =
-        completedDays.getOrDefault(maxDay, Date(1L))
+private fun isDayComplete(day: Int, completedDays: Map<Int, Date>, workoutStartDate: Date): Boolean {
     val currentDayCompletionDate = completedDays.getOrDefault(day, Date(0L))
-    return day == maxDay || currentDayCompletionDate.after(maxDayCompletionDate)
+    return currentDayCompletionDate.after(workoutStartDate)
 }
 
 data class DayProperties(val isCompletedDay: Boolean, val isLastViewedDay: Boolean)
