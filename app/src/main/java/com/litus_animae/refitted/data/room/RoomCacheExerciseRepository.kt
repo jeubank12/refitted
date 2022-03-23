@@ -1,7 +1,6 @@
 package com.litus_animae.refitted.data.room
 
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
+import androidx.paging.*
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.models.DayAndWorkout
@@ -9,13 +8,8 @@ import com.litus_animae.refitted.models.ExerciseRecord
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -25,21 +19,78 @@ import javax.inject.Inject
 @FlowPreview
 class RoomCacheExerciseRepository @Inject constructor(
     private val refittedRoom: RefittedRoom,
-    networkService: ExerciseSetNetworkService,
+    private val networkService: ExerciseSetNetworkService,
     private val log: LogUtil
 ) : ExerciseRepository {
-    private val mediator = ExerciseSetRemoteMediator(refittedRoom, networkService, log)
 
     private val currentWorkout = MutableStateFlow("")
     override val workoutRecords = currentWorkout.flatMapLatest {
         refittedRoom.getExerciseDao().getDayCompletedSets(it)
     }
 
-    private val currentWorkoutDay = MutableStateFlow(DayAndWorkout("", ""))
+    private val exerciseState: MutableStateFlow<List<ExerciseSet>> = MutableStateFlow(emptyList())
+    override val exercises = exerciseState.asStateFlow()
 
-    override val exercises = currentWorkoutDay.flatMapLatest {
-        log.d(TAG, "Observed changed currentWorkoutDay to $it")
-        mediator.exerciseSets(it)
+    private val differCallback: DifferCallback = object : DifferCallback {
+        override fun onChanged(position: Int, count: Int) {
+            if (count > 0) {
+                updateExerciseState()
+            }
+        }
+
+        override fun onInserted(position: Int, count: Int) {
+            if (count > 0) {
+                updateExerciseState()
+            }
+        }
+
+        override fun onRemoved(position: Int, count: Int) {
+            if (count > 0) {
+                updateExerciseState()
+            }
+        }
+    }
+
+    private val pagingDataDiffer: PagingDataDiffer<ExerciseSet> =
+        object : PagingDataDiffer<ExerciseSet>(
+            differCallback = differCallback
+        ) {
+            override suspend fun presentNewList(
+                previousList: NullPaddedList<ExerciseSet>,
+                newList: NullPaddedList<ExerciseSet>,
+                lastAccessedIndex: Int,
+                onListPresentable: () -> Unit
+            ): Int? {
+                onListPresentable()
+                updateExerciseState()
+                return null
+            }
+        }
+
+    private fun updateExerciseState() {
+        exerciseState.value = pagingDataDiffer.snapshot().items
+    }
+
+    private val _exercisesAreLoading = MutableStateFlow(true)
+    override val exercisesAreLoading: StateFlow<Boolean> = _exercisesAreLoading.asStateFlow()
+
+    override suspend fun loadExercises(day: String, workoutId: String) {
+        _exercisesAreLoading.emit(true)
+        log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
+        val mediator =
+            ExerciseSetPager(DayAndWorkout(day, workoutId), refittedRoom, networkService, log)
+        coroutineScope {
+
+            launch { mediator.pagingData.collectLatest { pagingDataDiffer.collectFrom(it) } }
+
+            launch {
+                mediator.pagingData.collectLatest {
+                    pagingDataDiffer.loadStateFlow.collect {
+                        _exercisesAreLoading.emit(it.refresh is LoadState.Loading)
+                    }
+                }
+            }
+        }
     }
 
     override val records = exercises.map(this::getRecordsForLoadedExercises)
@@ -54,11 +105,6 @@ class RoomCacheExerciseRepository @Inject constructor(
 
     override fun loadWorkoutRecords(workoutId: String) {
         currentWorkout.value = workoutId
-    }
-
-    override suspend fun loadExercises(day: String, workoutId: String) {
-        log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
-        currentWorkoutDay.emit(DayAndWorkout(day, workoutId))
     }
 
     private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): List<ExerciseRecord> {

@@ -19,6 +19,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemsIndexed
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.exercise.ExerciseDetails
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.FlowPreview
