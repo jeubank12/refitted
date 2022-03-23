@@ -8,26 +8,33 @@ import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow
+import java.util.*
 import javax.inject.Inject
 
 class RoomCacheWorkoutPlanRepository @Inject constructor(
-    private val database: RefittedRoom,
+    database: RefittedRoom,
     networkService: WorkoutPlanNetworkService
 ) : WorkoutPlanRepository {
+
+    private val workoutPlanDao = database.getWorkoutPlanDao()
     @OptIn(ExperimentalPagingApi::class)
     override val workouts: Flow<PagingData<WorkoutPlan>> =
         Pager(
             config = PagingConfig(pageSize = 10),
             remoteMediator = WorkoutPlanRemoteMediator(database, networkService)
         ) {
-            database.getWorkoutPlanDao().pagingSource()
+            workoutPlanDao.pagingSource()
         }.flow
 
     override fun workoutByName(name: String): Flow<WorkoutPlan?> {
-        return database.getWorkoutPlanDao().planByName(name)
+        return workoutPlanDao.planByName(name)
     }
 
     override suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int) {
-        return database.getWorkoutPlanDao().update(workoutPlan.copy(lastViewedDay = day))
+        return workoutPlanDao.update(workoutPlan.copy(lastViewedDay = day))
+    }
+
+    override suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Date) {
+        return workoutPlanDao.update(workoutPlan.copy(workoutStartDate = startDate))
     }
 }

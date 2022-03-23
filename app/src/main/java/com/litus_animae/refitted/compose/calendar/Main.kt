@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,9 +18,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.compose.LoadingView
 import com.litus_animae.refitted.compose.WorkoutCalendar
 import com.litus_animae.refitted.compose.WorkoutPlanMenu
-import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.ExerciseDetails
-import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +50,7 @@ fun Calendar(
                 title = {
                     selectedWorkoutPlan?.let { Text(it.workout) } ?: Text("Refitted")
                 },
+                backgroundColor = MaterialTheme.colors.primary,
                 navigationIcon = {
                     Icon(
                         Icons.Default.Menu,
@@ -68,7 +65,47 @@ fun Calendar(
                             }
                             .padding(start = 10.dp))
                 },
-                backgroundColor = MaterialTheme.colors.primary
+                actions = {
+                    if (selectedWorkoutPlan != null) {
+                        val (expanded, setExpanded) = rememberSaveable { mutableStateOf(false) }
+                        val (alerted, setAlerted) = rememberSaveable { mutableStateOf(false) }
+                        // TODO localize
+                        Icon(Icons.Default.MoreVert, "workout menu",
+                            modifier = Modifier.clickable { setExpanded(!expanded) })
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { setExpanded(false) }) {
+                            Text("Reset workout",
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        setAlerted(true)
+                                        setExpanded(false)
+                                    })
+                        }
+                        if (alerted) {
+                            AlertDialog(onDismissRequest = { setAlerted(false) },
+                                // TODO localize
+                                title = { Text("Reset Workout Completion") },
+                                text = { Text("This will reset your completed days. Are you sure? (This does not remove records of your previous exercise sets") },
+                                confirmButton = {
+                                    Button(onClick = {
+                                        model.resetWorkoutCompletion(
+                                            selectedWorkoutPlan!!
+                                        )
+                                        setAlerted(false)
+                                    }) {
+                                        Text("Yes")
+                                    }
+                                },
+                                dismissButton = {
+                                    Button(onClick = { setAlerted(false) }) {
+                                        Text("No")
+                                    }
+                                })
+                        }
+                    }
+                }
             )
         },
         drawerShape = MaterialTheme.shapes.medium,
