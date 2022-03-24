@@ -12,9 +12,11 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.LoadingView
 import com.litus_animae.refitted.compose.WorkoutCalendar
 import com.litus_animae.refitted.compose.WorkoutPlanMenu
@@ -48,7 +50,9 @@ fun Calendar(
     topBar = {
       TopAppBar(
         title = {
-          selectedWorkoutPlan?.let { Text(it.workout) } ?: Text("Refitted")
+          val appName = stringResource(id = R.string.app_name)
+          if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan!!.workout)
+          else Text(appName)
         },
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
@@ -57,13 +61,13 @@ fun Calendar(
             // TODO localize
             "menu",
             modifier = Modifier
-                .clickable {
-                    scaffoldScope.launch {
-                        if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                        else scaffoldState.drawerState.close()
-                    }
+              .clickable {
+                scaffoldScope.launch {
+                  if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                  else scaffoldState.drawerState.close()
                 }
-                .padding(start = 10.dp))
+              }
+              .padding(start = 10.dp))
         },
         actions = {
           if (selectedWorkoutPlan != null) {
@@ -72,20 +76,20 @@ fun Calendar(
             // TODO localize
             Icon(Icons.Default.MoreVert, "workout menu",
               modifier = Modifier
-                  .clickable { setExpanded(!expanded) }
-                  .padding(end = 10.dp))
+                .clickable { setExpanded(!expanded) }
+                .padding(end = 10.dp))
             DropdownMenu(
               expanded = expanded,
               onDismissRequest = { setExpanded(false) }) {
               Text("Reset workout",
-                  Modifier
-                      .fillMaxWidth()
-                      .clickable {
-                          setAlerted(true)
-                          setExpanded(false)
-                      }
-                      .padding(start = 5.dp, end = 15.dp)
-                      .padding(vertical = 5.dp))
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    setAlerted(true)
+                    setExpanded(false)
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp))
             }
             if (alerted) {
               AlertDialog(onDismissRequest = { setAlerted(false) },
@@ -120,16 +124,16 @@ fun Calendar(
         coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
       }
     }) {
-    if (savedSelectedPlanLoading || completedDaysLoading) {
+    if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
       Surface(Modifier.fillMaxSize()) {
         LoadingView()
       }
     } else if (selectedWorkoutPlan == null) {
       // TODO instruction page
       Row(
-          Modifier
-              .padding(start = 10.dp, top = 10.dp)
-              .fillMaxWidth()
+        Modifier
+          .padding(start = 10.dp, top = 10.dp)
+          .fillMaxWidth()
       ) {
         Text("Open the menu to pick a workout")
       }

@@ -20,13 +20,17 @@
 # hide the original source file name.
 -renamesourcefileattribute SourceFile
 
--dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncQueryCall
--dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall$Callback
--dontwarn com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
--dontwarn com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
--dontwarn com.apollographql.apollo.GraphQLCall$Callback
--dontwarn com.apollographql.apollo.api.Operation$Variables
--dontwarn com.apollographql.apollo.api.Query
--dontwarn com.apollographql.apollo.api.Response
--dontwarn com.apollographql.apollo.api.Subscription
--dontwarn com.apollographql.apollo.fetcher.ResponseFetcher
+#Amazon
+-keep class com.litus_animae.refitted.models.dynamo.*   { *; }
+-keep class org.apache.commons.logging.**               { *; }
+-keep class com.amazonaws.services.sqs.QueueUrlHandler  { *; }
+-keep class com.amazonaws.javax.xml.transform.sax.*     { public *; }
+-keep class com.amazonaws.javax.xml.stream.**           { *; }
+-keep class com.amazonaws.services.**.model.*Exception* { *; }
+-keep class org.codehaus.**                             { *; }
+-keepattributes Signature,*Annotation*
+
+-dontwarn javax.xml.stream.events.**
+-dontwarn org.codehaus.jackson.**
+-dontwarn org.apache.commons.logging.impl.**
+-dontwarn org.apache.http.conn.scheme.**

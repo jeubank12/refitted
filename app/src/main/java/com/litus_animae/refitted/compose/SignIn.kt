@@ -67,7 +67,8 @@ fun SignInUser(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text("Refitted")
+                        val appName = stringResource(id = R.string.app_name)
+                        Text(appName)
                     },
                     backgroundColor = MaterialTheme.colors.primary
                 )

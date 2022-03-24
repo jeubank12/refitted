@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.models;
 
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.jupiter.api.Test
 

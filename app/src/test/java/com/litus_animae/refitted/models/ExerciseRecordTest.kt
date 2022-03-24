@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.models;
 
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import com.litus_animae.refitted.models.util.TestDataSourceFactory
 import com.litus_animae.util.InstantExecutorExtension
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,10 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(InstantExecutorExtension::class)
 class ExerciseRecordTest {
-    private var testExerciseSet = ExerciseSet(RoomExerciseSet(MutableExerciseSet(
+    private var testExerciseSet = ExerciseSet(RoomExerciseSet(
+      MutableExerciseSet(
             id = "1.5",
             name = "Tricep_Alternating Woodchopper Pushdowns"
-    )), MutableStateFlow(null)
+    )
+    ), MutableStateFlow(null)
     )
     private val testSets = mutableListOf<SetRecord>()
     private val flowList = MutableStateFlow<List<SetRecord>>(testSets)

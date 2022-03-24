@@ -3,7 +3,7 @@ package com.litus_animae.refitted.data.dynamo
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
-import com.litus_animae.refitted.models.DynamoWorkoutPlan
+import com.litus_animae.refitted.models.dynamo.DynamoWorkoutPlan
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext

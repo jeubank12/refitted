@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.models
+package com.litus_animae.refitted.models.dynamo
 
 import android.os.Parcel
 import android.os.Parcelable

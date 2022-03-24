@@ -8,9 +8,9 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.litus_animae.refitted.data.room.RefittedRoom
-import com.litus_animae.refitted.models.MutableExerciseSet
+import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.MutableExercise
+import com.litus_animae.refitted.models.dynamo.MutableExercise
 import com.litus_animae.refitted.models.RoomExerciseSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

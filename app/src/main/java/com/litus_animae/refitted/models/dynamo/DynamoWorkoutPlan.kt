@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.models
+package com.litus_animae.refitted.models.dynamo
 
 import androidx.room.PrimaryKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute

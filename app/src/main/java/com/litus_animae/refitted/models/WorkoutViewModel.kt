@@ -52,6 +52,7 @@ class WorkoutViewModel @Inject constructor(
   private val storedStateLastWorkoutPlan = savedStateRepo.getState(selectedPlan)
     .map { it?.value }.distinctUntilChanged()
     .flatMapLatest {
+      savedStateLoading = false
       log.d(TAG, "Loaded stored state from db: plan $it")
       if (it != null) workoutPlanRepo.workoutByName(it)
       else emptyFlow()
@@ -66,12 +67,7 @@ class WorkoutViewModel @Inject constructor(
     val savedPlan = savedStateLastWorkoutPlan
     savedStateLoading = savedPlan == null
     emit(savedStateLastWorkoutPlan)
-    emitAll(storedStateLastWorkoutPlan
-      .map {
-        savedStateLoading = false
-        log.d(TAG, "Loaded saved state: $it")
-        it
-      }.mapNotNull { it })
+    emitAll(storedStateLastWorkoutPlan.mapNotNull { it })
   }.distinctUntilChanged()
   val currentWorkout = combine(_currentWorkout, savedWorkout) { current, saved ->
     saved ?: current

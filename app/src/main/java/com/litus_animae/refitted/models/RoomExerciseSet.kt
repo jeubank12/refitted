@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 
 @Entity(
     tableName = "exerciseset",
