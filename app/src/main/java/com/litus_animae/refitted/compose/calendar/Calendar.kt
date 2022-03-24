@@ -16,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.compose.util.ConstrainedButton
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import java.util.*
@@ -117,25 +118,11 @@ private fun CalendarDayButton(
         properties.isCompletedDay -> MaterialTheme.colors.secondary
         else -> MaterialTheme.colors.primary
     }
-    Button(
+    ConstrainedButton(
+        String.format("%d", day),
         onClick = { navigateToDay(day) },
         border = if (properties.isLastViewedDay) BorderStroke(2.dp, borderColor) else null,
         colors = ButtonDefaults.buttonColors(backgroundColor = backgroundColor),
         contentPadding = PaddingValues(1.dp)
-    ) {
-        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            val availableWidth = maxWidth
-            with(LocalDensity.current) {
-                val maxSize = MaterialTheme.typography.button.fontSize
-                val desiredSize = if (day >= 100) availableWidth.toSp() * 0.6f
-                else if (day >= 10) availableWidth.toSp() * 0.7f
-                else availableWidth.toSp()
-                val size = if (desiredSize > maxSize) maxSize else desiredSize
-                Text(
-                    String.format("%d", day),
-                    fontSize = size
-                )
-            }
-        }
-    }
+    )
 }
