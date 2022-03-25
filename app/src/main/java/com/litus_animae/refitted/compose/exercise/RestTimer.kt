@@ -33,6 +33,9 @@ fun Timer(
     val startTime = rememberSaveable(running) {
         Instant.now()
     }
+    val runtimeMillis = rememberSaveable(running) {
+        millisToElapse
+    }
     var isRunning by rememberSaveable(running) { mutableStateOf(running) }
     val timerScope = rememberCoroutineScope()
     var elapsedMillis by rememberSaveable(running) { mutableStateOf(0L) }
@@ -41,29 +44,29 @@ fun Timer(
             timerScope.launch {
                 delay(resolutionMillis)
                 val nowElapsed = Instant.now().toEpochMilli() - startTime.toEpochMilli()
-                if (nowElapsed > millisToElapse) {
+                if (nowElapsed > runtimeMillis) {
                     isRunning = false
-                    elapsedMillis = millisToElapse
+                    elapsedMillis = runtimeMillis
                     onFinish()
                 } else {
                     elapsedMillis = nowElapsed
                 }
-                onUpdate(if (countDown) millisToElapse - elapsedMillis else elapsedMillis)
+                onUpdate(if (countDown) runtimeMillis - elapsedMillis else elapsedMillis)
             }
         }
     }
     if (debugView) {
         Column {
-            drawTimer(millisToElapse, elapsedMillis, countDown)
+            drawTimer(runtimeMillis, elapsedMillis, countDown)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Running: $running")
                 Text("IsRunning: $isRunning")
-                Text("millisToElapse: $millisToElapse")
+                Text("millisToElapse: $runtimeMillis")
                 Text("elapsedMillis: $elapsedMillis")
             }
         }
     } else {
-        drawTimer(millisToElapse, elapsedMillis, countDown)
+        drawTimer(runtimeMillis, elapsedMillis, countDown)
     }
 }
 
