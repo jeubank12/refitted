@@ -1,13 +1,13 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise.input
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,11 +30,15 @@ fun WeightButtons(weight: Weight) {
     Column(
       Modifier
         .weight(2f)
-        .padding(16.dp),
+        .padding(horizontal = 5.dp)
+        .padding(top = 16.dp),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      ConstrainedText(String.format("%.1f", displayedWeight))
+      val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
+      val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
+      ConstrainedText(weightLabel)
+      ConstrainedText(String.format("%.1f $weightUnit", displayedWeight))
     }
     Column(Modifier.weight(3f)) {
       ButtonSet(1, weight::plus)
@@ -44,13 +48,13 @@ fun WeightButtons(weight: Weight) {
 
 @Composable
 private fun ButtonSet(sign: Int, updateWeight: (change: Double) -> Unit) {
-  BoxWithConstraints() {
+  BoxWithConstraints {
     // TODO if available size is too small.....
     val maxButtonWidth = (maxWidth - 15.dp) / 2
     val maxButtonHeight = (maxHeight - 20.dp) / 3
     val availableSize = min(maxButtonWidth, maxButtonHeight)
     val buttonSize = min(availableSize, 50.dp)
-    Column() {
+    Column {
       Row(
         Modifier
           .fillMaxWidth()
