@@ -25,6 +25,7 @@
     <string name="word_of">of</string>
     <string name="seconds_rest_phrase">%.1fs rest"</string>
     <string name="switch_to_alternate">Switch To Alternate</string>
+    <string name="target">Target:</string>
     <string name="target_reps">Target Reps:</string>
     <string name="target_sets">Target Sets:</string>
     <string name="to_failure">To Failure</string>
