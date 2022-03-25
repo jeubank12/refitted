@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.util.ConstrainedButton
+import com.litus_animae.refitted.compose.util.ConstrainedText
 import com.litus_animae.refitted.compose.util.Theme
 
 @Composable
@@ -37,7 +38,7 @@ fun RepetitionsButtons(reps: Repetitions) {
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.Center
       ) {
-        Text(currentReps.toString())
+        ConstrainedText(currentReps.toString())
       }
       Row(Modifier.padding(bottom = 5.dp), horizontalArrangement = Arrangement.SpaceAround) {
         RepetitionButton(-1, reps::plus, buttonSize)
