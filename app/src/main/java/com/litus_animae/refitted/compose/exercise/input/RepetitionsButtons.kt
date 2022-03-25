@@ -1,14 +1,13 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise.input
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -21,10 +20,10 @@ import com.litus_animae.refitted.compose.util.Theme
 @Composable
 fun RepetitionsButtons(reps: Repetitions) {
   val currentReps by reps.value
-  BoxWithConstraints() {
+  BoxWithConstraints {
     // TODO if available size is too small.....
     val maxButtonWidth = maxWidth - 10.dp
-    val maxButtonHeight = (maxHeight - 30.dp) / 3
+    val maxButtonHeight = (maxHeight - 30.dp) * 2 / 7
     val availableSize = min(maxButtonWidth, maxButtonHeight)
     val buttonSize = min(availableSize, 50.dp)
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -33,12 +32,16 @@ fun RepetitionsButtons(reps: Repetitions) {
       }
       Row(
         Modifier
-          .size(buttonSize)
+          .size(width = buttonSize, height = buttonSize * 3 / 2)
           .padding(10.dp),
-        verticalAlignment = Alignment.Bottom,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
       ) {
-        ConstrainedText(currentReps.toString())
+        Column {
+          val repsLabel = stringResource(id = com.litus_animae.refitted.R.string.reps_label)
+          ConstrainedText(repsLabel)
+          ConstrainedText(currentReps.toString())
+        }
       }
       Row(Modifier.padding(bottom = 5.dp), horizontalArrangement = Arrangement.SpaceAround) {
         RepetitionButton(-1, reps::plus, buttonSize)

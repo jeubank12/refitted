@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.Timer
 import com.litus_animae.refitted.compose.exercise.exampleExerciseSet
+import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
+import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
