@@ -9,6 +9,7 @@ import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @FlowPreview
@@ -59,17 +60,21 @@ class ExerciseViewModel @Inject constructor(
 
     val isLoading = exerciseRepo.exercisesAreLoading
 
-    suspend fun loadExercises(day: String, workoutId: String) {
+    fun loadExercises(day: String, workoutId: String) {
         try {
-            exerciseRepo.loadExercises(day, workoutId)
+            viewModelScope.launch {
+                exerciseRepo.loadExercises(day, workoutId)
+            }
         } catch (ex: Throwable) {
             // TODO error state
             log.e(TAG, "error loading exercises", ex)
         }
     }
 
-    suspend fun saveExercise(record: SetRecord) {
-        exerciseRepo.storeSetRecord(record)
+    fun saveExercise(record: SetRecord) {
+        viewModelScope.launch {
+            exerciseRepo.storeSetRecord(record)
+        }
     }
 
     companion object {
