@@ -112,7 +112,6 @@ fun ExerciseDetails(
     }
     val setsCompleted by storedRecords.setsCount.collectAsState(initial = 0, Dispatchers.IO)
 
-    val scope = rememberCoroutineScope()
     DetailView(
       index,
       instructions.size - 1,
@@ -126,7 +125,6 @@ fun ExerciseDetails(
       onSave = { updatedRecord ->
         val savedRecord = updatedRecord.copy(stored = true)
         saveRecordInState(records, index, setRecords, savedRecord)
-        scope.launch {
           model.saveExercise(
             SetRecord(
               savedRecord.weight,
@@ -134,7 +132,6 @@ fun ExerciseDetails(
               savedRecord.set
             )
           )
-        }
       })
   }
 }

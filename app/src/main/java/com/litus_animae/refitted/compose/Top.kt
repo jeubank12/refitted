@@ -17,7 +17,6 @@ import kotlinx.coroutines.FlowPreview
 @FlowPreview
 @Composable
 fun Top() {
-    // TODO doesn't survive warm restarts....
     val controller = rememberNavController()
     NavHost(controller, startDestination = "calendar") {
         composable("calendar") {
