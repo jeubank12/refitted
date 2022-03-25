@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.ConstrainedButton
+import com.litus_animae.refitted.compose.util.ConstrainedText
 import com.litus_animae.refitted.compose.util.Theme
 import java.text.DecimalFormat
 import kotlin.math.sign
@@ -33,7 +34,7 @@ fun WeightButtons(weight: Weight) {
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Text(String.format("%.1f", displayedWeight))
+      ConstrainedText(String.format("%.1f", displayedWeight))
     }
     Column(Modifier.weight(3f)) {
       ButtonSet(1, weight::plus)
