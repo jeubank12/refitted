@@ -71,6 +71,10 @@ class ExerciseViewModel @Inject constructor(
         }
     }
 
+    fun refreshExercises() {
+        exerciseRepo.refreshExercises()
+    }
+
     fun saveExercise(record: SetRecord) {
         viewModelScope.launch {
             exerciseRepo.storeSetRecord(record)
