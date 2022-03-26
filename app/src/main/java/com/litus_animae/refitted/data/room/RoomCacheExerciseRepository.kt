@@ -74,6 +74,10 @@ class RoomCacheExerciseRepository @Inject constructor(
     private val _exercisesAreLoading = MutableStateFlow(true)
     override val exercisesAreLoading: StateFlow<Boolean> = _exercisesAreLoading.asStateFlow()
 
+    override fun refreshExercises() {
+        pagingDataDiffer.refresh()
+    }
+
     override suspend fun loadExercises(day: String, workoutId: String) {
         _exercisesAreLoading.emit(true)
         log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
