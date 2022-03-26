@@ -5,11 +5,11 @@ package com.litus_animae.refitted.compose.exercise
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
@@ -34,7 +34,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.launch
 
 @FlowPreview
 @Composable
@@ -125,13 +124,13 @@ fun ExerciseDetails(
       onSave = { updatedRecord ->
         val savedRecord = updatedRecord.copy(stored = true)
         saveRecordInState(records, index, setRecords, savedRecord)
-          model.saveExercise(
-            SetRecord(
-              savedRecord.weight,
-              savedRecord.reps,
-              savedRecord.set
-            )
+        model.saveExercise(
+          SetRecord(
+            savedRecord.weight,
+            savedRecord.reps,
+            savedRecord.set
           )
+        )
       })
   }
 }
@@ -283,8 +282,31 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
 @Composable
 fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruction) {
   if (instruction.hasAlternate) {
+    val (alerted, setAlerted) = remember { mutableStateOf(false) }
+    if (alerted) {
+      AlertDialog(onDismissRequest = { setAlerted(false) },
+        title = { Text("Alternate Exercises") },
+        text = { Text("Select from alternate exercises") },
+        buttons = {
+          LazyColumn()
+          {
+            itemsIndexed(instruction.sets) { index, set ->
+              // TODO radio buttons
+              Button(onClick = {
+                instruction.activateAlternate(index)
+                setAlerted(false)
+              }) {
+                Text(set.exerciseName)
+              }
+            }
+          }
+        })
+    }
     Column(Modifier
-      .clickable { instruction.activateNextAlternate() }
+      .clickable {
+        if (instruction.alternateCount > 2) setAlerted(true)
+        else instruction.activateNextAlternate()
+      }
       .fillMaxHeight(),
       verticalArrangement = Arrangement.Center) {
       val altLabel = stringResource(id = R.string.alternate)
