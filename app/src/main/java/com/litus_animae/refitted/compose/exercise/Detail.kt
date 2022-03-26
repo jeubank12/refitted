@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -288,15 +289,25 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
         title = { Text("Alternate Exercises") },
         text = { Text("Select from alternate exercises") },
         buttons = {
-          LazyColumn()
+          val activeIndex by instruction.activeIndex.collectAsState()
+          LazyColumn(Modifier.padding(bottom = 10.dp))
           {
             itemsIndexed(instruction.sets) { index, set ->
-              // TODO radio buttons
-              Button(onClick = {
-                instruction.activateAlternate(index)
-                setAlerted(false)
-              }) {
-                Text(set.exerciseName)
+              Row(
+                Modifier
+                  .padding(horizontal = 5.dp)
+                  .fillParentMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                val onClick = {
+                  instruction.activateAlternate(index)
+                  setAlerted(false)
+                }
+                RadioButton(
+                  selected = index == activeIndex,
+                  onClick = onClick
+                )
+                Text(set.exerciseName, Modifier.clickable(onClick = onClick))
               }
             }
           }
