@@ -8,10 +8,7 @@ import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,23 +47,24 @@ class ExerciseViewModel @Inject constructor(
     val hasAlternate = sets.size > 1
     val prefix = sets.head.primaryStep
     val alternateCount = sets.size
-    private val activeIndex = MutableStateFlow(0)
+    private val _activeIndex = MutableStateFlow(0)
+    val activeIndex = _activeIndex.asStateFlow()
     fun activateNextAlternate() {
-      if (activeIndex.value < sets.size - 1) {
-        activeIndex.value += 1
+      if (_activeIndex.value < sets.size - 1) {
+        _activeIndex.value += 1
       } else {
-        activeIndex.value = 0
+        _activeIndex.value = 0
       }
     }
 
     fun activateAlternate(index: Int) {
       if (index in 0 until alternateCount)
-        activeIndex.value = index
-      else if (index < 0) activeIndex.value = 0
-      else activeIndex.value = alternateCount - 1
+        _activeIndex.value = index
+      else if (index < 0) _activeIndex.value = 0
+      else _activeIndex.value = alternateCount - 1
     }
 
-    val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
+    val set = _activeIndex.map { sets.getOrElse(it) { sets.head } }
   }
 
   val isLoading = exerciseRepo.exercisesAreLoading
