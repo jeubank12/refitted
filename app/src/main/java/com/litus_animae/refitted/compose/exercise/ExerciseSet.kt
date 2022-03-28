@@ -71,9 +71,9 @@ fun ColumnScope.ExerciseSetView(
   }
   Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
     Column(
-        Modifier
-            .weight(1f)
-            .fillMaxWidth()
+      Modifier
+        .weight(1f)
+        .fillMaxWidth()
     ) {
       val enabled = currentIndex > 0
       Button(
@@ -101,9 +101,9 @@ fun ColumnScope.ExerciseSetView(
       Text(timerDisplayTime)
     }
     Column(
-        Modifier
-            .weight(1f)
-            .fillMaxWidth()
+      Modifier
+        .weight(1f)
+        .fillMaxWidth()
     ) {
       val enabled = currentIndex < maxIndex
       Button(
@@ -138,11 +138,27 @@ fun ColumnScope.ExerciseSetView(
         Modifier.fillMaxWidth(),
         enabled = numCompleted < exerciseSet.sets
       ) {
-        // TODO localize
+        val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
+        val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
+        val completeSetPhrase =
+          exerciseSet.superSetStep.fold({
+            String.format(
+              stringResource(id = R.string.complete_set_of_workout),
+              numCompleted + 1,
+              exerciseSet.sets
+            )
+          }) {
+            String.format(
+              stringResource(id = R.string.complete_superset_part_x),
+              it + 1,
+              numCompleted + 1,
+              exerciseSet.sets
+            )
+          }
         val setText =
-          if (numCompleted < exerciseSet.sets) "Complete Set ${numCompleted + 1} of ${exerciseSet.sets}"
-          else "Exercise Completed!"
-        val buttonText = if (isTimerRunning) "Start Next Set Early" else setText
+          if (numCompleted < exerciseSet.sets) completeSetPhrase
+          else exerciseCompletePhrase
+        val buttonText = if (isTimerRunning) cancelRestPhrase else setText
         Text(buttonText)
       }
     }
@@ -156,9 +172,9 @@ fun PreviewExerciseSetDetails() {
   var currentIndex by remember { mutableStateOf(5) }
   MaterialTheme(Theme.lightColors) {
     Column(
-        Modifier
-            .padding(16.dp)
-            .fillMaxSize()
+      Modifier
+        .padding(16.dp)
+        .fillMaxSize()
     ) {
       ExerciseSetView(
         exampleExerciseSet,
