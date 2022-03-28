@@ -107,8 +107,12 @@ fun ExerciseDetails(
     }
     val currentRecord by derivedStateOf {
       val unsavedRecord = setRecords.firstOrNull { !it.stored }
+      val lastTodayRecord = todayRecords.lastOrNull()
       val lastRecord = setRecords.last()
-      unsavedRecord ?: lastRecord
+      val lastRecordUpdatedForToday =
+        if (currentSet.reps < 0) lastRecord
+        else lastRecord.copy(reps = currentSet.reps)
+      unsavedRecord ?: lastTodayRecord ?: lastRecordUpdatedForToday
     }
     val setsCompleted by storedRecords.setsCount.collectAsState(initial = 0, Dispatchers.IO)
 
