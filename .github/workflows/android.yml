@@ -32,3 +32,10 @@ jobs:
         ID_POOLID: ${{ secrets.REFITTED_IDENTITYPOOLID }}
         OPENID_SOURCE: ${{ secrets.REFITTED_OPENIDSOURCE }}
       run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
+
+  block-fixup:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Block fixup commit merge
+      uses: 13rac1/block-fixup-merge-action@v2.0.0
