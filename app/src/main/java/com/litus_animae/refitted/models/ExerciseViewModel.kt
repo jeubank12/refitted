@@ -27,7 +27,8 @@ class ExerciseViewModel @Inject constructor(
           .flattenOption()
           .maybeZipWithNext { thisSets, nextSets ->
             if (thisSets.head.isSuperSet) {
-              if (nextSets?.head?.isSuperSet == true) {
+              val nextSet = nextSets?.head
+              if (nextSet?.isSuperSet == true && nextSet.superStep == thisSets.head.superStep) {
                 ExerciseInstruction(thisSets, Some(1))
               } else {
                 ExerciseInstruction(thisSets, thisSets.head.superSetStep.map { it * -1 })
