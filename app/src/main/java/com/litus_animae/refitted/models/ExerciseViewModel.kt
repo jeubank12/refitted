@@ -2,10 +2,10 @@ package com.litus_animae.refitted.models
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import arrow.core.NonEmptyList
-import arrow.core.flattenOption
+import arrow.core.*
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
+import com.litus_animae.refitted.util.maybeZipWithNext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -25,7 +25,17 @@ class ExerciseViewModel @Inject constructor(
         val instructions = sets.groupBy { it.primaryStep }
           .map { NonEmptyList.fromList(it.value) }
           .flattenOption()
-          .map { ExerciseInstruction(it) }
+          .maybeZipWithNext { thisSets, nextSets ->
+            if (thisSets.head.isSuperSet) {
+              if (nextSets?.head?.isSuperSet == true) {
+                ExerciseInstruction(thisSets, Some(1))
+              } else {
+                ExerciseInstruction(thisSets, thisSets.head.superSetStep.map { it * -1 })
+              }
+            } else {
+              ExerciseInstruction(thisSets, None)
+            }
+          }
         if (instructions.isNotEmpty()) {
           log.d(TAG, "Finished Loading")
         }
@@ -41,11 +51,12 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
-  class ExerciseInstruction(
-    val sets: NonEmptyList<ExerciseSet>
+  data class ExerciseInstruction(
+    val sets: NonEmptyList<ExerciseSet>,
+    val offsetToNextSuperSet: Option<Int>
   ) {
     val hasAlternate = sets.size > 1
-    val prefix = sets.head.primaryStep
+    val prefix = sets.head.superStep
     val alternateCount = sets.size
     private val _activeIndex = MutableStateFlow(0)
     val activeIndex = _activeIndex.asStateFlow()

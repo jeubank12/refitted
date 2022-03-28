@@ -136,6 +136,9 @@ fun ExerciseDetails(
             savedRecord.set
           )
         )
+        instruction?.offsetToNextSuperSet?.map{
+          if (setsCompleted < currentSet.sets - 1 || it > 0) setIndex(index + it)
+        }
       })
   }
 }
