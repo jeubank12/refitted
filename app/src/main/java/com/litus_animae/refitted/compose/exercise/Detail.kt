@@ -9,9 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.RadioButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -21,8 +23,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.LoadingView
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
@@ -45,34 +48,33 @@ fun ExerciseDetails(
   val instruction by derivedStateOf { instructions.getOrNull(index) }
   val exerciseSet by instruction?.set?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
+  val isRefreshing by model.isLoading.collectAsState()
 
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
-  val currentSetRecord = exerciseSet?.let{ setRecords[it.id] }
+  val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
-  if (exerciseSet == null || currentSetRecord == null) {
-    Surface(Modifier.fillMaxSize()) {
-      LoadingView()
-    }
-  } else {
-    val currentSet = exerciseSet!!
-    LaunchedEffect(currentSet) {
-      setContextMenu { instruction?.let { this.ExerciseContextMenu(it) } }
-      setHistoryList(currentSetRecord.allSets)
-    }
+  LaunchedEffect(exerciseSet) {
+    setContextMenu { instruction?.let { this.ExerciseContextMenu(it) } }
+    currentSetRecord?.allSets?.let { setHistoryList(it) }
+  }
+
+  val swipeRefreshState =
+    rememberSwipeRefreshState(isRefreshing || exerciseSet == null || currentSetRecord == null)
+  SwipeRefresh(state = swipeRefreshState, onRefresh = model::refreshExercises) {
     DetailView(
       index,
       instructions.size - 1,
-      currentSet,
-      currentSetRecord.currentRecord,
-      numCompleted = currentSetRecord.numCompleted,
+      exerciseSet,
+      currentSetRecord?.currentRecord,
+      numCompleted = currentSetRecord?.numCompleted ?: 0,
       updateIndex = { newIndex, updatedRecord ->
-        currentSetRecord.saveRecordInState(updatedRecord)
+        currentSetRecord!!.saveRecordInState(updatedRecord)
         setIndex(newIndex)
       },
       onSave = { updatedRecord ->
         val savedRecord = updatedRecord.copy(stored = true)
-        currentSetRecord.saveRecordInState(savedRecord)
+        currentSetRecord!!.saveRecordInState(savedRecord)
         model.saveExercise(
           SetRecord(
             savedRecord.weight,
@@ -80,10 +82,11 @@ fun ExerciseDetails(
             savedRecord.set
           )
         )
-        instruction?.offsetToNextSuperSet?.map{
-          if (currentSetRecord.numCompleted < currentSet.sets - 1 || it > 0) setIndex(index + it)
+        instruction?.offsetToNextSuperSet?.map {
+          if (currentSetRecord.numCompleted < exerciseSet!!.sets - 1 || it > 0) setIndex(index + it)
         }
-      })
+      }
+    )
   }
 }
 
@@ -108,8 +111,8 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
 fun DetailView(
   index: Int,
   maxIndex: Int,
-  exerciseSet: ExerciseSet,
-  record: Record,
+  exerciseSet: ExerciseSet?,
+  record: Record?,
   numCompleted: Int,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit
@@ -118,23 +121,7 @@ fun DetailView(
     Configuration.ORIENTATION_LANDSCAPE ->
       Row(Modifier.padding(16.dp)) {
         ExerciseDetails(exerciseSet, Modifier.weight(1f))
-        ExerciseSetView(
-          exerciseSet,
-          record,
-          numCompleted,
-          index,
-          maxIndex,
-          updateIndex,
-          onSave,
-          Modifier.weight(1f)
-        )
-      }
-    else ->
-      Column(Modifier.padding(16.dp)) {
-        Row(Modifier.weight(1f)) {
-          ExerciseDetails(exerciseSet)
-        }
-        Row(Modifier.weight(1f)) {
+        if (exerciseSet != null && record != null)
           ExerciseSetView(
             exerciseSet,
             record,
@@ -142,8 +129,26 @@ fun DetailView(
             index,
             maxIndex,
             updateIndex,
-            onSave
+            onSave,
+            Modifier.weight(1f)
           )
+      }
+    else ->
+      Column(Modifier.padding(16.dp)) {
+        Row(Modifier.weight(1f)) {
+          ExerciseDetails(exerciseSet)
+        }
+        Row(Modifier.weight(1f)) {
+          if (exerciseSet != null && record != null)
+            ExerciseSetView(
+              exerciseSet,
+              record,
+              numCompleted,
+              index,
+              maxIndex,
+              updateIndex,
+              onSave
+            )
         }
       }
   }
@@ -172,10 +177,11 @@ private fun RowScope.ExerciseDetails(
 }
 
 @Composable
-private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
+private fun ColumnScope.ExerciseDetails(
+  exerciseSet: ExerciseSet?
+) {
   Row {
-    if (exerciseSet != null)
-      Text(text = exerciseSet.exerciseName, style = MaterialTheme.typography.h6)
+    Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h6)
   }
   Row(Modifier.padding(vertical = 5.dp)) {
     Column(Modifier.weight(1f)) {
@@ -183,7 +189,7 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
       val target = stringResource(id = R.string.target)
       val toFailureLabel = stringResource(id = R.string.to_failure)
       when {
-        exerciseSet == null -> Text(label)
+        exerciseSet == null -> Text("")
         exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
         exerciseSet.repsUnit.isNotBlank() -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit}")
         exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange}")
@@ -195,13 +201,14 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
     Column(Modifier.weight(1f)) {
       val label = stringResource(id = R.string.target_sets)
       if (exerciseSet == null)
-        Text(label)
+        Text("")
       else Text("$label ${exerciseSet.sets}")
     }
   }
   val scrollState = rememberScrollState()
-  Row {
+  Row() {
     // TODO is there a way to show the scrollbar to indicate scrollability?
+    // FIXME does not work if there is no content below
     Column(Modifier.verticalScroll(scrollState)) {
       Row(Modifier.padding(vertical = 5.dp)) {
         if (exerciseSet != null) {
@@ -209,7 +216,11 @@ private fun ColumnScope.ExerciseDetails(exerciseSet: ExerciseSet?) {
           Text(exercise?.description ?: "")
         }
       }
-      Row(Modifier.padding(vertical = 5.dp)) {
+      Row(
+        Modifier
+          .padding(vertical = 5.dp)
+          .fillMaxHeight()
+      ) {
         Text(exerciseSet?.note ?: "")
       }
     }
