@@ -19,7 +19,8 @@ fun ConstrainedText(
     val availableWidth = maxWidth
     with(LocalDensity.current) {
       val maxSize = MaterialTheme.typography.button.fontSize
-      val desiredSize = if (textContent.length >= 3) availableWidth.toSp() * 0.6f
+      val desiredSize = if (textContent.length >= 4) availableWidth.toSp() * 0.4f
+      else if (textContent.length >= 3) availableWidth.toSp() * 0.6f
       else if (textContent.length >= 2) availableWidth.toSp() * 0.7f
       else availableWidth.toSp()
       val size = if (desiredSize > maxSize) maxSize else desiredSize
