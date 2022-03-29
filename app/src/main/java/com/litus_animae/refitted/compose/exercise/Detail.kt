@@ -191,7 +191,14 @@ private fun ColumnScope.ExerciseDetails(
       when {
         exerciseSet == null -> Text("")
         exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
-        exerciseSet.repsUnit.isNotBlank() -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit}")
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text(
+          "$target ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
+        )
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text(
+          "$target ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
+        )
+        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit}")
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit} ($toFailureLabel)")
         exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange}")
         exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ($toFailureLabel)")
         exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps} ($toFailureLabel)")
