@@ -31,145 +31,138 @@ import java.text.DateFormat
 @FlowPreview
 @Composable
 fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
-    val title = stringResource(id = R.string.app_name)
-    val dayWord = stringResource(id = R.string.day)
-    val isLoading by model.isLoading.collectAsState()
-    val scaffoldState = rememberScaffoldState()
-    val scaffoldScope = rememberCoroutineScope()
-    LaunchedEffect(day, workoutId) {
-        model.loadExercises(day, workoutId)
-    }
-    var contextMenu by remember { mutableStateOf<@Composable RowScope.() -> Unit>({}) }
-    val (historyList, setHistoryList) = remember {
-        mutableStateOf(emptyFlow<PagingData<SetRecord>>())
-    }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("$title: $workoutId $dayWord $day") },
-                backgroundColor = MaterialTheme.colors.primary,
-                actions = {
-                    contextMenu()
-                },
-                navigationIcon = {
-                    Icon(
-                        Icons.Default.History,
-                        // TODO localize
-                        "history",
-                        modifier = Modifier
-                            .clickable {
-                                scaffoldScope.launch {
-                                    if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                                    else scaffoldState.drawerState.close()
-                                }
-                            }
-                            .padding(start = 10.dp))
-                }
-            )
+  val title = stringResource(id = R.string.app_name)
+  val dayWord = stringResource(id = R.string.day)
+  val scaffoldState = rememberScaffoldState()
+  val scaffoldScope = rememberCoroutineScope()
+  LaunchedEffect(day, workoutId) {
+    model.loadExercises(day, workoutId)
+  }
+  var contextMenu by remember { mutableStateOf<@Composable RowScope.() -> Unit>({}) }
+  val (historyList, setHistoryList) = remember {
+    mutableStateOf(emptyFlow<PagingData<SetRecord>>())
+  }
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text("$title: $workoutId $dayWord $day") },
+        backgroundColor = MaterialTheme.colors.primary,
+        actions = {
+          contextMenu()
         },
-        scaffoldState = scaffoldState,
-        drawerContent = { SetRecordList(flow = historyList) }
-    ) {
-        if (isLoading) {
-            Surface(Modifier.fillMaxSize()) {
-                LoadingView()
-            }
-        } else {
-            ExerciseDetails(model, setHistoryList = { setHistoryList(it) }) {
-                contextMenu = it
-            }
+        navigationIcon = {
+          Icon(
+            Icons.Default.History,
+            // TODO localize
+            "history",
+            modifier = Modifier
+                .clickable {
+                    scaffoldScope.launch {
+                        if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                        else scaffoldState.drawerState.close()
+                    }
+                }
+                .padding(start = 10.dp))
         }
+      )
+    },
+    scaffoldState = scaffoldState,
+    drawerContent = { SetRecordList(flow = historyList) }
+  ) {
+    ExerciseDetails(model, setHistoryList = { setHistoryList(it) }) {
+      contextMenu = it
     }
+  }
 }
 
 @Composable
 private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
-    val items = flow.collectAsLazyPagingItems()
-    LazyColumn {
-        item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colors.primary)
-                    .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // TODO localize
-                Text(
-                    "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
-                        backgroundColor = MaterialTheme.colors.primary
-                    )
-                )
-                Icon(
-                    Icons.Default.Refresh,
-                    // TODO localize
-                    "refresh",
-                    modifier = Modifier
-                        .clickable {
-                            items.refresh()
-                        }
-                        .padding(start = 10.dp, end = 10.dp),
-                    tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
-            }
-        }
-
-        if (items.loadState.refresh is LoadState.Loading) {
-            item {
-                Row(Modifier.fillMaxWidth()) {
-                    LoadingView()
-                }
-            }
-        } else {
-            val dateFormat = DateFormat.getDateInstance()
-            item {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 15.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        stringResource(id = R.string.date),
-                        style = MaterialTheme.typography.button
-                    )
-                    Text(
-                        stringResource(id = R.string.reps_label),
-                        style = MaterialTheme.typography.button
-                    )
-                    val weightLabel = stringResource(id = R.string.weight_label)
-                    val weightUnits = stringResource(id = R.string.lbs)
-                    Text(
-                        "$weightLabel ($weightUnits)",
-                        style = MaterialTheme.typography.button
-                    )
-                }
-            }
-
-            itemsIndexed(items) { _, record ->
-                if (record != null) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 15.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            dateFormat.format(record.completed),
-                            style = MaterialTheme.typography.button
-                        )
-                        Text(
-                            record.reps.toString(),
-                            style = MaterialTheme.typography.button
-                        )
-                        Text(
-                            String.format("%.1f", record.weight),
-                            style = MaterialTheme.typography.button
-                        )
-                    }
-                    Divider()
-                }
-            }
-        }
+  val items = flow.collectAsLazyPagingItems()
+  LazyColumn {
+    item {
+      Row(
+          Modifier
+              .fillMaxWidth()
+              .background(MaterialTheme.colors.primary)
+              .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+      ) {
+        // TODO localize
+        Text(
+          "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
+            backgroundColor = MaterialTheme.colors.primary
+          )
+        )
+        Icon(
+          Icons.Default.Refresh,
+          // TODO localize
+          "refresh",
+          modifier = Modifier
+              .clickable {
+                  items.refresh()
+              }
+              .padding(start = 10.dp, end = 10.dp),
+          tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
+      }
     }
+
+    if (items.loadState.refresh is LoadState.Loading) {
+      item {
+        Row(Modifier.fillMaxWidth()) {
+          LoadingView()
+        }
+      }
+    } else {
+      val dateFormat = DateFormat.getDateInstance()
+      item {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 15.dp),
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Text(
+            stringResource(id = R.string.date),
+            style = MaterialTheme.typography.button
+          )
+          Text(
+            stringResource(id = R.string.reps_label),
+            style = MaterialTheme.typography.button
+          )
+          val weightLabel = stringResource(id = R.string.weight_label)
+          val weightUnits = stringResource(id = R.string.lbs)
+          Text(
+            "$weightLabel ($weightUnits)",
+            style = MaterialTheme.typography.button
+          )
+        }
+      }
+
+      itemsIndexed(items) { _, record ->
+        if (record != null) {
+          Row(
+              Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 10.dp, vertical = 15.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Text(
+              dateFormat.format(record.completed),
+              style = MaterialTheme.typography.button
+            )
+            Text(
+              record.reps.toString(),
+              style = MaterialTheme.typography.button
+            )
+            Text(
+              String.format("%.1f", record.weight),
+              style = MaterialTheme.typography.button
+            )
+          }
+          Divider()
+        }
+      }
+    }
+  }
 }
