@@ -8,7 +8,9 @@ import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -44,20 +46,13 @@ class ExerciseViewModel @Inject constructor(
         instructions
       }
 
-  fun recordForExercise(set: ExerciseSet): Flow<ExerciseRecord> {
-    return exerciseRepo.records.mapNotNull { allRecords ->
-      allRecords.firstOrNull {
-        it.targetSet.id == set.id
-      }
-    }
-  }
+  val records = exerciseRepo.records
 
   data class ExerciseInstruction(
     val sets: NonEmptyList<ExerciseSet>,
     val offsetToNextSuperSet: Option<Int>
   ) {
     val hasAlternate = sets.size > 1
-    val prefix = sets.head.superStep
     val alternateCount = sets.size
     private val _activeIndex = MutableStateFlow(0)
     val activeIndex = _activeIndex.asStateFlow()
