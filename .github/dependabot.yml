@@ -5,7 +5,15 @@
 
 version: 2
 updates:
-# Updates for Gradle dependencies used in the app      
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+        # Check for updates to GitHub Actions every weekday
+        interval: "weekly"
+      reviewers:
+        - "jeubank12"
+
+# Updates for Gradle dependencies used in the app
     - package-ecosystem: gradle
       directory: "/"
       schedule:
