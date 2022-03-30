@@ -133,7 +133,7 @@ fun ColumnScope.ExerciseSetView(
             onSave(record.copy(weight = saveWeight, reps = saveReps))
             timerMillis.value = exerciseSet.rest * 1000L
           }
-          timerRunning.value = !isTimerRunning
+          if (exerciseSet.rest > 0) timerRunning.value = !isTimerRunning
         },
         Modifier.fillMaxWidth(),
         enabled = numCompleted < exerciseSet.sets
