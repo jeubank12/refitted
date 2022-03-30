@@ -207,8 +207,9 @@ private fun ColumnScope.ExerciseDetails(
     }
     Column(Modifier.weight(1f)) {
       val label = stringResource(id = R.string.target_sets)
-      if (exerciseSet == null)
-        Text("")
+      val toCompletion = stringResource(id = R.string.sets_to_completion)
+      if (exerciseSet == null) Text("")
+      else if (exerciseSet.sets < 0) Text(toCompletion)
       else Text("$label ${exerciseSet.sets}")
     }
   }
