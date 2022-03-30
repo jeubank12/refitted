@@ -45,7 +45,7 @@
     <string name="day">Day</string>
     <string name="inferno_size">Inferno Size</string>
     <string name="configure_weight_buttons">Configure Weight Buttons</string>
-
+    <string name="sets_to_completion">Sets as needed to completion</string>
     <string name="weight_label">Weight</string>
     <string name="reps_label">Reps</string>
     <string name="doubled_label">Barbell\nMode?</string>
