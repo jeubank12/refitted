@@ -19,7 +19,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemsIndexed
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.ExerciseDetails
+import com.litus_animae.refitted.compose.exercise.ExerciseView
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.FlowPreview
@@ -69,7 +69,7 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
     scaffoldState = scaffoldState,
     drawerContent = { SetRecordList(flow = historyList) }
   ) {
-    ExerciseDetails(model, setHistoryList = { setHistoryList(it) }) {
+    ExerciseView(model, setHistoryList = { setHistoryList(it) }) {
       contextMenu = it
     }
   }
