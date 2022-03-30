@@ -8,8 +8,10 @@ import arrow.core.getOrElse
 import com.litus_animae.refitted.models.ExerciseRecord
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.util.maybeZipWithPrevious
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import java.lang.Integer.min
 
 data class ExerciseSetWithRecord(
   val exerciseSet: ExerciseSet,
@@ -21,11 +23,18 @@ data class ExerciseSetWithRecord(
   fun saveRecordInState(
     savedRecord: Record
   ) {
-    if (setRecords.firstOrNull { !it.stored } != null)
-      setRecords[setRecords.lastIndex] = savedRecord
+    if (setRecords.firstOrNull { !it.stored } != null) {
+      val recordToSave =
+        if (savedRecord.stored) savedRecord.copy(cumulativeReps = savedRecord.cumulativeReps + savedRecord.reps)
+        else savedRecord
+      setRecords[setRecords.lastIndex] = recordToSave
+    }
     else
       setRecords.add(savedRecord)
   }
+
+  val exerciseIncomplete = numCompleted < exerciseSet.sets ||
+    (exerciseSet.sets < 0 && currentRecord.cumulativeReps < exerciseSet.reps)
 }
 
 @Composable
@@ -35,11 +44,15 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
       val currentSetRecord = currentSetEntry.value
       val currentSet = currentSetRecord.targetSet
       val rememberedSetRecords = remember { mutableStateListOf<Record>() }
-      // TODO update default weight with best default
+      val defaultReps = when {
+        currentSet.repsUnit.isNotBlank() -> 0
+        currentSet.sets < 0 -> min(10, currentSet.reps)
+        else -> currentSet.reps
+      }
       val defaultRecord by derivedStateOf {
         Record(
-          25.0,
-          if (currentSet.repsUnit.isNotBlank()) 0 else currentSet.reps,
+          weight = 25.0,
+          defaultReps,
           currentSet
         )
       }
@@ -52,8 +65,8 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
         Dispatchers.IO
       )
       val todayRecords by derivedStateOf {
-        todayExerciseRecords.map {
-          Record(it.weight, it.reps, currentSet, stored = true)
+        todayExerciseRecords.maybeZipWithPrevious { a, b ->
+          Record(b.weight, b.reps, currentSet, b.reps + (a?.reps ?: 0), stored = true)
         }
       }
       val lastStoredRecord by derivedStateOf {

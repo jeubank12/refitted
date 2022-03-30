@@ -51,4 +51,5 @@
     <string name="doubled_label">Barbell\nMode?</string>
     <string name="complete_superset_part_x">Complete Superset Part %1$d (%2$d of %3$d)</string>
     <string name="complete_set_of_workout">Complete Set %1$d of %2$d</string>
+    <string name="complete_reps_of_workout">Complete %1$d Reps of %2$d Remaining</string>
 </resources>
