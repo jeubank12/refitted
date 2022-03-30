@@ -26,6 +26,7 @@ import androidx.paging.PagingData
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
@@ -35,6 +36,7 @@ import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @FlowPreview
 @Composable
@@ -65,9 +67,7 @@ fun ExerciseDetails(
     DetailView(
       index,
       instructions.size - 1,
-      exerciseSet,
-      currentSetRecord?.currentRecord,
-      numCompleted = currentSetRecord?.numCompleted ?: 0,
+      setWithRecord = currentSetRecord,
       updateIndex = { newIndex, updatedRecord ->
         currentSetRecord!!.saveRecordInState(updatedRecord)
         setIndex(newIndex)
@@ -83,7 +83,13 @@ fun ExerciseDetails(
           )
         )
         instruction?.offsetToNextSuperSet?.map {
-          if (currentSetRecord.numCompleted < exerciseSet!!.sets - 1 || it > 0) setIndex(index + it)
+          // TODO if previous sets are incomplete, then nav to them
+          // TODO if all challenge sets are complete, don't nav
+          val isChallengeSet = exerciseSet!!.sets < 0
+          val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
+          val isLastExerciseInSuperset = it <= 0
+          if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
+            setIndex(index + it)
         }
       }
     )
@@ -94,13 +100,18 @@ fun ExerciseDetails(
 @Composable
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
+    val records = remember { mutableStateListOf<Record>() }
     Column {
       DetailView(
         index = 0,
         maxIndex = 2,
-        exerciseSet = exerciseSet,
-        record = Record(25.0, exerciseSet.reps, exerciseSet),
-        numCompleted = 1,
+        setWithRecord = ExerciseSetWithRecord(
+          exerciseSet,
+          Record(25.0, exerciseSet.reps, exerciseSet),
+          numCompleted = 1,
+          setRecords = records,
+          allSets = emptyFlow()
+        ),
         updateIndex = { _, _ -> },
         onSave = { })
     }
@@ -111,21 +122,17 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
 fun DetailView(
   index: Int,
   maxIndex: Int,
-  exerciseSet: ExerciseSet?,
-  record: Record?,
-  numCompleted: Int,
+  setWithRecord: ExerciseSetWithRecord?,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit
 ) {
   when (LocalConfiguration.current.orientation) {
     Configuration.ORIENTATION_LANDSCAPE ->
       Row(Modifier.padding(16.dp)) {
-        ExerciseDetails(exerciseSet, Modifier.weight(1f))
-        if (exerciseSet != null && record != null)
+        ExerciseDetails(setWithRecord?.exerciseSet, Modifier.weight(1f))
+        if (setWithRecord != null)
           ExerciseSetView(
-            exerciseSet,
-            record,
-            numCompleted,
+            setWithRecord,
             index,
             maxIndex,
             updateIndex,
@@ -136,14 +143,12 @@ fun DetailView(
     else ->
       Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {
-          ExerciseDetails(exerciseSet)
+          ExerciseDetails(setWithRecord?.exerciseSet)
         }
         Row(Modifier.weight(1f)) {
-          if (exerciseSet != null && record != null)
+          if (setWithRecord != null)
             ExerciseSetView(
-              exerciseSet,
-              record,
-              numCompleted,
+              setWithRecord,
               index,
               maxIndex,
               updateIndex,

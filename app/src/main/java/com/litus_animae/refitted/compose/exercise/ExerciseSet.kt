@@ -11,20 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import arrow.core.getOrElse
+import arrow.core.maybe
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
 import com.litus_animae.refitted.compose.exercise.input.WeightButtons
+import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.ExerciseSet
+import kotlinx.coroutines.flow.emptyFlow
 
 @Composable
 fun RowScope.ExerciseSetView(
-  exerciseSet: ExerciseSet,
-  record: Record,
-  numCompleted: Int,
+  setWithRecord: ExerciseSetWithRecord,
   currentIndex: Int,
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
@@ -33,9 +34,7 @@ fun RowScope.ExerciseSetView(
 ) {
   Column(modifier) {
     ExerciseSetView(
-      exerciseSet = exerciseSet,
-      record = record,
-      numCompleted = numCompleted,
+      setWithRecord = setWithRecord,
       currentIndex = currentIndex,
       maxIndex = maxIndex,
       updateIndex = updateIndex,
@@ -46,14 +45,13 @@ fun RowScope.ExerciseSetView(
 
 @Composable
 fun ColumnScope.ExerciseSetView(
-  exerciseSet: ExerciseSet,
-  record: Record,
-  numCompleted: Int,
+  setWithRecord: ExerciseSetWithRecord,
   currentIndex: Int,
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit
 ) {
+  val (exerciseSet, record, numCompleted, _, _) = setWithRecord
   val weight = remember(exerciseSet, record) { Weight(record.weight) }
   val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
   val timerRunning = rememberSaveable { mutableStateOf(false) }
@@ -136,27 +134,36 @@ fun ColumnScope.ExerciseSetView(
           if (exerciseSet.rest > 0) timerRunning.value = !isTimerRunning
         },
         Modifier.fillMaxWidth(),
-        enabled = numCompleted < exerciseSet.sets
+        enabled = setWithRecord.exerciseIncomplete
       ) {
         val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
         val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
-        val completeSetPhrase =
-          exerciseSet.superSetStep.fold({
-            String.format(
-              stringResource(id = R.string.complete_set_of_workout),
-              numCompleted + 1,
-              exerciseSet.sets
-            )
-          }) {
-            String.format(
-              stringResource(id = R.string.complete_superset_part_x),
-              it + 1,
-              numCompleted + 1,
-              exerciseSet.sets
-            )
+        val toCompletionSetPhrase = (exerciseSet.sets < 0).maybe {
+          String.format(
+            stringResource(id = R.string.complete_reps_of_workout),
+            saveReps,
+            exerciseSet.reps - record.cumulativeReps
+          )
+        }
+        val completeSetPhrase = toCompletionSetPhrase
+          .getOrElse {
+            exerciseSet.superSetStep.fold({
+              String.format(
+                stringResource(id = R.string.complete_set_of_workout),
+                numCompleted + 1,
+                exerciseSet.sets
+              )
+            }) {
+              String.format(
+                stringResource(id = R.string.complete_superset_part_x),
+                it + 1,
+                numCompleted + 1,
+                exerciseSet.sets
+              )
+            }
           }
         val setText =
-          if (numCompleted < exerciseSet.sets) completeSetPhrase
+          if (setWithRecord.exerciseIncomplete) completeSetPhrase
           else exerciseCompletePhrase
         val buttonText = if (isTimerRunning) cancelRestPhrase else setText
         Text(buttonText)
@@ -170,6 +177,7 @@ fun ColumnScope.ExerciseSetView(
 fun PreviewExerciseSetDetails() {
   var numCompleted by remember { mutableStateOf(0) }
   var currentIndex by remember { mutableStateOf(5) }
+  val records = remember { mutableStateListOf<Record>() }
   MaterialTheme(Theme.lightColors) {
     Column(
       Modifier
@@ -177,9 +185,13 @@ fun PreviewExerciseSetDetails() {
         .fillMaxSize()
     ) {
       ExerciseSetView(
-        exampleExerciseSet,
-        Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
-        numCompleted = numCompleted,
+        setWithRecord = ExerciseSetWithRecord(
+          exampleExerciseSet,
+          Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
+          numCompleted = 1,
+          setRecords = records,
+          allSets = emptyFlow()
+        ),
         currentIndex = currentIndex,
         maxIndex = 5,
         updateIndex = { newIndex, _ -> currentIndex = newIndex },
