@@ -93,13 +93,14 @@ fun ExerciseView(
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
     val records = remember { mutableStateListOf<Record>() }
+    val currentRecord = remember { mutableStateOf(Record(25.0, exerciseSet.reps, exerciseSet)) }
     Column {
       DetailView(
         index = 0,
         maxIndex = 2,
         setWithRecord = ExerciseSetWithRecord(
           exerciseSet,
-          Record(25.0, exerciseSet.reps, exerciseSet),
+          currentRecord,
           numCompleted = 1,
           setRecords = records,
           allSets = emptyFlow()

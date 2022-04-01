@@ -51,7 +51,8 @@ fun ColumnScope.ExerciseSetView(
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit
 ) {
-  val (exerciseSet, record, numCompleted, _, _) = setWithRecord
+  val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
+  val record by currentRecord
   val weight = remember(exerciseSet, record) { Weight(record.weight) }
   val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
   val timerRunning = rememberSaveable { mutableStateOf(false) }
@@ -178,6 +179,8 @@ fun PreviewExerciseSetDetails() {
   var numCompleted by remember { mutableStateOf(0) }
   var currentIndex by remember { mutableStateOf(5) }
   val records = remember { mutableStateListOf<Record>() }
+  val currentRecord =
+    remember { mutableStateOf(Record(25.0, exampleExerciseSet.reps, exampleExerciseSet)) }
   MaterialTheme(Theme.lightColors) {
     Column(
       Modifier
@@ -187,7 +190,7 @@ fun PreviewExerciseSetDetails() {
       ExerciseSetView(
         setWithRecord = ExerciseSetWithRecord(
           exampleExerciseSet,
-          Record(25.0, exampleExerciseSet.reps, exampleExerciseSet),
+          currentRecord,
           numCompleted = 1,
           setRecords = records,
           allSets = emptyFlow()
