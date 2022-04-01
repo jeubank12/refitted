@@ -54,6 +54,7 @@ interface ExerciseDao {
     storeExerciseSet(exerciseSet)
   }
 
+  // TODO should this include target_set as well?
   /**
    * Gets the records for [targetExercise] newer than [minDate] in ascending order
    */
@@ -63,7 +64,7 @@ interface ExerciseDao {
   /**
    * Gets the newest record for the [targetExercise]
    */
-  @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
+  @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit 1")
   fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
 
   /**

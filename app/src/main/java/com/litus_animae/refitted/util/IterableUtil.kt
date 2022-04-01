@@ -27,3 +27,15 @@ inline fun <T, R> Iterable<T>.maybeZipWithPrevious(transform: (previous: T?, cur
   }
   return result
 }
+
+inline fun <T, R> Sequence<T>.progressiveZipWithPrevious(crossinline transform: (previous: R?, current: T) -> R): Sequence<R> {
+  return sequence {
+    var current: R? = null
+    for (element in this@progressiveZipWithPrevious) {
+      val next = transform(current, element)
+      yield(next)
+      current = next
+    }
+  }
+}
+
