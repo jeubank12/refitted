@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,7 +42,8 @@ fun ExerciseView(
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
-  val (index, setIndex) = remember { mutableStateOf(0) }
+  // TODO not saving, perhaps need rememberSaveableStateHolder
+  val (index, setIndex) = rememberSaveable { mutableStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by derivedStateOf { instructions.getOrNull(index) }
   val exerciseSet by instruction?.set?.collectAsState(initial = null, Dispatchers.IO)

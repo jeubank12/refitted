@@ -37,7 +37,7 @@ data class ExerciseSetWithRecord(
 
 @Composable
 fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseSetWithRecord> {
-  // TODO rememberSaveable?
+  // TODO remember through screen rotation, will probably conflict with remember currentRecord below
   val state = remember { mutableStateMapOf<String, ExerciseSetWithRecord>() }
   SideEffect {
     Log.d("recordsByExerciseId", "Processing records")
