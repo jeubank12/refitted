@@ -146,8 +146,10 @@ class RoomCacheExerciseRepository @Inject constructor(
           refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
         ) { todayRecords, latestRecord ->
           todayRecords.lastOrNull() ?: latestRecord?.let {
-            // TODO appropriate reps?
-            Record(it.weight, it.reps, e)
+            // here we know that the exercise has not been performed today
+            // reps should not necessarily be blindly copied from the last set
+            val reps = if (e.reps < 0) it.reps else e.reps
+            Record(it.weight, reps, e)
           }
         }.mapNotNull { it }
       ExerciseRecord(
