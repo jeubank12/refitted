@@ -17,10 +17,10 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
 import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
-import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.Theme
+import com.litus_animae.refitted.models.Record
 import kotlinx.coroutines.flow.emptyFlow
 
 @Composable

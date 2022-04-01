@@ -4,21 +4,12 @@ import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class ExerciseRecord(
+data class ExerciseRecord(
   val targetSet: ExerciseSet,
-  val latestSet: Flow<SetRecord?>,
+  val defaultRecord: Record,
+  val latestRecord: Flow<Record>,
   val allSets: Flow<PagingData<SetRecord>>,
-  val currentSets: Flow<List<SetRecord>>
+  val currentRecords: Flow<List<Record>>
 ) {
-  fun getSet(set: Int): Flow<SetRecord?> {
-    return currentSets.map { sets: List<SetRecord> ->
-      if (set < sets.size && set >= 0) {
-        sets[set]
-      } else if (set < 0 && sets.size + set >= 0) {
-        sets[sets.size + set]
-      } else null
-    }
-  }
-
-  val setsCount = currentSets.map { sets -> sets.size }
+  val currentRecordsCount = currentRecords.map { sets -> sets.size }
 }

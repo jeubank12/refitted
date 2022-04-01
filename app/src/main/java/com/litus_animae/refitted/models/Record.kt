@@ -1,6 +1,4 @@
-package com.litus_animae.refitted.compose.state
-
-import com.litus_animae.refitted.models.ExerciseSet
+package com.litus_animae.refitted.models
 
 data class Record(
   val weight: Double,

@@ -19,11 +19,11 @@ import androidx.paging.PagingData
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
-import com.litus_animae.refitted.compose.state.Record
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.Record
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -37,6 +37,10 @@ fun ExerciseView(
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
 ) {
+  // TODO why is this re-evaluated every time?
+  val allRecords by model.records.collectAsState(initial = emptyList())
+  val setRecords = recordsByExerciseId(allRecords = allRecords)
+
   val (index, setIndex) = remember { mutableStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by derivedStateOf { instructions.getOrNull(index) }
@@ -44,8 +48,6 @@ fun ExerciseView(
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsState()
 
-  val allRecords by model.records.collectAsState(initial = emptyList())
-  val setRecords = recordsByExerciseId(allRecords = allRecords)
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
