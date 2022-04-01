@@ -6,6 +6,7 @@ import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class InMemoryExerciseRepository(
     private val initialExercises: List<ExerciseSet> = emptyList(),
@@ -19,6 +20,10 @@ class InMemoryExerciseRepository(
         exerciseList.value = initialExercises
     }
 
+    override fun refreshExercises() {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun storeSetRecord(record: SetRecord) {
         TODO("Not yet implemented")
     }
@@ -28,6 +33,8 @@ class InMemoryExerciseRepository(
     }
 
     override val exercises: Flow<List<ExerciseSet>> = exerciseList
+    override val exercisesAreLoading: StateFlow<Boolean>
+        get() = TODO("Not yet implemented")
     override val records: Flow<List<ExerciseRecord>> = recordList
     override val workoutRecords: Flow<List<ExerciseDao.ExerciseCompletionRecord>>
         get() = TODO("Not yet implemented")
