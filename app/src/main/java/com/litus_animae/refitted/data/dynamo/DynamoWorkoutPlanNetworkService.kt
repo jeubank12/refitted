@@ -35,7 +35,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
             val subQueryExpression = DynamoDBQueryExpression<DynamoWorkoutDay>()
               .withHashKeyValues(subKeyValues)
               .withIndexName("Reverse-index")
-              .withFilterExpression("attribute_exists(exercises)")
+              .withFilterExpression("attribute_exists(Exercises)")
               .withConsistentRead(false)
             val days = db.query(DynamoWorkoutDay::class.java, subQueryExpression)
             log.d(TAG, "Got days for workout $workout: ${days.map { it.day }}")

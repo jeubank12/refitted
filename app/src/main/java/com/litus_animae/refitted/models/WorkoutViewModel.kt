@@ -11,12 +11,17 @@ import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.util.LogUtil
+import com.litus_animae.refitted.util.SavedStateKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.*
 import javax.inject.Inject
 
@@ -152,4 +157,13 @@ class WorkoutViewModel @Inject constructor(
 
   val workouts: Flow<PagingData<WorkoutPlan>> = workoutPlanRepo.workouts
 
+  val workoutsLastRefreshed: Flow<String> =
+    savedStateRepo.getState(SavedStateKeys.CacheTimeKey)
+      .map {
+        val date = it?.value?.toLongOrNull() ?: return@map "Never"
+        val lastRefreshDate = Instant.ofEpochMilli(date)
+          .atZone(ZoneId.systemDefault())
+          .toLocalDateTime()
+        lastRefreshDate.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
+      }
 }

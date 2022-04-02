@@ -18,6 +18,9 @@ interface SavedStateDao {
     @Query("SELECT * FROM `SavedState` where `key` = :key")
     fun getState(key: String): Flow<SavedState?>
 
+    @Query("SELECT * FROM `SavedState` where `key` = :key")
+    suspend fun loadState(key: String): SavedState?
+
     @Query("DELETE FROM `SavedState` WHERE `key` = :key")
     suspend fun clear(key: String)
 }
