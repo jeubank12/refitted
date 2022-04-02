@@ -8,6 +8,7 @@
         <item>Cleaner transition between supersets when there is no rest</item>
         <item>Reps default to the number of reps for the day rather than the number completed the last time the exercise was completed</item>
         <item>Support multiple exercises with the same name (or the same exercise) within the same workout day</item>
+        <item>Show the actual number of days in the workout on the calendar view</item>
         <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
         <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
     </string-array>

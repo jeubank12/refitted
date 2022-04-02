@@ -119,7 +119,8 @@ fun Calendar(
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
       val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
-      WorkoutPlanMenu(workoutPlanPagingItems) {
+      val lastRefresh by model.workoutsLastRefreshed.collectAsState(initial = "")
+      WorkoutPlanMenu(lastRefresh, workoutPlanPagingItems) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
       }
