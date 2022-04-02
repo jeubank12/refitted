@@ -2,8 +2,13 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**\?\?v1.0.31</item>
+        <item>**\?\?v1.1.0</item>
         <item>New changelog to tell you what has changed</item>
+        <item>Challenge workouts which are for a completion of total reps instead of sets</item>
+        <item>Cleaner transition between supersets when there is no rest</item>
+        <item>Reps default to the number of reps for the day rather than the number completed the last time the exercise was completed</item>
+        <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
+        <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
