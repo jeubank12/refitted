@@ -130,7 +130,7 @@ class RoomCacheExerciseRepository @Inject constructor(
         e
       )
       val currentRecords = refittedRoom.getExerciseDao()
-        .getSetRecords(tonightMidnight, e.exerciseName)
+        .getSetRecords(tonightMidnight, e.exerciseName, e.id)
         .map {
           it.asSequence()
             .progressiveZipWithPrevious { lastRecord: Record?, setRecord ->
