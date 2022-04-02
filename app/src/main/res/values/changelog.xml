@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="changelog_version_header">**</string>
+    <string-array name="changelog">
+        <item>**\?\?v1.0.31</item>
+        <item>New changelog to tell you what has changed</item>
+    </string-array>
+    <string-array name="dismiss_changelog">
+        <item>Awesome</item>
+        <item>Let\'s Go!</item>
+        <item>Let\'s Do It!</item>
+        <item>Thanks!</item>
+        <item>Cool!</item>
+    </string-array>
+</resources>
