@@ -33,7 +33,8 @@ object RoomRefittedDataService {
                             RefittedRoom.MIGRATION_3_4,
                             RefittedRoom.MIGRATION_4_5,
                             RefittedRoom.MIGRATION_5_6,
-                            RefittedRoom.MIGRATION_6_7
+                            RefittedRoom.MIGRATION_6_7,
+                            RefittedRoom.MIGRATION_7_8
                         )
                         .build()
                 } else {

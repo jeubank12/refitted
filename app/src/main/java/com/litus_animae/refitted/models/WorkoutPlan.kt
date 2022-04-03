@@ -10,7 +10,8 @@ data class WorkoutPlan(
     val workout: String,
     val totalDays: Int = 84,
     val lastViewedDay: Int = 1,
-    val workoutStartDate: Date = Date(0L)
+    val workoutStartDate: Date = Date(0L),
+    val restDays: List<Int> = emptyList()
 )
 
 data class DayAndWorkout(val day: String, val workoutId: String)
