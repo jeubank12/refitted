@@ -2,7 +2,7 @@ package com.litus_animae.refitted.compose
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -23,7 +23,7 @@ fun Changelog(onDismiss: () -> Unit) {
     title = { Text("Changelog") },
     text = {
       LazyColumn {
-        itemsIndexed(changelog) { _, value ->
+        items(changelog) { value ->
           if (value.startsWith(versionHeader)) Text(
             value.substring(2),
             fontWeight = FontWeight.Bold

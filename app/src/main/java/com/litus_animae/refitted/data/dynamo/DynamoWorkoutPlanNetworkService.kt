@@ -41,9 +41,15 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
             log.d(TAG, "Got days for workout $workout: ${days.map { it.day }}")
             val totalDays = days.map { it.day?.toIntOrNull() ?: 0 }
               .maxOrNull()
+            val restDays = days.filter {
+              log.d(TAG, "Got day $it")
+              it.exercises.contains("0")
+            }
+              .mapNotNull { it.day?.toIntOrNull() ?: 0 }
+            log.d(TAG, "Got rest days for workout $workout: $restDays")
             if (totalDays != null) {
-              WorkoutPlan(workout, totalDays)
-            } else WorkoutPlan(workout)
+              WorkoutPlan(workout, totalDays, restDays = restDays)
+            } else WorkoutPlan(workout, restDays = restDays)
           }
         }
     }
