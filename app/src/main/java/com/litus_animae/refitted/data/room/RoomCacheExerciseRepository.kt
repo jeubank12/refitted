@@ -8,6 +8,7 @@ import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.lang.Integer.min
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.*
@@ -148,7 +149,9 @@ class RoomCacheExerciseRepository @Inject constructor(
           todayRecords.lastOrNull() ?: latestRecord?.let {
             // here we know that the exercise has not been performed today
             // reps should not necessarily be blindly copied from the last set
-            val reps = if (e.reps < 0) it.reps else e.reps
+            val reps = if (e.reps < 0) it.reps
+            else if (e.sets < 0) min(10, e.reps)
+            else e.reps
             Record(it.weight, reps, e)
           }
         }.mapNotNull { it }
