@@ -121,7 +121,7 @@ abstract class RefittedRoom : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "ALTER TABLE `workouts` " +
-                      "ADD COLUMN `restDays` TEXT NOT NULL DEFAULT ''" // 2/1/22 midnight
+                      "ADD COLUMN `restDays` TEXT NOT NULL DEFAULT ''"
                 )
             }
         }

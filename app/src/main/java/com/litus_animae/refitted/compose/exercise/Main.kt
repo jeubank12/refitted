@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemsIndexed
+import androidx.paging.compose.items
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.ExerciseView
 import com.litus_animae.refitted.models.ExerciseViewModel
@@ -56,13 +56,13 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
             // TODO localize
             "history",
             modifier = Modifier
-                .clickable {
-                    scaffoldScope.launch {
-                        if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                        else scaffoldState.drawerState.close()
-                    }
+              .clickable {
+                scaffoldScope.launch {
+                  if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                  else scaffoldState.drawerState.close()
                 }
-                .padding(start = 10.dp))
+              }
+              .padding(start = 10.dp))
         }
       )
     },
@@ -81,10 +81,10 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
   LazyColumn {
     item {
       Row(
-          Modifier
-              .fillMaxWidth()
-              .background(MaterialTheme.colors.primary)
-              .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+        Modifier
+          .fillMaxWidth()
+          .background(MaterialTheme.colors.primary)
+          .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
       ) {
@@ -99,10 +99,10 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
           // TODO localize
           "refresh",
           modifier = Modifier
-              .clickable {
-                  items.refresh()
-              }
-              .padding(start = 10.dp, end = 10.dp),
+            .clickable {
+              items.refresh()
+            }
+            .padding(start = 10.dp, end = 10.dp),
           tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
       }
     }
@@ -117,9 +117,9 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
       val dateFormat = DateFormat.getDateInstance()
       item {
         Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 15.dp),
+          Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 15.dp),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
           Text(
@@ -139,12 +139,12 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
         }
       }
 
-      itemsIndexed(items) { _, record ->
+      items(items) { record ->
         if (record != null) {
           Row(
-              Modifier
-                  .fillMaxWidth()
-                  .padding(horizontal = 10.dp, vertical = 15.dp),
+            Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 10.dp, vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
             Text(
