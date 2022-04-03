@@ -2,7 +2,7 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**\?\?v1.1.0</item>
+        <item>**v1.1.0</item>
         <item>New changelog to tell you what has changed</item>
         <item>Rest days are shown on the calendar</item>
         <item>Challenge workouts which are for a completion of total reps instead of sets</item>
