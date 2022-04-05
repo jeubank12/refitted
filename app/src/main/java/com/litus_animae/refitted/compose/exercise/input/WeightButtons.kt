@@ -1,20 +1,35 @@
 package com.litus_animae.refitted.compose.exercise.input
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import arrow.core.tail
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.ConstrainedButton
 import com.litus_animae.refitted.compose.util.ConstrainedText
+import com.litus_animae.refitted.compose.util.ConstrainedTextBox
 import com.litus_animae.refitted.compose.util.Theme
 import java.text.DecimalFormat
 import kotlin.math.sign
@@ -37,13 +52,71 @@ fun WeightButtons(weight: Weight) {
     ) {
       val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
       val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
+      val (weightValue, setWeightValue) = remember(displayedWeight) {
+        mutableStateOf(formatWeightValue(displayedWeight))
+      }
       ConstrainedText(weightLabel)
-      ConstrainedText(String.format("%.1f $weightUnit", displayedWeight))
+      ConstrainedTextBox("FILL lbs") { _, fontSize ->
+        val focusManager = LocalFocusManager.current
+        BasicTextField(
+          value = weightValue,
+          onValueChange = { newValue ->
+            setWeightValue(newValue
+              .replace(",", ".")
+              .replace("^(\\d*\\.\\d).*".toRegex()) {
+                it.groupValues.tail().firstOrNull() ?: ""
+              })
+          },
+          modifier = Modifier
+            .padding(vertical = 10.dp),
+          singleLine = true,
+          textStyle = TextStyle(fontSize = fontSize, textAlign = TextAlign.End),
+          keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            autoCorrect = false,
+            imeAction = ImeAction.Done
+          ),
+          keyboardActions = KeyboardActions(onDone = {
+            val updatedWeight = weightValue.toDoubleOrNull() ?: 0.0
+            setWeightValue(formatWeightValue(updatedWeight))
+            weight.set(updatedWeight)
+            focusManager.clearFocus()
+          })
+        ) { content ->
+          Row(
+            Modifier
+              .border(1.dp, Color.Black, GenericShape { size, _ ->
+                val bezelLength = 10f
+                moveTo(0f, size.height - bezelLength)
+                lineTo(bezelLength, size.height)
+                lineTo(size.width - bezelLength, size.height)
+                lineTo(size.width, size.height - bezelLength)
+                moveTo(0f, size.height - bezelLength)
+              })
+              .padding(bottom = 1.dp)
+          ) {
+            Column(Modifier.weight(1f)) {
+              content()
+            }
+            Text(
+              weightUnit,
+              Modifier
+                .padding(start = 5.dp)
+                .weight(1f),
+              fontSize = fontSize
+            )
+          }
+        }
+      }
     }
     Column(Modifier.weight(3f)) {
       ButtonSet(1, weight::plus)
     }
   }
+}
+
+private fun formatWeightValue(value: Double): String {
+  return String.format("%.1f", value)
 }
 
 @Composable
