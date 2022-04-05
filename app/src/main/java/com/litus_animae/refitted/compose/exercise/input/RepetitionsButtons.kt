@@ -1,8 +1,10 @@
 package com.litus_animae.refitted.compose.exercise.input
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.min
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.util.ConstrainedButton
 import com.litus_animae.refitted.compose.util.ConstrainedText
+import com.litus_animae.refitted.compose.util.ConstrainedTextBox
 import com.litus_animae.refitted.compose.util.Theme
 
 @Composable
@@ -30,6 +33,9 @@ fun RepetitionsButtons(reps: Repetitions) {
       Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.SpaceAround) {
         RepetitionButton(1, reps::plus, buttonSize)
       }
+      SideEffect {
+        Log.d("RepetitionsButtons", "Reps is $currentReps")
+      }
       Row(
         Modifier
           .size(width = buttonSize, height = buttonSize * 3 / 2)
@@ -40,7 +46,18 @@ fun RepetitionsButtons(reps: Repetitions) {
         Column {
           val repsLabel = stringResource(id = com.litus_animae.refitted.R.string.reps_label)
           ConstrainedText(repsLabel)
-          ConstrainedText(currentReps.toString())
+          ConstrainedTextBox("99") { _, fontSize ->
+            ValueTextField(
+              displayedText = currentReps.toString(),
+              onEdit = { it.replace("[^\\d]".toRegex(), "") },
+              onEditComplete = {
+                val updatedReps = it.toIntOrNull() ?: 0
+                reps.set(updatedReps)
+                updatedReps.toString()
+              },
+              fontSize = fontSize
+            )
+          }
         }
       }
       Row(Modifier.padding(bottom = 5.dp), horizontalArrangement = Arrangement.SpaceAround) {

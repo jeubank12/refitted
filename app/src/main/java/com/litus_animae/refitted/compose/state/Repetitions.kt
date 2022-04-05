@@ -13,4 +13,7 @@ class Repetitions(initialValue: Int) {
     if (change.sign < 0 && reps.value < change.absoluteValue) reps.value = 0
     else reps.value += change
   }
+  fun set(value: Int) {
+    reps.value = max(value, 0)
+  }
 }

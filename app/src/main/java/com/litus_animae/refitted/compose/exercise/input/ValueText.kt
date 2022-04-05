@@ -19,6 +19,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
@@ -34,7 +35,7 @@ fun ValueTextField(
   onEdit: (String) -> String,
   onEditComplete: (String) -> String,
   fontSize: TextUnit = LocalTextStyle.current.fontSize,
-  suffix: (@Composable () -> Unit)?
+  suffix: (@Composable () -> Unit)? = null
 ) {
   val focusManager = LocalFocusManager.current
   val (value, setValue) = remember(displayedText) { mutableStateOf(displayedText) }
@@ -51,13 +52,13 @@ fun ValueTextField(
       imeAction = ImeAction.Done
     ),
     keyboardActions = KeyboardActions(onDone = {
-      setValue(onEditComplete(displayedText))
+      setValue(onEditComplete(value))
       focusManager.clearFocus()
     })
   ) { content ->
     Row(
       Modifier
-        .border(1.dp, Color.Black, GenericShape { size, _ ->
+        .border(Dp.Hairline, Color.Black, GenericShape { size, _ ->
           val bezelLength = 10f
           moveTo(0f, size.height - bezelLength)
           lineTo(bezelLength, size.height)
@@ -67,10 +68,10 @@ fun ValueTextField(
         })
         .padding(bottom = 1.dp)
     ) {
+      Column(Modifier.weight(1f)) {
+        content()
+      }
       if (suffix != null) {
-        Column(Modifier.weight(1f)) {
-          content()
-        }
         Column(
           Modifier
             .padding(start = 5.dp)
@@ -78,7 +79,7 @@ fun ValueTextField(
         ) {
           suffix()
         }
-      } else content()
+      }
     }
   }
 }
