@@ -35,6 +35,7 @@ fun ValueTextField(
   onEdit: (String) -> String,
   onEditComplete: (String) -> String,
   fontSize: TextUnit = LocalTextStyle.current.fontSize,
+  verticalPadding: Dp = 10.dp,
   suffix: (@Composable () -> Unit)? = null
 ) {
   val focusManager = LocalFocusManager.current
@@ -43,7 +44,7 @@ fun ValueTextField(
   BasicTextField(
     value = value,
     onValueChange = { setValue(onEdit(it)) },
-    modifier = Modifier.padding(vertical = 10.dp),
+    modifier = Modifier.padding(vertical = verticalPadding),
     singleLine = true,
     textStyle = TextStyle(fontSize = fontSize, textAlign = alignment),
     keyboardOptions = KeyboardOptions(

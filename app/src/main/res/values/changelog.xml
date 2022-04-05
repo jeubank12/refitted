@@ -4,6 +4,7 @@
     <string-array name="changelog">
         <item>**v1.1.1</item>
         <item>Edit weight and reps with the keyboard</item>
+        <item>Can now refresh exercises without descriptions</item>
         <item>**v1.1.0</item>
         <item>New changelog to tell you what has changed</item>
         <item>Rest days are shown on the calendar</item>

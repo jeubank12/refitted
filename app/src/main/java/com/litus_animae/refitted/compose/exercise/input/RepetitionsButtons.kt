@@ -55,6 +55,7 @@ fun RepetitionsButtons(reps: Repetitions) {
                 reps.set(updatedReps)
                 updatedReps.toString()
               },
+              verticalPadding = 5.dp,
               fontSize = fontSize
             )
           }
