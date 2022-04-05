@@ -76,10 +76,10 @@ private fun drawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Bool
   val drawColor = MaterialTheme.colors.onSurface
   val elapsedColor = MaterialTheme.colors.primary
   Canvas(
-      Modifier
-          .fillMaxWidth()
-          .height(10.dp)
-          .background(MaterialTheme.colors.surface)
+    Modifier
+      .fillMaxWidth()
+      .height(10.dp)
+      .background(MaterialTheme.colors.surface)
   ) {
     val offsetMillis = if (countDown) millisToElapse - elapsedMillis else elapsedMillis
     val elapsedOffsetX = (size.width - 6f) / millisToElapse * offsetMillis

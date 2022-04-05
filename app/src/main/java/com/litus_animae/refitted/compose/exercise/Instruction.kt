@@ -80,18 +80,22 @@ fun ColumnScope.ExerciseInstructions(
   val scrollState = rememberScrollState()
   Row() {
     // TODO is there a way to show the scrollbar to indicate scrollability?
-    // FIXME does not work if there is no content below
     Column(Modifier.verticalScroll(scrollState)) {
-      Row(Modifier.padding(vertical = 5.dp)) {
+      Row(
+        Modifier
+          .defaultMinSize(minHeight = 5.dp)
+          .fillMaxWidth()
+      ) {
         if (exerciseSet != null) {
           val exercise by exerciseSet.exercise.collectAsState(null, Dispatchers.IO)
-          Text(exercise?.description ?: "")
+          Text(exercise?.description ?: "", Modifier.padding(bottom = 5.dp))
         }
       }
       Row(
         Modifier
           .padding(vertical = 5.dp)
-          .fillMaxHeight()
+          .fillMaxWidth()
+          .defaultMinSize(minHeight = 30.dp)
       ) {
         Text(exerciseSet?.note ?: "")
       }
