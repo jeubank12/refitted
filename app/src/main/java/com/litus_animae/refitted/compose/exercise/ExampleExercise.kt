@@ -39,7 +39,9 @@ val exampleExerciseSet =
             isToFailure = true,
             rest = 60,
             repsUnit = "",
-            repsRange = 0
+            repsRange = 0,
+            timeLimit = null,
+            timeLimitUnit = null
         ), MutableStateFlow(exampleExercise)
     )
 

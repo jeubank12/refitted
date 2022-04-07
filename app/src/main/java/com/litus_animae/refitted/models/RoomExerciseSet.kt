@@ -28,7 +28,9 @@ data class RoomExerciseSet(
     val isToFailure: Boolean,
     val rest: Int,
     val repsUnit: String,
-    val repsRange: Int
+    val repsRange: Int,
+    val timeLimit: Int?,
+    val timeLimitUnit: String?
 ) {
 
 
@@ -43,7 +45,9 @@ data class RoomExerciseSet(
         mutableExerciseSet.isToFailure,
         mutableExerciseSet.rest,
         mutableExerciseSet.repsUnit,
-        mutableExerciseSet.repsRange
+        mutableExerciseSet.repsRange,
+        mutableExerciseSet.timeLimit,
+        mutableExerciseSet.timeLimitUnit
     )
 
     constructor(exerciseSet: ExerciseSet) : this(
@@ -57,6 +61,8 @@ data class RoomExerciseSet(
         exerciseSet.isToFailure,
         exerciseSet.rest,
         exerciseSet.repsUnit,
-        exerciseSet.repsRange
+        exerciseSet.repsRange,
+        null,
+        null
     )
 }

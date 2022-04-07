@@ -5,6 +5,7 @@
         <item>**v1.1.1</item>
         <item>Edit weight and reps with the keyboard</item>
         <item>Enable "infinite" challenges which do not have a defined number of sets or reps, just to failure</item>
+        <item>Add a timer for "infinite" challenges which are time based</item>
         <item>Can now refresh exercises without descriptions</item>
         <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
         <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
