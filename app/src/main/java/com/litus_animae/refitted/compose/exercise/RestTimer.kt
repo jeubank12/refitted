@@ -27,6 +27,7 @@ fun Timer(
   resolutionMillis: Long = 100,
   countDown: Boolean = false,
   debugView: Boolean = false,
+  animateTimer: Boolean = true,
   onUpdate: (Long) -> Unit = {},
   onFinish: () -> Unit = {}
 ) {
@@ -56,18 +57,20 @@ fun Timer(
       }
     }
   }
-  if (debugView) {
-    Column {
-      drawTimer(millisToShow, elapsedMillis, countDown)
-      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("Running: $running")
-        Text("IsRunning: $isRunning")
-        Text("millisToElapse: $runtimeMillis")
-        Text("elapsedMillis: $elapsedMillis")
+  if (animateTimer) {
+    if (debugView) {
+      Column {
+        drawTimer(millisToShow, elapsedMillis, countDown)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+          Text("Running: $running")
+          Text("IsRunning: $isRunning")
+          Text("millisToElapse: $runtimeMillis")
+          Text("elapsedMillis: $elapsedMillis")
+        }
       }
+    } else {
+      drawTimer(millisToShow, elapsedMillis, countDown)
     }
-  } else {
-    drawTimer(millisToShow, elapsedMillis, countDown)
   }
 }
 
