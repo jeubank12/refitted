@@ -121,6 +121,7 @@ class RoomCacheExerciseRepository @Inject constructor(
     val recordObjects = loadedExercises.map { e ->
       val defaultReps = when {
         e.repsUnit.isNotBlank() -> 10
+        e.sets < 0 && e.reps < 0 -> 10
         e.sets < 0 -> min(10, e.reps)
         else -> e.reps
       }

@@ -32,7 +32,9 @@ data class ExerciseSetWithRecord(
   }
 
   val exerciseIncomplete = numCompleted < exerciseSet.sets ||
-    (exerciseSet.sets < 0 && currentRecord.value.cumulativeReps < exerciseSet.reps)
+    (exerciseSet.sets < 0 && currentRecord.value.cumulativeReps < exerciseSet.reps) ||
+    // "challenge" type exercise without a count-of-reps end state
+    (exerciseSet.sets < 0 && exerciseSet.reps < 0)
 }
 
 @Composable

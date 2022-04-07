@@ -4,7 +4,10 @@
     <string-array name="changelog">
         <item>**v1.1.1</item>
         <item>Edit weight and reps with the keyboard</item>
+        <item>Enable "infinite" challenges which do not have a defined number of sets or reps, just to failure</item>
         <item>Can now refresh exercises without descriptions</item>
+        <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
+        <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
         <item>**v1.1.0</item>
         <item>New changelog to tell you what has changed</item>
         <item>Rest days are shown on the calendar</item>
@@ -13,8 +16,6 @@
         <item>Reps default to the number of reps for the day rather than the number completed the last time the exercise was completed</item>
         <item>Support multiple exercises with the same name (or the same exercise) within the same workout day</item>
         <item>Show the actual number of days in the workout on the calendar view</item>
-        <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
-        <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
