@@ -19,6 +19,14 @@ data class ExerciseSet(
   val rest: Int = roomExerciseSet.rest
   val repsUnit: String = roomExerciseSet.repsUnit
   val repsRange: Int = roomExerciseSet.repsRange
+  val timeLimitMilliseconds: Long? =
+    if (roomExerciseSet.timeLimitUnit != null) roomExerciseSet.timeLimit?.let {
+      when (roomExerciseSet.timeLimitUnit) {
+        "minutes" -> it * 60000L
+        else -> it * 1000L
+      }
+    }
+    else null
 
   val exerciseName: String
     get() = if (name.isEmpty() || !name.contains("_")) ""

@@ -3,11 +3,14 @@ package com.litus_animae.refitted.compose.exercise
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -17,6 +20,9 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.ExerciseSet
 import kotlinx.coroutines.Dispatchers
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Preview(showBackground = true)
 @Composable
@@ -78,7 +84,7 @@ fun ColumnScope.ExerciseInstructions(
     }
   }
   val scrollState = rememberScrollState()
-  Row() {
+  Row(Modifier.weight(5f, fill = true)) {
     // TODO is there a way to show the scrollbar to indicate scrollability?
     Column(Modifier.verticalScroll(scrollState)) {
       Row(
@@ -98,6 +104,39 @@ fun ColumnScope.ExerciseInstructions(
           .defaultMinSize(minHeight = 30.dp)
       ) {
         Text(exerciseSet?.note ?: "")
+      }
+    }
+  }
+  val exerciseTimerRunning = rememberSaveable { mutableStateOf(false) }
+  val exerciseTimerMillis = rememberSaveable { mutableStateOf(0L) }
+  val isExerciseTimerRunning by exerciseTimerRunning
+  Timer(isExerciseTimerRunning,
+    millisToElapse = exerciseSet?.timeLimitMilliseconds ?: 0,
+    countDown = true,
+    animateTimer = false,
+    resolutionMillis = 500,
+    onUpdate = { exerciseTimerMillis.value = it }) { exerciseTimerRunning.value = false }
+  if (exerciseSet?.timeLimitMilliseconds != null) {
+    Row(Modifier.weight(1f)) {
+      Button(
+        onClick = {
+          if (!isExerciseTimerRunning) {
+            exerciseTimerMillis.value = exerciseSet.timeLimitMilliseconds
+          }
+          exerciseTimerRunning.value = !isExerciseTimerRunning
+        },
+        Modifier.fillMaxWidth()
+      ) {
+        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.value)
+          .atZone(ZoneId.systemDefault())
+          .toLocalTime()
+          .format(DateTimeFormatter.ofPattern("m:ss"))
+        val timerMax = Instant.ofEpochMilli(exerciseSet.timeLimitMilliseconds)
+          .atZone(ZoneId.systemDefault())
+          .toLocalTime()
+          .format(DateTimeFormatter.ofPattern("m:ss"))
+        if (isExerciseTimerRunning) Text("$timerValue remaining (click to stop)")
+        else Text("Start $timerMax exercise timer")
       }
     }
   }
