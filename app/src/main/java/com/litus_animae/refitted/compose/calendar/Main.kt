@@ -34,7 +34,6 @@ fun Calendar(
 ) {
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
-  val coroutineScope = rememberCoroutineScope()
 
   val selectedWorkoutPlan by model.currentWorkout.collectAsState(
     initial = model.savedStateLastWorkoutPlan,
@@ -119,10 +118,15 @@ fun Calendar(
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
       val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
+      val workoutPlanError = model.workoutError
+      LaunchedEffect(workoutPlanError){
+        if (workoutPlanError != null)
+          scaffoldState.snackbarHostState.showSnackbar(workoutPlanError)
+      }
       val lastRefresh by model.workoutsLastRefreshed.collectAsState(initial = "")
       WorkoutPlanMenu(lastRefresh, workoutPlanPagingItems) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
-        coroutineScope.launch { model.loadWorkoutDaysCompleted(it) }
+        model.loadWorkoutDaysCompleted(it)
       }
     }) {
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
@@ -144,7 +148,7 @@ fun Calendar(
         completedDays
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
-        coroutineScope.launch { model.setLastViewedDay(selectedWorkoutPlan!!, it) }
+        model.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
     }
   }
