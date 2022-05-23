@@ -17,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -77,6 +76,10 @@ class WorkoutViewModel @Inject constructor(
   val currentWorkout = combine(_currentWorkout, savedWorkout) { current, saved ->
     saved ?: current
   }.distinctUntilChanged()
+    .catch {
+      log.e(TAG, "There was an error loading the current workout", it)
+      workoutError = "There was an error loading this workout plan"
+    }
 
   private fun hydratePlan(
     name: String?,
@@ -110,15 +113,15 @@ class WorkoutViewModel @Inject constructor(
         }
       }
 
-  suspend fun loadWorkoutDaysCompleted(workout: WorkoutPlan) {
-    log.d(TAG, "Setting currentWorkout $workout")
-    _currentWorkout.value = workout
-    log.d(TAG, "Saving selected plan $workout")
-    savedStateHandle.set(selectedPlan, workout.workout)
-    savedStateHandle.set(selectedPlanDays, workout.totalDays)
-    savedStateHandle.set(lastDay, workout.lastViewedDay)
-    savedStateHandle.set(selectedPlanStartDate, workout.workoutStartDate)
-    withContext(Dispatchers.IO) {
+  fun loadWorkoutDaysCompleted(workout: WorkoutPlan) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Setting currentWorkout $workout")
+      _currentWorkout.value = workout
+      log.d(TAG, "Saving selected plan $workout")
+      savedStateHandle.set(selectedPlan, workout.workout)
+      savedStateHandle.set(selectedPlanDays, workout.totalDays)
+      savedStateHandle.set(lastDay, workout.lastViewedDay)
+      savedStateHandle.set(selectedPlanStartDate, workout.workoutStartDate)
       savedStateRepo.setState(selectedPlan, workout.workout)
       workoutPlanRepo.workoutByName(workout.workout).first()?.let { newWorkoutPlan ->
         if (newWorkoutPlan != workout) {
@@ -134,28 +137,30 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
-  suspend fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
-    log.d(TAG, "Setting last viewed day $day")
-    savedStateHandle.set(lastDay, day)
-    viewModelScope.launch {
-      withContext(Dispatchers.IO) {
-        workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
-      }
+  fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Setting last viewed day $day")
+      savedStateHandle.set(lastDay, day)
+      workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
     }
   }
 
   fun resetWorkoutCompletion(workout: WorkoutPlan) {
-    log.d(TAG, "Setting start date for plan $workout")
-    val now = Date()
-    savedStateHandle.set(selectedPlanStartDate, now.time)
-    viewModelScope.launch {
-      withContext(Dispatchers.IO) {
-        workoutPlanRepo.setWorkoutStartDate(workout, now)
-      }
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Setting start date for plan $workout")
+      val now = Date()
+      savedStateHandle.set(selectedPlanStartDate, now.time)
+      workoutPlanRepo.setWorkoutStartDate(workout, now)
     }
   }
 
+  var workoutError: String? by mutableStateOf(null)
+    private set
   val workouts: Flow<PagingData<WorkoutPlan>> = workoutPlanRepo.workouts
+    .catch {
+      log.e(TAG, "There was an error loading workouts", it)
+      workoutError = "There was an error loading workouts"
+    }
 
   val workoutsLastRefreshed: Flow<String> =
     savedStateRepo.getState(SavedStateKeys.CacheTimeKey)
