@@ -71,6 +71,7 @@ android {
         kotlinCompilerExtensionVersion '1.1.1'
     }
     buildToolsVersion = '30.0.3'
+    namespace 'com.litus_animae.refitted'
 }
 
 dependencies {
