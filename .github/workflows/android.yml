@@ -34,7 +34,7 @@ jobs:
       run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
 
   block-fixup:
-    if: github.ref != '/refs/head/master/head'
+    if: github.ref == '/refs/head/skip-fixup'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
