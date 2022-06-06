@@ -33,6 +33,11 @@ jobs:
         OPENID_SOURCE: ${{ secrets.REFITTED_OPENIDSOURCE }}
       run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
 
+  what-ref: 
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo ${{ github.ref }}
+    
   block-fixup:
     if: github.ref == '/refs/head/skip-fixup'
     runs-on: ubuntu-latest
