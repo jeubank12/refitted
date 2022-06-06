@@ -1,5 +1,8 @@
 package com.litus_animae.refitted.models
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arrow.core.*
@@ -10,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,6 +24,8 @@ class ExerciseViewModel @Inject constructor(
   private val exerciseRepo: ExerciseRepository,
   private val log: LogUtil
 ) : ViewModel() {
+  var exercisesError: String? by mutableStateOf(null)
+    private set
   val exercises =
     exerciseRepo.exercises
       .map { sets ->
@@ -44,6 +50,10 @@ class ExerciseViewModel @Inject constructor(
         }
         log.i(TAG, "Processed set of exercises to: $instructions")
         instructions
+      }
+      .catch {
+        log.e(TAG, "There was an error loading exercises", it)
+        exercisesError = "There was an error loading exercises"
       }
 
   val records = exerciseRepo.records
@@ -82,8 +92,8 @@ class ExerciseViewModel @Inject constructor(
         exerciseRepo.loadExercises(day, workoutId)
       }
     } catch (ex: Throwable) {
-      // TODO error state
       log.e(TAG, "error loading exercises", ex)
+      exercisesError = "There was an error loading exercises"
     }
   }
 
@@ -92,8 +102,13 @@ class ExerciseViewModel @Inject constructor(
   }
 
   fun saveExercise(record: SetRecord) {
-    viewModelScope.launch {
-      exerciseRepo.storeSetRecord(record)
+    try {
+      viewModelScope.launch {
+        exerciseRepo.storeSetRecord(record)
+      }
+    } catch (ex: Throwable) {
+      log.e(TAG, "error storing set record", ex)
+      exercisesError = "There was an error storing the set record"
     }
   }
 
