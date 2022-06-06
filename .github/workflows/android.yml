@@ -20,6 +20,8 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - run: echo ${{ github.ref }}
+
     - name: Decode google-services.json
       env: 
         FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
