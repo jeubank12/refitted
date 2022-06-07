@@ -34,7 +34,6 @@ jobs:
       run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
 
   block-fixup:
-    if: startsWith(github.ref, '/refs/pull')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
