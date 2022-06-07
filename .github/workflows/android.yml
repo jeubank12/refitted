@@ -20,8 +20,6 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - run: echo ${{ github.ref }}
-
     - name: Decode google-services.json
       env: 
         FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
@@ -39,7 +37,7 @@ jobs:
     if: startsWith(github.ref, '/refs/pull')
     runs-on: ubuntu-latest
     steps:
-    - run: echo ${{ github.ref }}
     - uses: actions/checkout@v3
     - name: Block fixup commit merge
+      if: ${{ github.event_name == 'pull_request' }}
       uses: 13rac1/block-fixup-merge-action@v2.0.0
