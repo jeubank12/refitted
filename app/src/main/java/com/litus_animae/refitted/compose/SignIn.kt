@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +42,8 @@ fun SignInUser(
         userViewModel.handleSignInResult(task)
       }
     }
+  val scaffoldState = rememberScaffoldState()
+
   // TODO how to keep this private and not have the resolution error
   val webClientId = stringResource(R.string.default_web_client_id)
   val googleSignInOptions = remember {
@@ -77,7 +76,14 @@ fun SignInUser(
           },
           backgroundColor = MaterialTheme.colors.primary
         )
-      }) {
+      },
+      scaffoldState = scaffoldState
+    ) {
+      val userError = userViewModel.userError
+      LaunchedEffect(userError) {
+        if (userError != null)
+          scaffoldState.snackbarHostState.showSnackbar(userError)
+      }
       Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
