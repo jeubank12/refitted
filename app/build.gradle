@@ -65,10 +65,10 @@ android {
     kotlinOptions {
         useIR = true
         jvmTarget = JavaVersion.VERSION_1_8.toString()
-        freeCompilerArgs += ["-Xopt-in=kotlin.RequiresOptIn"]
+        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.1.1'
+        kotlinCompilerExtensionVersion '1.2.0-beta03'
     }
     buildToolsVersion = '30.0.3'
     namespace 'com.litus_animae.refitted'
