@@ -1,6 +1,9 @@
 package com.litus_animae.refitted.models
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -43,6 +46,7 @@ class UserViewModel @Inject constructor(
       Log.w(TAG, "signInResult:failed code=" + e.statusCode, e)
     } catch (e: Exception) {
       Log.wtf(TAG, "Fatal Error", e)
+      userError = "There was an error signing you in"
     }
   }
 
@@ -63,7 +67,7 @@ class UserViewModel @Inject constructor(
       } catch (e: Throwable) {
         // If sign in fails, display a message to the user.
         log.w(TAG, "signInWithCredential:failure", e)
-        //Snackbar.make(findViewById(R.id.main_layout), "Authentication Failed.", Snackbar.LENGTH_SHORT).show();
+        userError = "Authentication Failed."
       }
     }
   }
@@ -78,6 +82,9 @@ class UserViewModel @Inject constructor(
       savedStateRepo.setState(ChangelogState, BuildConfig.VERSION_CODE.toString())
     }
   }
+
+  var userError: String? by mutableStateOf(null)
+    private set
 
   companion object {
     private const val TAG = "UserViewModel"
