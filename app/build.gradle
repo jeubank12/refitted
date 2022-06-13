@@ -123,7 +123,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
 
-    implementation platform("io.arrow-kt:arrow-stack:1.0.1")
+    implementation platform("io.arrow-kt:arrow-stack:1.1.2")
     implementation "io.arrow-kt:arrow-core"
     kapt platform("io.arrow-kt:arrow-stack:1.0.1")
     kapt "io.arrow-kt:arrow-meta"
