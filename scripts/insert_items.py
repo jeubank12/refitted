@@ -85,6 +85,17 @@ def create_batch_write_input():
         } for item in chunk]
     } for chunk in chunks]
 
+def create_update_item_input():
+    return {
+        "TableName": "refitted.dev01",
+        "UpdateExpression": "SET #RR=:val",
+        "ExpressionAttributeNames": { "#RR": "RestRange" },
+        "ExpressionAttributeValues": { ":val": { "N": "15"} }
+    }
+
+def create_update_item_keys():
+    keys = ["1.0"]
+    return [{"Id":{"S":key},"Disc": {"S":"X"}} for key in keys]
 
 def execute_put_item(dynamodb_client, input):
     try:
@@ -107,6 +118,17 @@ def execute_batch_write(dynamodb_client, input):
         except BaseException as error:
             print("Unknown error while writing batch: " + error.response['Error']['Message'])
 
+def execute_update_item(dynamodb_client, keys, input):
+    for key in keys:
+        try:
+            response = dynamodb_client.update_item(Key=key, **input)
+            print("Successfully updated " + str(key))
+            # Handle response
+        except ClientError as error:
+            handle_error(error)
+        except BaseException as error:
+            print("Unknown error while updating item: " + error.response['Error']['Message'])
+
 
 def handle_error(error):
     error_code = error.response['Error']['Code']
@@ -127,10 +149,13 @@ def main():
     # Create the dictionary containing arguments for put_item call
     # put_item_input = create_put_item_input()
     batch_write_input = create_batch_write_input()
+    # update_item_input = create_update_item_input()
+    # update_item_keys = create_update_item_keys()
 
     # Call DynamoDB's put_item API
     # execute_put_item(dynamodb_client, put_item_input)
     execute_batch_write(dynamodb_client, batch_write_input)
+    # execute_update_item(dynamodb_client, update_item_keys, update_item_input)
 
 
 if __name__ == "__main__":
