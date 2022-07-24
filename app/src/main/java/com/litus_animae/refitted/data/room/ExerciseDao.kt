@@ -13,7 +13,7 @@ interface ExerciseDao {
   @Query("select distinct step from exerciseset where day = :day and workout = :workout")
   fun getSteps(day: String, workout: String): Flow<List<String>>
 
-  @Query("select distinct step from exerciseset where day = :day and workout = :workout order by step")
+  @Query("select distinct step from exerciseset where day = :day and workout = :workout order by primaryStep, superSetStep, alternateStep")
   fun getStepsPages(day: String, workout: String): PagingSource<Int, String>
 
   @Query("select distinct step from exerciseset where day = :day and workout = :workout")
