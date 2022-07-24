@@ -31,6 +31,9 @@ val exampleExerciseSet =
             workout = "Refitted Exercise",
             day = "1",
             step = "1",
+            primaryStep = 1,
+            superSetStep = null,
+            alternateStep = null,
             name = "A_Do Things",
             note = "These are instructions that are specific to this particular set. " +
                     "They are usually fairly short",

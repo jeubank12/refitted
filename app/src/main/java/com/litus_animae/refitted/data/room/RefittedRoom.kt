@@ -9,7 +9,7 @@ import com.litus_animae.refitted.models.*
 
 @Database(
   entities = [Exercise::class, RoomExerciseSet::class, SetRecord::class, WorkoutPlan::class, SavedState::class],
-  version = 9
+  version = 10
 )
 @TypeConverters(Converters::class)
 abstract class RefittedRoom : RoomDatabase() {
@@ -139,6 +139,38 @@ abstract class RefittedRoom : RoomDatabase() {
           "ALTER TABLE `exerciseset` " +
             "ADD COLUMN `timeLimitUnit` TEXT"
         )
+      }
+    }
+    val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+      override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("DROP TABLE IF EXISTS `exerciseset`")
+        database.execSQL(
+          """
+          |CREATE TABLE `exerciseset` (
+          |    `workout` TEXT NOT NULL, 
+          |    `day` TEXT NOT NULL, 
+          |    `step` TEXT NOT NULL, 
+          |    `primaryStep` INTEGER NOT NULL, 
+          |    `superSetStep` INTEGER, 
+          |    `alternateStep` TEXT, 
+          |    `name` TEXT NOT NULL, 
+          |    `note` TEXT NOT NULL, 
+          |    `reps` INTEGER NOT NULL, 
+          |    `sets` INTEGER NOT NULL, 
+          |    `toFailure` INTEGER NOT NULL, 
+          |    `rest` INTEGER NOT NULL, 
+          |    `repsUnit` TEXT NOT NULL, 
+          |    `repsRange` INTEGER NOT NULL, 
+          |    `timeLimit` INTEGER, 
+          |    `timeLimitUnit` TEXT, 
+          |    PRIMARY KEY(`day`, `step`, `workout`), 
+          |    FOREIGN KEY(`name`, `workout`) 
+          |        REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) 
+          |        ON UPDATE NO ACTION 
+          |        ON DELETE NO ACTION 
+          |)""".trimMargin()
+        )
+        database.execSQL("CREATE INDEX `index_exerciseset_name_workout` ON `exerciseset` (`name`, `workout`)")
       }
     }
   }
