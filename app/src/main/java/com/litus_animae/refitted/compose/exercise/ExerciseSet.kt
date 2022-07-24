@@ -124,6 +124,7 @@ fun ColumnScope.ExerciseSetView(
       val isTimerRunning by timerRunning
       Timer(isTimerRunning,
         millisToElapse = exerciseSet.rest * 1000L,
+        resolutionMillis = 500,
         countDown = true,
         onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
       Button(
@@ -132,7 +133,7 @@ fun ColumnScope.ExerciseSetView(
             onSave(record.copy(weight = saveWeight, reps = saveReps))
             timerMillis.value = exerciseSet.rest * 1000L
           }
-          if (exerciseSet.rest > 0) timerRunning.value = !isTimerRunning
+          if (exerciseSet.rest > 0 || isTimerRunning) timerRunning.value = !isTimerRunning
         },
         Modifier.fillMaxWidth(),
         enabled = setWithRecord.exerciseIncomplete
