@@ -75,7 +75,7 @@ android {
 }
 
 dependencies {
-    def room_version = '2.4.2'
+    def room_version = '2.4.3'
     def android_core_version = '2.1.0'
     def hilt_compiler_version = '1.0.0'
 
