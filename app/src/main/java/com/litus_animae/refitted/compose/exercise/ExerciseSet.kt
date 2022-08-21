@@ -22,6 +22,7 @@ import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.Record
 import kotlinx.coroutines.flow.emptyFlow
+import java.time.Instant
 
 @Composable
 fun RowScope.ExerciseSetView(
@@ -187,7 +188,16 @@ fun PreviewExerciseSetDetails() {
   var currentIndex by remember { mutableStateOf(5) }
   val records = remember { mutableStateListOf<Record>() }
   val currentRecord =
-    remember { mutableStateOf(Record(25.0, exampleExerciseSet.reps, exampleExerciseSet)) }
+    remember {
+      mutableStateOf(
+        Record(
+          25.0,
+          exampleExerciseSet.reps,
+          exampleExerciseSet,
+          Instant.now()
+        )
+      )
+    }
   MaterialTheme(Theme.lightColors) {
     Column(
       Modifier
