@@ -22,6 +22,9 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.ExerciseView
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.models.WorkoutViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -30,15 +33,26 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @FlowPreview
 @Composable
-fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewModel()) {
+fun Exercise(
+  day: String, workoutId: String,
+  exerciseModel: ExerciseViewModel = viewModel(),
+  workoutModel: WorkoutViewModel = viewModel()
+) {
   val title = stringResource(id = R.string.app_name)
   val dayWord = stringResource(id = R.string.day)
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
+
+  val loadedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
+    initial = workoutModel.savedStateLastWorkoutPlan,
+    Dispatchers.IO
+  )
+
   LaunchedEffect(day, workoutId) {
-    model.loadExercises(day, workoutId)
+    exerciseModel.loadExercises(day, workoutId)
   }
   var contextMenu by remember { mutableStateOf<@Composable RowScope.() -> Unit>({}) }
   val (historyList, setHistoryList) = remember {
@@ -71,9 +85,11 @@ fun Exercise(day: String, workoutId: String, model: ExerciseViewModel = viewMode
     scaffoldState = scaffoldState,
     drawerContent = { SetRecordList(flow = historyList) }
   ) {
-    ExerciseView(model, setHistoryList = { setHistoryList(it) }) {
-      contextMenu = it
-    }
+    ExerciseView(exerciseModel,
+      workoutPlan = loadedWorkoutPlan,
+      setHistoryList = { setHistoryList(it) },
+      setContextMenu = { contextMenu = it },
+      onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) })
   }
 }
 

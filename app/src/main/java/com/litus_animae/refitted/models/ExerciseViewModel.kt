@@ -103,24 +103,29 @@ class ExerciseViewModel @Inject constructor(
     private val _activeIndex = MutableStateFlow(-1)
     private val _viewedIndex = MutableStateFlow(0)
 
-    // FIXME can this be a state flow here instead of at consume site?
-    val activeIndex = _activeIndex
+    fun activeIndex(overrideIndex: Int? = null): Flow<Int> {
+      return _activeIndex
       .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
         Log.d(
           TAG,
           "Checking ${sets.head.primaryStep} active index: mutable $idx, lastCompleted $lastCompletedIdx"
         )
-        val currentIndex = if (idx < 0) lastCompletedIdx.coerceAtLeast(0) else idx
+        val currentIndex =
+          overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
+          else idx
         _viewedIndex.value = currentIndex
         currentIndex
       }.distinctUntilChanged()
+    }
 
-    fun activateNextAlternate() {
-      if (_viewedIndex.value < sets.size - 1) {
-        _activeIndex.value = _viewedIndex.value.coerceAtLeast(0) + 1
+    fun activateNextAlternate(): Int {
+      val updatedValue = if (_viewedIndex.value < sets.size - 1) {
+        _viewedIndex.value.coerceAtLeast(0) + 1
       } else {
-        _activeIndex.value = 0
+        0
       }
+      _activeIndex.value = updatedValue
+      return updatedValue
     }
 
     fun activateAlternate(index: Int) {
@@ -130,7 +135,9 @@ class ExerciseViewModel @Inject constructor(
       else _activeIndex.value = alternateCount - 1
     }
 
-    val set = activeIndex.map { sets.getOrElse(it) { sets.head } }
+    fun set(overrideIndex: Int? = null): Flow<ExerciseSet> {
+      return activeIndex(overrideIndex).map { sets.getOrElse(it) { sets.head } }
+    }
 
     override fun toString(): String {
       return "Instruction:${sets.head.primaryStep}(sets: $sets, activeIndex:${_activeIndex.value})"

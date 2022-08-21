@@ -170,4 +170,13 @@ class WorkoutViewModel @Inject constructor(
           .toLocalDateTime()
         lastRefreshDate.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
       }
+
+  fun setGlobalIndexIfEnabled(workout: WorkoutPlan?, index: Int) {
+    workout?.let { activeWorkout ->
+      if (activeWorkout.globalAlternateLabels.isNotEmpty())
+        viewModelScope.launch(Dispatchers.IO) {
+          workoutPlanRepo.setWorkoutGlobalAlternate(activeWorkout, index)
+        }
+    }
+  }
 }

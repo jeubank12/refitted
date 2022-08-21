@@ -48,8 +48,8 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
               .mapNotNull { it.day?.toIntOrNull() ?: 0 }
             log.d(TAG, "Got rest days for workout $workout: $restDays")
             if (totalDays != null) {
-              WorkoutPlan(workout, totalDays, restDays = restDays)
-            } else WorkoutPlan(workout, restDays = restDays)
+              WorkoutPlan(workout, totalDays, restDays = restDays, description = plan.description, globalAlternateLabels = plan.globalAlternateLabels.toList())
+            } else WorkoutPlan(workout, restDays = restDays, description = plan.description, globalAlternateLabels = plan.globalAlternateLabels.toList())
           }
         }
     }
