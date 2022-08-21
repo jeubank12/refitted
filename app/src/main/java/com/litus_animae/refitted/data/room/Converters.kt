@@ -1,19 +1,19 @@
 package com.litus_animae.refitted.data.room
 
 import androidx.room.TypeConverter
-import java.util.*
+import java.time.Instant
 
 object Converters {
   @JvmStatic
   @TypeConverter
-  fun fromTimestamp(value: Long?): Date? {
-    return value?.let { Date(it) }
+  fun fromTimestamp(value: Long?): Instant? {
+    return value?.let { Instant.ofEpochMilli(it) }
   }
 
   @JvmStatic
   @TypeConverter
-  fun dateToTimestamp(date: Date?): Long? {
-    return date?.time
+  fun dateToTimestamp(instant: Instant?): Long? {
+    return instant?.toEpochMilli()
   }
 
   @JvmStatic

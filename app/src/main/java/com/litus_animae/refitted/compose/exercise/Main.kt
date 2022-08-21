@@ -26,7 +26,9 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import java.text.DateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @FlowPreview
 @Composable
@@ -114,7 +116,8 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
         }
       }
     } else {
-      val dateFormat = DateFormat.getDateInstance()
+      val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+        .withZone(ZoneId.systemDefault())
       item {
         Row(
           Modifier

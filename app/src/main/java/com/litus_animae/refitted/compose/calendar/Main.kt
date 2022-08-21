@@ -18,7 +18,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.LoadingView
-import com.litus_animae.refitted.compose.WorkoutCalendar
 import com.litus_animae.refitted.compose.WorkoutPlanMenu
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel

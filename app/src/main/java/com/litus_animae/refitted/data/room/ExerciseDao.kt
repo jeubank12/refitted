@@ -6,7 +6,7 @@ import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.flow.Flow
-import java.util.*
+import java.time.Instant
 
 @Dao
 interface ExerciseDao {
@@ -58,7 +58,11 @@ interface ExerciseDao {
    * Gets the records for [targetExercise] and [targetSet] newer than [minDate] in ascending order
    */
   @Query("select * from setrecord where completed > :minDate and exercise = :targetExercise and target_set = :targetSet order by completed")
-  fun getSetRecords(minDate: Date, targetExercise: String, targetSet: String): Flow<List<SetRecord>>
+  fun getSetRecords(
+    minDate: Instant,
+    targetExercise: String,
+    targetSet: String
+  ): Flow<List<SetRecord>>
 
   /**
    * Gets the newest record for the [targetExercise]
@@ -82,7 +86,7 @@ interface ExerciseDao {
   fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
 
   data class ExerciseCompletionRecord(
-    @ColumnInfo(name = "latest_completion") val latestCompletion: Date,
+    @ColumnInfo(name = "latest_completion") val latestCompletion: Instant,
     @ColumnInfo(name = "target_set") val dayAndSet: String
   ) {
     @Ignore

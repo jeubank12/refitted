@@ -8,6 +8,7 @@ import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 import java.util.*
 import javax.inject.Inject
 
@@ -34,7 +35,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         return workoutPlanDao.update(workoutPlan.copy(lastViewedDay = day))
     }
 
-    override suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Date) {
+    override suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant) {
         return workoutPlanDao.update(workoutPlan.copy(workoutStartDate = startDate))
     }
 }

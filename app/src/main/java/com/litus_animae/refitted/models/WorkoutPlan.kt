@@ -2,6 +2,7 @@ package com.litus_animae.refitted.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.Instant
 import java.util.*
 
 @Entity(tableName = "workouts")
@@ -10,7 +11,7 @@ data class WorkoutPlan(
     val workout: String,
     val totalDays: Int = 84,
     val lastViewedDay: Int = 1,
-    val workoutStartDate: Date = Date(0L),
+    val workoutStartDate: Instant = Instant.ofEpochMilli(0),
     val restDays: List<Int> = emptyList()
 )
 
