@@ -21,7 +21,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.*
 import javax.inject.Inject
 
 @ExperimentalCoroutinesApi
@@ -90,13 +89,13 @@ class WorkoutViewModel @Inject constructor(
     return name?.let { n ->
       totalDays?.let { t ->
         lastDay?.let { d ->
-          startDate?.let { WorkoutPlan(n, t, d, Date(it)) }
+          startDate?.let { WorkoutPlan(n, t, d, Instant.ofEpochMilli(it)) }
         }
       }
     }
   }
 
-  val completedDays: Flow<Map<Int, Date>> =
+  val completedDays: Flow<Map<Int, Instant>> =
     currentWorkout.map { it?.workout }
       .distinctUntilChanged()
       .flatMapLatest { maybePlan ->
@@ -121,7 +120,7 @@ class WorkoutViewModel @Inject constructor(
       savedStateHandle.set(selectedPlan, workout.workout)
       savedStateHandle.set(selectedPlanDays, workout.totalDays)
       savedStateHandle.set(lastDay, workout.lastViewedDay)
-      savedStateHandle.set(selectedPlanStartDate, workout.workoutStartDate)
+      savedStateHandle.set(selectedPlanStartDate, workout.workoutStartDate.toEpochMilli())
       savedStateRepo.setState(selectedPlan, workout.workout)
       workoutPlanRepo.workoutByName(workout.workout).first()?.let { newWorkoutPlan ->
         if (newWorkoutPlan != workout) {
@@ -148,8 +147,8 @@ class WorkoutViewModel @Inject constructor(
   fun resetWorkoutCompletion(workout: WorkoutPlan) {
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Setting start date for plan $workout")
-      val now = Date()
-      savedStateHandle.set(selectedPlanStartDate, now.time)
+      val now = Instant.now()
+      savedStateHandle.set(selectedPlanStartDate, now.toEpochMilli())
       workoutPlanRepo.setWorkoutStartDate(workout, now)
     }
   }

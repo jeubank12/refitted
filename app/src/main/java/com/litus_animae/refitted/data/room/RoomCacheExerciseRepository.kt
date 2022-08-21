@@ -9,9 +9,8 @@ import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.lang.Integer.min
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.time.ZoneOffset
-import java.util.*
 import javax.inject.Inject
 
 @ExperimentalCoroutinesApi
@@ -115,9 +114,8 @@ class RoomCacheExerciseRepository @Inject constructor(
       TAG,
       "getRecordsForLoadedExercises: detected ${loadedExercises.size} new exercises, loading records"
     )
-    val tonightMidnight = Date.from(
-      LocalDateTime.now().toLocalDate().atStartOfDay().toInstant(ZoneOffset.ofHours(0))
-    )
+    // FIXME this should be a real timezone?
+    val tonightMidnight = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.ofHours(0))
     val recordObjects = loadedExercises.map { e ->
       val defaultReps = when {
         e.repsUnit.isNotBlank() -> 10

@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.calendar
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.compose.util.ConstrainedButton
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
-import java.util.*
+import java.time.Instant
 import kotlin.math.ceil
 
 @Preview(showBackground = true)
@@ -29,8 +29,8 @@ fun PreviewCalendar() {
   MaterialTheme(colors = Theme.darkColors) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 4), mapOf(
-        Pair(1, Date(1L)),
-        Pair(2, Date(2L))
+        Pair(1, Instant.ofEpochMilli(1L)),
+        Pair(2, Instant.ofEpochMilli(2L))
       )
     ) {}
   }
@@ -39,7 +39,7 @@ fun PreviewCalendar() {
 @Composable
 fun WorkoutCalendar(
   plan: WorkoutPlan,
-  completedDays: Map<Int, Date>,
+  completedDays: Map<Int, Instant>,
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -92,11 +92,11 @@ fun WorkoutCalendar(
 
 private fun isDayComplete(
   day: Int,
-  completedDays: Map<Int, Date>,
-  workoutStartDate: Date
+  completedDays: Map<Int, Instant>,
+  workoutStartDate: Instant
 ): Boolean {
-  val currentDayCompletionDate = completedDays.getOrDefault(day, Date(0L))
-  return currentDayCompletionDate.after(workoutStartDate)
+  val currentDayCompletionDate = completedDays.getOrDefault(day, Instant.ofEpochMilli(0))
+  return currentDayCompletionDate.isAfter(workoutStartDate)
 }
 
 data class DayProperties(
