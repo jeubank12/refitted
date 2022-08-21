@@ -22,10 +22,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.ExerciseViewModel
-import com.litus_animae.refitted.models.Record
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -36,8 +33,10 @@ import java.time.Instant
 @Composable
 fun ExerciseView(
   model: ExerciseViewModel = viewModel(),
+  workoutPlan: WorkoutPlan?,
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
-  setContextMenu: (@Composable RowScope.() -> Unit) -> Unit
+  setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
+  onAlternateChange: (Int) -> Unit
 ) {
   // TODO why is this re-evaluated every time?
   val allRecords by model.records.collectAsState(initial = emptyList())
@@ -47,14 +46,15 @@ fun ExerciseView(
   val (index, setIndex) = rememberSaveable { mutableStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by derivedStateOf { instructions.getOrNull(index) }
-  val exerciseSet by instruction?.set?.collectAsState(initial = null, Dispatchers.IO)
+  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
+    ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsState()
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
-    setContextMenu { instruction?.let { ExerciseContextMenu(it) } }
+    setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
     currentSetRecord?.allSets?.let { setHistoryList(it) }
   }
 

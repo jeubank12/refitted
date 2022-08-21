@@ -14,11 +14,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 
 @OptIn(FlowPreview::class)
 @Composable
-fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruction) {
+fun RowScope.ExerciseContextMenu(
+  instruction: ExerciseViewModel.ExerciseInstruction,
+  workoutPlan: WorkoutPlan?,
+  onAlternateChange: (Int) -> Unit
+) {
   if (instruction.hasAlternate) {
     val (alerted, setAlerted) = remember { mutableStateOf(false) }
     if (alerted) {
@@ -26,7 +31,7 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
         title = { Text("Alternate Exercises") },
         text = { Text("Select from alternate exercises") },
         buttons = {
-          val activeIndex by instruction.activeIndex.collectAsState(0)
+          val activeIndex by instruction.activeIndex(workoutPlan?.globalAlternate).collectAsState(0)
           LazyColumn(Modifier.padding(bottom = 10.dp))
           {
             itemsIndexed(instruction.sets) { index, set ->
@@ -36,9 +41,10 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
                   .fillParentMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
               ) {
-                val onClick = {
+                val onClick: () -> Unit = {
                   instruction.activateAlternate(index)
                   setAlerted(false)
+                  onAlternateChange(index)
                 }
                 RadioButton(
                   selected = index == activeIndex,
@@ -53,7 +59,10 @@ fun RowScope.ExerciseContextMenu(instruction: ExerciseViewModel.ExerciseInstruct
     Column(Modifier
       .clickable {
         if (instruction.alternateCount > 2) setAlerted(true)
-        else instruction.activateNextAlternate()
+        else {
+          val updatedIndex = instruction.activateNextAlternate()
+          onAlternateChange(updatedIndex)
+        }
       }
       .fillMaxHeight(),
       verticalArrangement = Arrangement.Center) {

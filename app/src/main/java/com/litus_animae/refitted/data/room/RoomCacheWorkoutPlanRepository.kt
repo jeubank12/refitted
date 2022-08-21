@@ -38,4 +38,8 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
     override suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant) {
         return workoutPlanDao.update(workoutPlan.copy(workoutStartDate = startDate))
     }
+
+    override suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int) {
+        return workoutPlanDao.update(workoutPlan.copy(globalAlternate = index))
+    }
 }

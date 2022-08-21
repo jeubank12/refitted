@@ -12,9 +12,16 @@ data class DynamoWorkoutPlan @JvmOverloads constructor(
   @get:DynamoDBRangeKey(attributeName = "Disc")
   @PrimaryKey
   var workout: String?,
+
   @get:DynamoDBAttribute(attributeName = "Id")
   @get:DynamoDBHashKey(attributeName = "Id")
-  var id: String = "Plan"
+  var id: String = "Plan",
+
+  @get:DynamoDBAttribute(attributeName = "Description")
+  var description: String = "",
+
+  @get:DynamoDBAttribute(attributeName = "GlobalAlternateLabels")
+  var globalAlternateLabels: Set<String> = emptySet()
 ) {
 
   constructor() : this(null)

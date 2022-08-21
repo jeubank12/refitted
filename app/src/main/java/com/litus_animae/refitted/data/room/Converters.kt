@@ -27,4 +27,16 @@ object Converters {
   fun intListToString(values: List<Int>?): String? {
     return values?.joinToString(",")
   }
+
+  @JvmStatic
+  @TypeConverter
+  fun stringListFromString(value: String?): List<String>? {
+    return value?.split(",")
+  }
+
+  @JvmStatic
+  @TypeConverter
+  fun stringListToString(values: List<String>?): String? {
+    return values?.joinToString(",")
+  }
 }

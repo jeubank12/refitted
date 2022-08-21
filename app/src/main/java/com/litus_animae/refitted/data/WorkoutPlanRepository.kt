@@ -10,4 +10,5 @@ interface WorkoutPlanRepository {
   fun workoutByName(name: String): Flow<WorkoutPlan?>
   suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
   suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
+  suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)
 }

@@ -27,7 +27,8 @@ fun Top() {
             SignInUser(userModel) { Calendar(navigateToWorkoutDay, model) }
         }
         composable("exercise/{workout}/{day}") {
-            val model: ExerciseViewModel = hiltViewModel(it)
+            val exerciseModel: ExerciseViewModel = hiltViewModel(it)
+            val workoutModel: WorkoutViewModel = hiltViewModel(it)
             val userModel: UserViewModel = hiltViewModel(it)
             val workoutId = it.arguments?.getString("workout")
             val day = it.arguments?.getString("day")
@@ -36,7 +37,8 @@ fun Top() {
                     Exercise(
                         day = day,
                         workoutId = workoutId,
-                        model = model
+                        exerciseModel = exerciseModel,
+                        workoutModel = workoutModel
                     )
                 }
             } else {
