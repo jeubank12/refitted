@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import java.time.Instant
 
 @FlowPreview
 @Composable
@@ -97,7 +98,8 @@ fun ExerciseView(
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
     val records = remember { mutableStateListOf<Record>() }
-    val currentRecord = remember { mutableStateOf(Record(25.0, exerciseSet.reps, exerciseSet)) }
+    val currentRecord =
+      remember { mutableStateOf(Record(25.0, exerciseSet.reps, exerciseSet, Instant.now())) }
     Column {
       DetailView(
         index = 0,

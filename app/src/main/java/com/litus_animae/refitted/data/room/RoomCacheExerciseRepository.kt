@@ -9,6 +9,7 @@ import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.lang.Integer.min
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import javax.inject.Inject
@@ -123,11 +124,12 @@ class RoomCacheExerciseRepository @Inject constructor(
         e.sets < 0 -> min(10, e.reps)
         else -> e.reps
       }
-      // TODO appropriate default weights
+      // TODO (#8) appropriate default weights
       val defaultRecord = Record(
         weight = 25.0,
         defaultReps,
-        e
+        e,
+        Instant.ofEpochMilli(0)
       )
       val currentRecords = refittedRoom.getExerciseDao()
         .getSetRecords(tonightMidnight, e.exerciseName, e.id)
@@ -135,8 +137,9 @@ class RoomCacheExerciseRepository @Inject constructor(
           it.asSequence()
             .progressiveZipWithPrevious { lastRecord: Record?, setRecord ->
               Record(
-                setRecord.weight, setRecord.reps, e,
-                setRecord.reps + (lastRecord?.cumulativeReps ?: 0), stored = true
+                setRecord.weight, setRecord.reps, e, setRecord.completed,
+                setRecord.reps + (lastRecord?.cumulativeReps ?: 0),
+                stored = true
               )
             }.toList()
         }
@@ -151,7 +154,7 @@ class RoomCacheExerciseRepository @Inject constructor(
             val reps = if (e.reps < 0) it.reps
             else if (e.sets < 0) min(10, e.reps)
             else e.reps
-            Record(it.weight, reps, e)
+            Record(it.weight, reps, e, it.completed)
           }
         }.mapNotNull { it }
       ExerciseRecord(

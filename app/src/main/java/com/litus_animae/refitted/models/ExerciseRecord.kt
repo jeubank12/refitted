@@ -12,4 +12,8 @@ data class ExerciseRecord(
   val currentRecords: Flow<List<Record>>
 ) {
   val currentRecordsCount = currentRecords.map { sets -> sets.size }
+
+  override fun toString(): String {
+    return "Record:$targetSet"
+  }
 }
