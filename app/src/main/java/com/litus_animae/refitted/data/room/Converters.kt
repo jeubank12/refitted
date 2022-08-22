@@ -28,6 +28,7 @@ object Converters {
     return values?.joinToString(",")
   }
 
+  // FIXME this should be more elegant/safe
   @JvmStatic
   @TypeConverter
   fun stringListFromString(value: String?): List<String>? {

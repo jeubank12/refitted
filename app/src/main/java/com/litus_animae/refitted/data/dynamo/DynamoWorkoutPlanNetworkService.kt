@@ -47,9 +47,21 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
             }
               .mapNotNull { it.day?.toIntOrNull() ?: 0 }
             log.d(TAG, "Got rest days for workout $workout: $restDays")
+            val alternateLabels = plan.globalAlternateLabels.split(';')
             if (totalDays != null) {
-              WorkoutPlan(workout, totalDays, restDays = restDays, description = plan.description, globalAlternateLabels = plan.globalAlternateLabels.toList())
-            } else WorkoutPlan(workout, restDays = restDays, description = plan.description, globalAlternateLabels = plan.globalAlternateLabels.toList())
+              WorkoutPlan(
+                workout,
+                totalDays,
+                restDays = restDays,
+                description = plan.description,
+                globalAlternateLabels = alternateLabels
+              )
+            } else WorkoutPlan(
+              workout,
+              restDays = restDays,
+              description = plan.description,
+              globalAlternateLabels = alternateLabels
+            )
           }
         }
     }
