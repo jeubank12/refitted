@@ -99,7 +99,7 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
   MaterialTheme(Theme.darkColors) {
     val records = remember { mutableStateListOf<Record>() }
     val currentRecord =
-      remember { mutableStateOf(Record(25.0, exerciseSet.reps, exerciseSet, Instant.now())) }
+      remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
     Column {
       DetailView(
         index = 0,
@@ -128,7 +128,7 @@ fun DetailView(
   when (LocalConfiguration.current.orientation) {
     Configuration.ORIENTATION_LANDSCAPE ->
       Row(Modifier.padding(16.dp)) {
-        ExerciseInstructions(setWithRecord?.exerciseSet, Modifier.weight(1f))
+        ExerciseInstructions(setWithRecord, Modifier.weight(1f))
         if (setWithRecord != null)
           ExerciseSetView(
             setWithRecord,
@@ -142,7 +142,7 @@ fun DetailView(
     else ->
       Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {
-          ExerciseInstructions(setWithRecord?.exerciseSet)
+          ExerciseInstructions(setWithRecord)
         }
         Row(Modifier.weight(1f)) {
           if (setWithRecord != null)

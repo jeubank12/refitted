@@ -120,9 +120,9 @@ class RoomCacheExerciseRepository @Inject constructor(
     val recordObjects = loadedExercises.map { e ->
       val defaultReps = when {
         e.repsUnit.isNotBlank() -> 10
-        e.sets < 0 && e.reps < 0 -> 10
-        e.sets < 0 -> min(10, e.reps)
-        else -> e.reps
+        e.sets < 0 && e.reps(0) < 0 -> 10
+        e.sets < 0 -> min(10, e.reps(0))
+        else -> e.reps(0)
       }
       // TODO (#8) appropriate default weights
       val defaultRecord = Record(
@@ -151,9 +151,9 @@ class RoomCacheExerciseRepository @Inject constructor(
           todayRecords.lastOrNull() ?: latestRecord?.let {
             // here we know that the exercise has not been performed today
             // reps should not necessarily be blindly copied from the last set
-            val reps = if (e.reps < 0) it.reps
-            else if (e.sets < 0) min(10, e.reps)
-            else e.reps
+            val reps = if (e.reps(0) < 0) it.reps
+            else if (e.sets < 0) min(10, e.reps(0))
+            else e.reps(0)
             Record(it.weight, reps, e, it.completed)
           }
         }.mapNotNull { it }

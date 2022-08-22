@@ -13,7 +13,6 @@ data class ExerciseSet(
   val id: String = "$day.$step"
   private val name: String = roomExerciseSet.name
   val note: String = roomExerciseSet.note
-  val reps: Int = roomExerciseSet.reps
   val sets: Int = roomExerciseSet.sets
   val isToFailure: Boolean = roomExerciseSet.isToFailure
   val rest: Int = roomExerciseSet.rest
@@ -31,6 +30,11 @@ data class ExerciseSet(
   val exerciseName: String
     get() = if (name.isEmpty() || !name.contains("_")) ""
     else name.split("_".toRegex(), 2).toTypedArray().getOrNull(1) ?: ""
+
+  fun reps(currentSet: Int): Int {
+    return if (roomExerciseSet.repsSequence.isEmpty()) roomExerciseSet.reps
+    else roomExerciseSet.repsSequence[currentSet.coerceIn(0, roomExerciseSet.repsSequence.size - 1)]
+  }
 
   private val superSetRegex = "^\\d+\\.(\\d+)".toRegex()
   private val superStepRegex = "(^\\d+)\\.".toRegex()

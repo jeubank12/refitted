@@ -44,7 +44,8 @@ val exampleExerciseSet =
             repsUnit = "",
             repsRange = 0,
             timeLimit = null,
-            timeLimitUnit = null
+            timeLimitUnit = null,
+            repsSequence = emptyList()
         ), MutableStateFlow(exampleExercise)
     )
 

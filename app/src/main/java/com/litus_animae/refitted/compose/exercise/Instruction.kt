@@ -13,43 +13,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import kotlinx.coroutines.Dispatchers
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewExerciseInstructions(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(Theme.darkColors) {
-    Column {
-      this.ExerciseInstructions(
-        exerciseSet = exerciseSet
-      )
-    }
-  }
-}
 
 @Composable
 fun RowScope.ExerciseInstructions(
-  exerciseSet: ExerciseSet?,
+  setWithRecord: ExerciseSetWithRecord?,
   modifier: Modifier = Modifier
 ) {
   Column(modifier) {
-    ExerciseInstructions(exerciseSet)
+    ExerciseInstructions(setWithRecord)
   }
 }
 
 @Composable
 fun ColumnScope.ExerciseInstructions(
-  exerciseSet: ExerciseSet?
+  setWithRecord: ExerciseSetWithRecord?
 ) {
+  val exerciseSet = setWithRecord?.exerciseSet
   Row {
     Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h6)
   }
@@ -59,20 +46,20 @@ fun ColumnScope.ExerciseInstructions(
       val target = stringResource(id = R.string.target)
       val toFailureLabel = stringResource(id = R.string.to_failure)
       when {
-        exerciseSet == null -> Text("")
-        exerciseSet.reps < 0 -> Text("$label $toFailureLabel")
+        setWithRecord == null || exerciseSet == null -> Text("")
+        setWithRecord.reps < 0 -> Text("$label $toFailureLabel")
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text(
-          "$target ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
+          "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
         )
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text(
-          "$target ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
+          "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
         )
-        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit}")
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> Text("$target ${exerciseSet.reps} ${exerciseSet.repsUnit} ($toFailureLabel)")
-        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange}")
-        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} ($toFailureLabel)")
-        exerciseSet.isToFailure -> Text("$label ${exerciseSet.reps} ($toFailureLabel)")
-        else -> Text("$label ${exerciseSet.reps}")
+        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit}")
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit} ($toFailureLabel)")
+        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}")
+        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ($toFailureLabel)")
+        exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps} ($toFailureLabel)")
+        else -> Text("$label ${setWithRecord.reps}")
       }
     }
     Column(Modifier.weight(1f)) {
