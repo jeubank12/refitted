@@ -49,7 +49,12 @@ class WorkoutPlanRemoteMediator(
       workoutPlanDao.clearAll()
       val upsertPlans = plans.map {
         val existingPlan = currentPlansByName[it.workout] ?: return@map it
-        existingPlan.copy(totalDays = it.totalDays, restDays = it.restDays)
+        existingPlan.copy(
+          totalDays = it.totalDays,
+          restDays = it.restDays,
+          description = it.description,
+          globalAlternateLabels = it.globalAlternateLabels
+        )
       }
       workoutPlanDao.insertAll(upsertPlans)
       savedStateDao.insert(

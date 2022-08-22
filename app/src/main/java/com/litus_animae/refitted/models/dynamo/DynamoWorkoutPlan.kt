@@ -21,7 +21,7 @@ data class DynamoWorkoutPlan @JvmOverloads constructor(
   var description: String = "",
 
   @get:DynamoDBAttribute(attributeName = "GlobalAlternateLabels")
-  var globalAlternateLabels: Set<String> = emptySet()
+  var globalAlternateLabels: String = ""
 ) {
 
   constructor() : this(null)

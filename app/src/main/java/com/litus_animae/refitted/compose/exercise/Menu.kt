@@ -50,7 +50,9 @@ fun RowScope.ExerciseContextMenu(
                   selected = index == activeIndex,
                   onClick = onClick
                 )
-                Text(set.exerciseName, Modifier.clickable(onClick = onClick))
+                Text(
+                  workoutPlan?.globalAlternateLabels?.get(index) ?:  set.exerciseName,
+                  Modifier.clickable(onClick = onClick))
               }
             }
           }
