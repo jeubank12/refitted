@@ -151,9 +151,13 @@ class RoomCacheExerciseRepository @Inject constructor(
           todayRecords.lastOrNull() ?: latestRecord?.let {
             // here we know that the exercise has not been performed today
             // reps should not necessarily be blindly copied from the last set
-            val reps = if (e.reps(0) < 0) it.reps
-            else if (e.sets < 0) min(10, e.reps(0))
-            else e.reps(0)
+            val reps = when {
+              e.repsUnit.isNotBlank() && e.id == it.targetSet -> it.reps
+              e.repsUnit.isNotBlank() -> 10
+              e.reps(0) < 0 -> it.reps
+              e.sets < 0 -> min(10, e.reps(0))
+              else -> e.reps(0)
+            }
             Record(it.weight, reps, e, it.completed)
           }
         }.mapNotNull { it }
