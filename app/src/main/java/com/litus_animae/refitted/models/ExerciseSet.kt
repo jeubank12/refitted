@@ -32,9 +32,11 @@ data class ExerciseSet(
     else name.split("_".toRegex(), 2).toTypedArray().getOrNull(1) ?: ""
 
   fun reps(currentSet: Int): Int {
-    return if (roomExerciseSet.repsSequence.isEmpty()) roomExerciseSet.reps
+    return if (!repsAreSequenced) roomExerciseSet.reps
     else roomExerciseSet.repsSequence[currentSet.coerceIn(0, roomExerciseSet.repsSequence.size - 1)]
   }
+
+  val repsAreSequenced: Boolean = roomExerciseSet.repsSequence.isNotEmpty()
 
   private val superSetRegex = "^\\d+\\.(\\d+)".toRegex()
   private val superStepRegex = "(^\\d+)\\.".toRegex()

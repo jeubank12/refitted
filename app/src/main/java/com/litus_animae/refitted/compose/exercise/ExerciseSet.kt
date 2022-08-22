@@ -55,7 +55,10 @@ fun ColumnScope.ExerciseSetView(
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
   val weight = remember(exerciseSet, record) { Weight(record.weight) }
-  val reps = remember(exerciseSet, record) { Repetitions(record.reps) }
+  val reps = remember(
+    exerciseSet,
+    record
+  ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
   val timerRunning = rememberSaveable { mutableStateOf(false) }
   val timerMillis = rememberSaveable { mutableStateOf(0L) }
   val saveWeight by weight.value
