@@ -2,6 +2,7 @@ package com.litus_animae.refitted.data.room
 
 import androidx.paging.PagingSource
 import androidx.room.*
+import com.litus_animae.refitted.models.DayAndWorkout
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord
@@ -52,6 +53,24 @@ interface ExerciseDao {
   suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet) {
     storeExercise(exercise)
     storeExerciseSet(exerciseSet)
+  }
+
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun storeExercises(exercise: List<Exercise>)
+
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun storeExerciseSets(exerciseSet: List<RoomExerciseSet>)
+
+  @Delete
+  suspend fun clearExerciseSets(vararg exerciseSets: RoomExerciseSet)
+
+  @Transaction
+  suspend fun storeExercisesAndSets(dayAndWorkout: DayAndWorkout, exercise: List<Exercise>, exerciseSet: List<RoomExerciseSet>) {
+    val steps = loadSteps(dayAndWorkout.day, dayAndWorkout.workoutId)
+    val existingSets = loadExerciseSets(dayAndWorkout.day, dayAndWorkout.workoutId, *steps.toTypedArray())
+    clearExerciseSets(*existingSets.toTypedArray())
+    storeExercises(exercise)
+    storeExerciseSets(exerciseSet)
   }
 
   /**
