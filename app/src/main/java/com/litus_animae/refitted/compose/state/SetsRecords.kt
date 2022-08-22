@@ -31,10 +31,12 @@ data class ExerciseSetWithRecord(
     }
   }
 
+  val reps = exerciseSet.reps(numCompleted)
+
   val exerciseIncomplete = numCompleted < exerciseSet.sets ||
-    (exerciseSet.sets < 0 && currentRecord.value.cumulativeReps < exerciseSet.reps) ||
+    (exerciseSet.sets < 0 && currentRecord.value.cumulativeReps < reps) ||
     // "challenge" type exercise without a count-of-reps end state
-    (exerciseSet.sets < 0 && exerciseSet.reps < 0)
+    (exerciseSet.sets < 0 && reps < 0)
 }
 
 @Composable

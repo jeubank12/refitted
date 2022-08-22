@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import arrow.core.flattenOption
+import arrow.core.toOption
 import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 
 @Entity(
@@ -33,7 +35,8 @@ data class RoomExerciseSet(
   val repsUnit: String,
   val repsRange: Int,
   val timeLimit: Int?,
-  val timeLimitUnit: String?
+  val timeLimitUnit: String?,
+  val repsSequence: List<Int>
 ) {
 
 
@@ -53,7 +56,10 @@ data class RoomExerciseSet(
     mutableExerciseSet.repsUnit,
     mutableExerciseSet.repsRange,
     mutableExerciseSet.timeLimit,
-    mutableExerciseSet.timeLimitUnit
+    mutableExerciseSet.timeLimitUnit,
+    mutableExerciseSet.repsSequence.split(',')
+      .map{ it.toIntOrNull().toOption() }
+      .flattenOption()
   )
 
   companion object {

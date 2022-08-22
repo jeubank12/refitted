@@ -44,5 +44,8 @@ data class MutableExerciseSet @JvmOverloads constructor(
   var timeLimit: Int? = null,
 
   @get:DynamoDBAttribute(attributeName = "TimeLimitUnit")
-  var timeLimitUnit: String? = null
+  var timeLimitUnit: String? = null,
+
+  @get:DynamoDBAttribute(attributeName = "RepsSequence")
+  var repsSequence: String = ""
 )

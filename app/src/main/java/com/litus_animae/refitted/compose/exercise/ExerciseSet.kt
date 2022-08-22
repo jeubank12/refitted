@@ -142,7 +142,7 @@ fun ColumnScope.ExerciseSetView(
         val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
         val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
         val toCompletionSetPhrase = (exerciseSet.sets < 0).maybe {
-          if (exerciseSet.reps < 0)
+          if (exerciseSet.reps(numCompleted) < 0)
             String.format(
               stringResource(id = R.string.complete_reps),
               saveReps,
@@ -151,7 +151,7 @@ fun ColumnScope.ExerciseSetView(
           else String.format(
             stringResource(id = R.string.complete_reps_of_workout),
             saveReps,
-            exerciseSet.reps - record.cumulativeReps
+            exerciseSet.reps(numCompleted) - record.cumulativeReps
           )
         }
         val completeSetPhrase = toCompletionSetPhrase
@@ -192,7 +192,7 @@ fun PreviewExerciseSetDetails() {
       mutableStateOf(
         Record(
           25.0,
-          exampleExerciseSet.reps,
+          exampleExerciseSet.reps(0),
           exampleExerciseSet,
           Instant.now()
         )
