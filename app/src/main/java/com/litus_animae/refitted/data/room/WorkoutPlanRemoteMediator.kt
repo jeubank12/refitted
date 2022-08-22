@@ -12,6 +12,9 @@ import com.litus_animae.refitted.util.SavedStateKeys
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
+import kotlin.time.Duration.Companion.hours
 
 
 @OptIn(ExperimentalPagingApi::class)
@@ -27,10 +30,8 @@ class WorkoutPlanRemoteMediator(
       .loadState(SavedStateKeys.CacheTimeKey)?.value?.toLongOrNull()
       ?: return InitializeAction.LAUNCH_INITIAL_REFRESH
     val nextRefreshDate = Instant.ofEpochMilli(workoutsLastRefreshed)
-      .atZone(ZoneId.systemDefault())
-      .toLocalDateTime()
-      .plusDays(CacheLimitDays)
-    val now = LocalDateTime.now()
+      .plus(CacheLimitHours, ChronoUnit.HOURS)
+    val now = Instant.now()
     return if (nextRefreshDate.isBefore(now)) InitializeAction.LAUNCH_INITIAL_REFRESH
     else InitializeAction.SKIP_INITIAL_REFRESH
   }
@@ -68,6 +69,6 @@ class WorkoutPlanRemoteMediator(
   }
 
   companion object {
-    private const val CacheLimitDays = 7L
+    private const val CacheLimitHours = 12L
   }
 }
