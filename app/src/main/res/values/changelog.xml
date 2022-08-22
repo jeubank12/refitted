@@ -6,6 +6,9 @@
         <item>Bugfix: When there were days with more than 10 exercises, the sorting was wrong</item>
         <item>Bugfix: During supersets, you couldn\'t click "Start Next Set Early" if the displayed exercise had no rest</item>
         <item>Defaults the display to whichever alternate exercise you most recently completed</item>
+        <item>Introduces a type of workout with a "global" alternate (with special names)</item>
+        <item>Automatically refreshes workouts more frequently</item>
+        <item>Introduces reps sequences, so that reps counts can change between sets in the same exercise</item>
         <item>**v1.1.1</item>
         <item>Edit weight and reps with the keyboard</item>
         <item>Enable "infinite" challenges which do not have a defined number of sets or reps, just to failure</item>
