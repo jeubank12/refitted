@@ -3,7 +3,7 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.1.3</item>
-        <item>TODO</item>
+        <item>Bugfix: alternates either crashed or had a bad flicker</item>
         <item>**v1.1.2</item>
         <item>Bugfix: When there were days with more than 10 exercises, the sorting was wrong</item>
         <item>Bugfix: During supersets, you couldn\'t click "Start Next Set Early" if the displayed exercise had no rest</item>
