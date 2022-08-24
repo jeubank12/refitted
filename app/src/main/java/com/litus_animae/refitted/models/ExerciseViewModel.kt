@@ -75,6 +75,7 @@ class ExerciseViewModel @Inject constructor(
       .flatMapLatest { instructionRecords ->
         val storedRecords = instructionRecords.orEmpty().map {
           it.latestRecord
+            .filter { record -> record.stored }
             .take(1)
         }
         merge(*storedRecords.toTypedArray())
@@ -110,22 +111,23 @@ class ExerciseViewModel @Inject constructor(
 
     fun activeIndex(overrideIndex: Int? = null): Flow<Int> {
       return _activeIndex
-      .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
-        Log.d(
-          TAG,
-          "Checking ${sets.head.primaryStep} active index: override $overrideIndex, mutable $idx, lastCompleted $lastCompletedIdx"
-        )
-        val currentIndex =
-          overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
-          else idx
-        _viewedIndex.value = currentIndex
-        currentIndex
-      }.distinctUntilChanged()
+        .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
+          Log.d(
+            TAG,
+            "Checking ${sets.head.primaryStep} active index: override $overrideIndex, mutable $idx, lastCompleted $lastCompletedIdx"
+          )
+          val currentIndex =
+            overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
+            else idx
+          _viewedIndex.value = currentIndex
+          currentIndex
+        }.distinctUntilChanged()
     }
 
     fun activateNextAlternate(): Int {
-      val updatedValue = if (_viewedIndex.value < sets.size - 1) {
-        _viewedIndex.value.coerceAtLeast(0) + 1
+      val currentValue = _viewedIndex.value
+      val updatedValue = if (currentValue < alternateCount - 1) {
+        currentValue.coerceAtLeast(0) + 1
       } else {
         0
       }
@@ -134,10 +136,7 @@ class ExerciseViewModel @Inject constructor(
     }
 
     fun activateAlternate(index: Int) {
-      if (index in 0 until alternateCount)
-        _activeIndex.value = index
-      else if (index < 0) _activeIndex.value = 0
-      else _activeIndex.value = alternateCount - 1
+      _activeIndex.value = index.coerceIn(0, alternateCount - 1)
     }
 
     fun set(overrideIndex: Int? = null): Flow<ExerciseSet> {
