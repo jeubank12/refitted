@@ -11,14 +11,14 @@ import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.util.*
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @FlowPreview
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
@@ -70,15 +70,20 @@ class ExerciseViewModel @Inject constructor(
     recordsByPrimaryStep: Map<String, List<ExerciseRecord>>
   ): Flow<Int> {
     log.v(TAG, "Sets $thisSets has records ${recordsByPrimaryStep[thisSets.head.primaryStep]}")
-    val lastRecords = Collections.synchronizedCollection(mutableListOf<LatestRecord>())
     val mostRecentRecordStep = flowOf(recordsByPrimaryStep[thisSets.head.primaryStep])
       .onStart { emit(emptyList()) }
-      .transform { instructionRecords ->
-        merge(*instructionRecords.orEmpty().map { it.latestRecord.take(1) }.toTypedArray())
-          .collect {
-            log.v(TAG, "Observed ${it.set} completed at ${it.completed}; as part of $lastRecords")
-            lastRecords.add(LatestRecord(it.set, it.completed))
-            emit(lastRecords.toImmutableList())
+      .flatMapLatest { instructionRecords ->
+        val storedRecords = instructionRecords.orEmpty().map {
+          it.latestRecord
+            .take(1)
+        }
+        merge(*storedRecords.toTypedArray())
+          .runningFold(emptyList<LatestRecord>()) { acc, nextRecord ->
+            log.v(
+              TAG,
+              "Observed ${nextRecord.set} completed at ${nextRecord.completed}; as part of $acc"
+            )
+            acc + LatestRecord(nextRecord.set, nextRecord.completed)
           }
       }.map { lrs ->
         val latestRecordStep = lrs.maxByOrNull { it.completed }?.targetSet?.step
