@@ -48,13 +48,15 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
               .mapNotNull { it.day?.toIntOrNull() ?: 0 }
             log.d(TAG, "Got rest days for workout $workout: $restDays")
             val alternateLabels = plan.globalAlternateLabels.split(';')
+              .filter { it.isNotBlank() }
             if (totalDays != null) {
               WorkoutPlan(
                 workout,
                 totalDays,
                 restDays = restDays,
                 description = plan.description,
-                globalAlternateLabels = alternateLabels
+                globalAlternateLabels = alternateLabels,
+                globalAlternate = if (alternateLabels.isNotEmpty()) 0 else null
               )
             } else WorkoutPlan(
               workout,
