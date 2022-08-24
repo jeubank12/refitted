@@ -58,8 +58,7 @@ data class RoomExerciseSet(
     mutableExerciseSet.timeLimit,
     mutableExerciseSet.timeLimitUnit,
     mutableExerciseSet.repsSequence.split(',')
-      .map{ it.toIntOrNull().toOption() }
-      .flattenOption()
+      .mapNotNull{ it.toIntOrNull() }
   )
 
   companion object {

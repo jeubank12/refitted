@@ -19,7 +19,9 @@ object Converters {
   @JvmStatic
   @TypeConverter
   fun intListFromString(value: String?): List<Int>? {
-    return value?.split(",")?.mapNotNull { it.toIntOrNull() }
+    return value?.split(",")
+      ?.filter { it.isNotBlank() }
+      ?.mapNotNull { it.toIntOrNull() }
   }
 
   @JvmStatic
@@ -32,7 +34,7 @@ object Converters {
   @JvmStatic
   @TypeConverter
   fun stringListFromString(value: String?): List<String>? {
-    return value?.split(",")
+    return value?.split(",")?.filter{ it.isNotBlank() }
   }
 
   @JvmStatic
