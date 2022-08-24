@@ -108,7 +108,7 @@ class ExerciseViewModel @Inject constructor(
       .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
         Log.d(
           TAG,
-          "Checking ${sets.head.primaryStep} active index: mutable $idx, lastCompleted $lastCompletedIdx"
+          "Checking ${sets.head.primaryStep} active index: override $overrideIndex, mutable $idx, lastCompleted $lastCompletedIdx"
         )
         val currentIndex =
           overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
