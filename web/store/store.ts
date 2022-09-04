@@ -1,7 +1,8 @@
 import { AnyAction, configureStore, ThunkAction } from '@reduxjs/toolkit'
+import { createWrapper } from 'next-redux-wrapper'
 import authSlice from './auth/authSlice'
 
-  const store = configureStore({
+  const makeStore = () => configureStore({
     reducer: {
       auth: authSlice,
     },
@@ -14,7 +15,7 @@ import authSlice from './auth/authSlice'
     devTools: !!process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED,
   })
 
-export type ReduxStore = typeof store
+export type ReduxStore = ReturnType<typeof makeStore>
 
 export type ReduxState = ReturnType<ReduxStore['getState']>
 
@@ -27,4 +28,4 @@ export type ReduxThunk<ReturnType = void> = ThunkAction<
 
 export type ReduxDispatch = ReduxStore['dispatch']
 
-export default store
+export default createWrapper(makeStore)
