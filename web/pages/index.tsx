@@ -1,5 +1,6 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
+import Link from 'next/link'
 import styles from '../styles/Home.module.css'
 
 const Home: NextPage = () => {
@@ -52,6 +53,7 @@ const Home: NextPage = () => {
       </main>
 
       <footer className={styles.footer}>
+        <Link href="/admin">Admin</Link>
         <a href="privacy.html">Privacy Policy</a>
       </footer>
     </div>
