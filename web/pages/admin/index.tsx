@@ -6,8 +6,8 @@ import { getIsLoggedIn } from '../../store/auth/authSelectors'
 import { initializeFirebase } from '../../store/auth/authSlice'
 import { useReduxDispatch, useReduxSelector } from '../../store/hooks'
 import store from '../../store/store'
-import Login from './login'
-import Logout from './logout'
+import Login from '../../features/auth/login'
+import Logout from '../../features/auth/logout'
 import styles from '/styles/Home.module.css'
 
 const AdminContent = () => {
