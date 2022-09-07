@@ -13,6 +13,7 @@
     "@aws-sdk/credential-providers": "^3.163.0",
     "@reduxjs/toolkit": "^1.8.5",
     "firebase": "^9.9.3",
+    "lodash": "^4.17.21",
     "next": "12.2.5",
     "next-redux-wrapper": "^7.0.5",
     "react": "18.2.0",
@@ -22,6 +23,7 @@
     "reselect": "^4.1.6"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.184",
     "@types/node": "^18.7.13",
     "@types/react": "18.0.17",
     "@types/react-dom": "18.0.6",
@@ -30,6 +32,7 @@
     "eslint": "^8.22.0",
     "eslint-config-next": "12.2.5",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import-order": "^2.1.4",
     "eslint-plugin-react": "^7.31.5",
     "prettier": "^2.7.1",
     "typescript": "4.8.2"

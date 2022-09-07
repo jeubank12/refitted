@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+
 import { getAnalytics } from 'firebase/analytics'
 import { FirebaseApp, initializeApp } from 'firebase/app'
 import { initializeAppCheck } from 'firebase/app-check'
@@ -9,9 +10,10 @@ import {
   signInWithPopup,
   User,
 } from 'firebase/auth'
-import { ReduxThunk } from '../store'
+
 import { getFirebaseApp } from './authSelectors'
 import { firebaseConfig, recaptchaProvider } from './firebase'
+import { ReduxThunk } from 'store'
 
 export interface AuthState {
   firebaseApp?: FirebaseApp
