@@ -6,6 +6,11 @@ export const getFirebaseToken = (state: ReduxState) => state.auth.firebaseToken
 const getFirebaseUser = (state: ReduxState) => state.auth.firebaseUser
 export const getFirebaseApp = (state: ReduxState) => state.auth.firebaseApp
 
+export const getIsInitializing = createSelector(
+  [getFirebaseApp],
+  firebaseApp => firebaseApp === undefined
+)
+
 export const getIsLoggedIn = createSelector(
   [getFirebaseUser],
   firebaseUser => firebaseUser !== undefined
