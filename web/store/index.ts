@@ -2,13 +2,13 @@ import { AnyAction, configureStore, ThunkAction } from '@reduxjs/toolkit'
 import { createWrapper } from 'next-redux-wrapper'
 
 import authSlice from './auth/authSlice'
-import aws from './aws'
+import awsReducer from './aws'
 
 const makeStore = () =>
   configureStore({
     reducer: {
       auth: authSlice,
-      aws,
+      ...awsReducer,
     },
     middleware: getDefaultMiddleware =>
       getDefaultMiddleware({

@@ -10,6 +10,7 @@ import { getIsInitializing, getIsLoggedIn } from 'store/auth/authSelectors'
 import { initializeFirebase } from 'store/auth/authSlice'
 import { useReduxDispatch, useReduxSelector } from 'store/hooks'
 import store from 'store'
+import UserList from 'features/users/UserList'
 
 const Admin: NextPage = () => {
   const dispatch = useReduxDispatch()
@@ -30,6 +31,7 @@ const Admin: NextPage = () => {
       <main className={styles.main}>
         { /* TODO initializing/loading */ }
         {!isLoggedIn && !initializing && <Login />}
+        {isLoggedIn && <UserList />}
       </main>
     </div>
   )
