@@ -4,9 +4,11 @@ import { getAnalytics } from 'firebase/analytics'
 import { FirebaseApp, initializeApp } from 'firebase/app'
 import { initializeAppCheck } from 'firebase/app-check'
 import {
+  browserSessionPersistence,
   getAuth,
   GoogleAuthProvider,
   ParsedToken,
+  setPersistence,
   signInWithPopup,
   User,
 } from 'firebase/auth'
@@ -73,14 +75,7 @@ export const doLogin: ReduxThunk = (dispatch, getState) => {
     signInWithPopup(auth, provider).then(
       success => {
         const credential = GoogleAuthProvider.credentialFromResult(success)
-        credential?.idToken
-          ? dispatch(
-              login({
-                user: success.user,
-                idToken: credential.idToken,
-              })
-            )
-          : dispatch(loginFailed('Failed to get idToken'))
+        if (!credential?.idToken) dispatch(loginFailed('Failed to get idToken'))
         dispatch(finishLogin(app))
       },
       error => dispatch(loginFailed(error.message))
@@ -99,8 +94,11 @@ export const initializeFirebase: ReduxThunk = (dispatch, getState) => {
       provider: recaptchaProvider,
     })
     getAnalytics(newApp)
-    dispatch(appInitialized(newApp))
-    dispatch(finishLogin(newApp))
+    const auth = getAuth(newApp)
+    setPersistence(auth, browserSessionPersistence).then(() => {
+      dispatch(appInitialized(newApp))
+      dispatch(finishLogin(newApp))
+    })
   }
 }
 

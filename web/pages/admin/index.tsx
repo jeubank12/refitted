@@ -6,7 +6,7 @@ import Head from 'next/head'
 import styles from 'styles/Home.module.css'
 import Login from 'features/auth/login'
 import Logout from 'features/auth/logout'
-import { getIsLoggedIn } from 'store/auth/authSelectors'
+import { getIsInitializing, getIsLoggedIn } from 'store/auth/authSelectors'
 import { initializeFirebase } from 'store/auth/authSlice'
 import { useReduxDispatch, useReduxSelector } from 'store/hooks'
 import store from 'store'
@@ -17,6 +17,7 @@ const Admin: NextPage = () => {
     dispatch(initializeFirebase)
   }, [])
   const isLoggedIn = useReduxSelector(getIsLoggedIn)
+  const initializing = useReduxSelector(getIsInitializing)
   return (
     <div className={styles.container}>
       <Head>
@@ -26,7 +27,10 @@ const Admin: NextPage = () => {
 
       <header>{isLoggedIn && <Logout />}</header>
 
-      <main className={styles.main}>{!isLoggedIn && <Login />}</main>
+      <main className={styles.main}>
+        { /* TODO initializing/loading */ }
+        {!isLoggedIn && !initializing && <Login />}
+      </main>
     </div>
   )
 }
