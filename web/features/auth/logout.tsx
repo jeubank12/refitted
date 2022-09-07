@@ -1,7 +1,8 @@
 import { useSelector } from 'react-redux'
-import { getUserInfo } from '../../store/auth/authSelectors'
-import { doLogout } from '../../store/auth/authSlice'
-import { useReduxDispatch } from '../../store/hooks'
+
+import { getUserInfo } from 'store/auth/authSelectors'
+import { doLogout } from 'store/auth/authSlice'
+import { useReduxDispatch } from 'store/hooks'
 
 const Logout = () => {
   const dispatch = useReduxDispatch()

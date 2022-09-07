@@ -1,10 +1,14 @@
 import { AnyAction, configureStore, ThunkAction } from '@reduxjs/toolkit'
 import { createWrapper } from 'next-redux-wrapper'
-import authSlice from './auth/authSlice'
 
-  const makeStore = () => configureStore({
+import authSlice from './auth/authSlice'
+import aws from './aws'
+
+const makeStore = () =>
+  configureStore({
     reducer: {
       auth: authSlice,
+      aws,
     },
     middleware: getDefaultMiddleware =>
       getDefaultMiddleware({
@@ -28,4 +32,6 @@ export type ReduxThunk<ReturnType = void> = ThunkAction<
 
 export type ReduxDispatch = ReduxStore['dispatch']
 
-export default createWrapper(makeStore)
+const store = createWrapper(makeStore)
+
+export default store

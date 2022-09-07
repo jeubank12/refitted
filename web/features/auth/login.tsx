@@ -1,5 +1,5 @@
-import { doLogin } from '../../store/auth/authSlice'
-import { useReduxDispatch } from '../../store/hooks'
+import { doLogin } from 'store/auth/authSlice'
+import { useReduxDispatch } from 'store/hooks'
 
 const Login = () => {
   const dispatch = useReduxDispatch()
