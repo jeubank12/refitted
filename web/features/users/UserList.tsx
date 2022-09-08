@@ -1,8 +1,17 @@
-import { useTestQuery } from 'store/aws'
+import Loading from 'features/components/loading'
+import { useGetUsersQuery } from 'store/aws/lambda/lambdaEndpoints'
 
 const UserList = () => {
-  const { data } = useTestQuery()
-  return <p>{data}</p>
+  const { data: users, isLoading } = useGetUsersQuery()
+  return (
+    <div>
+      {isLoading ? (
+        <Loading />
+      ) : (
+        users?.users?.map(user => <p key={user.uid}>{user.email}</p>)
+      )}
+    </div>
+  )
 }
 
 export default UserList
