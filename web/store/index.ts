@@ -2,7 +2,7 @@ import { AnyAction, configureStore, ThunkAction } from '@reduxjs/toolkit'
 import { createWrapper } from 'next-redux-wrapper'
 
 import authSlice from './auth/authSlice'
-import awsReducer from './aws'
+import awsReducer, { awsApi } from './aws'
 
 const makeStore = () =>
   configureStore({
@@ -15,7 +15,7 @@ const makeStore = () =>
         thunk: true,
         immutableCheck: true,
         serializableCheck: false,
-      }),
+      }).concat(awsApi.middleware),
     devTools: !!process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED,
   })
 
