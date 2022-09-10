@@ -16,7 +16,7 @@ const makeStore = () =>
         immutableCheck: true,
         serializableCheck: false,
       }).concat(awsApi.middleware),
-    devTools: !!process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED,
+    devTools: process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED === 'true',
   })
 
 export type ReduxStore = ReturnType<typeof makeStore>

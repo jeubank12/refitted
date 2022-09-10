@@ -9,7 +9,7 @@ import { getFirebaseToken } from 'store/auth/authSelectors'
 
 export const getAwsCredentials = createSelector(
   [getFirebaseToken],
-  firebaseToken => {
+  (firebaseToken) => {
     if (firebaseToken)
       return fromCognitoIdentityPool({
         identityPoolId,
