@@ -1,13 +1,17 @@
 import { createSelector } from 'reselect'
 
-import { LambdaClient } from '@aws-sdk/client-lambda'
+import { lambdaExtendedApi } from './lambdaEndpoints'
 
-import { getAwsCredentials } from '../cognito/cognitoSelectors'
-
-export const getLambdaClient = createSelector(
-  [getAwsCredentials],
-  credentials => {
-    if (credentials)
-      return new LambdaClient({ region: 'us-east-2', credentials })
+export const getUserCustomClaimTypes = createSelector(
+  [lambdaExtendedApi.endpoints.getUsers.select()],
+  cache => {
+    const allCustomClaims =
+      cache.data?.users?.map(user => user.customClaims ?? {}) ?? []
+    const customClaimsKeys = allCustomClaims
+      .map(claims => Object.keys(claims))
+      .reduce((agg, claims) => {
+        return [...agg, ...claims]
+      }, [])
+    return [...new Set(customClaimsKeys)]
   }
 )

@@ -1,3 +1,5 @@
+import { useSelector } from 'react-redux'
+
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -8,9 +10,11 @@ import Paper from '@mui/material/Paper'
 
 import { useGetUsersQuery } from 'store/aws/lambda/lambdaEndpoints'
 import Loading from 'features/components/loading'
+import { getUserCustomClaimTypes } from 'store/aws/lambda/lambdaSelectors'
 
 const UserList = () => {
   const { data, isLoading } = useGetUsersQuery()
+  const claimTypes = useSelector(getUserCustomClaimTypes)
   if (isLoading) return <Loading />
   else if (!data) return <div>empty</div>
   else
@@ -20,7 +24,11 @@ const UserList = () => {
           <TableHead>
             <TableRow>
               <TableCell>Email</TableCell>
-              <TableCell align="right">Custom Claims</TableCell>
+              {claimTypes.map(claimName => (
+                <TableCell align="right" key={claimName}>
+                  {claimName}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -32,9 +40,11 @@ const UserList = () => {
                 <TableCell component="th" scope="row">
                   {user.email}
                 </TableCell>
-                <TableCell align="right">
-                  {JSON.stringify(user.customClaims)}
-                </TableCell>
+                {claimTypes.map(claimName => (
+                  <TableCell align="right" key={claimName}>
+                    {JSON.stringify(user.customClaims?.[claimName])}
+                  </TableCell>
+                ))}
               </TableRow>
             ))}
           </TableBody>
