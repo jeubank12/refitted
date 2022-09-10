@@ -29,3 +29,5 @@ export const getUserInfo = createSelector(
       email: firebaseUser?.email,
     } as UserInfo)
 )
+
+export const getFirebaseUserClaims = (state: ReduxState) => state.auth.claims

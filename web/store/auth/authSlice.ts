@@ -7,7 +7,6 @@ import {
   browserSessionPersistence,
   getAuth,
   GoogleAuthProvider,
-  ParsedToken,
   setPersistence,
   signInWithPopup,
   User,
@@ -21,7 +20,6 @@ export interface AuthState {
   firebaseApp?: FirebaseApp
   firebaseUser?: User
   firebaseToken?: string
-  claims?: ParsedToken
   error: string | null
 }
 
@@ -49,10 +47,6 @@ const authSlice = createSlice({
       state.error = null
     },
 
-    setClaims: (state, action: PayloadAction<ParsedToken>) => {
-      state.claims = action.payload
-    },
-
     logout: state => ({ ...initialState, firebaseApp: state.firebaseApp }),
 
     loginFailed: (state, action: PayloadAction<string>) => {
@@ -61,8 +55,7 @@ const authSlice = createSlice({
   },
 })
 
-const { appInitialized, login, loginFailed, setClaims, logout } =
-  authSlice.actions
+const { appInitialized, login, loginFailed, logout } = authSlice.actions
 
 const provider = new GoogleAuthProvider()
 
@@ -89,7 +82,7 @@ export const initializeFirebase: ReduxThunk = (dispatch, getState) => {
     const newApp = initializeApp(firebaseConfig)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-extra-semi
     ;(window as any).FIREBASE_APPCHECK_DEBUG_TOKEN =
-      !!process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED
+      process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED === 'true'
     initializeAppCheck(newApp, {
       provider: recaptchaProvider,
     })
@@ -108,13 +101,17 @@ const finishLogin: (app: FirebaseApp) => ReduxThunk =
     const userForToken = auth.currentUser
     if (userForToken) {
       userForToken.getIdTokenResult().then(success => {
-        dispatch(
-          login({
-            user: userForToken,
-            idToken: success.token,
-          })
-        )
-        dispatch(setClaims(success.claims))
+        if (success.claims?.admin) {
+          dispatch(
+            login({
+              user: userForToken,
+              idToken: success.token,
+            })
+          )
+        } else {
+          dispatch(loginFailed('Insufficient Permissions'))
+          dispatch(doLogout)
+        }
       })
     }
   }
