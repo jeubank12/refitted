@@ -1,5 +1,16 @@
 import { BaseQueryFn, createApi } from '@reduxjs/toolkit/dist/query/react'
 
+/** copied from @reduxjs baseQueryTypes.d.ts */
+export type QueryReturnValue<T, E, M> = {
+ data: T,
+ error?: undefined,
+ meta?: M
+} | {
+  data?: undefined,
+  error: E,
+  meta?: M
+}
+
 const defaultBaseQuery: BaseQueryFn = () => ({
   error: 'queryFn not provided in endpoint',
 })

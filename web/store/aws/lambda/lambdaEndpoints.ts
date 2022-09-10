@@ -1,4 +1,4 @@
-import { BaseQueryFn, QueryReturnValue } from '@reduxjs/toolkit/query/react'
+import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 
 import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { ListUsersResult } from 'firebase-admin/auth'
@@ -6,21 +6,20 @@ import { toUtf8 } from '@aws-sdk/util-utf8-node'
 
 import { ReduxState } from 'store'
 import { getLambdaClient } from './lambdaSelectors'
-import { awsApi } from '..'
+import { awsApi, QueryReturnValue } from '..'
 
-const invokeLambda: <T>(
+const invokeLambda: <T, M>(
   functionName: string,
-  transform: (output: unknown) => QueryReturnValue<T, unknown, unknown>,
+  transform: (output: unknown) => QueryReturnValue<T, unknown, M>,
   // if we define an input type, then it can go here
-  defaultIfEmpty: () => QueryReturnValue<T, unknown, unknown>
+  defaultIfEmpty: () => QueryReturnValue<T, unknown, M>
 ) => BaseQueryFn<
   void,
   T | undefined,
   unknown,
   // eslint-disable-next-line @typescript-eslint/ban-types
   {},
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  {}
+  M
 > =
   (functionName, transform, defaultIfEmpty) =>
   (_, { getState }) => {
@@ -43,8 +42,9 @@ const invokeLambda: <T>(
 
 export const lambdaExtendedApi = awsApi.injectEndpoints({
   endpoints: builder => ({
-    getUsers: builder.query<ListUsersResult | undefined, void>({
-      queryFn: invokeLambda<ListUsersResult>(
+    getUsers: builder.query<ListUsersResult, void>({
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      queryFn: invokeLambda<ListUsersResult, {}>(
         'RefittedListFirebaseUsers',
         output => {
           if (typeof output === 'object' && output && 'users' in output)
