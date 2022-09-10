@@ -5,7 +5,7 @@ import { ListUsersResult } from 'firebase-admin/auth'
 import { toUtf8 } from '@aws-sdk/util-utf8-node'
 
 import { ReduxState } from 'store'
-import { getLambdaClient } from './lambdaSelectors'
+import { getLambdaClient } from '../awsSelectors'
 import { awsApi, QueryReturnValue } from '..'
 
 const invokeLambda: <T, M>(
