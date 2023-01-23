@@ -123,7 +123,7 @@ dependencies {
     kapt "androidx.hilt:hilt-compiler:$hilt_compiler_version"
     annotationProcessor "androidx.hilt:hilt-compiler:$hilt_compiler_version"
 
-    implementation 'com.google.android.gms:play-services-auth:20.2.0'
+    implementation 'com.google.android.gms:play-services-auth:20.4.1'
 
     implementation platform('com.google.firebase:firebase-bom:30.3.2')
     implementation 'com.google.firebase:firebase-auth-ktx'
