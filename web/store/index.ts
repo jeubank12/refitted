@@ -32,6 +32,6 @@ export type ReduxThunk<ReturnType = void> = ThunkAction<
 
 export type ReduxDispatch = ReduxStore['dispatch']
 
-const store = createWrapper(makeStore)
+const wrapper = createWrapper(makeStore)
 
-export default store
+export default wrapper
