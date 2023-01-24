@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import { getAnalytics } from 'firebase/analytics'
 import { FirebaseApp, initializeApp } from 'firebase/app'
-import { initializeAppCheck } from 'firebase/app-check'
+import { AppCheck, initializeAppCheck, getToken } from 'firebase/app-check'
 import {
   browserSessionPersistence,
   getAuth,
@@ -12,15 +12,17 @@ import {
   User,
 } from 'firebase/auth'
 
-import { getFirebaseApp } from './authSelectors'
+import { getFirebaseApp, getFirebaseAppCheck } from './authSelectors'
 import { firebaseConfig, recaptchaProvider } from './firebase'
 import { ReduxThunk } from 'store'
 
 export interface AuthState {
   firebaseApp?: FirebaseApp
+  firebaseAppCheck?: AppCheck
   firebaseUser?: User
   firebaseToken?: string
   error: string | null
+  appCheckToken?: string
 }
 
 const initialState: AuthState = {
@@ -52,10 +54,25 @@ const authSlice = createSlice({
     loginFailed: (state, action: PayloadAction<string>) => {
       state.error = action.payload
     },
+
+    appCheckInitialized: (state, action: PayloadAction<AppCheck>) => {
+      state.firebaseAppCheck = action.payload
+    },
+
+    appCheckToken: (state, action: PayloadAction<string>) => {
+      state.appCheckToken = action.payload
+    },
   },
 })
 
-const { appInitialized, login, loginFailed, logout } = authSlice.actions
+const {
+  appInitialized,
+  appCheckInitialized,
+  appCheckToken,
+  login,
+  loginFailed,
+  logout,
+} = authSlice.actions
 
 const provider = new GoogleAuthProvider()
 
@@ -83,9 +100,10 @@ export const initializeFirebase: ReduxThunk = (dispatch, getState) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-extra-semi
     ;(window as any).FIREBASE_APPCHECK_DEBUG_TOKEN =
       process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED === 'true'
-    initializeAppCheck(newApp, {
+    const appCheck = initializeAppCheck(newApp, {
       provider: recaptchaProvider,
     })
+    dispatch(appCheckInitialized(appCheck))
     getAnalytics(newApp)
     const auth = getAuth(newApp)
     setPersistence(auth, browserSessionPersistence).then(() => {
@@ -108,6 +126,7 @@ const finishLogin: (app: FirebaseApp) => ReduxThunk =
               idToken: success.token,
             })
           )
+          dispatch(getAppCheckToken)
         } else {
           dispatch(loginFailed('Insufficient Permissions'))
           dispatch(doLogout)
@@ -115,6 +134,15 @@ const finishLogin: (app: FirebaseApp) => ReduxThunk =
       })
     }
   }
+
+const getAppCheckToken: ReduxThunk = (dispatch, getState) => {
+  const appCheck = getFirebaseAppCheck(getState())
+  if (appCheck) {
+    getToken(appCheck, /* forceRefresh */ false).then(success => {
+      if (success) dispatch(appCheckToken(success.token))
+    })
+  }
+}
 
 export const doLogout: ReduxThunk = (dispatch, getState) => {
   const app = getFirebaseApp(getState())

@@ -2,11 +2,12 @@ import { BaseQueryFn } from '@reduxjs/toolkit/query/react'
 
 import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { ListUsersResult } from 'firebase-admin/auth'
-import { toUtf8 } from '@aws-sdk/util-utf8-node'
+import { toUtf8, fromUtf8 } from '@aws-sdk/util-utf8-node'
 
 import { ReduxState } from 'store'
 import { getLambdaClient } from '../awsSelectors'
 import { awsApi, QueryReturnValue } from '..'
+import { getFirebaseAppCheckToken } from 'store/auth/authSelectors'
 
 const invokeLambda: <T, M>(
   functionName: string,
@@ -24,8 +25,14 @@ const invokeLambda: <T, M>(
   (functionName, transform, defaultIfEmpty) =>
   (_, { getState }) => {
     const client = getLambdaClient(getState() as ReduxState)
+    const appCheckToken = getFirebaseAppCheckToken(getState() as ReduxState)
     if (client) {
-      const command = new InvokeCommand({ FunctionName: functionName })
+      const command = new InvokeCommand({
+        FunctionName: functionName,
+        Payload: fromUtf8(
+          JSON.stringify({ firebaseAppCheckToken: appCheckToken })
+        ),
+      })
       return client
         .send(command)
         .then(
