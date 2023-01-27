@@ -38,7 +38,7 @@ fun WorkoutPlanPreview() {
   )
     .collectAsLazyPagingItems()
   MaterialTheme(Theme.darkColors) {
-    WorkoutPlanMenu("Refreshed At", items = data) {}
+    WorkoutPlanMenu("Refreshed At", items = data, workoutPlanError = null) {}
   }
 }
 
@@ -46,6 +46,7 @@ fun WorkoutPlanPreview() {
 fun WorkoutPlanMenu(
   lastRefresh: String,
   items: LazyPagingItems<WorkoutPlan>,
+  workoutPlanError: String?,
   onSelect: (WorkoutPlan) -> Unit
 ) {
   LazyColumn {
@@ -88,10 +89,26 @@ fun WorkoutPlanMenu(
       }
     }
 
-    if (items.loadState.refresh is LoadState.Loading) {
+    if (workoutPlanError != null) {
+      // FIXME cannot refresh once error is set
       item {
-        Row(Modifier.fillMaxWidth()) {
-          LoadingView()
+        Text(
+          workoutPlanError,
+          Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
+          style = MaterialTheme.typography.button
+        )
+      }
+    } else if (items.loadState.refresh is LoadState.Loading) {
+      item {
+        Column(
+          Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)) {
+          Row(Modifier.align(Alignment.CenterHorizontally)) {
+            LoadingView()
+          }
         }
       }
     } else {

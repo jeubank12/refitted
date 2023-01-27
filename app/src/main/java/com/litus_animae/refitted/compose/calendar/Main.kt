@@ -120,10 +120,10 @@ fun Calendar(
       val workoutPlanError = model.workoutError
       LaunchedEffect(workoutPlanError){
         if (workoutPlanError != null)
-          scaffoldState.snackbarHostState.showSnackbar(workoutPlanError)
+          scaffoldState.snackbarHostState.showSnackbar(workoutPlanError, duration = SnackbarDuration.Indefinite)
       }
       val lastRefresh by model.workoutsLastRefreshed.collectAsState(initial = "")
-      WorkoutPlanMenu(lastRefresh, workoutPlanPagingItems) {
+      WorkoutPlanMenu(lastRefresh, workoutPlanPagingItems, workoutPlanError) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         model.loadWorkoutDaysCompleted(it)
       }
