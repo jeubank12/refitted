@@ -5,7 +5,6 @@ import { getAppCheck } from 'firebase-admin/app-check'
 import serviceAccount from '../firebase.json' assert { type: 'json' }
 
 initializeApp({
-  // WARNING: I'm a hack!!
   credential: cert(serviceAccount as ServiceAccount),
   databaseURL: 'https://refitted-361ee.firebaseio.com',
 })

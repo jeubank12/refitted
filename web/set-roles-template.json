@@ -1,0 +1,25 @@
+// aws cognito-identity set-identity-pool-roles --region us-east-2 --cli-input-json file://<filename>
+//  aws cognito-identity get-identity-pool-roles --region us-east-2 --identity-pool-id "<pool id>
+{
+    "IdentityPoolId": "<pool id>",
+    "Roles": {
+        "authenticated": "<auth role>",
+        "unauthenticated": "<unath role>"
+    },
+    "RoleMappings": {
+        "<oidc-provider arn>": {
+            "Type": "Rules",
+            "AmbiguousRoleResolution": "AuthenticatedRole",
+            "RulesConfiguration": {
+                "Rules": [
+                    {
+                        "Claim": "group",
+                        "MatchType": "Equals",
+                        "Value": "<group uuid>",
+                        "RoleARN": "<group dynamo role>"
+                    }
+                ]
+            }
+        }
+    }
+}
