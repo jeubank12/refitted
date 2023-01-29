@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '1.6.21'
-    ext.hilt_android_version = '2.43.2'
+    ext.kotlin_version = '1.8.0'
+    ext.hilt_android_version = '2.44.2'
     apply plugin: 'idea'
     idea {
         module {
@@ -16,7 +16,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.0'
-        classpath 'com.google.gms:google-services:4.3.13'
+        classpath 'com.google.gms:google-services:4.3.15'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$hilt_android_version"
 
