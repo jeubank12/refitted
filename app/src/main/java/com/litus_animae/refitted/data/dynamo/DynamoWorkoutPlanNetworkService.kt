@@ -1,16 +1,26 @@
 package com.litus_animae.refitted.data.dynamo
 
 import android.content.Context
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
+import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.KeyPair
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.Condition
+import com.google.firebase.auth.FirebaseAuth
+import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.models.dynamo.DynamoGroupDefinition
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutDay
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutPlan
+import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -20,15 +30,49 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
   log: LogUtil
 ) :
   DynamoNetworkService(context, log), WorkoutPlanNetworkService {
+  private fun queryAllWorkoutPlans(db: DynamoDBMapper): Iterable<DynamoWorkoutPlan> {
+    val keyValues = DynamoWorkoutPlan()
+    val queryExpression = DynamoDBQueryExpression<DynamoWorkoutPlan>()
+      .withHashKeyValues(keyValues)
+      .withConsistentRead(false)
+    return db.query(DynamoWorkoutPlan::class.java, queryExpression)
+  }
+
+  private fun querySpecificWorkoutPlans(
+    db: DynamoDBMapper,
+    planNames: Iterable<String>
+  ): Iterable<DynamoWorkoutPlan> {
+    return Iterable {
+      planNames.asSequence().map { planName ->
+        val keyValues = DynamoWorkoutPlan(planName)
+        val rangeCondition = Condition()
+          .withComparisonOperator(ComparisonOperator.EQ)
+          .withAttributeValueList(AttributeValue().withS("Plan"))
+        val queryExpression = DynamoDBQueryExpression<DynamoWorkoutPlan>()
+          .withHashKeyValues(keyValues)
+          .withIndexName("Reverse-index")
+          .withRangeKeyCondition("Id", rangeCondition)
+          .withConsistentRead(false)
+        db.query(DynamoWorkoutPlan::class.java, queryExpression)
+      }.flatten().iterator()
+    }
+  }
+
   override suspend fun getWorkoutPlans(): List<WorkoutPlan> {
     return withContext(Dispatchers.IO) {
       val db = getDb()
 
-      val keyValues = DynamoWorkoutPlan()
-      val queryExpression = DynamoDBQueryExpression<DynamoWorkoutPlan>()
-        .withHashKeyValues(keyValues)
-        .withConsistentRead(false)
-      db.query(DynamoWorkoutPlan::class.java, queryExpression)
+      val currentUser = FirebaseAuth.getInstance().currentUser
+        ?: throw IllegalStateException("Firebase user not logged in")
+      val idToken = currentUser.getIdToken(false).await()
+      val group = idToken.claims["group"]?.toString()
+
+      val command = group?.let { groupValue ->
+        val groupDefinition = db.load(DynamoGroupDefinition::class.java, groupValue, "Groups")
+        querySpecificWorkoutPlans(db, groupDefinition.workouts)
+      } ?: queryAllWorkoutPlans(db)
+
+      command
         .mapNotNull { plan ->
           plan.workout?.let { workout ->
             val subKeyValues = DynamoWorkoutDay(workout = workout)
