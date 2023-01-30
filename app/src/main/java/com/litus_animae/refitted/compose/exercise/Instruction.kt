@@ -101,7 +101,6 @@ fun ColumnScope.ExerciseInstructions(
     millisToElapse = exerciseSet?.timeLimitMilliseconds ?: 0,
     countDown = true,
     animateTimer = false,
-    resolutionMillis = 500,
     onUpdate = { exerciseTimerMillis.value = it }) { exerciseTimerRunning.value = false }
   if (exerciseSet?.timeLimitMilliseconds != null) {
     Row(Modifier.weight(1f)) {
