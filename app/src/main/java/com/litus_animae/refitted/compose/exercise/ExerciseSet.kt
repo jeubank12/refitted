@@ -7,7 +7,9 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ fun RowScope.ExerciseSetView(
   }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ColumnScope.ExerciseSetView(
   setWithRecord: ExerciseSetWithRecord,
@@ -97,9 +100,11 @@ fun ColumnScope.ExerciseSetView(
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       val localRestFormat = stringResource(R.string.seconds_rest_phrase)
-      val timerDisplayTime by derivedStateOf {
-        if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
-        else String.format(localRestFormat, exerciseSet.rest.toFloat())
+      val timerDisplayTime by remember {
+        derivedStateOf {
+          if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
+          else String.format(localRestFormat, exerciseSet.rest.toFloat())
+        }
       }
       Text(timerDisplayTime)
     }
@@ -147,12 +152,12 @@ fun ColumnScope.ExerciseSetView(
         val toCompletionSetPhrase = (exerciseSet.sets < 0).maybe {
           if (exerciseSet.reps(numCompleted) < 0)
             String.format(
-              stringResource(id = R.string.complete_reps),
+              pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
               saveReps,
               record.cumulativeReps
             )
           else String.format(
-            stringResource(id = R.string.complete_reps_of_workout),
+            pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
             saveReps,
             exerciseSet.reps(numCompleted) - record.cumulativeReps
           )
@@ -167,7 +172,7 @@ fun ColumnScope.ExerciseSetView(
               )
             }) {
               String.format(
-                stringResource(id = R.string.complete_superset_part_x),
+                pluralStringResource(id = R.plurals.complete_superset_part_x, count = exerciseSet.sets),
                 it + 1,
                 numCompleted + 1,
                 exerciseSet.sets

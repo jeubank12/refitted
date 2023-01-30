@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.data.room
 
 import androidx.paging.*
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.models.*
@@ -30,41 +32,41 @@ class RoomCacheExerciseRepository @Inject constructor(
   private val exerciseState: MutableStateFlow<List<ExerciseSet>> = MutableStateFlow(emptyList())
   override val exercises = exerciseState.asStateFlow()
 
-  private val differCallback: DifferCallback = object : DifferCallback {
-    override fun onChanged(position: Int, count: Int) {
-      if (count > 0) {
-        updateExerciseState()
+  private val pagingDataDiffer = AsyncPagingDataDiffer(
+    diffCallback = object : DiffUtil.ItemCallback<ExerciseSet>() {
+      override fun areItemsTheSame(oldItem: ExerciseSet, newItem: ExerciseSet): Boolean {
+        return oldItem == newItem
       }
-    }
 
-    override fun onInserted(position: Int, count: Int) {
-      if (count > 0) {
-        updateExerciseState()
+      override fun areContentsTheSame(oldItem: ExerciseSet, newItem: ExerciseSet): Boolean {
+        return areItemsTheSame(oldItem, newItem)
       }
-    }
 
-    override fun onRemoved(position: Int, count: Int) {
-      if (count > 0) {
-        updateExerciseState()
+    },
+    updateCallback = object : ListUpdateCallback {
+      override fun onInserted(position: Int, count: Int) {
+        if (count > 0) {
+          updateExerciseState()
+        }
       }
-    }
-  }
 
-  private val pagingDataDiffer: PagingDataDiffer<ExerciseSet> =
-    object : PagingDataDiffer<ExerciseSet>(
-      differCallback = differCallback
-    ) {
-      override suspend fun presentNewList(
-        previousList: NullPaddedList<ExerciseSet>,
-        newList: NullPaddedList<ExerciseSet>,
-        lastAccessedIndex: Int,
-        onListPresentable: () -> Unit
-      ): Int? {
-        onListPresentable()
-        updateExerciseState()
-        return null
+      override fun onRemoved(position: Int, count: Int) {
+        if (count > 0) {
+          updateExerciseState()
+        }
       }
+
+      override fun onMoved(fromPosition: Int, toPosition: Int) {
+      }
+
+      override fun onChanged(position: Int, count: Int, payload: Any?) {
+        if (count > 0) {
+          updateExerciseState()
+        }
+      }
+
     }
+  )
 
   private fun updateExerciseState() {
     exerciseState.value = pagingDataDiffer.snapshot().items
@@ -84,7 +86,7 @@ class RoomCacheExerciseRepository @Inject constructor(
       ExerciseSetPager(DayAndWorkout(day, workoutId), refittedRoom, networkService, log)
     coroutineScope {
 
-      launch { mediator.pagingData.collectLatest { pagingDataDiffer.collectFrom(it) } }
+      launch { mediator.pagingData.collectLatest { pagingDataDiffer.submitData(it) } }
 
       launch {
         mediator.pagingData.collectLatest {

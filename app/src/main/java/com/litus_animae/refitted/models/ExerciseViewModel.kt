@@ -33,7 +33,7 @@ class ExerciseViewModel @Inject constructor(
         val recordsByPrimaryStep = records.groupBy { it.targetSet.primaryStep }
         log.i(TAG, "Received new set of exercises: $sets")
         val instructions = sets.groupBy { it.primaryStep }
-          .map { NonEmptyList.fromList(it.value) }
+          .map { it.value.toNonEmptyListOrNull().toOption() }
           .flattenOption()
           .maybeZipWithNext { thisSets, nextSets ->
             val mostRecentAlternateStep =

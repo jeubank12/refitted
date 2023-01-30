@@ -25,7 +25,17 @@ buildscript {
     }
 }
 
+// disabled due to: https://github.com/nebula-plugins/gradle-lint-plugin/issues/342
+// must use pre v18.0.0 until agp 8.0
+//plugins {
+//    id 'nebula.lint' version '17.8.0'
+//}
+
 allprojects {
+//    apply plugin :"nebula.lint"
+//    gradleLint {
+//        rules=['unused-dependency']
+//    }
     repositories {
         google()
         mavenCentral()

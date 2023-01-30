@@ -77,6 +77,10 @@ android {
             useJUnitPlatform()
         }
     }
+
+    lint {
+        checkDependencies true
+    }
 }
 
 dependencies {

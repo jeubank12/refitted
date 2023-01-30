@@ -87,6 +87,7 @@ fun Exercise(
   ) {
     ExerciseView(exerciseModel,
       workoutPlan = loadedWorkoutPlan,
+      contentPadding = it,
       setHistoryList = { setHistoryList(it) },
       setContextMenu = { contextMenu = it },
       onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) })

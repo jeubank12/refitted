@@ -31,7 +31,8 @@ fun PreviewCalendar() {
       WorkoutPlan("test", 110, 4), mapOf(
         Pair(1, Instant.ofEpochMilli(1L)),
         Pair(2, Instant.ofEpochMilli(2L))
-      )
+      ),
+      contentPadding = PaddingValues(0.dp)
     ) {}
   }
 }
@@ -40,6 +41,7 @@ fun PreviewCalendar() {
 fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
+  contentPadding: PaddingValues,
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -54,6 +56,7 @@ fun WorkoutCalendar(
   LazyColumn(
     Modifier
       .fillMaxWidth()
+      .padding(contentPadding)
       .padding(10.dp, 10.dp)
   ) {
     val rows: List<List<Int>> = (1..cellsInGrid).chunked(daysPerRow)

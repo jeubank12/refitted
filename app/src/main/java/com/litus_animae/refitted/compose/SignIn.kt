@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,7 +86,7 @@ fun SignInUser(
           scaffoldState.snackbarHostState.showSnackbar(userError)
       }
       Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().padding(it),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
       ) {

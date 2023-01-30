@@ -60,7 +60,7 @@ fun Timer(
   if (animateTimer) {
     if (debugView) {
       Column {
-        drawTimer(millisToShow, elapsedMillis, countDown)
+        DrawTimer(millisToShow, elapsedMillis, countDown)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
           Text("Running: $running")
           Text("IsRunning: $isRunning")
@@ -69,13 +69,13 @@ fun Timer(
         }
       }
     } else {
-      drawTimer(millisToShow, elapsedMillis, countDown)
+      DrawTimer(millisToShow, elapsedMillis, countDown)
     }
   }
 }
 
 @Composable
-private fun drawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Boolean) {
+private fun DrawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Boolean) {
   val drawColor = MaterialTheme.colors.onSurface
   val elapsedColor = MaterialTheme.colors.primary
   Canvas(
@@ -116,7 +116,7 @@ class ElapsedMillisParameterProvider : PreviewParameterProvider<Long> {
 @Preview(widthDp = 800)
 fun PreviewTimer(@PreviewParameter(ElapsedMillisParameterProvider::class) elapsedMillis: Long) {
   MaterialTheme(Theme.lightColors) {
-    drawTimer(60000L, elapsedMillis, countDown = false)
+    DrawTimer(60000L, elapsedMillis, countDown = false)
   }
 }
 
