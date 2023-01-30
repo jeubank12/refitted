@@ -133,7 +133,6 @@ fun ColumnScope.ExerciseSetView(
       val isTimerRunning by timerRunning
       Timer(isTimerRunning,
         millisToElapse = exerciseSet.rest * 1000L,
-        resolutionMillis = 500,
         countDown = true,
         onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
       Button(
