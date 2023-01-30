@@ -127,15 +127,16 @@ fun Calendar(
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         model.loadWorkoutDaysCompleted(it)
       }
-    }) {
+    }) {contentPadding ->
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
-      Surface(Modifier.fillMaxSize()) {
+      Surface(Modifier.fillMaxSize().padding(contentPadding)) {
         LoadingView()
       }
     } else if (selectedWorkoutPlan == null) {
       // TODO instruction page
       Row(
         Modifier
+          .padding(contentPadding)
           .padding(start = 10.dp, top = 10.dp)
           .fillMaxWidth()
       ) {
@@ -144,7 +145,8 @@ fun Calendar(
     } else {
       WorkoutCalendar(
         selectedWorkoutPlan!!,
-        completedDays
+        completedDays,
+        contentPadding = contentPadding
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
         model.setLastViewedDay(selectedWorkoutPlan!!, it)

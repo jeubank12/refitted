@@ -49,8 +49,17 @@
     <string name="weight_label">Weight</string>
     <string name="reps_label">Reps</string>
     <string name="doubled_label">Barbell\nMode?</string>
-    <string name="complete_superset_part_x">Complete Superset Part %1$d (%2$d of %3$d Sets)</string>
+    <plurals name="complete_superset_part_x">
+        <item quantity="one">Complete Superset Part %1$d (%2$d of %3$d Set)</item>
+        <item quantity="other">Complete Superset Part %1$d (%2$d of %3$d Sets)</item>
+    </plurals>
     <string name="complete_set_of_workout">Complete Set %1$d of %2$d</string>
-    <string name="complete_reps_of_workout">Complete %1$d Reps of %2$d Remaining</string>
-    <string name="complete_reps">Complete %1$d Reps (%2$d Previously Completed)</string>
+    <plurals name="complete_reps_of_workout">
+        <item quantity="one">Complete %1$d Rep of %2$d Remaining</item>
+        <item quantity="other">Complete %1$d Reps of %2$d Remaining</item>
+    </plurals>
+    <plurals name="complete_reps">
+        <item quantity="one">Complete %1$d Rep (%2$d Previously Completed)</item>
+        <item quantity="other">Complete %1$d Reps (%2$d Previously Completed)</item>
+    </plurals>
 </resources>

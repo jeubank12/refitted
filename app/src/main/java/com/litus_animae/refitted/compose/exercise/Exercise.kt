@@ -5,6 +5,7 @@ package com.litus_animae.refitted.compose.exercise
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -42,6 +43,7 @@ import java.time.Instant
 fun ExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
+  contentPadding: PaddingValues,
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit
@@ -53,7 +55,7 @@ fun ExerciseView(
   // TODO not saving, perhaps need rememberSaveableStateHolder
   val (index, setIndex) = rememberSaveable { mutableStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
-  val instruction by derivedStateOf { instructions.getOrNull(index) }
+  val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
   val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
@@ -74,7 +76,7 @@ fun ExerciseView(
     )
 
   // FIXME the column doesn't fill the full space and pull to refresh only works on content
-  Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
+  Box(modifier = Modifier.pullRefresh(pullRefreshState).padding(contentPadding)) {
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
