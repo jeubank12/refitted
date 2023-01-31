@@ -3,13 +3,22 @@
 package com.litus_animae.refitted.compose.exercise
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
@@ -17,8 +26,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
@@ -29,6 +36,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
 
+@OptIn(ExperimentalMaterialApi::class)
 @FlowPreview
 @Composable
 fun ExerciseView(
@@ -58,38 +66,51 @@ fun ExerciseView(
     currentSetRecord?.allSets?.let { setHistoryList(it) }
   }
 
-  val swipeRefreshState =
-    rememberSwipeRefreshState(isRefreshing || exerciseSet == null || currentSetRecord == null)
-  SwipeRefresh(state = swipeRefreshState, onRefresh = model::refreshExercises) {
-    DetailView(
-      index,
-      instructions.size - 1,
-      setWithRecord = currentSetRecord,
-      updateIndex = { newIndex, updatedRecord ->
-        currentSetRecord!!.saveRecordInState(updatedRecord)
-        setIndex(newIndex)
-      },
-      onSave = { updatedRecord ->
-        val savedRecord = updatedRecord.copy(stored = true)
-        currentSetRecord!!.saveRecordInState(savedRecord)
-        model.saveExercise(
-          SetRecord(
-            savedRecord.weight,
-            savedRecord.reps,
-            savedRecord.set
-          )
-        )
-        instruction?.offsetToNextSuperSet?.map {
-          // TODO if previous sets are incomplete, then nav to them
-          // TODO if all challenge sets are complete, don't nav
-          val isChallengeSet = exerciseSet!!.sets < 0
-          val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
-          val isLastExerciseInSuperset = it <= 0
-          if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-            setIndex(index + it)
-        }
-      }
+  val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null
+  val pullRefreshState =
+    rememberPullRefreshState(
+      refreshing = showRefreshIndicator,
+      onRefresh = model::refreshExercises
     )
+
+  // FIXME the column doesn't fill the full space and pull to refresh only works on content
+  Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
+    PullRefreshIndicator(
+      refreshing = showRefreshIndicator,
+      state = pullRefreshState,
+      Modifier.align(Alignment.TopCenter)
+    )
+    Column() {
+      DetailView(
+        index,
+        instructions.size - 1,
+        setWithRecord = currentSetRecord,
+        updateIndex = { newIndex, updatedRecord ->
+          currentSetRecord!!.saveRecordInState(updatedRecord)
+          setIndex(newIndex)
+        },
+        onSave = { updatedRecord ->
+          val savedRecord = updatedRecord.copy(stored = true)
+          currentSetRecord!!.saveRecordInState(savedRecord)
+          model.saveExercise(
+            SetRecord(
+              savedRecord.weight,
+              savedRecord.reps,
+              savedRecord.set
+            )
+          )
+          instruction?.offsetToNextSuperSet?.map {
+            // TODO if previous sets are incomplete, then nav to them
+            // TODO if all challenge sets are complete, don't nav
+            val isChallengeSet = exerciseSet!!.sets < 0
+            val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
+            val isLastExerciseInSuperset = it <= 0
+            if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
+              setIndex(index + it)
+          }
+        }
+      )
+    }
   }
 }
 
@@ -139,6 +160,7 @@ fun DetailView(
             Modifier.weight(1f)
           )
       }
+
     else ->
       Column(Modifier.padding(16.dp)) {
         Row(Modifier.weight(1f)) {

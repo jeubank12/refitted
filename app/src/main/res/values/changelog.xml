@@ -2,30 +2,10 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**v1.1.3</item>
-        <item>Bugfix: alternates either crashed or had a bad flicker</item>
-        <item>**v1.1.2</item>
-        <item>Bugfix: When there were days with more than 10 exercises, the sorting was wrong</item>
-        <item>Bugfix: During supersets, you couldn\'t click "Start Next Set Early" if the displayed exercise had no rest</item>
-        <item>Defaults the display to whichever alternate exercise you most recently completed</item>
-        <item>Introduces a type of workout with a "global" alternate (with special names)</item>
-        <item>Automatically refreshes workouts more frequently</item>
-        <item>Introduces reps sequences, so that reps counts can change between sets in the same exercise</item>
-        <item>**v1.1.1</item>
-        <item>Edit weight and reps with the keyboard</item>
-        <item>Enable "infinite" challenges which do not have a defined number of sets or reps, just to failure</item>
-        <item>Add a timer for "infinite" challenges which are time based</item>
-        <item>Can now refresh exercises without descriptions</item>
-        <item>Not fixed: rotating the screen returns to the first exercise of the day</item>
-        <item>Not fixed: rotating the screen resets changes to reps/weight for incomplete sets</item>
-        <item>**v1.1.0</item>
-        <item>New changelog to tell you what has changed</item>
-        <item>Rest days are shown on the calendar</item>
-        <item>Challenge workouts which are for a completion of total reps instead of sets</item>
-        <item>Cleaner transition between supersets when there is no rest</item>
-        <item>Reps default to the number of reps for the day rather than the number completed the last time the exercise was completed</item>
-        <item>Support multiple exercises with the same name (or the same exercise) within the same workout day</item>
-        <item>Show the actual number of days in the workout on the calendar view</item>
+        <item>**v1.1.4</item>
+        <item>Groundwork to limit which workout plans can be viewed</item>
+        <item>Known Issues:</item>
+        <item>  if the first exercise is an alternate and you already completed one exercise for the day, then navigating back to that workout will cause a flicker event. Click \'Alternate\' to escape it</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
