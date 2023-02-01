@@ -89,8 +89,6 @@ dependencies {
     def android_core_version = '2.1.0'
     def hilt_compiler_version = '1.0.0'
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     implementation 'androidx.activity:activity-ktx:1.6.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation "androidx.arch.core:core-runtime:$android_core_version"
