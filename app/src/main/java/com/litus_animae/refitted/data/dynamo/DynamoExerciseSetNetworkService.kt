@@ -1,10 +1,8 @@
 package com.litus_animae.refitted.data.dynamo
 
 import android.content.Context
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
-import com.amazonaws.services.dynamodbv2.model.Condition
+import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.models.DayAndWorkout
@@ -31,20 +29,18 @@ class DynamoExerciseSetNetworkService @Inject constructor(
       val db = getDb()
 
       val keyValues = MutableExerciseSet(workoutId)
-      val rangeCondition = Condition()
-        .withComparisonOperator(ComparisonOperator.BEGINS_WITH)
-        .withAttributeValueList(AttributeValue().withS("$workoutDay."))
-      val queryExpression = DynamoDBQueryExpression<MutableExerciseSet>()
-        .withHashKeyValues(keyValues)
-        .withIndexName("Reverse-index")
-        .withRangeKeyCondition("Id", rangeCondition)
-        .withConsistentRead(false)
       log.i(
         TAG,
         "Sending query request to load day $workoutDay from workout $workoutId"
       )
 
-      val dynamoSets = db.query(MutableExerciseSet::class.java, queryExpression)
+      val dynamoSets =
+        db.queryReverseIndex(
+          MutableExerciseSet::class.java,
+          keyValues,
+          "$workoutDay.",
+          ComparisonOperator.BEGINS_WITH
+        )
       log.i(TAG, "Query results received for day $workoutDay from workout $workoutId")
       val exerciseSets = dynamoSets.map { set ->
         try {
