@@ -3,18 +3,13 @@ package com.litus_animae.refitted.data.dynamo
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
-import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.KeyPair
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
-import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
-import com.amazonaws.services.dynamodbv2.model.Condition
 import com.google.firebase.auth.FirebaseAuth
-import com.litus_animae.refitted.R
+import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.dynamo.DynamoGroupDefinition
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutDay
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutPlan
-import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -45,15 +40,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
     return Iterable {
       planNames.asSequence().map { planName ->
         val keyValues = DynamoWorkoutPlan(planName)
-        val rangeCondition = Condition()
-          .withComparisonOperator(ComparisonOperator.EQ)
-          .withAttributeValueList(AttributeValue().withS("Plan"))
-        val queryExpression = DynamoDBQueryExpression<DynamoWorkoutPlan>()
-          .withHashKeyValues(keyValues)
-          .withIndexName("Reverse-index")
-          .withRangeKeyCondition("Id", rangeCondition)
-          .withConsistentRead(false)
-        db.query(DynamoWorkoutPlan::class.java, queryExpression)
+        db.queryReverseIndex(DynamoWorkoutPlan::class.java, keyValues, "Plan")
       }.flatten().iterator()
     }
   }
