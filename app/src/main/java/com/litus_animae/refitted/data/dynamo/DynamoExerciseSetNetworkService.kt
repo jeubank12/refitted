@@ -46,8 +46,13 @@ class DynamoExerciseSetNetworkService @Inject constructor(
         try {
           log.i(TAG, "loading exercise ${set.workout}: ${set.name} from dynamo")
           val mutableExercise =
-            db.load(MutableExercise::class.java, set.name, set.workout)
-          val exercise = Exercise(mutableExercise)
+            db.queryReverseIndex(
+              MutableExercise::class.java,
+              MutableExercise(workout = set.workout),
+              set.name
+            ).firstOrNull()
+          val exercise = mutableExercise?.let { Exercise(it) } ?: Exercise(set.workout, set.name)
+          mutableExercise ?: log.w(TAG, "Exercise not found")
           // TODO this is bad form, should move the constructors over to converters on the Room/Dynamo classes
           NetworkExerciseSet(set, exercise)
         } catch (ex: Exception) {
