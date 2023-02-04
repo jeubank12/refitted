@@ -1,0 +1,90 @@
+name: Builds
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+      web: ${{ steps.filter.outputs.web }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          android:
+            - 'app/**'
+            - '*gradle*'
+          web:
+            - 'web/**'
+            - '.github/workflows/build.yml'
+          admin:
+            - 'admin/**'
+  
+  block-fixup:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Block fixup commit merge
+      uses: 13rac1/block-fixup-merge-action@v2.0.0
+
+  build-android:
+    needs: changes
+    if: ${{ needs.changes.outputs.android == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Decode google-services.json
+      env: 
+        FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
+      run: echo $FIREBASE_SECRET | base64 --decode > app/google-services.json
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      env:
+        ID_POOLID: ${{ secrets.REFITTED_IDENTITYPOOLID }}
+        OPENID_SOURCE: ${{ secrets.REFITTED_OPENIDSOURCE }}
+      run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
+
+  build-web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js 16.17
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.17
+        cache: 'npm'
+        cache-dependency-path: 'web/package-lock.json'
+
+    - run: npm ci
+      working-directory: web
+
+    - run: npm run build
+      working-directory: web
