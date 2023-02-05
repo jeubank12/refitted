@@ -16,6 +16,7 @@ jobs:
       android: ${{ steps.filter.outputs.android }}
       web: ${{ steps.filter.outputs.web }}
       admin: ${{ steps.filter.outputs.admin }}
+      admin-dependencies: ${{ steps.filter.outputs.admin-dependencies }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -27,9 +28,12 @@ jobs:
               - '*gradle*'
             web:
               - 'web/**'
-              - '.github/workflows/build.yml'
             admin:
               - 'admin/**'
+              - '.github/workflows/build.yml'
+            admin-dependencies:
+              - 'admin/package*'
+              - '.github/workflows/build.yml'
 
   block-fixup:
     if: ${{ github.event_name == 'pull_request' }}
@@ -89,9 +93,107 @@ jobs:
         env:
           FIREBASE: ${{ secrets.FIREBASETS }}
           AWS: ${{ secrets.AWSTS }}
+        # base64 -w 0 <file> | clip
         run: |
           echo $FIREBASE | base64 --decode > web/store/auth/firebase.ts
           echo $AWS | base64 --decode > web/store/aws/aws.ts
 
       - run: npm run build
         working-directory: web
+
+  admin-matrix:
+    needs: changes
+    if: ${{ needs.changes.outputs.admin == 'true' && needs.changes.outputs.admin-dependencies == 'false' }}
+
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      admin-packages: ${{ steps.filter.outputs.admin_files }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          list-files: json
+          filters: |
+            admin:
+              - added|modified: 'admin/lambda/*.ts'
+
+  build-admin-some:
+    needs: admin-matrix
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.admin-matrix.outputs.admin-packages) }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.17
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17
+          cache: "npm"
+          cache-dependency-path: "admin/package-lock.json"
+
+      - run: npm ci
+        working-directory: admin
+
+      - name: Provide firebase.json
+        # base64 -w 0 <file> | clip
+        run: |
+          echo "{}" > admin/firebase.json
+
+      - run: npm run build ${{ matrix.package }}
+        working-directory: admin
+
+  list-admin-files:
+    needs: changes
+    if: ${{ needs.changes.outputs.admin-dependencies == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      paths: ${{ steps.lambda-files.outputs.paths }}
+    steps:
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.7"
+      - uses: actions/checkout@v3
+      - name: Fetch action
+        id: lambda-files
+        uses: Rishabh510/Path-lister-action@master
+        with:
+          path: "admin/lambda/"
+          type: ".ts"
+
+  # TODO can this be combined with the non-depencency version?
+  build-admin-all:
+    needs: list-admin-files
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.list-admin-files.outputs.paths) }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.17
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17
+          cache: "npm"
+          cache-dependency-path: "admin/package-lock.json"
+
+      - run: npm ci
+        working-directory: admin
+
+      - name: Provide firebase.json
+        # base64 -w 0 <file> | clip
+        run: |
+          echo "{}" > admin/firebase.json
+
+      - run: npm run build ${{ matrix.package }}
+        working-directory: admin
