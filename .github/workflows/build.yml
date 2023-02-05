@@ -155,19 +155,16 @@ jobs:
     if: ${{ needs.changes.outputs.admin-dependencies == 'true' }}
     runs-on: ubuntu-latest
     outputs:
-      paths: ${{ steps.lambda-files.outputs.paths }}
+      paths: ${{ steps.list-files.outputs.paths }}
     steps:
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
+      - name: List Files
+        id: list-files
+        uses: mirko-felice/list-files-action@v3.0.1
         with:
-          python-version: "3.7"
-      - uses: actions/checkout@v3
-      - name: Fetch action
-        id: lambda-files
-        uses: Rishabh510/Path-lister-action@master
-        with:
-          path: "admin/lambda/"
-          type: ".ts"
+          repo: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: "admin/lambda"
+          ext: ".ts"
 
   # TODO can this be combined with the non-depencency version?
   build-admin-all:
