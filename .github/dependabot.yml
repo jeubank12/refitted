@@ -21,3 +21,21 @@ updates:
       open-pull-requests-limit: 10
       reviewers:
       - "jeubank12"
+
+# Updates for npm dependencies used in web
+    - package-ecosystem: npm
+      directory: "web/"
+      schedule:
+        interval: "weekly"
+      open-pull-requests-limit: 10
+      reviewers:
+      - "jeubank12"
+
+# Updates for npm dependencies used in admin
+    - package-ecosystem: npm
+      directory: "admin/"
+      schedule:
+        interval: "weekly"
+      open-pull-requests-limit: 10
+      reviewers:
+      - "jeubank12"
