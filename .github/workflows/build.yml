@@ -187,10 +187,13 @@ jobs:
       - run: npm ci
         working-directory: admin
 
-      - name: Provide firebase.json
+      - name: Decode secrets
+        env:
+          GROUPS: ${{ secrets.REFITTED_GROUPS }}
         # base64 -w 0 <file> | clip
         run: |
           echo "{}" > admin/firebase.json
+          echo $GROUPS | base64 --decode > admin/refitted.ts
 
       - run: npm run build ${{ matrix.package }}
         working-directory: admin
