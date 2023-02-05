@@ -2,10 +2,12 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**v1.1.4</item>
-        <item>Groundwork to limit which workout plans can be viewed</item>
+        <item>**v1.1.5</item>
+        <item>Small fix where users in the new plan restrictions couldn\'t see exercise descriptions</item>
         <item>Known Issues:</item>
         <item>  if the first exercise is an alternate and you already completed one exercise for the day, then navigating back to that workout will cause a flicker event. Click \'Alternate\' to escape it</item>
+        <item>**v1.1.4</item>
+        <item>Groundwork to limit which workout plans can be viewed</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
