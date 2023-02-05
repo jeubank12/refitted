@@ -160,10 +160,11 @@ jobs:
       - name: List Files
         id: list-files
         uses: mirko-felice/list-files-action@v3.0.1
+        working-directory: admin
         with:
           repo: ${{ github.repository }}
           ref: ${{ github.ref }}
-          path: "admin/lambda"
+          path: "lambda"
           ext: ".ts"
 
   # TODO can this be combined with the non-depencency version?
