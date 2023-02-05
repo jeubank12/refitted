@@ -2,6 +2,7 @@ name: Builds
 
 on:
   push:
+    branches: [master]
   pull_request:
     branches: [master]
 
@@ -26,11 +27,12 @@ jobs:
             android:
               - 'app/**'
               - '*gradle*'
+              - '.github/workflows/build.yml'
             web:
               - 'web/**'
+              - '.github/workflows/build.yml'
             admin:
               - 'admin/**'
-              - '.github/workflows/build.yml'
             admin-dependencies:
               - 'admin/package*'
               - '.github/workflows/build.yml'
@@ -45,7 +47,7 @@ jobs:
 
   build-android:
     needs: changes
-    if: ${{ needs.changes.outputs.android == 'true' && github.ref_name == 'master' }}
+    if: ${{ needs.changes.outputs.android == 'true' }}
 
     runs-on: ubuntu-latest
 
