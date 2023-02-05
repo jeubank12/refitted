@@ -149,7 +149,7 @@ jobs:
         run: |
           echo "{}" > admin/firebase.json
 
-      - run: npm run build ${{ matrix.package }}
+      - run: npm run build ../${{ matrix.package }}
         working-directory: admin
 
   list-admin-files:
@@ -161,12 +161,11 @@ jobs:
     steps:
       - name: List Files
         id: list-files
-        uses: mirko-felice/list-files-action@v3.0.1
-        working-directory: admin
+        uses: mirko-felice/list-files-action@v3.0.3
         with:
           repo: ${{ github.repository }}
           ref: ${{ github.ref }}
-          path: "lambda"
+          path: "admin/lambda"
           ext: ".ts"
 
   # TODO can this be combined with the non-depencency version?
@@ -200,5 +199,5 @@ jobs:
           echo "{}" > admin/firebase.json
           echo $GROUPS | base64 --decode > admin/refitted.ts
 
-      - run: npm run build ${{ matrix.package }}
+      - run: npm run build ../${{ matrix.package }}
         working-directory: admin
