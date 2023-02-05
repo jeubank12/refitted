@@ -85,5 +85,13 @@ jobs:
     - run: npm ci
       working-directory: web
 
+    - name: Decode secrets
+      env: 
+        FIREBASE: ${{ secrets.FIREBASETS }}
+        AWS: ${{ secrets.AWSTS }}
+      run: |
+        echo $FIREBASE | base64 --decode > web/store/auth/firebase.ts
+        echo $AWS | base64 --decode > web/store/aws/aws.ts
+
     - run: npm run build
       working-directory: web
