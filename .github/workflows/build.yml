@@ -124,7 +124,9 @@ jobs:
 
   build-admin-some:
     needs: admin-matrix
+    # continue-on-error: true
     strategy:
+      max-parallel: 1
       matrix:
         package: ${{ fromJSON(needs.admin-matrix.outputs.admin-packages) }}
 
@@ -170,7 +172,9 @@ jobs:
   # TODO can this be combined with the non-depencency version?
   build-admin-all:
     needs: list-admin-files
+    # continue-on-error: true
     strategy:
+      max-parallel: 1
       matrix:
         package: ${{ fromJSON(needs.list-admin-files.outputs.paths) }}
 
