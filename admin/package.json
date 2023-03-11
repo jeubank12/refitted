@@ -9,7 +9,8 @@
     "prebuild": "rm -rf build && tsc",
     "build": "esbuild --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=build/index.js",
     "postbuild": "npm-build-zip --destination=build",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "lint": "eslint ./"
   },
   "author": "",
   "license": "GPLv3",
