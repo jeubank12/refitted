@@ -33,6 +33,7 @@ jobs:
               - '.github/workflows/build.yml'
             admin:
               - 'admin/**'
+              - '.github/workflows/build.yml'
             admin-dependencies:
               - 'admin/package*'
               - '.github/workflows/build.yml'
@@ -102,6 +103,62 @@ jobs:
 
       - run: npm run build
         working-directory: web
+
+  lint-web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.17
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17
+          cache: "npm"
+          cache-dependency-path: "web/package-lock.json"
+
+      - run: npm ci
+        working-directory: web
+
+      - name: Decode secrets
+        env:
+          FIREBASE: ${{ secrets.FIREBASETS }}
+          AWS: ${{ secrets.AWSTS }}
+        # base64 -w 0 <file> | clip
+        run: |
+          echo $FIREBASE | base64 --decode > web/store/auth/firebase.ts
+          echo $AWS | base64 --decode > web/store/aws/aws.ts
+
+      - run: npm run lint
+        working-directory: web
+
+  lint-admin:
+    needs: changes
+    if: ${{ needs.changes.outputs.admin == 'true' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.17
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.17
+          cache: "npm"
+          cache-dependency-path: "admin/package-lock.json"
+
+      - run: npm ci
+        working-directory: admin
+
+      - name: Provide firebase.json
+        # base64 -w 0 <file> | clip
+        run: |
+          echo "{}" > admin/firebase.json
+
+      - run: npm run lint
+        working-directory: admin
 
   admin-matrix:
     needs: changes
