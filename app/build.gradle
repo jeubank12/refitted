@@ -94,7 +94,7 @@ dependencies {
     implementation "androidx.arch.core:core-runtime:$android_core_version"
     implementation "androidx.arch.core:core-common:$android_core_version"
     implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0'
 
     implementation "androidx.room:room-paging:$room_version"
     implementation 'androidx.paging:paging-common-ktx:3.1.1'
