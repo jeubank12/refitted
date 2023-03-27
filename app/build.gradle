@@ -85,7 +85,7 @@ android {
 
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    def room_version = '2.5.0'
+    def room_version = '2.5.1'
     def android_core_version = '2.2.0'
     def hilt_compiler_version = '1.0.0'
 
