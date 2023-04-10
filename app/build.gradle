@@ -139,9 +139,9 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4'
 
-    implementation 'androidx.compose.ui:ui:1.3.3'
+    implementation 'androidx.compose.ui:ui:1.4.1'
     // Tooling support (Previews, etc.)
-    implementation 'androidx.compose.ui:ui-tooling:1.3.3'
+    implementation 'androidx.compose.ui:ui-tooling:1.4.1'
     // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
     implementation 'androidx.compose.foundation:foundation:1.3.1'
     // Material Design
@@ -159,7 +159,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0'
 
     // UI Tests
-    androidTestImplementation('androidx.compose.ui:ui-test-junit4:1.3.3')
+    androidTestImplementation('androidx.compose.ui:ui-test-junit4:1.4.1')
 }
 
 apply plugin: 'com.google.gms.google-services'
