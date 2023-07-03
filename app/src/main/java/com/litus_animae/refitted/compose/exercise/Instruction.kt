@@ -1,6 +1,11 @@
 package com.litus_animae.refitted.compose.exercise
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -23,11 +28,11 @@ import java.time.format.DateTimeFormatter
 
 
 @Composable
-fun RowScope.ExerciseInstructions(
+fun ExerciseInstructions(
   setWithRecord: ExerciseSetWithRecord?,
   modifier: Modifier = Modifier
 ) {
-  Column(modifier) {
+  Column(modifier.padding(16.dp)) {
     ExerciseInstructions(setWithRecord)
   }
 }
@@ -51,9 +56,11 @@ fun ColumnScope.ExerciseInstructions(
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text(
           "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
         )
+
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text(
           "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
         )
+
         exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit}")
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit} ($toFailureLabel)")
         exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}")

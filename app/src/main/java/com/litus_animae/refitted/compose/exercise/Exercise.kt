@@ -6,11 +6,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
@@ -24,9 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
+import androidx.window.layout.DisplayFeature
+import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
+import com.google.accompanist.adaptive.TwoPane
+import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
@@ -76,7 +75,11 @@ fun ExerciseView(
     )
 
   // FIXME the column doesn't fill the full space and pull to refresh only works on content
-  Box(modifier = Modifier.pullRefresh(pullRefreshState).padding(contentPadding)) {
+  Box(
+    modifier = Modifier
+      .pullRefresh(pullRefreshState)
+      .padding(contentPadding)
+  ) {
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
@@ -117,6 +120,7 @@ fun ExerciseView(
 }
 
 @Preview(showBackground = true)
+@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
@@ -148,36 +152,26 @@ fun DetailView(
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit
 ) {
-  when (LocalConfiguration.current.orientation) {
-    Configuration.ORIENTATION_LANDSCAPE ->
-      Row(Modifier.padding(16.dp)) {
-        ExerciseInstructions(setWithRecord, Modifier.weight(1f))
-        if (setWithRecord != null)
-          ExerciseSetView(
-            setWithRecord,
-            index,
-            maxIndex,
-            updateIndex,
-            onSave,
-            Modifier.weight(1f)
-          )
-      }
-
-    else ->
-      Column(Modifier.padding(16.dp)) {
-        Row(Modifier.weight(1f)) {
-          ExerciseInstructions(setWithRecord)
-        }
-        Row(Modifier.weight(1f)) {
-          if (setWithRecord != null)
-            ExerciseSetView(
-              setWithRecord,
-              index,
-              maxIndex,
-              updateIndex,
-              onSave
-            )
-        }
-      }
-  }
+  // TODO support fold by specifying features
+  val displayFeatures = emptyList<DisplayFeature>()
+  val strategy =
+    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) HorizontalTwoPaneStrategy(
+      0.5f
+    )
+    else VerticalTwoPaneStrategy(0.5f)
+  TwoPane(
+    @Composable { ExerciseInstructions(setWithRecord) },
+    @Composable {
+      if (setWithRecord != null)
+        ExerciseSetView(
+          setWithRecord,
+          index,
+          maxIndex,
+          updateIndex,
+          onSave
+        )
+    },
+    strategy = strategy,
+    displayFeatures = displayFeatures
+  )
 }
