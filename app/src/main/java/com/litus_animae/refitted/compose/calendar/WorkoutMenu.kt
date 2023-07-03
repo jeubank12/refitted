@@ -16,7 +16,7 @@ import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.items
+import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf
@@ -38,14 +38,14 @@ fun WorkoutPlanPreview() {
   )
     .collectAsLazyPagingItems()
   MaterialTheme(Theme.darkColors) {
-    WorkoutPlanMenu("Refreshed At", items = data, workoutPlanError = null) {}
+    WorkoutPlanMenu("Refreshed At", plans = data, workoutPlanError = null) {}
   }
 }
 
 @Composable
 fun WorkoutPlanMenu(
   lastRefresh: String,
-  items: LazyPagingItems<WorkoutPlan>,
+  plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
   onSelect: (WorkoutPlan) -> Unit
 ) {
@@ -73,7 +73,7 @@ fun WorkoutPlanMenu(
               "refresh",
               modifier = Modifier
                 .clickable {
-                  items.refresh()
+                  plans.refresh()
                 }
                 .padding(start = 10.dp, end = 10.dp),
               tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
@@ -100,19 +100,24 @@ fun WorkoutPlanMenu(
           style = MaterialTheme.typography.button
         )
       }
-    } else if (items.loadState.refresh is LoadState.Loading) {
+    } else if (plans.loadState.refresh is LoadState.Loading) {
       item {
         Column(
           Modifier
             .fillMaxWidth()
-            .padding(top = 10.dp)) {
+            .padding(top = 10.dp)
+        ) {
           Row(Modifier.align(Alignment.CenterHorizontally)) {
             LoadingView()
           }
         }
       }
     } else {
-      items(items) { plan ->
+      items(
+        count = plans.itemCount,
+        key = plans.itemKey { it.workout }
+      ) { index ->
+        val plan = plans[index]
         if (plan != null) {
           Text(
             plan.workout,

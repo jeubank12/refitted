@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.items
+import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.ExerciseView
 import com.litus_animae.refitted.models.ExerciseViewModel
@@ -96,7 +96,7 @@ fun Exercise(
 
 @Composable
 private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
-  val items = flow.collectAsLazyPagingItems()
+  val records = flow.collectAsLazyPagingItems()
   LazyColumn {
     item {
       Row(
@@ -119,14 +119,14 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
           "refresh",
           modifier = Modifier
             .clickable {
-              items.refresh()
+              records.refresh()
             }
             .padding(start = 10.dp, end = 10.dp),
           tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
       }
     }
 
-    if (items.loadState.refresh is LoadState.Loading) {
+    if (records.loadState.refresh is LoadState.Loading) {
       item {
         Row(Modifier.fillMaxWidth()) {
           LoadingView()
@@ -159,7 +159,11 @@ private fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
         }
       }
 
-      items(items) { record ->
+      items(
+        count = records.itemCount,
+        key = records.itemKey { it.completed }
+      ) { index ->
+        val record = records[index]
         if (record != null) {
           Row(
             Modifier
