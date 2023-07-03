@@ -14,7 +14,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import arrow.core.getOrElse
-import arrow.core.maybe
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
 import com.litus_animae.refitted.compose.exercise.input.WeightButtons
@@ -23,6 +22,7 @@ import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.Record
+import com.litus_animae.refitted.util.MonadUtil.optionWhen
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
 
@@ -148,7 +148,7 @@ fun ColumnScope.ExerciseSetView(
       ) {
         val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
         val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
-        val toCompletionSetPhrase = (exerciseSet.sets < 0).maybe {
+        val toCompletionSetPhrase = optionWhen(exerciseSet.sets < 0) {
           if (exerciseSet.reps(numCompleted) < 0)
             String.format(
               pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
