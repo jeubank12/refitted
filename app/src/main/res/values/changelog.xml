@@ -2,6 +2,8 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.1.6</item>
+        <item>The rest timer and weight and repetition changes are remembered after rotating the screen</item>
         <item>**v1.1.5</item>
         <item>Small fix where users in the new plan restrictions couldn\'t see exercise descriptions</item>
         <item>Known Issues:</item>
