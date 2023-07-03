@@ -48,7 +48,7 @@ data class ExerciseSet(
    */
   val superSetStep = superSetRegex.find(step, 0)?.groupValues?.get(1).toOption()
     .map { it.toInt() - 1 }
-  val isSuperSet = superSetStep.isNotEmpty()
+  val isSuperSet = superSetStep.isSome()
 
   override fun toString(): String {
     return "ExerciseSet:$id"
