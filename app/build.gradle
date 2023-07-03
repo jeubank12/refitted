@@ -86,6 +86,8 @@ android {
 dependencies {
 
     implementation 'androidx.activity:activity-ktx:1.7.2'
+    // this may be used for some sort of error reporting
+    // want to replace with crashlytics
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
 
     def android_core_version = '2.2.0'
