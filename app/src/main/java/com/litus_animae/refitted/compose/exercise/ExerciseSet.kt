@@ -66,7 +66,9 @@ fun ColumnScope.ExerciseSetView(
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
-  val weight = remember(exerciseSet, record) { Weight(record.weight) }
+  val weight = rememberSaveable(saver = Weight.Saver, inputs = arrayOf(exerciseSet, record)) {
+    Weight(record.weight)
+  }
   val reps = remember(
     exerciseSet,
     record
