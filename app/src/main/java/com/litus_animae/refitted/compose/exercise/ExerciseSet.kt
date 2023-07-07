@@ -111,13 +111,14 @@ fun ColumnScope.ExerciseSetView(
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       val localRestFormat = stringResource(R.string.seconds_rest_phrase)
+      // FIXME this doesn't seem to be updating when changing exercise sets, maybe derived state is unnecessary
       val timerDisplayTime by remember {
         derivedStateOf {
           if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
           else String.format(localRestFormat, exerciseSet.rest.toFloat())
         }
       }
-      Text(timerDisplayTime)
+      Text(timerDisplayTime, style = MaterialTheme.typography.h4)
     }
     Column(
       Modifier
