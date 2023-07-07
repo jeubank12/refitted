@@ -197,7 +197,7 @@ fun ColumnScope.ExerciseSetView(
           if (setWithRecord.exerciseIncomplete) completeSetPhrase
           else exerciseCompletePhrase
         val buttonText = if (isTimerRunning) cancelRestPhrase else setText
-        Text(buttonText)
+        Text(buttonText, style = MaterialTheme.typography.h5)
       }
     }
   }
