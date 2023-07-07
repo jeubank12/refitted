@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
@@ -45,40 +46,41 @@ fun ColumnScope.ExerciseInstructions(
   Row {
     Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h4)
   }
-  Row(Modifier.padding(vertical = 5.dp)) {
-    Column(Modifier.weight(1f)) {
-      val label = stringResource(id = R.string.target_reps)
-      val target = stringResource(id = R.string.target)
-      val toFailureLabel = stringResource(id = R.string.to_failure)
-      when {
-        setWithRecord == null || exerciseSet == null -> Text("")
-        setWithRecord.reps < 0 -> Text("$label $toFailureLabel")
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text(
-          "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
-        )
+  Row(Modifier.padding(top = 5.dp)) {
+    val label = stringResource(id = R.string.target_reps)
+    val target = stringResource(id = R.string.target)
+    val toFailureLabel = stringResource(id = R.string.to_failure)
+    val targetRepsTextContent = when {
+      setWithRecord == null || exerciseSet == null -> ""
+      setWithRecord.reps < 0 -> "$label $toFailureLabel"
+      exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure ->
+        "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
 
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text(
-          "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
-        )
+      exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure ->
+        "$target ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} ($toFailureLabel)"
 
-        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit}")
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> Text("$target ${setWithRecord.reps} ${exerciseSet.repsUnit} ($toFailureLabel)")
-        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}")
-        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ($toFailureLabel)")
-        exerciseSet.isToFailure -> Text("$label ${setWithRecord.reps} ($toFailureLabel)")
-        else -> Text("$label ${setWithRecord.reps}")
-      }
+      exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> "$target ${setWithRecord.reps} ${exerciseSet.repsUnit}"
+      exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> "$target ${setWithRecord.reps} ${exerciseSet.repsUnit} ($toFailureLabel)"
+      exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> "$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}"
+      exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> "$label ${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ($toFailureLabel)"
+      exerciseSet.isToFailure -> "$label ${setWithRecord.reps} ($toFailureLabel)"
+      else -> "$label ${setWithRecord.reps}"
     }
-    Column(Modifier.weight(1f)) {
-      val label = stringResource(id = R.string.target_sets)
-      val toCompletion = stringResource(id = R.string.sets_to_completion)
-      if (exerciseSet == null) Text("")
-      else if (exerciseSet.sets < 0) Text(toCompletion)
-      else Text("$label ${exerciseSet.sets}")
-    }
+    Text(targetRepsTextContent, style = MaterialTheme.typography.h5)
   }
+  Row(Modifier.padding(top = 5.dp)) {
+    val label = stringResource(id = R.string.target_sets)
+    val toCompletion = stringResource(id = R.string.sets_to_completion)
+    val targetSetsTextContent = when {
+      exerciseSet == null -> ""
+      exerciseSet.sets < 0 -> toCompletion
+      else -> "$label ${exerciseSet.sets}"
+    }
+    Text(targetSetsTextContent, style = MaterialTheme.typography.h6)
+  }
+
   val scrollState = rememberScrollState()
-  Row(Modifier.weight(5f, fill = true)) {
+  Row(Modifier.weight(5f, fill = true).padding(top = 5.dp)) {
     // TODO is there a way to show the scrollbar to indicate scrollability?
     Column(Modifier.verticalScroll(scrollState)) {
       Row(
