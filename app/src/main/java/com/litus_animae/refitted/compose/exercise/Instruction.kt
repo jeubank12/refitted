@@ -43,7 +43,7 @@ fun ColumnScope.ExerciseInstructions(
 ) {
   val exerciseSet = setWithRecord?.exerciseSet
   Row {
-    Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h6)
+    Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h4)
   }
   Row(Modifier.padding(vertical = 5.dp)) {
     Column(Modifier.weight(1f)) {
