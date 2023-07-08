@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -26,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
-import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
@@ -43,6 +46,7 @@ fun ExerciseSetView(
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier.padding(16.dp)) {
@@ -51,7 +55,8 @@ fun ExerciseSetView(
       currentIndex = currentIndex,
       maxIndex = maxIndex,
       updateIndex = updateIndex,
-      onSave = onSave
+      onSave = onSave,
+      onStartEditWeight = onStartEditWeight
     )
   }
 }
@@ -62,7 +67,8 @@ fun ColumnScope.ExerciseSetView(
   currentIndex: Int,
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
-  onSave: (Record) -> Unit
+  onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
@@ -79,8 +85,31 @@ fun ColumnScope.ExerciseSetView(
   val saveReps by reps.value
 
   Row(Modifier.weight(3f)) {
-    Column(Modifier.weight(4f)) {
-      WeightButtons(weight)
+    Column(
+      Modifier
+        .weight(1f)
+        .align(Alignment.CenterVertically)
+    ) {
+      val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
+      val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
+      Text(weightLabel,
+        style = MaterialTheme.typography.h4,
+        modifier = Modifier.align(Alignment.CenterHorizontally))
+      Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+        val displayWeight = String.format("%.1f", saveWeight)
+        Text("$displayWeight $weightUnit",
+          style = MaterialTheme.typography.h5,
+          modifier = Modifier.align(Alignment.CenterVertically))
+        IconButton(
+          onClick = { onStartEditWeight(weight) },
+          modifier = Modifier.align(Alignment.CenterVertically)
+        ) {
+          Icon(
+            Icons.Rounded.Edit,
+            contentDescription = null
+          )
+        }
+      }
     }
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
       RepetitionsButtons(reps)
@@ -237,7 +266,8 @@ fun PreviewExerciseSetDetails() {
         currentIndex = currentIndex,
         maxIndex = 5,
         updateIndex = { newIndex, _ -> currentIndex = newIndex },
-        onSave = { numCompleted += 1 }
+        onSave = { numCompleted += 1 },
+        onStartEditWeight = {}
       )
     }
   }

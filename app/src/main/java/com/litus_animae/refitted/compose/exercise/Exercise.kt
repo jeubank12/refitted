@@ -27,6 +27,7 @@ import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
+import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.*
@@ -45,7 +46,8 @@ fun ExerciseView(
   contentPadding: PaddingValues,
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
-  onAlternateChange: (Int) -> Unit
+  onAlternateChange: (Int) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   // TODO why is this re-evaluated every time?
   val allRecords by model.records.collectAsState(initial = emptyList())
@@ -113,7 +115,8 @@ fun ExerciseView(
             if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
               setIndex(index + it)
           }
-        }
+        },
+        onStartEditWeight = onStartEditWeight
       )
     }
   }
@@ -139,7 +142,8 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
           allSets = emptyFlow()
         ),
         updateIndex = { _, _ -> },
-        onSave = { })
+        onSave = { },
+        onStartEditWeight = {})
     }
   }
 }
@@ -150,7 +154,8 @@ fun DetailView(
   maxIndex: Int,
   setWithRecord: ExerciseSetWithRecord?,
   updateIndex: (Int, Record) -> Unit,
-  onSave: (Record) -> Unit
+  onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   // TODO support fold by specifying features
   val displayFeatures = emptyList<DisplayFeature>()
@@ -168,7 +173,8 @@ fun DetailView(
           index,
           maxIndex,
           updateIndex,
-          onSave
+          onSave,
+          onStartEditWeight
         )
     },
     strategy = strategy,
