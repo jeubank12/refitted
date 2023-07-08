@@ -20,6 +20,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.ExerciseView
+import com.litus_animae.refitted.compose.exercise.input.WeightButtons
+import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
 import com.litus_animae.refitted.models.WorkoutViewModel
@@ -33,7 +35,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalMaterialApi::class)
 @FlowPreview
 @Composable
 fun Exercise(
@@ -45,6 +47,7 @@ fun Exercise(
   val dayWord = stringResource(id = R.string.day)
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
+  val sheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
 
   val loadedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
@@ -85,12 +88,22 @@ fun Exercise(
     scaffoldState = scaffoldState,
     drawerContent = { SetRecordList(flow = historyList) }
   ) {
-    ExerciseView(exerciseModel,
-      workoutPlan = loadedWorkoutPlan,
-      contentPadding = it,
-      setHistoryList = { setHistoryList(it) },
-      setContextMenu = { contextMenu = it },
-      onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) })
+    var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
+    ModalBottomSheetLayout(
+      sheetContent = { Box(Modifier.padding(top = 10.dp, bottom = 10.dp)){WeightButtons(sheetWeight)} },
+      sheetState = sheetState
+    ) {
+      ExerciseView(exerciseModel,
+        workoutPlan = loadedWorkoutPlan,
+        contentPadding = it,
+        setHistoryList = { setHistoryList(it) },
+        setContextMenu = { contextMenu = it },
+        onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) },
+        onStartEditWeight = {
+          sheetWeight = it
+          scaffoldScope.launch { sheetState.show() }
+        })
+    }
   }
 }
 
