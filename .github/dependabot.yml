@@ -17,23 +17,33 @@ updates:
       patterns:
       - "androidx.arch.core*"
       - "androidx.core*"
-    paging:
+    tests:
       patterns:
-      - "*paging*"
+        - "*junit*"
+        - "com.google.truth*"
+        - "*mockito*"
+        - "androidx.test.*"
     compose:
       patterns:
       - "*compose*"
+      - "*accompanist*"
+      exclude-patterns:
+      - "*navigation-compose"
+    paging:
+      patterns:
+        - "*paging*"
     lifecycle:
       patterns:
       - "*lifecycle*"
     kotlin:
       patterns:
       - "org.jetbrains.kotlinx*"
+      - "*ktx"
     hilt:
       patterns:
       - "*hilt*"
       - "*navigation-compose"
-    
+
 
 # Updates for Gradle dependencies used in the app
 - package-ecosystem: gradle
