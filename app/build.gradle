@@ -100,7 +100,7 @@ dependencies {
     implementation "androidx.paging:paging-common-ktx:$paging_version"
     implementation "androidx.paging:paging-runtime-ktx:$paging_version"
     // currently there was no 3.1.1 of paging-compose
-    implementation "androidx.paging:paging-compose:3.2.0-rc01"
+    implementation "androidx.paging:paging-compose:3.2.0"
 
     // UI Tests
     androidTestImplementation('androidx.compose.ui:ui-test-junit4:1.5.0')
