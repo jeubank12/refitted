@@ -68,6 +68,10 @@ updates:
     emotion:
       patterns:
       - "@emotion*"
+    base:
+      patterns:
+      - "typescript"
+      - "esbuild"
 
 # Updates for npm dependencies used in admin
 - package-ecosystem: npm
@@ -87,3 +91,7 @@ updates:
       patterns:
       - "*eslint*"
       - "prettier"
+    base:
+      patterns:
+      - "typescript"
+      - "esbuild"
