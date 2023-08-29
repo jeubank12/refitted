@@ -48,8 +48,7 @@ jobs:
 
   gradle-dependency-submission:
     needs: changes
-    if: ${{ needs.changes.outputs.android == 'true' }}
-    # if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ needs.changes.outputs.android == 'true' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -68,8 +67,8 @@ jobs:
         with:
           gradle-build-module: ":app"
         env:
-          ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: ${{ secrets.REFITTED_IDENTITYPOOLID }}
-          ORG_GRADLE_PROJECT_Refitted_OpenIdSource: ${{ secrets.REFITTED_OPENIDSOURCE }}
+          ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: "not-needed"
+          ORG_GRADLE_PROJECT_Refitted_OpenIdSource: "not-needed"
 
   build-android:
     needs: changes
