@@ -148,7 +148,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_couroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$kotlinx_couroutines_version"
 
-    def compose_version = '1.4.3'
+    def compose_version = '1.5.0'
     implementation "androidx.compose.ui:ui:$compose_version"
     // Tooling support (Previews, etc.)
     implementation "androidx.compose.ui:ui-tooling:$compose_version"
