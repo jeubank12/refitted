@@ -5,37 +5,85 @@
 
 version: 2
 updates:
-    - package-ecosystem: "github-actions"
-      directory: "/"
-      schedule:
-        # Check for updates to GitHub Actions every weekday
-        interval: "weekly"
-      reviewers:
-        - "jeubank12"
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    # Check for updates to GitHub Actions every weekday
+    interval: "weekly"
+  reviewers:
+  - "jeubank12"
+  groups:
+    core:
+      patterns:
+      - "androidx.arch.core*
+      - "androidx.core*
+    paging:
+      patterns:
+      - "*paging*
+    kotlin:
+      patterns:
+      - "org.jetbrains.kotlinx*
+    hilt:
+      patterns:
+      - "*hilt*
+      - "*navigation-compose"
+    
 
 # Updates for Gradle dependencies used in the app
-    - package-ecosystem: gradle
-      directory: "/"
-      schedule:
-        interval: "weekly"
-      open-pull-requests-limit: 10
-      reviewers:
-      - "jeubank12"
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  open-pull-requests-limit: 10
+  reviewers:
+  - "jeubank12"
 
 # Updates for npm dependencies used in web
-    - package-ecosystem: npm
-      directory: "web/"
-      schedule:
-        interval: "weekly"
-      open-pull-requests-limit: 10
-      reviewers:
-      - "jeubank12"
+- package-ecosystem: npm
+  directory: "web/"
+  schedule:
+    interval: "weekly"
+  open-pull-requests-limit: 10
+  reviewers:
+  - "jeubank12"
+  groups:
+    aws:
+      patterns:
+      - "@aws-sdk/*"
+      - "firebase*"
+    next:
+      patterns:
+      - "next*"
+    react:
+      patterns:
+      - "*react*"
+      - "*redux*"
+      - "reselct"
+      exclude-patterns:
+      - "@emotion/react"
+    eslint:
+      patterns:
+      - "*eslint*"
+      - "prettier"
+    emotion:
+      patterns:
+      - "@emotion*"
 
 # Updates for npm dependencies used in admin
-    - package-ecosystem: npm
-      directory: "admin/"
-      schedule:
-        interval: "weekly"
-      open-pull-requests-limit: 10
-      reviewers:
-      - "jeubank12"
+- package-ecosystem: npm
+  directory: "admin/"
+  schedule:
+    interval: "weekly"
+  open-pull-requests-limit: 10
+  reviewers:
+  - "jeubank12"
+  groups:
+    aws:
+      patterns:
+      - "@aws-sdk/*"
+      - "@types/aws*"
+      - "firebase*"
+    eslint:
+      patterns:
+      - "*eslint*"
+      - "prettier"
