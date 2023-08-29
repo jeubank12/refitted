@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.compose.exercise
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
+import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -85,29 +87,39 @@ fun ColumnScope.ExerciseSetView(
   val saveReps by reps.value
 
   Row(Modifier.weight(3f)) {
-    Column(
-      Modifier
-        .weight(1f)
-        .align(Alignment.CenterVertically)
-    ) {
-      val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
-      val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
-      Text(weightLabel,
-        style = MaterialTheme.typography.h4,
-        modifier = Modifier.align(Alignment.CenterHorizontally))
-      Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
-        val displayWeight = String.format("%.1f", saveWeight)
-        Text("$displayWeight $weightUnit",
-          style = MaterialTheme.typography.h5,
-          modifier = Modifier.align(Alignment.CenterVertically))
-        IconButton(
-          onClick = { onStartEditWeight(weight) },
-          modifier = Modifier.align(Alignment.CenterVertically)
-        ) {
+    Column(Modifier.weight(1f)) {
+      Card(
+        Modifier
+          .fillMaxSize()
+          .padding(end = 5.dp)
+      ) {
+        Column(
+          Modifier
+            .fillMaxSize()
+            .padding(5.dp)
+            .clickable { onStartEditWeight(weight) }) {
           Icon(
             Icons.Rounded.Edit,
-            contentDescription = null
+            contentDescription = null,
+            Modifier.align(Alignment.End)
           )
+        }
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+          Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
+            val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
+            Text(
+              weightLabel,
+              style = MaterialTheme.typography.h4,
+              modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            val displayWeight = String.format("%.1f", saveWeight)
+            Text(
+              "$displayWeight $weightUnit",
+              style = MaterialTheme.typography.h5,
+              modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+          }
         }
       }
     }
