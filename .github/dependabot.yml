@@ -20,6 +20,9 @@ updates:
     paging:
       patterns:
       - "*paging*"
+    compose:
+      patterns:
+      - "*compose*"
     kotlin:
       patterns:
       - "org.jetbrains.kotlinx*"
