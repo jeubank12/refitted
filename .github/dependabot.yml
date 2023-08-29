@@ -76,6 +76,9 @@ updates:
       - "typescript"
       - "esbuild"
       - "@types/node"
+    lodash:
+      patterns:
+      - "*lodash*"
 
 # Updates for npm dependencies used in admin
 - package-ecosystem: npm
@@ -100,3 +103,6 @@ updates:
       - "typescript"
       - "esbuild"
       - "@types/node"
+    lodash:
+      patterns:
+      - "*lodash*"
