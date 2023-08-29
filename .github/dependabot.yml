@@ -15,17 +15,17 @@ updates:
   groups:
     core:
       patterns:
-      - "androidx.arch.core*
-      - "androidx.core*
+      - "androidx.arch.core*"
+      - "androidx.core*"
     paging:
       patterns:
-      - "*paging*
+      - "*paging*"
     kotlin:
       patterns:
-      - "org.jetbrains.kotlinx*
+      - "org.jetbrains.kotlinx*"
     hilt:
       patterns:
-      - "*hilt*
+      - "*hilt*"
       - "*navigation-compose"
     
 
