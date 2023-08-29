@@ -70,9 +70,9 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         env:
-          ID_POOLID: ${{ secrets.REFITTED_IDENTITYPOOLID }}
-          OPENID_SOURCE: ${{ secrets.REFITTED_OPENIDSOURCE }}
-        run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
+          ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: ${{ secrets.REFITTED_IDENTITYPOOLID }}
+          ORG_GRADLE_PROJECT_Refitted_OpenIdSource: ${{ secrets.REFITTED_OPENIDSOURCE }}
+        run: ./gradlew assembleMinDebug
 
   build-web:
     needs: changes
