@@ -46,6 +46,29 @@ jobs:
       - name: Block fixup commit merge
         uses: 13rac1/block-fixup-merge-action@v2.0.0
 
+  gradle-dependency-submission:
+    # if: ${{ github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Gradle Dependency Submission
+        uses: mikepenz/gradle-dependency-submission@v0.9.0
+        env:
+          ID_POOLID: "redacted"
+          OPENID_SOURCE: "redacted"
+        # TODO need to pass these env vars into the step
+        # run: ./gradlew assembleMinDebug -PRefitted_IdentityPoolId="$ID_POOLID" -PRefitted_OpenIdSource="ID_POOLID"
+
   build-android:
     needs: changes
     if: ${{ needs.changes.outputs.android == 'true' }}
@@ -60,9 +83,6 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: gradle
-
-      - name: Gradle Dependency Submission
-        uses: mikepenz/gradle-dependency-submission@v0.9.0
         
       - name: Decode google-services.json
         env:
