@@ -44,13 +44,13 @@ fun WeightDisplay(
     val weightUnit = stringResource(id = R.string.lbs)
     Text(
       weightLabel,
-      style = MaterialTheme.typography.h4,
+      style = MaterialTheme.typography.h5,
       modifier = Modifier.align(Alignment.CenterHorizontally)
     )
     val displayWeight = String.format("%.1f", saveWeight)
     Text(
       "$displayWeight $weightUnit",
-      style = MaterialTheme.typography.h5,
+      style = MaterialTheme.typography.h4,
       modifier = Modifier.align(Alignment.CenterHorizontally)
     )
   }
