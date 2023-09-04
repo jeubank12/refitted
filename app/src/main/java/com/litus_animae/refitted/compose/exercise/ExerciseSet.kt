@@ -240,13 +240,11 @@ fun ColumnScope.ExerciseSetView(
           if (exerciseSet.reps(numCompleted) < 0)
             String.format(
               pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
-              saveReps,
-              record.cumulativeReps
+              saveReps
             )
           else String.format(
             pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
-            saveReps,
-            exerciseSet.reps(numCompleted) - record.cumulativeReps
+            saveReps
           )
         }
         val completeSetPhrase = toCompletionSetPhrase
@@ -254,8 +252,7 @@ fun ColumnScope.ExerciseSetView(
             exerciseSet.superSetStep.fold({
               String.format(
                 stringResource(id = R.string.complete_set_of_workout),
-                numCompleted + 1,
-                exerciseSet.sets
+                numCompleted + 1
               )
             }) {
               String.format(
@@ -263,9 +260,7 @@ fun ColumnScope.ExerciseSetView(
                   id = R.plurals.complete_superset_part_x,
                   count = exerciseSet.sets
                 ),
-                it + 1,
-                numCompleted + 1,
-                exerciseSet.sets
+                it + 1
               )
             }
           }

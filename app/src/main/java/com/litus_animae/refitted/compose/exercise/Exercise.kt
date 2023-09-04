@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
 import androidx.window.layout.DisplayFeature
@@ -85,9 +86,9 @@ fun ExerciseView(
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
-      Modifier.align(Alignment.TopCenter)
+      Modifier.align(Alignment.TopCenter).zIndex(100f)
     )
-    Column() {
+    Column {
       DetailView(
         index,
         instructions.size - 1,
@@ -164,6 +165,7 @@ fun DetailView(
       0.5f
     )
     else VerticalTwoPaneStrategy(0.5f)
+  // FIXME there is too much gap between these two panes
   TwoPane(
     @Composable { ExerciseInstructions(setWithRecord) },
     @Composable {
