@@ -26,7 +26,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
@@ -98,8 +97,8 @@ fun ColumnScope.ExerciseSetView(
         SetsDisplay(exerciseSet, numCompleted, record)
       }
     }
-    Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-      RepetitionsButtons(reps)
+    Column(Modifier.weight(1f)) {
+      RepsDisplay(setWithRecord, exerciseSet, reps)
     }
   }
   Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {

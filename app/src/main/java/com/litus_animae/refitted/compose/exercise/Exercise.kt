@@ -169,6 +169,7 @@ fun DetailView(
   TwoPane(
     @Composable { ExerciseInstructions(setWithRecord) },
     @Composable {
+      // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
       if (setWithRecord != null)
         ExerciseSetView(
           setWithRecord,
