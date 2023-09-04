@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -10,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -90,12 +91,12 @@ fun ColumnScope.ExerciseSetView(
     Column(Modifier.weight(1f)) {
       Card(
         Modifier
-          .fillMaxSize()
-          .padding(end = 5.dp)
+          .padding(bottom = 5.dp)
+          .weight(1f)
       ) {
         Column(
           Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(5.dp)
             .clickable { onStartEditWeight(weight) }) {
           Icon(
@@ -104,21 +105,55 @@ fun ColumnScope.ExerciseSetView(
             Modifier.align(Alignment.End)
           )
         }
-        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-          Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            val weightLabel = stringResource(id = com.litus_animae.refitted.R.string.weight_label)
-            val weightUnit = stringResource(id = com.litus_animae.refitted.R.string.lbs)
-            Text(
-              weightLabel,
-              style = MaterialTheme.typography.h4,
-              modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            val displayWeight = String.format("%.1f", saveWeight)
-            Text(
-              "$displayWeight $weightUnit",
-              style = MaterialTheme.typography.h5,
-              modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+        Column(
+          Modifier.fillMaxWidth(),
+          verticalArrangement = Arrangement.Center,
+          horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+          val weightLabel = stringResource(id = R.string.weight_label)
+          val weightUnit = stringResource(id = R.string.lbs)
+          Text(
+            weightLabel,
+            style = MaterialTheme.typography.h4,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+          )
+          val displayWeight = String.format("%.1f", saveWeight)
+          Text(
+            "$displayWeight $weightUnit",
+            style = MaterialTheme.typography.h5,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+          )
+        }
+      }
+      Card(
+        Modifier
+          .fillMaxWidth()
+          .weight(1f)
+      ) {
+        Box(
+          Modifier.fillMaxSize(),
+        ) {
+          Column(
+            Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+          ) {
+            val toCompletionSetPhrase = optionWhen(exerciseSet.sets < 0) {
+              val expectedReps = exerciseSet.reps(numCompleted)
+              if (expectedReps < 0) {
+                // This is a "complete as many as possible" set
+                "${record.cumulativeReps}"
+              } else {
+                // This is a "complete this many reps in as many sets as you need" set
+                "${expectedReps - record.cumulativeReps} / $expectedReps"
+              } to "Reps Completed"
+            }
+            val (setDisplay, setSubtext) = toCompletionSetPhrase
+              .getOrElse {
+                "$numCompleted / ${exerciseSet.sets}" to "Sets Completed"
+              }
+            Text(setDisplay, style = MaterialTheme.typography.h4)
+            Text(setSubtext, style = MaterialTheme.typography.h5)
           }
         }
       }
