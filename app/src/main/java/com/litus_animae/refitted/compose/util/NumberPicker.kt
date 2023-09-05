@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
-import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -26,10 +28,19 @@ import androidx.compose.ui.unit.Dp
 @OptIn(ExperimentalFoundationApi::class)
 fun BoxWithConstraintsScope.NumberPicker(
   pageCount: Int,
+  initialPage: Int,
   pageWidth: Dp,
-  pagerState: PagerState,
-  typography: TextStyle
+  typography: TextStyle,
+  onNumberSettled: (Int) -> Unit
 ) {
+  val pagerState = rememberPagerState(initialPage)
+
+  LaunchedEffect(pagerState) {
+    snapshotFlow { pagerState.settledPage }.collect {
+      onNumberSettled(it)
+    }
+  }
+
   HorizontalPager(
     pageCount = pageCount,
     Modifier.width(maxWidth),

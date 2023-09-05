@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
@@ -70,11 +69,10 @@ fun RepsDisplay(
         exerciseSet.isToFailure -> "${setWithRecord.reps} (MAX)"
         else -> "${setWithRecord.reps}"
       }
-      
-      val typography = MaterialTheme.typography.h3
 
+      val typography = MaterialTheme.typography.h3
       val currentRepsValue by reps.value
-      val pagerState = rememberPagerState(currentRepsValue)
+
       BoxWithConstraints(
         Modifier
           .weight(3f)
@@ -82,7 +80,9 @@ fun RepsDisplay(
       ) {
         val pageWidth = 80.dp
         val pageCount = 101
-        NumberPicker(pageCount, pageWidth, pagerState, typography)
+        NumberPicker(pageCount, currentRepsValue, pageWidth, typography) {
+          reps.set(it)
+        }
       }
       val lineColor = contentColorFor(MaterialTheme.colors.surface)
       Divider(
