@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +25,9 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import arrow.core.None
+import arrow.core.Option
+import arrow.core.getOrElse
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -31,9 +36,16 @@ fun BoxWithConstraintsScope.NumberPicker(
   initialPage: Int,
   pageWidth: Dp,
   typography: TextStyle,
+  pagerSnapDistance: Option<PagerSnapDistance> = None,
   onNumberSettled: (Int) -> Unit
 ) {
   val pagerState = rememberPagerState(initialPage)
+  val flingBehavior = pagerSnapDistance.map{
+    PagerDefaults.flingBehavior(
+      state = pagerState,
+      pagerSnapDistance = it
+    )
+  }.getOrElse { PagerDefaults.flingBehavior(state = pagerState) }
 
   LaunchedEffect(pagerState) {
     snapshotFlow { pagerState.settledPage }.collect {
@@ -46,7 +58,8 @@ fun BoxWithConstraintsScope.NumberPicker(
     Modifier.width(maxWidth),
     contentPadding = PaddingValues(horizontal = (maxWidth - pageWidth) / 2),
     state = pagerState,
-    pageSize = PageSize.Fixed(pageWidth)
+    pageSize = PageSize.Fixed(pageWidth),
+    flingBehavior = flingBehavior
   ) {
     val pageOffset = (
       (pagerState.currentPage - it) + pagerState
