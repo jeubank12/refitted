@@ -98,7 +98,7 @@ fun ColumnScope.ExerciseSetView(
       }
     }
     Column(Modifier.weight(1f)) {
-      RepsDisplay(setWithRecord, exerciseSet, reps)
+      RepsDisplay(setWithRecord, reps)
     }
   }
   Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
