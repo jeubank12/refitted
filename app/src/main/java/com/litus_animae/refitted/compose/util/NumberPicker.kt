@@ -31,6 +31,7 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.getOrElse
 
+// TODO this would go great with some unit tests
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 fun BoxWithConstraintsScope.NumberPicker(
@@ -50,6 +51,7 @@ fun BoxWithConstraintsScope.NumberPicker(
   }.getOrElse { PagerDefaults.flingBehavior(state = pagerState) }
 
   LaunchedEffect(initialPage) {
+    // FIXME if you change exercises too quickly you get an in-between value
     pagerState.animateScrollToPage(initialPage)
   }
 
