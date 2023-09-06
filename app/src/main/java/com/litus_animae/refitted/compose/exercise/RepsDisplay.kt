@@ -86,8 +86,7 @@ fun RepsDisplay(
           pageCount = pageCount,
           initialPage = currentRepsValue,
           pageWidth = pageWidth,
-          typography = typography,
-          pagerSnapDistance = Some(PagerSnapDistance.atMost(2))
+          typography = typography
         ) {
           reps.set(it)
         }
