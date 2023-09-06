@@ -14,6 +14,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -47,9 +49,15 @@ fun BoxWithConstraintsScope.NumberPicker(
     )
   }.getOrElse { PagerDefaults.flingBehavior(state = pagerState) }
 
+  LaunchedEffect(initialPage) {
+    pagerState.animateScrollToPage(initialPage)
+  }
+
+  val currentOnNumberSettled by rememberUpdatedState(onNumberSettled)
+
   LaunchedEffect(pagerState) {
     snapshotFlow { pagerState.settledPage }.collect {
-      onNumberSettled(it)
+      currentOnNumberSettled(it)
     }
   }
 
