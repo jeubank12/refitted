@@ -36,7 +36,7 @@ fun ExerciseInstructions(
   setWithRecord: ExerciseSetWithRecord?,
   modifier: Modifier = Modifier
 ) {
-  Card(modifier.padding(16.dp)) {
+  Card(modifier) {
     Column {
       CompositionLocalProvider(
         LocalOverscrollConfiguration provides null
@@ -64,7 +64,10 @@ private fun ColumnScope.ExerciseInstructions(
       contentPadding = PaddingValues(bottom = 5.dp)
     ) {
       stickyHeader {
-        Surface(Modifier.fillMaxWidth().padding(bottom = 5.dp)) {
+        Surface(
+          Modifier
+            .fillMaxWidth()
+            .padding(bottom = 5.dp)) {
           Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h4)
         }
       }
