@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
@@ -28,7 +27,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import arrow.core.Some
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
@@ -45,11 +43,7 @@ fun RepsDisplay(
   reps: Repetitions
 ) {
   val exerciseSet = setWithRecord.exerciseSet
-  Card(
-    Modifier
-      .fillMaxSize()
-      .padding(start = 5.dp)
-  ) {
+  Card(Modifier.fillMaxSize()) {
     Column(
       Modifier.padding(bottom = 5.dp),
       verticalArrangement = Arrangement.Center,

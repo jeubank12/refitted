@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
@@ -86,7 +87,9 @@ fun ExerciseView(
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
-      Modifier.align(Alignment.TopCenter).zIndex(100f)
+      Modifier
+        .align(Alignment.TopCenter)
+        .zIndex(100f)
     )
     Column {
       DetailView(
@@ -160,14 +163,20 @@ fun DetailView(
 ) {
   // TODO support fold by specifying features
   val displayFeatures = emptyList<DisplayFeature>()
-  val strategy =
-    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) HorizontalTwoPaneStrategy(
-      0.5f
+  val (strategy, paddingValuesFirst, paddingValuesSecond) =
+    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE)
+      Triple(
+        HorizontalTwoPaneStrategy(0.5f, 16.dp),
+        PaddingValues(top = 16.dp, start = 16.dp, bottom = 16.dp),
+        PaddingValues(top = 16.dp, end = 16.dp, bottom = 16.dp)
+      )
+    else Triple(
+      VerticalTwoPaneStrategy(0.5f, 16.dp),
+      PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
+      PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
     )
-    else VerticalTwoPaneStrategy(0.5f)
-  // FIXME there is too much gap between these two panes
   TwoPane(
-    @Composable { ExerciseInstructions(setWithRecord) },
+    @Composable { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
     @Composable {
       // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
       if (setWithRecord != null)
@@ -177,7 +186,8 @@ fun DetailView(
           maxIndex,
           updateIndex,
           onSave,
-          onStartEditWeight
+          onStartEditWeight,
+          Modifier.padding(paddingValuesSecond)
         )
     },
     strategy = strategy,

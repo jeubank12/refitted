@@ -45,7 +45,7 @@ fun ExerciseSetView(
   onStartEditWeight: (Weight) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Column(modifier.padding(16.dp)) {
+  Column(modifier) {
     ExerciseSetView(
       setWithRecord = setWithRecord,
       currentIndex = currentIndex,
@@ -81,10 +81,13 @@ fun ColumnScope.ExerciseSetView(
   val saveReps by reps.value
 
   Row(Modifier.weight(3f)) {
-    Column(Modifier.weight(1f)) {
+    Column(
+      Modifier
+        .weight(1f)
+        .padding(end = 8.dp)) {
       Card(
         Modifier
-          .padding(bottom = 5.dp)
+          .padding(bottom = 8.dp)
           .weight(1f)
       ) {
         WeightDisplay(onStartEditWeight, weight, saveWeight)
@@ -92,12 +95,16 @@ fun ColumnScope.ExerciseSetView(
       Card(
         Modifier
           .fillMaxWidth()
+          .padding(top = 8.dp)
           .weight(1f)
       ) {
         SetsDisplay(exerciseSet, numCompleted, record)
       }
     }
-    Column(Modifier.weight(1f)) {
+    Column(
+      Modifier
+        .weight(1f)
+        .padding(start = 8.dp)) {
       RepsDisplay(setWithRecord, reps)
     }
   }
