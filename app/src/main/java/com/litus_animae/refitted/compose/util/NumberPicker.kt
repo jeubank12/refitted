@@ -15,6 +15,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.BiasAlignment
@@ -43,23 +45,26 @@ fun BoxWithConstraintsScope.NumberPicker(
   onNumberSettled: (Int) -> Unit
 ) {
   val pagerState = rememberPagerState(initialPage)
-  val flingBehavior = pagerSnapDistance.map{
+  val flingBehavior = pagerSnapDistance.map {
     PagerDefaults.flingBehavior(
       state = pagerState,
       pagerSnapDistance = it
     )
   }.getOrElse { PagerDefaults.flingBehavior(state = pagerState) }
 
+  val isTransitioning = remember { mutableStateOf(false) }
   LaunchedEffect(initialPage) {
-    // FIXME if you change exercises too quickly you get an in-between value
+    isTransitioning.value = true
     pagerState.animateScrollToPage(initialPage)
+    isTransitioning.value = false
   }
 
   val currentOnNumberSettled by rememberUpdatedState(onNumberSettled)
 
   LaunchedEffect(pagerState) {
     snapshotFlow { pagerState.settledPage }.collect {
-      currentOnNumberSettled(it)
+      if (!isTransitioning.value)
+        currentOnNumberSettled(it)
     }
   }
 
