@@ -44,7 +44,7 @@ fun BoxWithConstraintsScope.NumberPicker(
   pagerSnapDistance: Option<PagerSnapDistance> = None,
   onNumberSettled: (Int) -> Unit
 ) {
-  val pagerState = rememberPagerState(initialPage)
+  val pagerState = rememberPagerState(initialPage) { pageCount }
   val flingBehavior = pagerSnapDistance.map {
     PagerDefaults.flingBehavior(
       state = pagerState,
@@ -69,10 +69,9 @@ fun BoxWithConstraintsScope.NumberPicker(
   }
 
   HorizontalPager(
-    pageCount = pageCount,
+    pagerState,
     Modifier.width(maxWidth),
     contentPadding = PaddingValues(horizontal = (maxWidth - pageWidth) / 2),
-    state = pagerState,
     pageSize = PageSize.Fixed(pageWidth),
     flingBehavior = flingBehavior
   ) {
