@@ -95,6 +95,7 @@ dependencies {
     implementation "androidx.arch.core:core-common:$android_core_version"
     implementation 'androidx.core:core-ktx:1.10.1'
 
+    // this version of room is not compatible with kotlin 1.9.0. see previous issues with kotlinx-metadata-jvm
     def room_version = '2.5.2'
     implementation "androidx.room:room-paging:$room_version"
     def paging_version = '3.2.0'
