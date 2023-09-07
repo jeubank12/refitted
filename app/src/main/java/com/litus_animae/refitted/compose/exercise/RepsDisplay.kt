@@ -49,21 +49,20 @@ fun RepsDisplay(
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      // FIXME MAX is toFailure....
-      val targetRepsTextContent = when {
-        setWithRecord.reps < 0 -> "MAX"
+      val (targetRepsTextContent, showToFailure) = when {
+        setWithRecord.reps < 0 -> "MAX" to false
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure ->
-          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}"
+          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}" to false
 
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure ->
-          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit} (MAX)"
+          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}" to true
 
-        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit}"
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit} (MAX)"
-        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}"
-        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} (MAX)"
-        exerciseSet.isToFailure -> "${setWithRecord.reps} (MAX)"
-        else -> "${setWithRecord.reps}"
+        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit}" to false
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit}" to true
+        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to false
+        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to true
+        exerciseSet.isToFailure -> "${setWithRecord.reps}" to true
+        else -> "${setWithRecord.reps}" to false
       }
 
       val typography = MaterialTheme.typography.h3
@@ -100,6 +99,9 @@ fun RepsDisplay(
           // FIXME when "seconds" it doesn't fit
           // TODO probably use java period for localization
           Text(targetRepsTextContent, style = typography)
+          if (showToFailure) {
+            Text("(to failure)", style = MaterialTheme.typography.h6)
+          }
         }
       }
 
