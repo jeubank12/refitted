@@ -30,6 +30,9 @@ buildscript {
 //plugins {
 //    id 'nebula.lint' version '17.8.0'
 //}
+plugins {
+    id 'com.google.devtools.ksp' version '1.8.22-1.0.11' apply false
+}
 
 allprojects {
 //    apply plugin :"nebula.lint"
