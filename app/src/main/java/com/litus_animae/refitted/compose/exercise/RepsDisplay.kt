@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.capitalize
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -49,20 +51,23 @@ fun RepsDisplay(
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      val (targetRepsTextContent, showToFailure) = when {
-        setWithRecord.reps < 0 -> "MAX" to false
+
+      val (targetRepsTextContent, subtext) = when {
+        setWithRecord.reps < 0 -> "MAX" to ""
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && !exerciseSet.isToFailure ->
-          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}" to false
+          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to ""
 
         exerciseSet.repsUnit.isNotBlank() && exerciseSet.repsRange > 0 && exerciseSet.isToFailure ->
-          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange} ${exerciseSet.repsUnit}" to true
+          "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to "(or to failure)"
 
-        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit}" to false
-        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> "${setWithRecord.reps} ${exerciseSet.repsUnit}" to true
-        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to false
-        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to true
-        exerciseSet.isToFailure -> "${setWithRecord.reps}" to true
-        else -> "${setWithRecord.reps}" to false
+        exerciseSet.repsUnit.isNotBlank() && !exerciseSet.isToFailure -> "${setWithRecord.reps}" to ""
+
+        exerciseSet.repsUnit.isNotBlank() && exerciseSet.isToFailure -> "${setWithRecord.reps}" to "(or to failure)"
+
+        exerciseSet.repsRange > 0 && !exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to ""
+        exerciseSet.repsRange > 0 && exerciseSet.isToFailure -> "${setWithRecord.reps}-${setWithRecord.reps + exerciseSet.repsRange}" to "(to failure)"
+        exerciseSet.isToFailure -> "${setWithRecord.reps}" to "(to failure)"
+        else -> "${setWithRecord.reps}" to ""
       }
 
       val typography = MaterialTheme.typography.h3
@@ -96,16 +101,13 @@ fun RepsDisplay(
           verticalArrangement = Arrangement.Top,
           horizontalAlignment = Alignment.CenterHorizontally
         ) {
-          // FIXME when "seconds" it doesn't fit
-          // TODO probably use java period for localization
           Text(targetRepsTextContent, style = typography)
-          if (showToFailure) {
-            Text("(to failure)", style = MaterialTheme.typography.h6)
-          }
+          Text(subtext, style = MaterialTheme.typography.h6)
         }
       }
 
-      val repsLabel = stringResource(id = R.string.reps_label)
+      val repsLabel = exerciseSet.repsUnit.capitalize(Locale.current)
+        .ifBlank { stringResource(id = R.string.reps_label) }
       Text(
         repsLabel,
         style = MaterialTheme.typography.h5,
