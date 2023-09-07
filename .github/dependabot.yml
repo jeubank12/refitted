@@ -30,6 +30,7 @@ updates:
       exclude-patterns:
       - "*navigation-compose"
       - "*lifecycle*"
+      - "*activity-compose"
     paging:
       patterns:
         - "*paging*"
