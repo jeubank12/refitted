@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
 import androidx.window.layout.DisplayFeature
@@ -27,6 +29,7 @@ import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
+import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.*
@@ -45,7 +48,8 @@ fun ExerciseView(
   contentPadding: PaddingValues,
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
-  onAlternateChange: (Int) -> Unit
+  onAlternateChange: (Int) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   // TODO why is this re-evaluated every time?
   val allRecords by model.records.collectAsState(initial = emptyList())
@@ -83,9 +87,11 @@ fun ExerciseView(
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
-      Modifier.align(Alignment.TopCenter)
+      Modifier
+        .align(Alignment.TopCenter)
+        .zIndex(100f)
     )
-    Column() {
+    Column {
       DetailView(
         index,
         instructions.size - 1,
@@ -113,7 +119,8 @@ fun ExerciseView(
             if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
               setIndex(index + it)
           }
-        }
+        },
+        onStartEditWeight = onStartEditWeight
       )
     }
   }
@@ -139,7 +146,8 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
           allSets = emptyFlow()
         ),
         updateIndex = { _, _ -> },
-        onSave = { })
+        onSave = { },
+        onStartEditWeight = {})
     }
   }
 }
@@ -150,25 +158,36 @@ fun DetailView(
   maxIndex: Int,
   setWithRecord: ExerciseSetWithRecord?,
   updateIndex: (Int, Record) -> Unit,
-  onSave: (Record) -> Unit
+  onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   // TODO support fold by specifying features
   val displayFeatures = emptyList<DisplayFeature>()
-  val strategy =
-    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) HorizontalTwoPaneStrategy(
-      0.5f
+  val (strategy, paddingValuesFirst, paddingValuesSecond) =
+    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE)
+      Triple(
+        HorizontalTwoPaneStrategy(0.5f, 16.dp),
+        PaddingValues(top = 16.dp, start = 16.dp, bottom = 16.dp),
+        PaddingValues(top = 16.dp, end = 16.dp, bottom = 16.dp)
+      )
+    else Triple(
+      VerticalTwoPaneStrategy(0.5f, 16.dp),
+      PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
+      PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
     )
-    else VerticalTwoPaneStrategy(0.5f)
   TwoPane(
-    @Composable { ExerciseInstructions(setWithRecord) },
+    @Composable { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
     @Composable {
+      // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
       if (setWithRecord != null)
         ExerciseSetView(
           setWithRecord,
           index,
           maxIndex,
           updateIndex,
-          onSave
+          onSave,
+          onStartEditWeight,
+          Modifier.padding(paddingValuesSecond)
         )
     },
     strategy = strategy,

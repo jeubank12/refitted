@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +26,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.input.RepetitionsButtons
-import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
@@ -43,15 +42,17 @@ fun ExerciseSetView(
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Column(modifier.padding(16.dp)) {
+  Column(modifier) {
     ExerciseSetView(
       setWithRecord = setWithRecord,
       currentIndex = currentIndex,
       maxIndex = maxIndex,
       updateIndex = updateIndex,
-      onSave = onSave
+      onSave = onSave,
+      onStartEditWeight = onStartEditWeight
     )
   }
 }
@@ -62,7 +63,8 @@ fun ColumnScope.ExerciseSetView(
   currentIndex: Int,
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
-  onSave: (Record) -> Unit
+  onSave: (Record) -> Unit,
+  onStartEditWeight: (Weight) -> Unit
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
@@ -79,11 +81,31 @@ fun ColumnScope.ExerciseSetView(
   val saveReps by reps.value
 
   Row(Modifier.weight(3f)) {
-    Column(Modifier.weight(4f)) {
-      WeightButtons(weight)
+    Column(
+      Modifier
+        .weight(1f)
+        .padding(end = 8.dp)) {
+      Card(
+        Modifier
+          .padding(bottom = 8.dp)
+          .weight(1f)
+      ) {
+        WeightDisplay(onStartEditWeight, weight, saveWeight)
+      }
+      Card(
+        Modifier
+          .fillMaxWidth()
+          .padding(top = 8.dp)
+          .weight(1f)
+      ) {
+        SetsDisplay(exerciseSet, numCompleted, record)
+      }
     }
-    Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-      RepetitionsButtons(reps)
+    Column(
+      Modifier
+        .weight(1f)
+        .padding(start = 8.dp)) {
+      RepsDisplay(setWithRecord, reps)
     }
   }
   Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
@@ -111,13 +133,14 @@ fun ColumnScope.ExerciseSetView(
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       val localRestFormat = stringResource(R.string.seconds_rest_phrase)
+      // FIXME this doesn't seem to be updating when changing exercise sets, maybe derived state is unnecessary
       val timerDisplayTime by remember {
         derivedStateOf {
           if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
           else String.format(localRestFormat, exerciseSet.rest.toFloat())
         }
       }
-      Text(timerDisplayTime)
+      Text(timerDisplayTime, style = MaterialTheme.typography.h4)
     }
     Column(
       Modifier
@@ -163,13 +186,11 @@ fun ColumnScope.ExerciseSetView(
           if (exerciseSet.reps(numCompleted) < 0)
             String.format(
               pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
-              saveReps,
-              record.cumulativeReps
+              saveReps
             )
           else String.format(
             pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
-            saveReps,
-            exerciseSet.reps(numCompleted) - record.cumulativeReps
+            saveReps
           )
         }
         val completeSetPhrase = toCompletionSetPhrase
@@ -177,8 +198,7 @@ fun ColumnScope.ExerciseSetView(
             exerciseSet.superSetStep.fold({
               String.format(
                 stringResource(id = R.string.complete_set_of_workout),
-                numCompleted + 1,
-                exerciseSet.sets
+                numCompleted + 1
               )
             }) {
               String.format(
@@ -186,9 +206,7 @@ fun ColumnScope.ExerciseSetView(
                   id = R.plurals.complete_superset_part_x,
                   count = exerciseSet.sets
                 ),
-                it + 1,
-                numCompleted + 1,
-                exerciseSet.sets
+                it + 1
               )
             }
           }
@@ -196,7 +214,7 @@ fun ColumnScope.ExerciseSetView(
           if (setWithRecord.exerciseIncomplete) completeSetPhrase
           else exerciseCompletePhrase
         val buttonText = if (isTimerRunning) cancelRestPhrase else setText
-        Text(buttonText)
+        Text(buttonText, style = MaterialTheme.typography.h5)
       }
     }
   }
@@ -236,7 +254,8 @@ fun PreviewExerciseSetDetails() {
         currentIndex = currentIndex,
         maxIndex = 5,
         updateIndex = { newIndex, _ -> currentIndex = newIndex },
-        onSave = { numCompleted += 1 }
+        onSave = { numCompleted += 1 },
+        onStartEditWeight = {}
       )
     }
   }

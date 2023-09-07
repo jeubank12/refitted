@@ -17,7 +17,7 @@ android {
         compileSdk 33
         targetSdkVersion 33
         versionCode 3326205
-        versionName "1.1.6-SNAPSHOT"
+        versionName "1.2.0-SNAPSHOT"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         javaCompileOptions {

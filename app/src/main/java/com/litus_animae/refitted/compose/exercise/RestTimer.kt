@@ -81,7 +81,7 @@ private fun DrawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Bool
   Canvas(
     Modifier
       .fillMaxWidth()
-      .height(10.dp)
+      .height(20.dp)
       .background(MaterialTheme.colors.surface)
   ) {
     val offsetMillis = if (countDown) millisToElapse - elapsedMillis else elapsedMillis
@@ -94,14 +94,14 @@ private fun DrawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Bool
         elapsedColor,
         start = startOffset,
         end = elapsedOffset,
-        strokeWidth = 10f
+        strokeWidth = 20f
       )
     }
     drawLine(
       drawColor,
       start = elapsedOffset,
       end = endOffset,
-      strokeWidth = 10f
+      strokeWidth = 20f
     )
   }
 }
