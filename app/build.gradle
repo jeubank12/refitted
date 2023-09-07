@@ -91,7 +91,8 @@ android {
 
 dependencies {
 
-    implementation 'androidx.activity:activity-ktx:1.7.2'
+    def activity_version = '1.7.2'
+    implementation "androidx.activity:activity-ktx:$activity_version"
     // this may be used for some sort of error reporting
     // want to replace with crashlytics
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
@@ -166,7 +167,7 @@ dependencies {
     // Integration with observables
     implementation "androidx.compose.runtime:runtime-livedata"
     // Integration with activities
-    implementation 'androidx.activity:activity-compose:1.7.2'
+    implementation "androidx.activity:activity-compose:$activity_version"
     // Animations
     implementation "androidx.compose.animation:animation"
     // Integration with ViewModels
