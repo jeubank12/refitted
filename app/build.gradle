@@ -169,7 +169,7 @@ dependencies {
     // Animations
     implementation "androidx.compose.animation:animation"
     // Integration with ViewModels
-    def lifecycle_version = '2.6.1'
+    def lifecycle_version = '2.6.2'
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
 
