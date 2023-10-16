@@ -88,7 +88,7 @@ android {
 
 dependencies {
 
-    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.activity:activity-ktx:1.8.0'
     // this may be used for some sort of error reporting
     // want to replace with crashlytics
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
