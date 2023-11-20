@@ -165,7 +165,7 @@ dependencies {
     // Integration with observables
     implementation "androidx.compose.runtime:runtime-livedata"
     // Integration with activities
-    implementation 'androidx.activity:activity-compose:1.7.2'
+    implementation 'androidx.activity:activity-compose:1.8.1'
     // Animations
     implementation "androidx.compose.animation:animation"
     // Integration with ViewModels
