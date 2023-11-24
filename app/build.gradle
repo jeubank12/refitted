@@ -127,14 +127,13 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-core:$aws_android_sdk_version"
     implementation "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_android_sdk_version"
 
-    def hilt_compiler_version = '1.0.0'
+    def hilt_compiler_version = '1.1.0'
     implementation "com.google.dagger:hilt-android:$hilt_android_version"
     kapt "com.google.dagger:hilt-android-compiler:$hilt_android_version"
     annotationProcessor "com.google.dagger:hilt-android-compiler:$hilt_android_version"
     implementation 'androidx.navigation:navigation-compose:2.6.0'
-    implementation 'androidx.hilt:hilt-navigation-compose:1.1.0'
-    kapt "androidx.hilt:hilt-compiler:$hilt_compiler_version"
-    annotationProcessor "androidx.hilt:hilt-compiler:$hilt_compiler_version"
+    implementation "androidx.hilt:hilt-navigation-compose:$hilt_compiler_version"
+    ksp "androidx.hilt:hilt-compiler:$hilt_compiler_version"
 
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
 
