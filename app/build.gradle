@@ -73,7 +73,7 @@ android {
         freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.4.8'
+        kotlinCompilerExtensionVersion '1.5.4'
     }
     namespace 'com.litus_animae.refitted'
     
