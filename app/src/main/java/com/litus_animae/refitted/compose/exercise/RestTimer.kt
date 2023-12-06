@@ -76,7 +76,7 @@ fun Timer(
 
 @Composable
 private fun DrawTimer(millisToElapse: Long, elapsedMillis: Long, countDown: Boolean) {
-  val drawColor = MaterialTheme.colors.onSurface
+  val drawColor = MaterialTheme.colors.onPrimary
   val elapsedColor = MaterialTheme.colors.primary
   Canvas(
     Modifier
