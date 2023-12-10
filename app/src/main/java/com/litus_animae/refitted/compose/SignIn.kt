@@ -20,6 +20,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.SignInButton
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.UserViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 

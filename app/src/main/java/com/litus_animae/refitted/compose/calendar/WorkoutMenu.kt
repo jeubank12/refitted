@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +17,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf

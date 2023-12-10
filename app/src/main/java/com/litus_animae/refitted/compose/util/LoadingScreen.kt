@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.util
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.CircularProgressIndicator
