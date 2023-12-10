@@ -117,10 +117,10 @@ class WorkoutViewModel @Inject constructor(
       log.d(TAG, "Setting currentWorkout $workout")
       _currentWorkout.value = workout
       log.d(TAG, "Saving selected plan $workout")
-      savedStateHandle.set(selectedPlan, workout.workout)
-      savedStateHandle.set(selectedPlanDays, workout.totalDays)
-      savedStateHandle.set(lastDay, workout.lastViewedDay)
-      savedStateHandle.set(selectedPlanStartDate, workout.workoutStartDate.toEpochMilli())
+      savedStateHandle[selectedPlan] = workout.workout
+      savedStateHandle[selectedPlanDays] = workout.totalDays
+      savedStateHandle[lastDay] = workout.lastViewedDay
+      savedStateHandle[selectedPlanStartDate] = workout.workoutStartDate.toEpochMilli()
       savedStateRepo.setState(selectedPlan, workout.workout)
       workoutPlanRepo.workoutByName(workout.workout).first()?.let { newWorkoutPlan ->
         if (newWorkoutPlan != workout) {
@@ -128,9 +128,9 @@ class WorkoutViewModel @Inject constructor(
             TAG,
             "Updating saved selected plan with new values $newWorkoutPlan"
           )
-          savedStateHandle.set(lastDay, newWorkoutPlan.lastViewedDay)
+          savedStateHandle[lastDay] = newWorkoutPlan.lastViewedDay
 
-          savedStateHandle.set(selectedPlanDays, newWorkoutPlan.totalDays)
+          savedStateHandle[selectedPlanDays] = newWorkoutPlan.totalDays
         }
       }
     }
@@ -139,7 +139,7 @@ class WorkoutViewModel @Inject constructor(
   fun setLastViewedDay(workout: WorkoutPlan, day: Int) {
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Setting last viewed day $day")
-      savedStateHandle.set(lastDay, day)
+      savedStateHandle[lastDay] = day
       workoutPlanRepo.setWorkoutLastViewedDay(workout, day)
     }
   }
@@ -148,7 +148,7 @@ class WorkoutViewModel @Inject constructor(
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Setting start date for plan $workout")
       val now = Instant.now()
-      savedStateHandle.set(selectedPlanStartDate, now.toEpochMilli())
+      savedStateHandle[selectedPlanStartDate] = now.toEpochMilli()
       workoutPlanRepo.setWorkoutStartDate(workout, now)
     }
   }
