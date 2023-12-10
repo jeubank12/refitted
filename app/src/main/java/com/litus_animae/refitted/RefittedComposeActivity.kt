@@ -22,10 +22,8 @@ import com.litus_animae.refitted.compose.Top
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.UserViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @FlowPreview
 @AndroidEntryPoint
 class RefittedComposeActivity : AppCompatActivity() {
