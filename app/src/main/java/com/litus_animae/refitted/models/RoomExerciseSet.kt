@@ -4,8 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import arrow.core.flattenOption
-import arrow.core.toOption
 import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 
 @Entity(

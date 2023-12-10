@@ -1,8 +1,6 @@
 package com.litus_animae.refitted.data
 
-import androidx.paging.PagingData
 import com.litus_animae.refitted.models.SavedState
-import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.flow.Flow
 
 interface SavedStateRepository {

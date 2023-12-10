@@ -1,8 +1,6 @@
 package com.litus_animae.refitted.module
 
 import com.litus_animae.refitted.data.SavedStateRepository
-import com.litus_animae.refitted.data.WorkoutPlanRepository
-import com.litus_animae.refitted.data.room.RoomCacheWorkoutPlanRepository
 import com.litus_animae.refitted.data.room.RoomSavedStateRepository
 import dagger.Binds
 import dagger.Module

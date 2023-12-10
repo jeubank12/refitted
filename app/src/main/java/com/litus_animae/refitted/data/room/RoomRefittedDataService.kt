@@ -3,7 +3,6 @@ package com.litus_animae.refitted.data.room
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
-import java.lang.ref.WeakReference
 
 object RoomRefittedDataService {
     private const val TAG = "RoomExerciseDataService"
