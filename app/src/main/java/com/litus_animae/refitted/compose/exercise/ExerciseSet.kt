@@ -1,17 +1,19 @@
 package com.litus_animae.refitted.compose.exercise
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -86,7 +88,8 @@ fun ColumnScope.ExerciseSetView(
     Column(
       Modifier
         .weight(1f)
-        .padding(end = 8.dp)) {
+        .padding(end = 8.dp)
+    ) {
       Card(
         Modifier
           .padding(bottom = 8.dp)
@@ -106,15 +109,21 @@ fun ColumnScope.ExerciseSetView(
     Column(
       Modifier
         .weight(1f)
-        .padding(start = 8.dp)) {
+        .padding(start = 8.dp)
+    ) {
       RepsDisplay(setWithRecord, reps)
     }
   }
-  Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+  val isTimerRunning by timerRunning
+  Row(
+    Modifier.height(80.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
     Column(
       Modifier
         .weight(1f)
-        .fillMaxWidth()
+        .fillMaxWidth(),
+      verticalArrangement = Arrangement.Center
     ) {
       val enabled = currentIndex > 0
       Button(
@@ -139,11 +148,18 @@ fun ColumnScope.ExerciseSetView(
         if (timerRunning.value) String.format(localRestFormat, timerMillis.longValue / 1000f)
         else String.format(localRestFormat, exerciseSet.rest.toFloat())
       Text(timerDisplayTime, style = MaterialTheme.typography.h4)
+      AnimatedVisibility(isTimerRunning || exerciseSet.rest > 0) {
+        Timer(isTimerRunning,
+          millisToElapse = exerciseSet.rest * 1000L,
+          countDown = true,
+          onUpdate = { timerMillis.longValue = it }) { timerRunning.value = false }
+      }
     }
     Column(
       Modifier
         .weight(1f)
-        .fillMaxWidth()
+        .fillMaxWidth(),
+      horizontalAlignment = Alignment.End
     ) {
       val enabled = currentIndex < maxIndex
       Button(
@@ -160,61 +176,52 @@ fun ColumnScope.ExerciseSetView(
       }
     }
   }
-  Row(Modifier.weight(1f)) {
-    Column {
-      val isTimerRunning by timerRunning
-      Timer(isTimerRunning,
-        millisToElapse = exerciseSet.rest * 1000L,
-        countDown = true,
-        onUpdate = { timerMillis.longValue = it }) { timerRunning.value = false }
-      Button(
-        onClick = {
-          if (!isTimerRunning) {
-            onSave(record.copy(weight = saveWeight, reps = saveReps))
-            timerMillis.longValue = exerciseSet.rest * 1000L
-          }
-          if (exerciseSet.rest > 0 || isTimerRunning) timerRunning.value = !isTimerRunning
-        },
-        Modifier.fillMaxWidth(),
-        enabled = setWithRecord.exerciseIncomplete
-      ) {
-        val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
-        val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
-        val toCompletionSetPhrase = optionWhen(exerciseSet.sets < 0) {
-          if (exerciseSet.reps(numCompleted) < 0)
-            String.format(
-              pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
-              saveReps
-            )
-          else String.format(
-            pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
-            saveReps
+  Button(
+    onClick = {
+      if (!isTimerRunning) {
+        onSave(record.copy(weight = saveWeight, reps = saveReps))
+        timerMillis.longValue = exerciseSet.rest * 1000L
+      }
+      if (exerciseSet.rest > 0 || isTimerRunning) timerRunning.value = !isTimerRunning
+    },
+    Modifier.fillMaxWidth(),
+    enabled = setWithRecord.exerciseIncomplete
+  ) {
+    val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
+    val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
+    val toCompletionSetPhrase = optionWhen(exerciseSet.sets < 0) {
+      if (exerciseSet.reps(numCompleted) < 0)
+        String.format(
+          pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
+          saveReps
+        )
+      else String.format(
+        pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
+        saveReps
+      )
+    }
+    val completeSetPhrase = toCompletionSetPhrase
+      .getOrElse {
+        exerciseSet.superSetStep.fold({
+          String.format(
+            stringResource(id = R.string.complete_set_of_workout),
+            numCompleted + 1
+          )
+        }) {
+          String.format(
+            pluralStringResource(
+              id = R.plurals.complete_superset_part_x,
+              count = exerciseSet.sets
+            ),
+            it + 1
           )
         }
-        val completeSetPhrase = toCompletionSetPhrase
-          .getOrElse {
-            exerciseSet.superSetStep.fold({
-              String.format(
-                stringResource(id = R.string.complete_set_of_workout),
-                numCompleted + 1
-              )
-            }) {
-              String.format(
-                pluralStringResource(
-                  id = R.plurals.complete_superset_part_x,
-                  count = exerciseSet.sets
-                ),
-                it + 1
-              )
-            }
-          }
-        val setText =
-          if (setWithRecord.exerciseIncomplete) completeSetPhrase
-          else exerciseCompletePhrase
-        val buttonText = if (isTimerRunning) cancelRestPhrase else setText
-        Text(buttonText, style = MaterialTheme.typography.h5)
       }
-    }
+    val setText =
+      if (setWithRecord.exerciseIncomplete) completeSetPhrase
+      else exerciseCompletePhrase
+    val buttonText = if (isTimerRunning) cancelRestPhrase else setText
+    Text(buttonText, style = MaterialTheme.typography.h5)
   }
 }
 
