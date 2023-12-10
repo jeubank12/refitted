@@ -7,6 +7,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -19,25 +20,25 @@ fun ColumnScope.ExerciseTimer(
   timeLimitMilliseconds: Long?
 ) {
   val exerciseTimerRunning = rememberSaveable { mutableStateOf(false) }
-  val exerciseTimerMillis = rememberSaveable { mutableStateOf(0L) }
+  val exerciseTimerMillis = rememberSaveable { mutableLongStateOf(0L) }
   val isExerciseTimerRunning by exerciseTimerRunning
   Timer(isExerciseTimerRunning,
     millisToElapse = timeLimitMilliseconds ?: 0,
     countDown = true,
     animateTimer = false,
-    onUpdate = { exerciseTimerMillis.value = it }) { exerciseTimerRunning.value = false }
+    onUpdate = { exerciseTimerMillis.longValue = it }) { exerciseTimerRunning.value = false }
   if (timeLimitMilliseconds != null) {
     Row(Modifier.weight(1f)) {
       Button(
         onClick = {
           if (!isExerciseTimerRunning) {
-            exerciseTimerMillis.value = timeLimitMilliseconds
+            exerciseTimerMillis.longValue = timeLimitMilliseconds
           }
           exerciseTimerRunning.value = !isExerciseTimerRunning
         },
         Modifier.fillMaxWidth()
       ) {
-        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.value)
+        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.longValue)
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))

@@ -39,7 +39,7 @@ fun Timer(
   }
   var isRunning by rememberSaveable(running) { mutableStateOf(running) }
   val timerScope = rememberCoroutineScope()
-  var elapsedMillis by rememberSaveable(running) { mutableStateOf(0L) }
+  var elapsedMillis by rememberSaveable(running) { mutableLongStateOf(0L) }
   val millisToShow = if (isRunning) runtimeMillis else millisToElapse
   LaunchedEffect(running, elapsedMillis) {
     if (isRunning) {

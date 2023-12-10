@@ -2,6 +2,7 @@ package com.litus_animae.refitted.compose.state
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.mapSaver
 import kotlin.math.absoluteValue
@@ -10,15 +11,15 @@ import kotlin.math.sign
 
 @Stable
 class Weight(initialValue: Double) {
-  private var weight = mutableStateOf(initialValue)
+  private var weight = mutableDoubleStateOf(initialValue)
   val value: State<Double> = weight
   fun plus(change: Double) {
-    if (change.sign < 0 && weight.value < change.absoluteValue) weight.value = 0.0
-    else weight.value += change
+    if (change.sign < 0 && weight.doubleValue < change.absoluteValue) weight.doubleValue = 0.0
+    else weight.doubleValue += change
   }
 
   fun set(value: Double) {
-    weight.value = max(0.0, value)
+    weight.doubleValue = max(0.0, value)
   }
 
   companion object {
