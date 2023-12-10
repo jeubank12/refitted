@@ -1,5 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,10 +43,24 @@ fun SetsDisplay(
       }
       val (setDisplay, setSubtext) = toCompletionSetPhrase
         .getOrElse {
-          "$numCompleted / ${exerciseSet.sets}" to "Sets Completed"
+          if (numCompleted >= exerciseSet.sets) "$numCompleted" to "Sets Completed"
+          else "${numCompleted + 1} / ${exerciseSet.sets}" to "Sets Completed"
         }
+      AnimatedVisibility(
+        toCompletionSetPhrase.isNone() && numCompleted < exerciseSet.sets,
+        enter = expandVertically(),
+        exit = shrinkVertically()
+      ) {
+        Text("Set", style = MaterialTheme.typography.h5)
+      }
       Text(setDisplay, style = MaterialTheme.typography.h4)
-      Text(setSubtext, style = MaterialTheme.typography.h5)
+      AnimatedVisibility(
+        !(toCompletionSetPhrase.isNone() && numCompleted < exerciseSet.sets),
+        enter = expandVertically(expandFrom = Alignment.Top),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top)
+      ) {
+        Text(setSubtext, style = MaterialTheme.typography.h5)
+      }
     }
   }
 }
