@@ -92,9 +92,9 @@ fun SignInUser(
         verticalArrangement = Arrangement.Center
       ) {
         AndroidView(factory = ::SignInButton,
-          update = {
-            it.setSize(SignInButton.SIZE_WIDE)
-            it.setOnClickListener {
+          update = { button ->
+            button.setSize(SignInButton.SIZE_WIDE)
+            button.setOnClickListener {
               val googleClient = GoogleSignIn.getClient(context, googleSignInOptions)
               launcher.launch(googleClient.signInIntent)
             }
