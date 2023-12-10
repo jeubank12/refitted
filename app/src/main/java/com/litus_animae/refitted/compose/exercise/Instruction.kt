@@ -30,53 +30,52 @@ fun ExerciseInstructions(
   setWithRecord: ExerciseSetWithRecord?,
   modifier: Modifier = Modifier
 ) {
-  Card(modifier) {
-    Column {
-      CompositionLocalProvider(
-        LocalOverscrollConfiguration provides null
-      ) {
-        ExerciseInstructions(setWithRecord)
+  Column(modifier) {
+    Row(Modifier.weight(5f, fill = true)) {
+      Card {
+        CompositionLocalProvider(
+          LocalOverscrollConfiguration provides null
+        ) {
+          ExerciseInstructions(setWithRecord)
+        }
       }
     }
+
+    // TODO this takes up space if not in use, looks bad with cards
+    ExerciseTimer(timeLimitMilliseconds = setWithRecord?.exerciseSet?.timeLimitMilliseconds)
   }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ColumnScope.ExerciseInstructions(
+private fun ExerciseInstructions(
   setWithRecord: ExerciseSetWithRecord?
 ) {
   val exerciseSet = setWithRecord?.exerciseSet
-  Row(
-    Modifier.weight(5f, fill = true)
+  // TODO is there a way to show the scrollbar to indicate scrollability?
+  // not yet, not implemented by the team -- possibly could use lazy state: https://developer.android.com/jetpack/compose/lists#react-to-scroll-position
+  LazyColumn(
+    // TODO maybe a fade out in the bottom?
+    Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(bottom = 5.dp)
   ) {
-    // TODO is there a way to show the scrollbar to indicate scrollability?
-    // not yet, not implemented by the team -- possibly could use lazy state: https://developer.android.com/jetpack/compose/lists#react-to-scroll-position
-    LazyColumn(
-      // TODO maybe a fade out in the bottom?
-      Modifier.fillMaxSize(),
-      contentPadding = PaddingValues(bottom = 5.dp)
-    ) {
-      stickyHeader {
-        Surface(
-          Modifier
-            .fillMaxWidth()
-            .padding(bottom = 5.dp)
-        ) {
-          Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h4)
-        }
-      }
-      item {
-        if (exerciseSet != null) {
-          val exercise by exerciseSet.exercise.collectAsState(null, Dispatchers.IO)
-          Text(exercise?.description ?: "", Modifier.padding(bottom = 5.dp))
-        }
-      }
-      item {
-        Text(exerciseSet?.note ?: "")
+    stickyHeader {
+      Surface(
+        Modifier
+          .fillMaxWidth()
+          .padding(bottom = 5.dp)
+      ) {
+        Text(text = exerciseSet?.exerciseName ?: "", style = MaterialTheme.typography.h4)
       }
     }
+    item {
+      if (exerciseSet != null) {
+        val exercise by exerciseSet.exercise.collectAsState(null, Dispatchers.IO)
+        Text(exercise?.description ?: "", Modifier.padding(bottom = 5.dp))
+      }
+    }
+    item {
+      Text(exerciseSet?.note ?: "")
+    }
   }
-  // TODO this takes up space if not in use, looks bad with cards
-  ExerciseTimer(timeLimitMilliseconds = exerciseSet?.timeLimitMilliseconds)
 }
