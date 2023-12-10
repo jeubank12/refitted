@@ -17,6 +17,8 @@ import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 
+// suppressed to prevent wrapping this Composable in a column
+@Suppress("UnusedReceiverParameter")
 @OptIn(FlowPreview::class)
 @Composable
 fun RowScope.ExerciseContextMenu(
