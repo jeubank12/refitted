@@ -109,6 +109,8 @@ data class DayProperties(
 )
 
 class DayPropertiesPreviewParameterProvider : PreviewParameterProvider<DayProperties> {
+  // unnamed literals are acceptable for this preview parameter
+  @Suppress("BooleanLiteralArgument")
   override val values: Sequence<DayProperties> = sequenceOf(
     DayProperties(true, true, false),
     DayProperties(true, false, false),
