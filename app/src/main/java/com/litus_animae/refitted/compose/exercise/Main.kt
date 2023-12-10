@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose
+package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,9 +19,9 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.exercise.ExerciseView
 import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.Weight
+import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.SetRecord
 import com.litus_animae.refitted.models.WorkoutViewModel

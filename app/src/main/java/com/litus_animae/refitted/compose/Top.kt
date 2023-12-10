@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.litus_animae.refitted.compose.calendar.Calendar
+import com.litus_animae.refitted.compose.exercise.Exercise
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.UserViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
