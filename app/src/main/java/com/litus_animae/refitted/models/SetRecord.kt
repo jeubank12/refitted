@@ -32,4 +32,14 @@ data class SetRecord(
       record.weight == weight &&
       record.completed == completed
   }
+
+  override fun hashCode(): Int {
+    var result = weight.hashCode()
+    result = 31 * result + reps
+    result = 31 * result + workout.hashCode()
+    result = 31 * result + targetSet.hashCode()
+    result = 31 * result + completed.hashCode()
+    return result
+  }
+
 }
