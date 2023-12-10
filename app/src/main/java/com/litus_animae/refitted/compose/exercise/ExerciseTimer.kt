@@ -1,18 +1,25 @@
 package com.litus_animae.refitted.compose.exercise
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -29,12 +36,20 @@ fun ColumnScope.ExerciseTimer(
     countDown = true,
     animateTimer = false,
     onUpdate = { exerciseTimerMillis.longValue = it }) { exerciseTimerRunning.value = false }
-  if (timeLimitMilliseconds != null) {
-    Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
+  AnimatedVisibility(
+    timeLimitMilliseconds != null,
+    enter = expandVertically(expandFrom = Alignment.Top),
+    exit = shrinkVertically(shrinkTowards = Alignment.Top)
+  ) {
+    val displayedTimeLimit = remember { mutableLongStateOf(timeLimitMilliseconds ?: 0L) }
+    LaunchedEffect(timeLimitMilliseconds) {
+      if (timeLimitMilliseconds != null) displayedTimeLimit.longValue = timeLimitMilliseconds
+    }
+    Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
       Button(
         onClick = {
           if (!isExerciseTimerRunning) {
-            exerciseTimerMillis.longValue = timeLimitMilliseconds
+            exerciseTimerMillis.longValue = displayedTimeLimit.longValue
           }
           exerciseTimerRunning.value = !isExerciseTimerRunning
         },
@@ -44,7 +59,7 @@ fun ColumnScope.ExerciseTimer(
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
-        val timerMax = Instant.ofEpochMilli(timeLimitMilliseconds)
+        val timerMax = Instant.ofEpochMilli(displayedTimeLimit.longValue)
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
