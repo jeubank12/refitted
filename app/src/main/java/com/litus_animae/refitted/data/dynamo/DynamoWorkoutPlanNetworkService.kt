@@ -70,8 +70,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
               .withConsistentRead(false)
             val days = db.query(DynamoWorkoutDay::class.java, subQueryExpression)
             log.d(TAG, "Got days for workout $workout: ${days.map { it.day }}")
-            val totalDays = days.map { it.day?.toIntOrNull() ?: 0 }
-              .maxOrNull()
+            val totalDays = days.maxOfOrNull { it.day?.toIntOrNull() ?: 0 }
             val restDays = days.filter {
               log.d(TAG, "Got day $it")
               it.exercises.contains("0")
