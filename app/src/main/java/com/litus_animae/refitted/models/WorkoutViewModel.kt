@@ -43,7 +43,7 @@ class WorkoutViewModel @Inject constructor(
   }
 
   val savedStateLastWorkoutPlan: WorkoutPlan? by lazy {
-    val plan = hydratePlan(
+    @Suppress("RemoveExplicitTypeArguments") val plan = hydratePlan(
       savedStateHandle.get<String?>(selectedPlan),
       savedStateHandle.get<Int?>(selectedPlanDays),
       savedStateHandle.get<Int?>(lastDay),
