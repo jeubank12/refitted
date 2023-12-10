@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import java.time.Instant
 import java.time.ZoneId
@@ -29,7 +30,7 @@ fun ColumnScope.ExerciseTimer(
     animateTimer = false,
     onUpdate = { exerciseTimerMillis.longValue = it }) { exerciseTimerRunning.value = false }
   if (timeLimitMilliseconds != null) {
-    Row(Modifier.weight(1f)) {
+    Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
       Button(
         onClick = {
           if (!isExerciseTimerRunning) {
