@@ -41,7 +41,6 @@ fun ExerciseInstructions(
       }
     }
 
-    // TODO this takes up space if not in use, looks bad with cards
     ExerciseTimer(timeLimitMilliseconds = setWithRecord?.exerciseSet?.timeLimitMilliseconds)
   }
 }
