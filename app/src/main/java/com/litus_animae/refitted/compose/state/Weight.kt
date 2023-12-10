@@ -3,7 +3,6 @@ package com.litus_animae.refitted.compose.state
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.mapSaver
 import kotlin.math.absoluteValue
 import kotlin.math.max
