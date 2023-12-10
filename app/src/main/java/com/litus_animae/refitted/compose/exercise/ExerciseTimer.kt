@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,8 +47,10 @@ fun ColumnScope.ExerciseTimer(
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
-        if (isExerciseTimerRunning) Text("$timerValue remaining (click to stop)")
-        else Text("Start $timerMax exercise timer")
+        val buttonContent =
+          if (isExerciseTimerRunning) "$timerValue remaining (click to stop)"
+          else "Start $timerMax exercise timer"
+        Text(buttonContent, style = MaterialTheme.typography.h5)
       }
     }
   }
