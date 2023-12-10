@@ -13,6 +13,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +78,7 @@ fun ColumnScope.ExerciseSetView(
     inputs = arrayOf(exerciseSet, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
   val timerRunning = rememberSaveable { mutableStateOf(false) }
-  val timerMillis = rememberSaveable { mutableStateOf(0L) }
+  val timerMillis = rememberSaveable { mutableLongStateOf(0L) }
   val saveWeight by weight.value
   val saveReps by reps.value
 
@@ -134,7 +136,7 @@ fun ColumnScope.ExerciseSetView(
     ) {
       val localRestFormat = stringResource(R.string.seconds_rest_phrase)
       val timerDisplayTime =
-        if (timerRunning.value) String.format(localRestFormat, timerMillis.value / 1000f)
+        if (timerRunning.value) String.format(localRestFormat, timerMillis.longValue / 1000f)
         else String.format(localRestFormat, exerciseSet.rest.toFloat())
       Text(timerDisplayTime, style = MaterialTheme.typography.h4)
     }
@@ -164,12 +166,12 @@ fun ColumnScope.ExerciseSetView(
       Timer(isTimerRunning,
         millisToElapse = exerciseSet.rest * 1000L,
         countDown = true,
-        onUpdate = { timerMillis.value = it }) { timerRunning.value = false }
+        onUpdate = { timerMillis.longValue = it }) { timerRunning.value = false }
       Button(
         onClick = {
           if (!isTimerRunning) {
             onSave(record.copy(weight = saveWeight, reps = saveReps))
-            timerMillis.value = exerciseSet.rest * 1000L
+            timerMillis.longValue = exerciseSet.rest * 1000L
           }
           if (exerciseSet.rest > 0 || isTimerRunning) timerRunning.value = !isTimerRunning
         },
@@ -219,8 +221,8 @@ fun ColumnScope.ExerciseSetView(
 @Composable
 @Preview(heightDp = 400)
 fun PreviewExerciseSetDetails() {
-  var numCompleted by remember { mutableStateOf(0) }
-  var currentIndex by remember { mutableStateOf(5) }
+  var numCompleted by remember { mutableIntStateOf(0) }
+  var currentIndex by remember { mutableIntStateOf(5) }
   val records = remember { mutableStateListOf<Record>() }
   val currentRecord =
     remember {

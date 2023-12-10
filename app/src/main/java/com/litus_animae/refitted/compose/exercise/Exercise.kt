@@ -56,7 +56,7 @@ fun ExerciseView(
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
   // TODO not saving, perhaps need rememberSaveableStateHolder
-  val (index, setIndex) = rememberSaveable { mutableStateOf(0) }
+  val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
   val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
