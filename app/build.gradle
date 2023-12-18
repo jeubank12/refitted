@@ -147,7 +147,7 @@ dependencies {
     implementation platform('io.arrow-kt:arrow-stack:1.2.1')
     implementation "io.arrow-kt:arrow-core"
 
-    implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.6'
+    implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.7'
     def kotlinx_couroutines_version = '1.7.3'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_couroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$kotlinx_couroutines_version"
