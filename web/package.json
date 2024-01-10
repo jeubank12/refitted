@@ -16,7 +16,7 @@
     "@aws-sdk/util-utf8-node": "^3.259.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@mui/material": "^5.14.20",
+    "@mui/material": "^5.15.3",
     "@reduxjs/toolkit": "^1.9.7",
     "firebase": "^10.7.1",
     "firebase-admin": "^12.0.0",
