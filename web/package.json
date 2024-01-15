@@ -10,9 +10,9 @@
     "tsc": "tsc"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.485.0",
-    "@aws-sdk/client-lambda": "^3.485.0",
-    "@aws-sdk/credential-providers": "^3.485.0",
+    "@aws-sdk/client-dynamodb": "^3.490.0",
+    "@aws-sdk/client-lambda": "^3.490.0",
+    "@aws-sdk/credential-providers": "^3.490.0",
     "@aws-sdk/util-utf8-node": "^3.259.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
