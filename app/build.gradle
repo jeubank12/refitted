@@ -175,7 +175,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
 
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
-    implementation 'com.google.accompanist:accompanist-adaptive:0.32.0'
+    implementation 'com.google.accompanist:accompanist-adaptive:0.34.0'
 }
 
 repositories {
