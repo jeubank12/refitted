@@ -63,7 +63,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Gradle Dependency Submission
-        uses: mikepenz/gradle-dependency-submission@v0.9.1
+        uses: mikepenz/gradle-dependency-submission@v1.0.0
         with:
           gradle-build-module: ":app"
         env:
