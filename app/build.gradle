@@ -124,7 +124,7 @@ dependencies {
     ksp "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-ktx:$room_version"
 
-    def aws_android_sdk_version = '2.74.0'
+    def aws_android_sdk_version = '2.75.0'
     implementation "com.amazonaws:aws-android-sdk-core:$aws_android_sdk_version"
     implementation "com.amazonaws:aws-android-sdk-ddb-mapper:$aws_android_sdk_version"
 
