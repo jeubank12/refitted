@@ -204,6 +204,7 @@ jobs:
           filters: |
             admin:
               - added|modified: 'admin/lambda/*.ts'
+              - '.github/workflows/*'
 
   build-admin-some:
     needs: admin-matrix
