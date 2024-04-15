@@ -144,7 +144,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
 
-    implementation platform('io.arrow-kt:arrow-stack:1.2.1')
+    implementation platform('io.arrow-kt:arrow-stack:1.2.4')
     implementation "io.arrow-kt:arrow-core"
 
     implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.7'
