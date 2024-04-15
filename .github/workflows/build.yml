@@ -27,16 +27,16 @@ jobs:
             android:
               - 'app/**'
               - '*gradle*'
-              - '.github/workflows/build.yml'
+              - '.github/workflows/*'
             web:
               - 'web/**'
-              - '.github/workflows/build.yml'
+              - '.github/workflows/*'
             admin:
               - 'admin/**'
-              - '.github/workflows/build.yml'
+              - '.github/workflows/*'
             admin-dependencies:
               - 'admin/package*'
-              - '.github/workflows/build.yml'
+              - '.github/workflows/*'
 
   block-fixup:
     if: ${{ github.event_name == 'pull_request' }}
