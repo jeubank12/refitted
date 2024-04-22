@@ -272,7 +272,7 @@ jobs:
           cache-dependency-path: "admin/package-lock.json"
 
       - run: exit 1
-        if: ${{ matrix.package != "admin/lambda/listAllUsers.ts" }}
+        if: ${{ matrix.package != 'admin/lambda/listAllUsers.ts' }}
 
       - run: npm ci
         working-directory: admin
