@@ -204,7 +204,6 @@ jobs:
           filters: |
             admin:
               - added|modified: 'admin/lambda/*.ts'
-              - '.github/workflows/*'
 
   build-admin-some:
     needs: admin-matrix
@@ -285,3 +284,16 @@ jobs:
 
       - run: npm run build ../${{ matrix.package }}
         working-directory: admin
+
+  build-admin-all-pass:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [build-admin-all]
+    steps:
+      - run: exit 1
+        if: >-
+          ${{
+              contains(needs.*.result, 'failure') ||
+              contains(needs.*.result, 'cancelled')
+          }}
+        
