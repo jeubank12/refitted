@@ -288,7 +288,7 @@ jobs:
   build-admin-all-pass:
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [build-admin-all]
+    needs: [build-admin-all, build-admin-some]
     steps:
       - run: exit 1
         if: >-
