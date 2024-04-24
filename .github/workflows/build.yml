@@ -20,7 +20,7 @@ jobs:
       admin-dependencies: ${{ steps.filter.outputs.admin-dependencies }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
@@ -197,7 +197,7 @@ jobs:
       admin-packages: ${{ steps.filter.outputs.admin_files }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           list-files: json
