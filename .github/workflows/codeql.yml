@@ -14,8 +14,8 @@ name: "CodeQL"
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  # pull_request:
+  #   branches: [ "master" ]
   schedule:
     - cron: '36 5 * * 3'
 
@@ -72,7 +72,6 @@ jobs:
       with:
         java-version: "17"
         distribution: "temurin"
-        cache: gradle
 
     - name: Decode google-services.json
       if: ${{ matrix.language == 'java-kotlin' }}
