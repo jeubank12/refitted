@@ -90,7 +90,7 @@ android {
 
 dependencies {
 
-    def activity_version = '1.8.1'
+    def activity_version = '1.9.0'
     implementation "androidx.activity:activity-ktx:$activity_version"
     // this may be used for some sort of error reporting
     // want to replace with crashlytics
