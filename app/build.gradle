@@ -136,7 +136,7 @@ dependencies {
     implementation "androidx.hilt:hilt-navigation-compose:$hilt_compiler_version"
     ksp "androidx.hilt:hilt-compiler:$hilt_compiler_version"
 
-    implementation 'com.google.android.gms:play-services-auth:21.0.0'
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
 
     implementation platform('com.google.firebase:firebase-bom:32.8.1')
     implementation 'com.google.firebase:firebase-auth-ktx'
