@@ -106,10 +106,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 16.17
+      - name: Use Node.js 20.15
         uses: actions/setup-node@v4
         with:
-          node-version: 16.17
+          node-version: 20.15
           cache: "npm"
           cache-dependency-path: "web/package-lock.json"
 
@@ -136,10 +136,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 16.17
+      - name: Use Node.js 20.15
         uses: actions/setup-node@v4
         with:
-          node-version: 16.17
+          node-version: 20.15
           cache: "npm"
           cache-dependency-path: "web/package-lock.json"
 
@@ -166,10 +166,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 16.17
+      - name: Use Node.js 20.15
         uses: actions/setup-node@v4
         with:
-          node-version: 16.17
+          node-version: 20.15
           cache: "npm"
           cache-dependency-path: "admin/package-lock.json"
 
@@ -217,10 +217,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 16.17
+      - name: Use Node.js 20.15
         uses: actions/setup-node@v4
         with:
-          node-version: 16.17
+          node-version: 20.15
           cache: "npm"
           cache-dependency-path: "admin/package-lock.json"
 
@@ -264,10 +264,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 16.17
+      - name: Use Node.js 20.15
         uses: actions/setup-node@v4
         with:
-          node-version: 16.17
+          node-version: 20.15
           cache: "npm"
           cache-dependency-path: "admin/package-lock.json"
 
@@ -296,4 +296,3 @@ jobs:
               contains(needs.*.result, 'failure') ||
               contains(needs.*.result, 'cancelled')
           }}
-        
