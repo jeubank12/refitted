@@ -1,4 +1,4 @@
-import { AnyAction, configureStore, ThunkAction } from '@reduxjs/toolkit'
+import { configureStore, ThunkAction, UnknownAction } from '@reduxjs/toolkit'
 import { createWrapper } from 'next-redux-wrapper'
 
 import authSlice from './auth/authSlice'
@@ -27,7 +27,7 @@ export type ReduxThunk<ReturnType = void> = ThunkAction<
   ReturnType,
   ReduxState,
   unknown,
-  AnyAction
+  UnknownAction
 >
 
 export type ReduxDispatch = ReduxStore['dispatch']

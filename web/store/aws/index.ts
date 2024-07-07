@@ -1,4 +1,4 @@
-import { BaseQueryFn, createApi } from '@reduxjs/toolkit/dist/query/react'
+import { BaseQueryFn, createApi } from '@reduxjs/toolkit/query/react'
 
 /** copied from @reduxjs baseQueryTypes.d.ts */
 export type QueryReturnValue<T, E, M> = {
