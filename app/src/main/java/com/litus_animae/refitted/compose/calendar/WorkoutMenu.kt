@@ -17,6 +17,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.google.firebase.auth.FirebaseUser
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.WorkoutPlan
@@ -39,18 +40,21 @@ fun WorkoutPlanPreview() {
   )
     .collectAsLazyPagingItems()
   MaterialTheme(Theme.darkColors) {
-    WorkoutPlanMenu("Refreshed At", plans = data, workoutPlanError = null) {}
+    Column {
+      WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null) {}
+    }
   }
 }
 
 @Composable
-fun WorkoutPlanMenu(
+fun ColumnScope.WorkoutPlanMenu(
+  modifier: Modifier = Modifier,
   lastRefresh: String,
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
   onSelect: (WorkoutPlan) -> Unit
 ) {
-  LazyColumn {
+  LazyColumn(modifier) {
     item {
       Row(
         Modifier

@@ -5,11 +5,26 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.runtime.*
+import androidx.compose.material.rememberScaffoldState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -18,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.util.LoadingView
+import com.litus_animae.refitted.models.UserViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
@@ -28,19 +44,23 @@ import kotlinx.coroutines.launch
 @Composable
 fun Calendar(
   navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
-  model: WorkoutViewModel = viewModel(),
+  workoutModel: WorkoutViewModel = viewModel(),
+  userModel: UserViewModel = viewModel()
 ) {
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
 
-  val selectedWorkoutPlan by model.currentWorkout.collectAsState(
-    initial = model.savedStateLastWorkoutPlan,
+  val selectedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
+    initial = workoutModel.savedStateLastWorkoutPlan,
     Dispatchers.IO
   )
-  val savedSelectedPlanLoading = model.savedStateLoading
-  val completedDaysLoading = model.completedDaysLoading
+  val savedSelectedPlanLoading = workoutModel.savedStateLoading
+  val completedDaysLoading = workoutModel.completedDaysLoading
 
-  val completedDays by model.completedDays.collectAsState(initial = emptyMap(), Dispatchers.IO)
+  val completedDays by workoutModel.completedDays.collectAsState(
+    initial = emptyMap(),
+    Dispatchers.IO
+  )
 
   Scaffold(
     scaffoldState = scaffoldState,
@@ -95,7 +115,7 @@ fun Calendar(
                 text = { Text("This will reset your completed days. Are you sure? (This does not remove records of your previous exercise sets") },
                 confirmButton = {
                   Button(onClick = {
-                    model.resetWorkoutCompletion(
+                    workoutModel.resetWorkoutCompletion(
                       selectedWorkoutPlan!!
                     )
                     setAlerted(false)
@@ -115,20 +135,35 @@ fun Calendar(
     },
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
-      val workoutPlanPagingItems = model.workouts.collectAsLazyPagingItems()
-      val workoutPlanError = model.workoutError
-      LaunchedEffect(workoutPlanError){
+      val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
+      val workoutPlanError = workoutModel.workoutError
+      LaunchedEffect(workoutPlanError) {
         if (workoutPlanError != null)
-          scaffoldState.snackbarHostState.showSnackbar(workoutPlanError, duration = SnackbarDuration.Indefinite)
+          scaffoldState.snackbarHostState.showSnackbar(
+            workoutPlanError,
+            duration = SnackbarDuration.Indefinite
+          )
       }
-      val lastRefresh by model.workoutsLastRefreshed.collectAsState(initial = "")
-      WorkoutPlanMenu(lastRefresh, workoutPlanPagingItems, workoutPlanError) {
+      val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsState(initial = "")
+      WorkoutPlanMenu(Modifier.weight(1f), lastRefresh, workoutPlanPagingItems, workoutPlanError) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
-        model.loadWorkoutDaysCompleted(it)
+        workoutModel.loadWorkoutDaysCompleted(it)
       }
-    }) {contentPadding ->
+      val currentEmail by userModel.userEmail.collectAsState()
+      Row(Modifier.padding(start = 10.dp, top = 10.dp, bottom = 10.dp)) {
+        if (currentEmail != null) {
+          Text("Signed in as: $currentEmail")
+        } else {
+          Text("Not signed in")
+        }
+      }
+    }) { contentPadding ->
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
-      Surface(Modifier.fillMaxSize().padding(contentPadding)) {
+      Surface(
+        Modifier
+          .fillMaxSize()
+          .padding(contentPadding)
+      ) {
         LoadingView()
       }
     } else if (selectedWorkoutPlan == null) {
@@ -148,7 +183,7 @@ fun Calendar(
         contentPadding = contentPadding
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
-        model.setLastViewedDay(selectedWorkoutPlan!!, it)
+        workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
     }
   }
