@@ -18,8 +18,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -32,8 +36,15 @@ class UserViewModel @Inject constructor(
 ) : ViewModel() {
 
   private val auth by lazy { FirebaseAuth.getInstance() }
-  private val _isUserLoggedIn by lazy { MutableStateFlow(auth.currentUser != null) }
-  val isUserLoggedIn by lazy { _isUserLoggedIn.asStateFlow() }
+  private val _currentUser by lazy { MutableStateFlow(auth.currentUser) }
+  val isUserLoggedIn by lazy {
+    _currentUser.asStateFlow().map { it != null }
+      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = false)
+  }
+  val userEmail by lazy {
+    _currentUser.asStateFlow().map { it?.email }
+      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = null)
+  }
 
   fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
     try {
@@ -60,7 +71,7 @@ class UserViewModel @Inject constructor(
         if (auth.currentUser != null) {
           // Sign in success, update UI with the signed-in user's information
           log.d(TAG, "signInWithCredential:success")
-          _isUserLoggedIn.emit(true)
+          _currentUser.emit(auth.currentUser)
         } else {
           log.w(TAG, "signInWithCredential:incomplete")
         }
