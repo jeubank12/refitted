@@ -79,9 +79,11 @@ jobs:
         FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
       run: echo $FIREBASE_SECRET | base64 --decode > app/google-services.json
 
-    - name: Grant execute permission for gradlew
+    - name: set up Gradle
       if: ${{ matrix.language == 'java-kotlin' }}
-      run: chmod +x gradlew
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        dependency-graph: generate-and-submit
     - name: Build with Gradle
       if: ${{ matrix.language == 'java-kotlin' }}
       env:
