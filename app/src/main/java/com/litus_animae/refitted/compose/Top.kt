@@ -18,33 +18,29 @@ import kotlinx.coroutines.FlowPreview
 @FlowPreview
 @Composable
 fun Top() {
-    val controller = rememberNavController()
-    NavHost(controller, startDestination = "calendar") {
-        composable("calendar") {
-            val model: WorkoutViewModel = hiltViewModel(it)
-            val userModel: UserViewModel = hiltViewModel(it)
-            val navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit =
-                { wp, day -> controller.navigate("exercise/${wp.workout}/$day") }
-            SignInUser(userModel) { Calendar(navigateToWorkoutDay, model) }
-        }
-        composable("exercise/{workout}/{day}") {
-            val exerciseModel: ExerciseViewModel = hiltViewModel(it)
-            val workoutModel: WorkoutViewModel = hiltViewModel(it)
-            val userModel: UserViewModel = hiltViewModel(it)
-            val workoutId = it.arguments?.getString("workout")
-            val day = it.arguments?.getString("day")
-            if (workoutId != null && day != null) {
-                SignInUser(userModel) {
-                    Exercise(
-                        day = day,
-                        workoutId = workoutId,
-                        exerciseModel = exerciseModel,
-                        workoutModel = workoutModel
-                    )
-                }
-            } else {
-                controller.navigate("calendar")
-            }
-        }
+  val controller = rememberNavController()
+  NavHost(controller, startDestination = "calendar") {
+    composable("calendar") {
+      val model: WorkoutViewModel = hiltViewModel(it)
+      val navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit =
+        { wp, day -> controller.navigate("exercise/${wp.workout}/$day") }
+      Calendar(navigateToWorkoutDay, model)
     }
+    composable("exercise/{workout}/{day}") {
+      val exerciseModel: ExerciseViewModel = hiltViewModel(it)
+      val workoutModel: WorkoutViewModel = hiltViewModel(it)
+      val workoutId = it.arguments?.getString("workout")
+      val day = it.arguments?.getString("day")
+      if (workoutId != null && day != null) {
+        Exercise(
+          day = day,
+          workoutId = workoutId,
+          exerciseModel = exerciseModel,
+          workoutModel = workoutModel
+        )
+      } else {
+        controller.navigate("calendar")
+      }
+    }
+  }
 }
