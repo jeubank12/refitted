@@ -41,30 +41,9 @@ class UserViewModel @Inject constructor(
 
   private val auth by lazy { FirebaseAuth.getInstance() }
   private val _currentUser by lazy { MutableStateFlow(auth.currentUser) }
-  val isUserLoggedIn by lazy {
-    _currentUser.asStateFlow().map { it != null }
-      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = false)
-  }
   val userEmail by lazy {
     _currentUser.asStateFlow().map { it?.email }
       .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = null)
-  }
-
-  fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-    try {
-      val account = completedTask.getResult(ApiException::class.java)!!
-      log.v(TAG, "Google user signed in, signing in firebase")
-      Log.d(TAG, "firebaseAuthWithGoogle:" + account.id)
-      val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-      firebaseAuthWithGoogle(credential)
-    } catch (e: ApiException) {
-      // The ApiException status code indicates the detailed failure reason.
-      // Please refer to the GoogleSignInStatusCodes class reference for more information.
-      Log.w(TAG, "signInResult:failed code=" + e.statusCode, e)
-    } catch (e: Exception) {
-      Log.wtf(TAG, "Fatal Error", e)
-      userError = "There was an error signing you in"
-    }
   }
 
   fun handleSignIn(result: GetCredentialResponse) {
