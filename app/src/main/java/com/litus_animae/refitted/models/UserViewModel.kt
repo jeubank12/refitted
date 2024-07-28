@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -42,7 +43,14 @@ class UserViewModel @Inject constructor(
   private val auth by lazy { FirebaseAuth.getInstance() }
   private val _currentUser by lazy { MutableStateFlow(auth.currentUser) }
   val userEmail by lazy {
-    _currentUser.asStateFlow().map { it?.email }
+    _currentUser
+      .map { it ?: auth.signInAnonymously().await().user }
+      .map { it?.email }
+      .map {
+        if (it.isNullOrBlank()) {
+          null
+        } else it
+      }
       .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = auth.currentUser?.email)
   }
 
@@ -85,20 +93,28 @@ class UserViewModel @Inject constructor(
 
   private fun firebaseAuthWithGoogle(credential: AuthCredential) {
     viewModelScope.launch {
-      try {
-        auth.signInWithCredential(credential).await()
-        if (auth.currentUser != null) {
-          // Sign in success, update UI with the signed-in user's information
-          log.d(TAG, "signInWithCredential:success")
-          _currentUser.emit(auth.currentUser)
-        } else {
-          log.w(TAG, "signInWithCredential:incomplete")
+      if (auth.currentUser != null) {
+        try {
+          val convertResult = auth.currentUser!!.linkWithCredential(credential).await()
+          log.d(TAG, "linkWithCredential:success")
+          _currentUser.emit(convertResult.user)
+        } catch (e: Throwable) {
+          log.e(TAG, "linkWithCredential:failure", e)
+          firebaseSignInWithGoogle(credential)
         }
-      } catch (e: Throwable) {
-        // If sign in fails, display a message to the user.
-        log.w(TAG, "signInWithCredential:failure", e)
-        userError = "Authentication Failed."
-      }
+      } else firebaseSignInWithGoogle(credential)
+    }
+  }
+
+  private suspend fun firebaseSignInWithGoogle(credential: AuthCredential) {
+    try {
+      val signInResult = auth.signInWithCredential(credential).await()
+      log.d(TAG, "signInWithCredential:success")
+      _currentUser.emit(signInResult.user)
+    } catch (e: Throwable) {
+      // If sign in fails, display a message to the user.
+      log.w(TAG, "signInWithCredential:failure", e)
+      userError = "Authentication Failed."
     }
   }
 
