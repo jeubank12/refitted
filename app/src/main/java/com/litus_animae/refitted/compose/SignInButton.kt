@@ -53,7 +53,7 @@ fun SignInButton(
   val coroutineScope = rememberCoroutineScope()
 
   Row(
-    Modifier
+    modifier
       .clip(RoundedCornerShape(20.dp))
       .border(0.0f.dp, Color.Black, RoundedCornerShape(20.dp))
       .background(Color.White)
