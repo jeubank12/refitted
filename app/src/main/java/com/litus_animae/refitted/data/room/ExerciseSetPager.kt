@@ -50,6 +50,10 @@ class ExerciseSetPager(
         return MediatorResult.Success(endOfPaginationReached = true)
       } catch (ex: UserNotLoggedInException) {
         return MediatorResult.Error(ex)
+      } catch (ex: com.amazonaws.services.cognitoidentity.model.NotAuthorizedException) {
+        return MediatorResult.Error(ex)
+      } catch (ex: com.amazonaws.services.cognitoidentity.model.InvalidIdentityPoolConfigurationException) {
+        return MediatorResult.Error(ex)
       }
     }
   }
