@@ -21,47 +21,47 @@ import java.time.Instant
 @ExperimentalCoroutinesApi
 @FlowPreview
 abstract class DynamoNetworkService(context: Context, protected val log: LogUtil) {
-    private val applicationContext = context.applicationContext
-    private val credentialsProvider: CognitoCachingCredentialsProvider =
-        CognitoCachingCredentialsProvider(
-            applicationContext,
-            applicationContext.getString(R.string.cognito_identity_pool_id),
-            Regions.US_EAST_2
-        )
-    private val tableName: String = applicationContext.getString(R.string.dynamo_table)
-    private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
+  private val applicationContext = context.applicationContext
+  private val credentialsProvider: CognitoCachingCredentialsProvider =
+    CognitoCachingCredentialsProvider(
+      applicationContext,
+      applicationContext.getString(R.string.cognito_identity_pool_id),
+      Regions.US_EAST_2
+    )
+  private val tableName: String = applicationContext.getString(R.string.dynamo_table)
+  private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
-    protected suspend fun getDb(): DynamoDBMapper {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-            ?: throw UserNotLoggedInException("Firebase user not logged in")
-        val idToken = currentUser.getIdToken(false).await()
-        val logins = mapOf(Pair(openIdSource, idToken.token))
-        credentialsProvider.logins = logins
-        val start = Instant.now()
-        val dbClient = AmazonDynamoDBClient(credentialsProvider)
-        dbClient.setRegion(Region.getRegion(Regions.US_EAST_2))
-        log.d(TAG, "GetDatabaseMapper: generating mapper to table: $tableName")
-        val dynamoDb = DynamoDBMapper.builder()
-            .dynamoDBClient(dbClient)
-            .dynamoDBMapperConfig(
-                DynamoDBMapperConfig(
-                    TableNameOverride(tableName)
-                )
-            )
-            .build()
-        val endOpen = Instant.now()
-        log.d(
-            TAG,
-            "connectToDynamo: Dynamo took " + Duration.between(
-                start,
-                endOpen
-            ) + " to open. Started at: " + start.toString()
+  protected suspend fun getDb(): DynamoDBMapper {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+      ?: throw UserNotLoggedInException("Firebase user not logged in")
+    val idToken = currentUser.getIdToken(false).await()
+    val logins = mapOf(Pair(openIdSource, idToken.token))
+    credentialsProvider.logins = logins
+    val start = Instant.now()
+    val dbClient = AmazonDynamoDBClient(credentialsProvider)
+    dbClient.setRegion(Region.getRegion(Regions.US_EAST_2))
+    log.d(TAG, "GetDatabaseMapper: generating mapper to table: $tableName")
+    val dynamoDb = DynamoDBMapper.builder()
+      .dynamoDBClient(dbClient)
+      .dynamoDBMapperConfig(
+        DynamoDBMapperConfig(
+          TableNameOverride(tableName)
         )
-        return dynamoDb
-    }
+      )
+      .build()
+    val endOpen = Instant.now()
+    log.d(
+      TAG,
+      "connectToDynamo: Dynamo took " + Duration.between(
+        start,
+        endOpen
+      ) + " to open. Started at: " + start.toString()
+    )
+    return dynamoDb
+  }
 
-    companion object {
-        private const val TAG = "DynamoNetworkService"
-    }
+  companion object {
+    private const val TAG = "DynamoNetworkService"
+  }
 
 }
