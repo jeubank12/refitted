@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.SignInButton
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.UserViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
@@ -149,12 +150,17 @@ fun Calendar(
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         workoutModel.loadWorkoutDaysCompleted(it)
       }
-      val currentEmail by userModel.userEmail.collectAsState()
       Row(Modifier.padding(start = 10.dp, top = 10.dp, bottom = 10.dp)) {
+        val currentEmail by userModel.userEmail.collectAsState()
+        val coroutineScope = rememberCoroutineScope()
         if (currentEmail != null) {
           Text("Signed in as: $currentEmail")
         } else {
-          Text("Not signed in")
+          SignInButton(handleSuccess = { userModel.handleSignIn(it) }) {
+            coroutineScope.launch {
+              it.message?.let { it1 -> scaffoldState.snackbarHostState.showSnackbar(it1) }
+            }
+          }
         }
       }
     }) { contentPadding ->

@@ -30,6 +30,12 @@
 -keep class org.codehaus.**                             { *; }
 -keepattributes Signature,*Annotation*
 
+#Google Credential Manager
+-if class androidx.credentials.CredentialManager
+-keep class androidx.credentials.playservices.** {
+  *;
+}
+
 -dontwarn javax.xml.stream.events.**
 -dontwarn org.codehaus.jackson.**
 -dontwarn org.apache.commons.logging.impl.**

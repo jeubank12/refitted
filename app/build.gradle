@@ -177,6 +177,14 @@ dependencies {
 
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
     implementation 'com.google.accompanist:accompanist-adaptive:0.32.0'
+
+
+    implementation "androidx.credentials:credentials:1.2.2"
+
+    // optional - needed for credentials support from play services, for devices running
+    // Android 13 and below.
+    implementation "androidx.credentials:credentials-play-services-auth:1.2.2"
+    implementation "com.google.android.libraries.identity.googleid:googleid:1.1.1"
 }
 
 repositories {
