@@ -11,7 +11,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.gms.common.SignInButton
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.litus_animae.refitted.R
 import kotlinx.coroutines.launch
 
@@ -22,10 +22,7 @@ fun SignInButton(
   handleFailure: (GetCredentialException) -> Unit
 ) {
   val webClientId = stringResource(R.string.default_web_client_id)
-  val googleIdOption = GetGoogleIdOption.Builder()
-    .setFilterByAuthorizedAccounts(true)
-    .setServerClientId(webClientId)
-    .setAutoSelectEnabled(true)
+  val googleIdOption = GetSignInWithGoogleOption.Builder(webClientId)
 //    .setNonce(<nonce string to use when generating a Google ID token>)
     .build()
 
@@ -34,6 +31,7 @@ fun SignInButton(
     .build()
 
   val context = LocalContext.current
+  // FIXME this should be remembered or put into the coroutine
   val credentialManager = CredentialManager.create(context)
 
   val coroutineScope = rememberCoroutineScope()
