@@ -43,7 +43,12 @@ class UserViewModel @Inject constructor(
   private val _currentUser by lazy { MutableStateFlow(auth.currentUser) }
   val userEmail by lazy {
     _currentUser.asStateFlow().map { it?.email }
-      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = null)
+      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = auth.currentUser?.email)
+  }
+
+  fun handleSignOut() {
+    auth.signOut()
+    viewModelScope.launch { _currentUser.emit(null) }
   }
 
   fun handleSignIn(result: GetCredentialResponse) {
@@ -59,7 +64,8 @@ class UserViewModel @Inject constructor(
             val googleIdTokenCredential = GoogleIdTokenCredential
               .createFrom(credential.data)
             Log.d(TAG, "firebaseAuthWithGoogle:" + googleIdTokenCredential.id)
-            val googleCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+            val googleCredential =
+              GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
             firebaseAuthWithGoogle(googleCredential)
           } catch (e: GoogleIdTokenParsingException) {
             Log.e(TAG, "Received an invalid google id token response", e)
