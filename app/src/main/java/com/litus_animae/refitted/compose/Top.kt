@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.compose
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,13 +21,13 @@ import kotlinx.coroutines.FlowPreview
 @Composable
 fun Top() {
   val controller = rememberNavController()
-  NavHost(controller, startDestination = "calendar") {
+  NavHost(controller, startDestination = "calendar", Modifier.fillMaxSize()) {
     composable("calendar") {
       val workoutModel: WorkoutViewModel = hiltViewModel(it)
       val userModel: UserViewModel = hiltViewModel(it)
       val navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit =
         { wp, day -> controller.navigate("exercise/${wp.workout}/$day") }
-      Calendar(navigateToWorkoutDay, workoutModel, userModel)
+      Calendar(Modifier.fillMaxSize(), navigateToWorkoutDay, workoutModel, userModel)
     }
     composable("exercise/{workout}/{day}") {
       val exerciseModel: ExerciseViewModel = hiltViewModel(it)

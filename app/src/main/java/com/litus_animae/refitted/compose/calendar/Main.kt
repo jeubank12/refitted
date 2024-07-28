@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 @Composable
 fun Calendar(
+  modifier: Modifier = Modifier,
   navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
   workoutModel: WorkoutViewModel = viewModel(),
   userModel: UserViewModel = viewModel()
@@ -66,6 +67,7 @@ fun Calendar(
   )
 
   Scaffold(
+    modifier,
     scaffoldState = scaffoldState,
     topBar = {
       TopAppBar(
