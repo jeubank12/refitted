@@ -15,6 +15,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.litus_animae.refitted.BuildConfig
 import com.litus_animae.refitted.data.SavedStateRepository
@@ -93,24 +94,33 @@ class UserViewModel @Inject constructor(
 
   private fun firebaseAuthWithGoogle(credential: AuthCredential) {
     viewModelScope.launch {
-      if (auth.currentUser != null) {
+      if (auth.currentUser == null) firebaseSignInWithGoogle(credential)
+      else {
+        val user = auth.currentUser!!
         try {
-          val convertResult = auth.currentUser!!.linkWithCredential(credential).await()
+          val convertResult = user.linkWithCredential(credential).await()
           log.d(TAG, "linkWithCredential:success")
           _currentUser.emit(convertResult.user)
         } catch (e: Throwable) {
           log.e(TAG, "linkWithCredential:failure", e)
-          firebaseSignInWithGoogle(credential)
+          firebaseSignInWithGoogle(credential, user)
         }
-      } else firebaseSignInWithGoogle(credential)
+      }
     }
   }
 
-  private suspend fun firebaseSignInWithGoogle(credential: AuthCredential) {
+  private suspend fun firebaseSignInWithGoogle(
+    credential: AuthCredential,
+    oldUser: FirebaseUser? = null
+  ) {
     try {
       val signInResult = auth.signInWithCredential(credential).await()
       log.d(TAG, "signInWithCredential:success")
       _currentUser.emit(signInResult.user)
+      if (oldUser != null) {
+        oldUser.delete().await()
+        log.d(TAG, "delete:success")
+      }
     } catch (e: Throwable) {
       // If sign in fails, display a message to the user.
       log.w(TAG, "signInWithCredential:failure", e)
