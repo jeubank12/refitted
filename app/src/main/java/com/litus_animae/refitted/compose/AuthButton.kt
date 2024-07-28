@@ -34,8 +34,10 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.firebase.util.nextAlphanumericString
 import com.litus_animae.refitted.R
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Composable
 fun AuthButton(
@@ -46,15 +48,6 @@ fun AuthButton(
   authedEmail: String?
 ) {
   val webClientId = stringResource(R.string.default_web_client_id)
-  val request = remember(webClientId) {
-    val googleIdOption = GetSignInWithGoogleOption.Builder(webClientId)
-//    .setNonce(<nonce string to use when generating a Google ID token>)
-      .build()
-
-    GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOption)
-      .build()
-  }
 
   val context: Context = LocalContext.current
   val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -95,15 +88,13 @@ fun AuthButton(
           ) {
             if (authedEmail == null) {
               coroutineScope.launch {
-                try {
-                  val result = credentialManager.getCredential(
-                    request = request,
-                    context = context,
-                  )
-                  handleAuthSuccess(result)
-                } catch (e: GetCredentialException) {
-                  handleAuthFailure(e)
-                }
+                signIn(
+                  webClientId,
+                  credentialManager,
+                  context,
+                  handleAuthSuccess,
+                  handleAuthFailure
+                )
               }
             } else {
               handleDeAuth()
@@ -135,6 +126,36 @@ fun AuthButton(
         }
       }
     }
+  }
+}
+
+private suspend fun signIn(
+  webClientId: String,
+  credentialManager: CredentialManager,
+  context: Context,
+  handleAuthSuccess: (GetCredentialResponse) -> Unit,
+  handleAuthFailure: (GetCredentialException) -> Unit
+) {
+  // this isn't cryptographically strong
+  val nonce = Random.nextAlphanumericString(32)
+
+  val googleIdOption = GetSignInWithGoogleOption
+    .Builder(webClientId)
+    .setNonce(nonce)
+    .build()
+
+  val request = GetCredentialRequest
+    .Builder()
+    .addCredentialOption(googleIdOption)
+    .build()
+  try {
+    val result = credentialManager.getCredential(
+      request = request,
+      context = context,
+    )
+    handleAuthSuccess(result)
+  } catch (e: GetCredentialException) {
+    handleAuthFailure(e)
   }
 }
 
