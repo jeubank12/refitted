@@ -9,6 +9,7 @@ import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.SavedState
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.util.SavedStateKeys
+import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -40,29 +41,33 @@ class WorkoutPlanRemoteMediator(
       LoadType.PREPEND, LoadType.APPEND -> return MediatorResult.Success(endOfPaginationReached = true)
       else -> {}
     }
-    val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
-    database.withTransaction {
-      val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
-      workoutPlanDao.clearAll()
-      val upsertPlans = plans.map { newPlan ->
-        val existingPlan = currentPlansByName[newPlan.workout] ?: return@map newPlan
-        existingPlan.copy(
-          totalDays = newPlan.totalDays,
-          restDays = newPlan.restDays,
-          description = newPlan.description,
-          globalAlternateLabels = newPlan.globalAlternateLabels,
-          globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
+    try {
+      val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
+      database.withTransaction {
+        val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
+        workoutPlanDao.clearAll()
+        val upsertPlans = plans.map { newPlan ->
+          val existingPlan = currentPlansByName[newPlan.workout] ?: return@map newPlan
+          existingPlan.copy(
+            totalDays = newPlan.totalDays,
+            restDays = newPlan.restDays,
+            description = newPlan.description,
+            globalAlternateLabels = newPlan.globalAlternateLabels,
+            globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
+          )
+        }
+        workoutPlanDao.insertAll(upsertPlans)
+        savedStateDao.insert(
+          SavedState(
+            SavedStateKeys.CacheTimeKey,
+            Instant.now().toEpochMilli().toString()
+          )
         )
       }
-      workoutPlanDao.insertAll(upsertPlans)
-      savedStateDao.insert(
-        SavedState(
-          SavedStateKeys.CacheTimeKey,
-          Instant.now().toEpochMilli().toString()
-        )
-      )
+      return MediatorResult.Success(endOfPaginationReached = true)
+    } catch (ex: UserNotLoggedInException){
+      return MediatorResult.Error(ex)
     }
-    return MediatorResult.Success(endOfPaginationReached = true)
   }
 
   companion object {
