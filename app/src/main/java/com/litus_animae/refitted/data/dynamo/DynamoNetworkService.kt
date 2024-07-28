@@ -11,6 +11,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.util.LogUtil
+import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.tasks.await
@@ -32,7 +33,7 @@ abstract class DynamoNetworkService(context: Context, protected val log: LogUtil
 
     protected suspend fun getDb(): DynamoDBMapper {
         val currentUser = FirebaseAuth.getInstance().currentUser
-            ?: throw IllegalStateException("Firebase user not logged in")
+            ?: throw UserNotLoggedInException("Firebase user not logged in")
         val idToken = currentUser.getIdToken(false).await()
         val logins = mapOf(Pair(openIdSource, idToken.token))
         credentialsProvider.logins = logins
