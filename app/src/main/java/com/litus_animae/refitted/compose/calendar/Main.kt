@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
-import com.litus_animae.refitted.compose.SignInButton
+import com.litus_animae.refitted.compose.AuthButton
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.UserViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
@@ -154,30 +154,29 @@ fun Calendar(
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         workoutModel.loadWorkoutDaysCompleted(it)
       }
-      Row(Modifier.padding(start = 10.dp, top = 10.dp, bottom = 10.dp)) {
+      Row(Modifier.padding(10.dp)) {
         val currentEmail by userModel.userEmail.collectAsState()
         val coroutineScope = rememberCoroutineScope()
         var signInClicked by remember { mutableStateOf(false) }
 
         LaunchedEffect(currentEmail) {
-          if (currentEmail != null && signInClicked){
+          if (currentEmail != null && signInClicked) {
             workoutPlanPagingItems.refresh()
           }
         }
 
-        if (currentEmail != null) {
-          Text("Signed in as: $currentEmail")
-        } else {
-          SignInButton(
-            handleSuccess = {
+        AuthButton(
+          Modifier.fillMaxWidth(),
+          handleAuthSuccess = {
             signInClicked = true
             userModel.handleSignIn(it)
-          }) {
+          }, handleAuthFailure = {
             coroutineScope.launch {
               it.message?.let { it1 -> scaffoldState.snackbarHostState.showSnackbar(it1) }
             }
-          }
-        }
+          },
+          handleDeAuth = { userModel.handleSignOut() },
+          authedEmail = currentEmail)
       }
     }) { contentPadding ->
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
