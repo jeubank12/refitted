@@ -24,8 +24,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -153,10 +155,22 @@ fun Calendar(
       Row(Modifier.padding(start = 10.dp, top = 10.dp, bottom = 10.dp)) {
         val currentEmail by userModel.userEmail.collectAsState()
         val coroutineScope = rememberCoroutineScope()
+        var signInClicked by remember { mutableStateOf(false) }
+
+        LaunchedEffect(currentEmail) {
+          if (currentEmail != null && signInClicked){
+            workoutPlanPagingItems.refresh()
+          }
+        }
+
         if (currentEmail != null) {
           Text("Signed in as: $currentEmail")
         } else {
-          SignInButton(handleSuccess = { userModel.handleSignIn(it) }) {
+          SignInButton(
+            handleSuccess = {
+            signInClicked = true
+            userModel.handleSignIn(it)
+          }) {
             coroutineScope.launch {
               it.message?.let { it1 -> scaffoldState.snackbarHostState.showSnackbar(it1) }
             }
