@@ -25,13 +25,6 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
   log: LogUtil
 ) :
   DynamoNetworkService(context, log), WorkoutPlanNetworkService {
-  private fun queryAllWorkoutPlans(db: DynamoDBMapper): Iterable<DynamoWorkoutPlan> {
-    val keyValues = DynamoWorkoutPlan()
-    val queryExpression = DynamoDBQueryExpression<DynamoWorkoutPlan>()
-      .withHashKeyValues(keyValues)
-      .withConsistentRead(false)
-    return db.query(DynamoWorkoutPlan::class.java, queryExpression)
-  }
 
   private fun querySpecificWorkoutPlans(
     db: DynamoDBMapper,
@@ -53,11 +46,10 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
         ?: throw IllegalStateException("Firebase user not logged in")
       val idToken = currentUser.getIdToken(false).await()
       val group = idToken.claims["group"]?.toString()
+        ?: if (currentUser.email.isNullOrBlank()) "anon" else "free"
 
-      val command = group?.let { groupValue ->
-        val groupDefinition = db.load(DynamoGroupDefinition::class.java, groupValue, "Groups")
-        querySpecificWorkoutPlans(db, groupDefinition.workouts)
-      } ?: queryAllWorkoutPlans(db)
+      val groupDefinition = db.load(DynamoGroupDefinition::class.java, group, "Groups")
+      val command = querySpecificWorkoutPlans(db, groupDefinition.workouts)
 
       command
         .mapNotNull { plan ->
