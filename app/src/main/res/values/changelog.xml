@@ -2,6 +2,7 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.2.3</item>
         <item>**v1.2.2</item>
         <item>Updated to modern sign in</item>
         <item>**v1.2.1</item>
