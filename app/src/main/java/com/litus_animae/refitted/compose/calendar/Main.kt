@@ -35,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.AuthButton
+import com.litus_animae.refitted.compose.Changelog
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.UserViewModel
 import com.litus_animae.refitted.models.WorkoutPlan
@@ -65,6 +66,11 @@ fun Calendar(
     initial = emptyMap(),
     Dispatchers.IO
   )
+
+  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsState(initial = null)
+  if (shouldShowChangelog == true) {
+    Changelog { userModel.setChangelogShown() }
+  }
 
   Scaffold(
     modifier,
@@ -176,7 +182,8 @@ fun Calendar(
             }
           },
           handleDeAuth = { userModel.handleSignOut() },
-          authedEmail = currentEmail)
+          authedEmail = currentEmail
+        )
       }
     }) { contentPadding ->
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
