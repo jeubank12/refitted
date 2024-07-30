@@ -105,7 +105,7 @@ googleid = { module = "com.google.android.libraries.identity.googleid:googleid",
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 javax-inject = { module = "javax.inject:javax.inject", version.ref = "javax" }
-junit = { module = "junit:junit", version.ref="junit" }
+junit = { module = "junit:junit", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junitJupiterApi" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junitJupiterApi" }
