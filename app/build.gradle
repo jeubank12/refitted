@@ -100,7 +100,7 @@ dependencies {
     implementation libs.guava
     implementation libs.javax.inject
 
-    implementation libs.androidx.core.runtime
+    testImplementation libs.androidx.core.runtime
     implementation libs.androidx.fragment
     implementation libs.androidx.recyclerview
 
@@ -114,15 +114,16 @@ dependencies {
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugRuntimeOnly(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.junit
+    debugRuntimeOnly libs.androidx.compose.ui.test.manifest
     def junit_version = '5.10.3'
     testImplementation libs.junit.jupiter
     testImplementation libs.junit.jupiter.api
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
     testImplementation libs.truth
     androidTestImplementation libs.androidx.runner
-    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.test.monitor
 
     implementation libs.androidx.room.common
     implementation libs.androidx.room.runtime
@@ -187,6 +188,7 @@ dependencies {
     implementation libs.androidx.compose.animation.core
     // Integration with ViewModels
     def lifecycle_version = '2.8.4'
+    testImplementation libs.androidx.lifecycle.livedata.core
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.viewmodel.savedstate
