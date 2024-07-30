@@ -82,6 +82,7 @@ aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.
 aws-android-sdk-ddb = { module = "com.amazonaws:aws-android-sdk-ddb", version.ref = "awsAndroidSdkCore" }
 aws-android-sdk-ddb-mapper = { module = "com.amazonaws:aws-android-sdk-ddb-mapper", version.ref = "awsAndroidSdkCore" }
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
+dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
 dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger" }
 dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
