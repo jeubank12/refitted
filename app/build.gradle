@@ -91,21 +91,16 @@ android {
 
 dependencies {
 
-    def activity_version = '1.9.1'
-    implementation libs.androidx.activity.ktx
     // this may be used for some sort of error reporting
     // want to replace with crashlytics
     implementation libs.androidx.legacy.support.v4
 
     implementation libs.androidx.core.runtime
-    implementation libs.androidx.core.common
-    implementation libs.androidx.core.ktx
 
     def room_version = '2.6.1'
     implementation libs.androidx.room.paging
     def paging_version = '3.3.1'
     implementation libs.androidx.paging.common.ktx
-    implementation libs.androidx.paging.runtime.ktx
     implementation "androidx.paging:paging-compose:$paging_version"
 
     // UI Tests
@@ -145,7 +140,6 @@ dependencies {
     implementation platform(libs.arrow.stack)
     implementation libs.arrow.core
 
-    implementation libs.kotlinx.collections.immutable.jvm
     def kotlinx_couroutines_version = '1.8.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_couroutines_version"
     implementation libs.kotlinx.coroutines.play.services
@@ -162,14 +156,12 @@ dependencies {
     implementation libs.androidx.material.icons.core
     implementation libs.androidx.material.icons.extended
     // Integration with observables
-    implementation libs.androidx.runtime.livedata
     // Integration with activities
     implementation libs.androidx.activity.compose
     // Animations
     implementation libs.androidx.animation
     // Integration with ViewModels
     def lifecycle_version = '2.8.4'
-    implementation libs.androidx.lifecycle.viewmodel.ktx
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
 
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
