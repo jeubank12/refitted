@@ -104,29 +104,26 @@ dependencies {
     implementation libs.androidx.fragment
     implementation libs.androidx.recyclerview
 
-    def room_version = '2.6.1'
     implementation libs.androidx.room.paging
-    def paging_version = '3.3.1'
     implementation libs.androidx.paging.common
     implementation libs.androidx.paging.common.ktx
-    implementation "androidx.paging:paging-compose:$paging_version"
+    implementation libs.androidx.paging.compose
     implementation libs.androidx.paging.runtime
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.junit
     debugRuntimeOnly libs.androidx.compose.ui.test.manifest
-    def junit_version = '5.10.3'
     testImplementation libs.junit.jupiter
     testImplementation libs.junit.jupiter.api
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testRuntimeOnly libs.junit.jupiter.engine
     testImplementation libs.truth
     androidTestImplementation libs.androidx.runner
     androidTestImplementation libs.androidx.test.monitor
 
     implementation libs.androidx.room.common
+    ksp libs.androidx.room.compiler
     implementation libs.androidx.room.runtime
-    ksp "androidx.room:room-compiler:$room_version"
     implementation libs.androidx.room.ktx
     implementation libs.androidx.sqlite
 
@@ -134,14 +131,13 @@ dependencies {
     implementation libs.aws.android.sdk.ddb
     implementation libs.aws.android.sdk.ddb.mapper
 
-    def hilt_compiler_version = '1.2.0'
     implementation libs.dagger
     implementation libs.dagger.hilt.android
     implementation libs.dagger.hilt.core
     kapt libs.dagger.compiler
-    kapt "com.google.dagger:hilt-android-compiler:$hilt_android_version"
-    annotationProcessor "com.google.dagger:hilt-android-compiler:$hilt_android_version"
-    ksp "androidx.hilt:hilt-compiler:$hilt_compiler_version"
+    kapt libs.dagger.hilt.android.compiler
+    annotationProcessor libs.dagger.hilt.android.compiler
+    ksp libs.androidx.hilt.compiler
 
     implementation libs.androidx.hilt.navigation.compose
     implementation libs.androidx.navigation.compose
@@ -156,8 +152,7 @@ dependencies {
     implementation platform(libs.arrow.stack)
     implementation libs.arrow.core
 
-    def kotlinx_couroutines_version = '1.8.1'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_couroutines_version"
+    implementation libs.kotlinx.coroutines.core
     implementation libs.kotlinx.coroutines.play.services
 
     implementation platform(libs.androidx.compose.bom)
@@ -186,10 +181,9 @@ dependencies {
     implementation libs.androidx.compose.animation
     implementation libs.androidx.compose.animation.core
     // Integration with ViewModels
-    def lifecycle_version = '2.8.4'
     testImplementation libs.androidx.lifecycle.livedata.core
-    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.lifecycle.viewmodel.savedstate
 
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
