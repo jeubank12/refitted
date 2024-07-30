@@ -33,6 +33,7 @@ buildscript {
 plugins {
     id 'com.google.devtools.ksp' version '1.9.24-1.0.20' apply false
     id 'com.google.dagger.hilt.android' version "$hilt_android_version" apply false
+    id("com.autonomousapps.dependency-analysis") version "1.33.0"
 }
 
 allprojects {
