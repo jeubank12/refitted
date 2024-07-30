@@ -114,7 +114,6 @@ dependencies {
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.androidx.compose.ui.test.junit4
     androidTestImplementation libs.junit
     debugRuntimeOnly libs.androidx.compose.ui.test.manifest
     def junit_version = '5.10.3'
@@ -201,7 +200,7 @@ dependencies {
 
     // optional - needed for credentials support from play services, for devices running
     // Android 13 and below.
-    implementation libs.androidx.credentials.play.services.auth
+    runtimeOnly libs.androidx.credentials.play.services.auth
     implementation libs.googleid
 }
 
