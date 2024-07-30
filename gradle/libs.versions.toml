@@ -9,15 +9,20 @@ composeBom = "2024.06.00"
 coreRuntime = "2.2.0"
 credentials = "1.2.2"
 dagger = "2.51.1"
+dependencyAnalysis = "1.33.0"
 firebaseBom = "33.1.2"
 fragment = "1.5.7"
 googleid = "1.1.1"
+googleServices = "4.4.2"
+gradle = "8.5.1"
 guava = "33.2.1-android"
 hilt = "1.2.0"
 javax = "1"
 junitJupiterApi = "5.10.3"
 junit = "4.13.2"
+kotlin = "1.9.24"
 kotlinxCoroutines = "1.8.1"
+ksp = "1.9.24-1.0.20"
 legacySupportV4 = "1.0.0"
 navigation = "2.7.7"
 paging = "3.3.1"
@@ -89,12 +94,15 @@ dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
 dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger" }
 dagger-hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "dagger" }
+dagger-hilt-android-gradle = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "dagger" }
 dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 javax-inject = { module = "javax.inject:javax.inject", version.ref = "javax" }
 junit = { module = "junit:junit", version.ref="junit" }
@@ -103,6 +111,10 @@ junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.re
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junitJupiterApi" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
 [plugins]
+dagger-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "dagger" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
