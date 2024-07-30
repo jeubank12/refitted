@@ -3,12 +3,10 @@ accompanistAdaptive = "0.34.0"
 activityKtx = "1.9.1"
 arrowStack = "1.2.4"
 awsAndroidSdkCore = "2.76.0"
-awsAndroidSdkDdbMapper = "2.76.0"
 composeBom = "2024.06.00"
 coreKtx = "1.13.1"
 coreRuntime = "2.2.0"
 credentials = "1.2.2"
-credentialsPlayServicesAuth = "1.2.2"
 espressoCore = "3.6.1"
 firebaseBom = "33.1.2"
 googleid = "1.1.1"
@@ -36,7 +34,7 @@ androidx-core-common = { module = "androidx.arch.core:core-common", version.ref 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-runtime = { module = "androidx.arch.core:core-runtime", version.ref = "coreRuntime" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
-androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
@@ -60,7 +58,7 @@ androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 arrow-core = { module = "io.arrow-kt:arrow-core" }
 arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrowStack" }
 aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "awsAndroidSdkCore" }
-aws-android-sdk-ddb-mapper = { module = "com.amazonaws:aws-android-sdk-ddb-mapper", version.ref = "awsAndroidSdkDdbMapper" }
+aws-android-sdk-ddb-mapper = { module = "com.amazonaws:aws-android-sdk-ddb-mapper", version.ref = "awsAndroidSdkCore" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
