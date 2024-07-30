@@ -138,6 +138,7 @@ dependencies {
     implementation libs.dagger
     implementation libs.dagger.hilt.android
     implementation libs.dagger.hilt.core
+    kapt libs.dagger.compiler
     kapt "com.google.dagger:hilt-android-compiler:$hilt_android_version"
     annotationProcessor "com.google.dagger:hilt-android-compiler:$hilt_android_version"
     ksp "androidx.hilt:hilt-compiler:$hilt_compiler_version"
