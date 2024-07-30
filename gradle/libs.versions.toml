@@ -4,7 +4,6 @@ activityKtx = "1.9.1"
 arrowStack = "1.2.4"
 awsAndroidSdkCore = "2.76.0"
 composeBom = "2024.06.00"
-coreKtx = "1.13.1"
 coreRuntime = "2.2.0"
 credentials = "1.2.2"
 espressoCore = "3.6.1"
@@ -13,10 +12,8 @@ googleid = "1.1.1"
 hiltAndroid = "2.51.1"
 hiltNavigationCompose = "1.2.0"
 junitJupiterApi = "5.10.3"
-kotlinxCollectionsImmutableJvm = "0.3.7"
 kotlinxCoroutinesPlayServices = "1.8.1"
 legacySupportV4 = "1.0.0"
-lifecycleViewmodelKtx = "2.8.4"
 navigationCompose = "2.7.7"
 pagingCommonKtx = "3.3.1"
 playServicesAuth = "21.2.0"
@@ -27,11 +24,8 @@ truth = "1.4.4"
 [libraries]
 accompanist-adaptive = { module = "com.google.accompanist:accompanist-adaptive", version.ref = "accompanistAdaptive" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityKtx" }
-androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
 androidx-animation = { module = "androidx.compose.animation:animation" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
-androidx-core-common = { module = "androidx.arch.core:core-common", version.ref = "coreRuntime" }
-androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-runtime = { module = "androidx.arch.core:core-runtime", version.ref = "coreRuntime" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
@@ -39,18 +33,15 @@ androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", vers
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-legacy-support-v4 = { module = "androidx.legacy:legacy-support-v4", version.ref = "legacySupportV4" }
-androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-material = { module = "androidx.compose.material:material" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-paging-common-ktx = { module = "androidx.paging:paging-common-ktx", version.ref = "pagingCommonKtx" }
-androidx-paging-runtime-ktx = { module = "androidx.paging:paging-runtime-ktx", version.ref = "pagingCommonKtx" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomPaging" }
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "roomPaging" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomPaging" }
 androidx-runner = { module = "androidx.test:runner", version.ref = "runner" }
-androidx-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata" }
 androidx-ui = { module = "androidx.compose.ui:ui" }
 androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
@@ -68,7 +59,6 @@ hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltA
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junitJupiterApi" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
-kotlinx-collections-immutable-jvm = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm", version.ref = "kotlinxCollectionsImmutableJvm" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
