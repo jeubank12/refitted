@@ -63,8 +63,8 @@ updates:
 # Updates for npm dependencies used in web
 - package-ecosystem: npm
   directories: 
-    - "web/"
-    - "admin/"
+    - "/web"
+    - "/admin"
   schedule:
     interval: "weekly"
   open-pull-requests-limit: 10
@@ -90,6 +90,9 @@ updates:
       patterns:
       - "*eslint*"
       - "prettier"
+      update-types:
+        - "minor"
+        - "patch"
     emotion:
       patterns:
       - "@emotion*"
