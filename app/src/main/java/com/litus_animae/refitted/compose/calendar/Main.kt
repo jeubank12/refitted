@@ -177,7 +177,7 @@ fun Calendar(
         var signInClicked by remember { mutableStateOf(false) }
 
         LaunchedEffect(currentEmail) {
-          if (currentEmail != null && signInClicked) {
+          if (signInClicked) {
             workoutPlanPagingItems.refresh()
           }
         }

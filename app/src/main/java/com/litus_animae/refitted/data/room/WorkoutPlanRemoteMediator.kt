@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.data.room
 
+import android.util.Log
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
@@ -23,6 +24,7 @@ class WorkoutPlanRemoteMediator(
   private val savedStateDao = database.getSavedStateDao()
 
   override suspend fun initialize(): InitializeAction {
+    Log.d(TAG, "initializing")
     val workoutsLastRefreshed = savedStateDao
       .loadState(SavedStateKeys.CacheTimeKey)?.value?.toLongOrNull()
       ?: return InitializeAction.LAUNCH_INITIAL_REFRESH
@@ -66,15 +68,19 @@ class WorkoutPlanRemoteMediator(
       }
       return MediatorResult.Success(endOfPaginationReached = true)
     } catch (ex: UserNotLoggedInException){
+      Log.w(TAG, ex.message ?: "user not logged in")
       return MediatorResult.Error(ex)
     } catch (ex: com.amazonaws.services.cognitoidentity.model.NotAuthorizedException) {
+      Log.e(TAG, ex.message ?: "NotAuthorizedException")
       return MediatorResult.Error(ex)
     } catch (ex: com.amazonaws.services.cognitoidentity.model.InvalidIdentityPoolConfigurationException) {
+      Log.e(TAG, ex.message ?: "NotAuthorizedException")
       return MediatorResult.Error(ex)
     }
   }
 
   companion object {
+    private const val TAG = "WorkoutPlanRemoteMediator"
     private const val CacheLimitHours = 12L
   }
 }
