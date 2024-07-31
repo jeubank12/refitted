@@ -2,11 +2,10 @@ plugins {
     alias libs.plugins.application
     alias libs.plugins.dagger.hilt.android
     alias libs.plugins.compose.compiler
-    id 'com.google.gms.google-services'
-    id 'org.jetbrains.kotlin.android'
-    id 'kotlin-android'
-    id 'kotlin-parcelize'
-    id 'kotlin-kapt'
+    alias libs.plugins.google.services
+    alias libs.plugins.jetbrains.kotlin.android
+    alias libs.plugins.jetbrains.kotlin.kapt
+    alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
 
@@ -195,8 +194,4 @@ dependencies {
     // Android 13 and below.
     runtimeOnly libs.androidx.credentials.play.services.auth
     implementation libs.googleid
-}
-
-repositories {
-    mavenCentral()
 }

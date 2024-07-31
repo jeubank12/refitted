@@ -7,19 +7,6 @@ buildscript {
             downloadSources = true
         }
     }
-    repositories {
-        google()
-        mavenCentral()
-        maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
-    }
-    dependencies {
-        classpath libs.google.services
-        classpath libs.kotlin.gradle.plugin
-        classpath libs.dagger.hilt.android.gradle
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-    }
 }
 
 // disabled due to: https://github.com/nebula-plugins/gradle-lint-plugin/issues/342
@@ -32,18 +19,11 @@ plugins {
     alias libs.plugins.compose.compiler apply false
     alias libs.plugins.dagger.hilt.android apply false
     alias libs.plugins.dependency.analysis
+    alias libs.plugins.google.services apply false
+    alias libs.plugins.jetbrains.kotlin.android apply false
+    alias libs.plugins.jetbrains.kotlin.kapt apply false
+    alias libs.plugins.jetbrains.kotlin.parcelize apply false
     alias libs.plugins.ksp apply false
-}
-
-allprojects {
-//    apply plugin :"nebula.lint"
-//    gradleLint {
-//        rules=['unused-dependency']
-//    }
-    repositories {
-        google()
-        mavenCentral()
-    }
 }
 
 task clean(type: Delete) {
