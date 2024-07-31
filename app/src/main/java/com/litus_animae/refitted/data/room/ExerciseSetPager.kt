@@ -1,7 +1,9 @@
 package com.litus_animae.refitted.data.room
 
+import android.util.Log
 import androidx.paging.*
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
+import com.litus_animae.refitted.data.room.WorkoutPlanRemoteMediator.Companion
 import com.litus_animae.refitted.models.DayAndWorkout
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
@@ -24,6 +26,7 @@ class ExerciseSetPager(
 
   private val remoteMediator = object : RemoteMediator<Int, String>() {
     override suspend fun initialize(): InitializeAction {
+      Log.d(TAG, "initializing")
       val (day, workout) = dayAndWorkout
       return if (exerciseDao.loadSteps(day, workout).isNotEmpty())
         InitializeAction.SKIP_INITIAL_REFRESH
@@ -49,6 +52,7 @@ class ExerciseSetPager(
         exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
         return MediatorResult.Success(endOfPaginationReached = true)
       } catch (ex: UserNotLoggedInException) {
+        Log.w(TAG, ex.message ?: "user not logged in")
         return MediatorResult.Error(ex)
       } catch (ex: com.amazonaws.services.cognitoidentity.model.NotAuthorizedException) {
         return MediatorResult.Error(ex)
