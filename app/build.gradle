@@ -92,9 +92,6 @@ dependencies {
     implementation libs.androidx.activity
     implementation libs.androidx.annotation
     implementation libs.androidx.appcompat
-    // this may be used for some sort of error reporting
-    // want to replace with crashlytics
-    implementation libs.androidx.legacy.support.v4
     implementation libs.guava
     implementation libs.javax.inject
 
