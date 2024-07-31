@@ -46,7 +46,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
         ?: throw IllegalStateException("Firebase user not logged in")
       val idToken = currentUser.getIdToken(false).await()
       val group = idToken.claims["group"]?.toString()
-        ?: if (currentUser.email.isNullOrBlank()) "anon" else "free"
+        ?: if (currentUser.isAnonymous) "anon" else "free"
 
       val groupDefinition = db.load(DynamoGroupDefinition::class.java, group, "Groups")
       val command = querySpecificWorkoutPlans(db, groupDefinition.workouts)
