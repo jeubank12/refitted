@@ -117,7 +117,7 @@ class UserViewModel @Inject constructor(
       val signInResult = auth.signInWithCredential(credential).await()
       log.d(TAG, "signInWithCredential:success")
       _currentUser.emit(signInResult.user)
-      if (oldUser != null) {
+      if (oldUser?.isAnonymous == true) {
         oldUser.delete().await()
         log.d(TAG, "delete:success")
       }
