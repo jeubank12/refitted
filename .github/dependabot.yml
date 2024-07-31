@@ -38,8 +38,9 @@ updates:
       - "*lifecycle*"
     kotlin:
       patterns:
-      - "org.jetbrains.kotlinx*"
+      - "org.jetbrains.kotlin*"
       - "*ktx"
+      - "*ksp"
     hilt:
       patterns:
       - "*hilt*"
