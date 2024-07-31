@@ -57,7 +57,9 @@ updates:
 
 # Updates for npm dependencies used in web
 - package-ecosystem: npm
-  directory: "web/"
+  directories: 
+    - "web/"
+    - "admin/"
   schedule:
     interval: "weekly"
   open-pull-requests-limit: 10
@@ -67,6 +69,7 @@ updates:
     aws:
       patterns:
       - "@aws-sdk/*"
+      - "@types/aws*"
       - "firebase*"
     next:
       patterns:
@@ -85,33 +88,6 @@ updates:
     emotion:
       patterns:
       - "@emotion*"
-    base:
-      patterns:
-      - "typescript"
-      - "esbuild"
-      - "@types/node"
-    lodash:
-      patterns:
-      - "*lodash*"
-
-# Updates for npm dependencies used in admin
-- package-ecosystem: npm
-  directory: "admin/"
-  schedule:
-    interval: "weekly"
-  open-pull-requests-limit: 10
-  reviewers:
-  - "jeubank12"
-  groups:
-    aws:
-      patterns:
-      - "@aws-sdk/*"
-      - "@types/aws*"
-      - "firebase*"
-    eslint:
-      patterns:
-      - "*eslint*"
-      - "prettier"
     base:
       patterns:
       - "typescript"
