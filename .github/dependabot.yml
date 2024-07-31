@@ -35,6 +35,10 @@ updates:
         - "*navigation-compose"
         - "*lifecycle*"
         - "*activity-compose"
+    room:
+      patterns:
+        - "*room*"
+        - "*sqlite"
     androidx:
       patterns:
         - "androidx*"
