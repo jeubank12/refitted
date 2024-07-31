@@ -12,40 +12,6 @@ updates:
     interval: "weekly"
   reviewers:
   - "jeubank12"
-  groups:
-    tests:
-      patterns:
-        - "*junit*"
-        - "com.google.truth*"
-        - "androidx.test.*"
-    compose:
-      patterns:
-      - "*compose*"
-      - "*accompanist*"
-      exclude-patterns:
-      - "*navigation-compose"
-      - "*lifecycle*"
-      - "*activity-compose"
-    androidx:
-      patterns:
-        - "androidx*"
-    paging:
-      patterns:
-        - "*paging*"
-    lifecycle:
-      patterns:
-      - "*lifecycle*"
-    kotlin:
-      patterns:
-      - "org.jetbrains.kotlin*"
-      - "*ktx"
-      - "*ksp"
-      - "ksp"
-    hilt:
-      patterns:
-      - "*hilt*"
-      - "*navigation-compose"
-
 
 # Updates for Gradle dependencies used in the app
 - package-ecosystem: gradle
@@ -55,6 +21,40 @@ updates:
   open-pull-requests-limit: 10
   reviewers:
   - "jeubank12"
+  groups:
+    tests:
+      patterns:
+        - "*junit*"
+        - "com.google.truth*"
+        - "androidx.test.*"
+    compose:
+      patterns:
+        - "*compose*"
+        - "*accompanist*"
+      exclude-patterns:
+        - "*navigation-compose"
+        - "*lifecycle*"
+        - "*activity-compose"
+    androidx:
+      patterns:
+        - "androidx*"
+    paging:
+      patterns:
+        - "*paging*"
+    lifecycle:
+      patterns:
+        - "*lifecycle*"
+    kotlin:
+      patterns:
+        - "org.jetbrains.kotlin*"
+        - "org.jetbrains.kotlinx"
+        - "kotlin*"
+        - "*ktx"
+        - "*ksp"
+    hilt:
+      patterns:
+        - "*hilt*"
+        - "*navigation-compose"
 
 # Updates for npm dependencies used in web
 - package-ecosystem: npm
