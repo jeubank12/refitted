@@ -20,9 +20,9 @@ hilt = "1.2.0"
 javax = "1"
 junitJupiterApi = "5.10.3"
 junit = "4.13.2"
-kotlin = "1.9.24"
+kotlin = "2.0.0"
 kotlinxCoroutines = "1.8.1"
-ksp = "1.9.24-1.0.20"
+ksp = "2.0.0-1.0.23"
 legacySupportV4 = "1.0.0"
 navigation = "2.7.7"
 paging = "3.3.1"
@@ -115,6 +115,7 @@ kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", v
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
 [plugins]
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 dagger-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "dagger" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
