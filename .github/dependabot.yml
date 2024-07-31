@@ -13,10 +13,6 @@ updates:
   reviewers:
   - "jeubank12"
   groups:
-    core:
-      patterns:
-      - "androidx.arch.core*"
-      - "androidx.core*"
     tests:
       patterns:
         - "*junit*"
@@ -30,6 +26,9 @@ updates:
       - "*navigation-compose"
       - "*lifecycle*"
       - "*activity-compose"
+    androidx:
+      patterns:
+        - "androidx*"
     paging:
       patterns:
         - "*paging*"
