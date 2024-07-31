@@ -1,13 +1,13 @@
 plugins {
-    alias libs.plugins.ksp
-    id 'com.android.application'
+    alias libs.plugins.application
+    alias libs.plugins.dagger.hilt.android
+    alias libs.plugins.compose.compiler
     id 'com.google.gms.google-services'
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-android'
     id 'kotlin-parcelize'
     id 'kotlin-kapt'
-    alias libs.plugins.dagger.hilt.android
-    alias libs.plugins.compose.compiler
+    alias libs.plugins.ksp
 }
 
 android {

@@ -13,7 +13,6 @@ buildscript {
         maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
     }
     dependencies {
-        classpath libs.gradle
         classpath libs.google.services
         classpath libs.kotlin.gradle.plugin
         classpath libs.dagger.hilt.android.gradle
@@ -29,10 +28,11 @@ buildscript {
 //    id 'nebula.lint' version '17.8.0'
 //}
 plugins {
-    alias libs.plugins.ksp apply false
+    alias libs.plugins.application apply false
+    alias libs.plugins.compose.compiler apply false
     alias libs.plugins.dagger.hilt.android apply false
     alias libs.plugins.dependency.analysis
-    alias libs.plugins.compose.compiler apply false
+    alias libs.plugins.ksp apply false
 }
 
 allprojects {
