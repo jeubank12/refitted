@@ -41,6 +41,7 @@ updates:
       - "org.jetbrains.kotlin*"
       - "*ktx"
       - "*ksp"
+      - "ksp"
     hilt:
       patterns:
       - "*hilt*"
