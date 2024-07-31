@@ -2,7 +2,7 @@
 accompanistAdaptive = "0.34.0"
 activity = "1.9.1"
 annotation = "1.8.0"
-appcompat = "1.2.0"
+appcompat = "1.7.0"
 arrowStack = "1.2.4"
 awsAndroidSdkCore = "2.76.0"
 composeBom = "2024.06.00"
