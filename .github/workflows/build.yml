@@ -28,6 +28,7 @@ jobs:
               - 'app/**'
               - '*gradle*'
               - '.github/workflows/*'
+              - 'gradle/**'
             web:
               - 'web/**'
               - '.github/workflows/*'
