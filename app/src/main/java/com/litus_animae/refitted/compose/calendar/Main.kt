@@ -118,6 +118,17 @@ fun Calendar(
                   }
                   .padding(start = 5.dp, end = 15.dp)
                   .padding(vertical = 5.dp))
+              val isAdmin by userModel.userIsAdmin.collectAsState()
+              if (isAdmin) {
+                Text("Crash",
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                      throw RuntimeException("Test Crash")
+                    }
+                    .padding(start = 5.dp, end = 15.dp)
+                    .padding(vertical = 5.dp))
+              }
             }
             if (alerted) {
               AlertDialog(onDismissRequest = { setAlerted(false) },

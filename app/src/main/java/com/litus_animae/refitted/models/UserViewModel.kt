@@ -42,10 +42,12 @@ class UserViewModel @Inject constructor(
 ) : ViewModel() {
 
   private val auth by lazy { FirebaseAuth.getInstance() }
-  private val _currentUser by lazy { MutableStateFlow(auth.currentUser) }
+  private val userState by lazy { MutableStateFlow(auth.currentUser) }
+  private val _currentUser by lazy {
+    userState.map { it ?: auth.signInAnonymously().await().user }
+  }
   val userEmail by lazy {
     _currentUser
-      .map { it ?: auth.signInAnonymously().await().user }
       .map { it?.email }
       .map {
         if (it.isNullOrBlank()) {
@@ -55,9 +57,16 @@ class UserViewModel @Inject constructor(
       .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = auth.currentUser?.email)
   }
 
+  val userIsAdmin by lazy {
+    _currentUser
+      .map { it?.getIdToken(false)?.await() }
+      .map { it?.claims?.get("admin")?.toString() == "true" }
+      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = false)
+  }
+
   fun handleSignOut() {
     auth.signOut()
-    viewModelScope.launch { _currentUser.emit(null) }
+    viewModelScope.launch { userState.emit(null) }
   }
 
   fun handleSignIn(result: GetCredentialResponse) {
@@ -100,7 +109,7 @@ class UserViewModel @Inject constructor(
         try {
           val convertResult = user.linkWithCredential(credential).await()
           log.d(TAG, "linkWithCredential:success")
-          _currentUser.emit(convertResult.user)
+          userState.emit(convertResult.user)
         } catch (e: Throwable) {
           log.e(TAG, "linkWithCredential:failure", e)
           firebaseSignInWithGoogle(credential, user)
@@ -116,7 +125,7 @@ class UserViewModel @Inject constructor(
     try {
       val signInResult = auth.signInWithCredential(credential).await()
       log.d(TAG, "signInWithCredential:success")
-      _currentUser.emit(signInResult.user)
+      userState.emit(signInResult.user)
       if (oldUser?.isAnonymous == true) {
         oldUser.delete().await()
         log.d(TAG, "delete:success")
