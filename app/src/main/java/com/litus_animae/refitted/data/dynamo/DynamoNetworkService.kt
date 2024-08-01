@@ -22,12 +22,13 @@ import java.time.Instant
 @FlowPreview
 abstract class DynamoNetworkService(context: Context, protected val log: LogUtil) {
   private val applicationContext = context.applicationContext
-  private val credentialsProvider: CognitoCachingCredentialsProvider =
+  private val credentialsProvider: CognitoCachingCredentialsProvider by lazy {
     CognitoCachingCredentialsProvider(
       applicationContext,
       applicationContext.getString(R.string.cognito_identity_pool_id),
       Regions.US_EAST_2
     )
+  }
   private val tableName: String = applicationContext.getString(R.string.dynamo_table)
   private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
