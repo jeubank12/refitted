@@ -33,6 +33,7 @@ sqlite = "2.4.0"
 testMonitor = "1.7.1"
 truth = "1.4.4"
 viewModel = "2.8.4"
+lifecycleRuntimeComposeAndroid = "2.8.4"
 
 [libraries]
 accompanist-adaptive = { module = "com.google.accompanist:accompanist-adaptive", version.ref = "accompanistAdaptive" }
@@ -109,6 +110,7 @@ junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", vers
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
+androidx-lifecycle-runtime-compose-android = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose-android", version.ref = "lifecycleRuntimeComposeAndroid" }
 
 [plugins]
 application = { id = "com.android.application", version.ref = "gradle" }
