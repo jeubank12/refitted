@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
 import androidx.window.layout.DisplayFeature
@@ -62,7 +63,7 @@ fun ExerciseView(
   val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
-  val isRefreshing by model.isLoading.collectAsState()
+  val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 

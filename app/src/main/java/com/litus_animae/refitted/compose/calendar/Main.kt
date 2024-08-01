@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.R
@@ -67,7 +68,7 @@ fun Calendar(
     Dispatchers.IO
   )
 
-  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsState(initial = null)
+  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsStateWithLifecycle(initialValue = null)
   if (shouldShowChangelog == true) {
     Changelog { userModel.setChangelogShown() }
   }
@@ -118,7 +119,7 @@ fun Calendar(
                   }
                   .padding(start = 5.dp, end = 15.dp)
                   .padding(vertical = 5.dp))
-              val isAdmin by userModel.userIsAdmin.collectAsState()
+              val isAdmin by userModel.userIsAdmin.collectAsStateWithLifecycle()
               if (isAdmin) {
                 Text("Crash",
                   Modifier
@@ -172,7 +173,7 @@ fun Calendar(
         workoutModel.loadWorkoutDaysCompleted(it)
       }
       Row(Modifier.padding(10.dp)) {
-        val currentEmail by userModel.userEmail.collectAsState()
+        val currentEmail by userModel.userEmail.collectAsStateWithLifecycle()
         val coroutineScope = rememberCoroutineScope()
         var signInClicked by remember { mutableStateOf(false) }
 
