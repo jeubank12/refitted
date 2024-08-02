@@ -11,6 +11,9 @@ release/
 .gradle/
 build/
 
+# Kotlin compiler files
+.kotlin/
+
 # Local configuration file (sdk path, etc)
 local.properties
 .idea/
