@@ -10,26 +10,29 @@ import dagger.hilt.android.HiltAndroidApp
 @HiltAndroidApp
 class RefittedApplication : Application() {
 
-    override fun onCreate() {
+  override fun onCreate() {
 
-        StrictMode.setThreadPolicy(
-            ThreadPolicy.Builder()
-                .detectAll() // or .detectAll() for all detectable problems
-                .penaltyLog()
-                .build()
-        )
-        StrictMode.setVmPolicy(
-            VmPolicy.Builder()
-                .detectAll()
-                .penaltyLog()
-                .penaltyDeath()
-                .build()
-        )
-
-        super.onCreate()
+    if (BuildConfig.DEBUG) {
+      StrictMode.setThreadPolicy(
+        ThreadPolicy.Builder()
+          .detectAll() // or .detectAll() for all detectable problems
+          .penaltyLog()
+          .build()
+      )
+      StrictMode.setVmPolicy(
+        VmPolicy.Builder()
+          .detectLeakedSqlLiteObjects()
+          .detectLeakedClosableObjects()
+          .penaltyLog()
+          .penaltyDeath()
+          .build()
+      )
     }
 
-    companion object {
-        private const val TAG = "RefittedApplication"
-    }
+    super.onCreate()
+  }
+
+  companion object {
+    private const val TAG = "RefittedApplication"
+  }
 }
