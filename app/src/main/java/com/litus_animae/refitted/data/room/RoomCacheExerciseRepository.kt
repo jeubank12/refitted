@@ -1,15 +1,34 @@
 package com.litus_animae.refitted.data.room
 
-import androidx.paging.*
+import androidx.paging.AsyncPagingDataDiffer
+import androidx.paging.LoadState
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
-import com.litus_animae.refitted.models.*
+import com.litus_animae.refitted.models.DayAndWorkout
+import com.litus_animae.refitted.models.ExerciseRecord
+import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.models.Record
+import com.litus_animae.refitted.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.Integer.min
 import java.time.Instant
 import java.time.LocalDate
@@ -19,10 +38,11 @@ import javax.inject.Inject
 @ExperimentalCoroutinesApi
 @FlowPreview
 class RoomCacheExerciseRepository @Inject constructor(
-  private val refittedRoom: RefittedRoom,
+  private val roomProvider: RefittedRoomProvider,
   private val networkService: ExerciseSetNetworkService,
   private val log: LogUtil
 ) : ExerciseRepository {
+  private val refittedRoom by lazy { roomProvider.refittedRoom }
 
   private val currentWorkout = MutableStateFlow("")
   override val workoutRecords = currentWorkout.flatMapLatest {
@@ -83,7 +103,7 @@ class RoomCacheExerciseRepository @Inject constructor(
     _exercisesAreLoading.emit(true)
     log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
     val mediator =
-      ExerciseSetPager(DayAndWorkout(day, workoutId), refittedRoom, networkService, log)
+      ExerciseSetPager(DayAndWorkout(day, workoutId), roomProvider, networkService, log)
     coroutineScope {
 
       launch { mediator.pagingData.collectLatest { pagingDataDiffer.submitData(it) } }

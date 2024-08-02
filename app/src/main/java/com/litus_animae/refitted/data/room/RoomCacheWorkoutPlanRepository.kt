@@ -13,17 +13,18 @@ import java.time.Instant
 import javax.inject.Inject
 
 class RoomCacheWorkoutPlanRepository @Inject constructor(
-    database: RefittedRoom,
+    roomProvider: RefittedRoomProvider,
     networkService: WorkoutPlanNetworkService,
     log: LogUtil
 ) : WorkoutPlanRepository {
 
-    private val workoutPlanDao = database.getWorkoutPlanDao()
+    private val database by lazy {roomProvider.refittedRoom}
+    private val workoutPlanDao by lazy{ database.getWorkoutPlanDao()}
     @OptIn(ExperimentalPagingApi::class)
     override val workouts: Flow<PagingData<WorkoutPlan>> =
         Pager(
             config = PagingConfig(pageSize = 10),
-            remoteMediator = WorkoutPlanRemoteMediator(database, networkService, log)
+            remoteMediator = WorkoutPlanRemoteMediator(roomProvider, networkService, log)
         ) {
             workoutPlanDao.pagingSource()
         }.flow
