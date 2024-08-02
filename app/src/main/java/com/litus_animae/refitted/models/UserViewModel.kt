@@ -125,7 +125,7 @@ class UserViewModel @Inject constructor(
 
   fun shouldShowChangelog(): Flow<Boolean> {
     return savedStateRepo.getState(ChangelogState)
-      .mapLatest { it == null || it.value != BuildConfig.VERSION_CODE.toString() }
+      .mapLatest { it != null && it.value != BuildConfig.VERSION_CODE.toString() }
   }
 
   fun setChangelogShown() {
