@@ -14,16 +14,13 @@ class RefittedApplication : Application() {
 
         StrictMode.setThreadPolicy(
             ThreadPolicy.Builder()
-                .detectDiskReads()
-                .detectDiskWrites()
-                .detectNetwork() // or .detectAll() for all detectable problems
+                .detectAll() // or .detectAll() for all detectable problems
                 .penaltyLog()
                 .build()
         )
         StrictMode.setVmPolicy(
             VmPolicy.Builder()
-                .detectLeakedSqlLiteObjects()
-                .detectLeakedClosableObjects()
+                .detectAll()
                 .penaltyLog()
                 .penaltyDeath()
                 .build()
