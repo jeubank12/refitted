@@ -19,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalPagingApi::class)
 class ExerciseSetPager(
@@ -33,9 +34,11 @@ class ExerciseSetPager(
     override suspend fun initialize(): InitializeAction {
       Log.d(TAG, "initializing")
       val (day, workout) = dayAndWorkout
-      return if (exerciseDao.loadSteps(day, workout).isNotEmpty())
-        InitializeAction.SKIP_INITIAL_REFRESH
-      else InitializeAction.LAUNCH_INITIAL_REFRESH
+      return withContext(Dispatchers.IO) {
+        if (exerciseDao.loadSteps(day, workout).isNotEmpty())
+          InitializeAction.SKIP_INITIAL_REFRESH
+        else InitializeAction.LAUNCH_INITIAL_REFRESH
+      }
     }
 
     override suspend fun load(
