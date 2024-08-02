@@ -18,15 +18,10 @@ import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -46,16 +41,18 @@ class UserViewModel @Inject constructor(
         if (it.isNullOrBlank()) {
           null
         } else it
-      }.flowOn(Dispatchers.IO)
+      }
 
   val userIsAdmin =
     authProvider.currentUser
       .map { it?.getIdToken(false)?.await() }
       .map { it?.claims?.get("admin")?.toString() == "true" }
-      .flowOn(Dispatchers.IO)
 
   fun handleSignOut() {
-    authProvider.auth.signOut()
+    viewModelScope.launch {
+      // TODO need to re-auth as anonymous user
+      authProvider.auth().signOut()
+    }
   }
 
   fun handleSignIn(result: GetCredentialResponse) {
@@ -92,7 +89,7 @@ class UserViewModel @Inject constructor(
 
   private fun firebaseAuthWithGoogle(credential: AuthCredential) {
     viewModelScope.launch {
-      val currentUser = authProvider.currentUser.lastOrNull()
+      val currentUser = authProvider.auth().currentUser
       if (currentUser == null) firebaseSignInWithGoogle(credential)
       else {
         try {
@@ -111,7 +108,7 @@ class UserViewModel @Inject constructor(
     oldUser: FirebaseUser? = null
   ) {
     try {
-      authProvider.auth.signInWithCredential(credential).await()
+      authProvider.auth().signInWithCredential(credential).await()
       log.d(TAG, "signInWithCredential:success")
       if (oldUser?.isAnonymous == true) {
         oldUser.delete().await()

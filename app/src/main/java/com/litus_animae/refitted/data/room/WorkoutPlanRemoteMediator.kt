@@ -9,8 +9,8 @@ import androidx.room.withTransaction
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.SavedState
 import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
-import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -18,7 +18,8 @@ import java.time.temporal.ChronoUnit
 @OptIn(ExperimentalPagingApi::class)
 class WorkoutPlanRemoteMediator(
   private val database: RefittedRoom,
-  private val networkService: WorkoutPlanNetworkService
+  private val networkService: WorkoutPlanNetworkService,
+  private val log: LogUtil
 ) : RemoteMediator<Int, WorkoutPlan>() {
   private val workoutPlanDao = database.getWorkoutPlanDao()
   private val savedStateDao = database.getSavedStateDao()
@@ -39,44 +40,35 @@ class WorkoutPlanRemoteMediator(
     loadType: LoadType,
     state: PagingState<Int, WorkoutPlan>
   ): MediatorResult {
+    log.d(TAG, "Got request to load")
     when (loadType) {
       LoadType.PREPEND, LoadType.APPEND -> return MediatorResult.Success(endOfPaginationReached = true)
       else -> {}
     }
-    try {
-      val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
-      database.withTransaction {
-        val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
-        workoutPlanDao.clearAll()
-        val upsertPlans = plans.map { newPlan ->
-          val existingPlan = currentPlansByName[newPlan.workout] ?: return@map newPlan
-          existingPlan.copy(
-            totalDays = newPlan.totalDays,
-            restDays = newPlan.restDays,
-            description = newPlan.description,
-            globalAlternateLabels = newPlan.globalAlternateLabels,
-            globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
-          )
-        }
-        workoutPlanDao.insertAll(upsertPlans)
-        savedStateDao.insert(
-          SavedState(
-            SavedStateKeys.CacheTimeKey,
-            Instant.now().toEpochMilli().toString()
-          )
+    log.d(TAG, "Reading plans")
+    val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
+    database.withTransaction {
+      val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
+      workoutPlanDao.clearAll()
+      val upsertPlans = plans.map { newPlan ->
+        val existingPlan = currentPlansByName[newPlan.workout] ?: return@map newPlan
+        existingPlan.copy(
+          totalDays = newPlan.totalDays,
+          restDays = newPlan.restDays,
+          description = newPlan.description,
+          globalAlternateLabels = newPlan.globalAlternateLabels,
+          globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
         )
       }
-      return MediatorResult.Success(endOfPaginationReached = true)
-    } catch (ex: UserNotLoggedInException){
-      Log.w(TAG, ex.message ?: "user not logged in")
-      return MediatorResult.Error(ex)
-    } catch (ex: com.amazonaws.services.cognitoidentity.model.NotAuthorizedException) {
-      Log.e(TAG, ex.message ?: "NotAuthorizedException")
-      return MediatorResult.Error(ex)
-    } catch (ex: com.amazonaws.services.cognitoidentity.model.InvalidIdentityPoolConfigurationException) {
-      Log.e(TAG, ex.message ?: "NotAuthorizedException")
-      return MediatorResult.Error(ex)
+      workoutPlanDao.insertAll(upsertPlans)
+      savedStateDao.insert(
+        SavedState(
+          SavedStateKeys.CacheTimeKey,
+          Instant.now().toEpochMilli().toString()
+        )
+      )
     }
+    return MediatorResult.Success(endOfPaginationReached = true)
   }
 
   companion object {

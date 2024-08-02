@@ -8,6 +8,7 @@ object RoomRefittedDataService {
     private const val TAG = "RoomExerciseDataService"
     private const val db_name = "dev01.2.db"
 
+    // TODO use lazy
     @Volatile
     private var roomDatabase: RefittedRoom? = null
     fun getRefittedRoom(context: Context): RefittedRoom {
