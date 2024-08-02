@@ -10,17 +10,23 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.tasks.await
 import java.time.Duration
 import java.time.Instant
 
 @ExperimentalCoroutinesApi
 @FlowPreview
-abstract class DynamoNetworkService(context: Context, protected val log: LogUtil) {
+abstract class DynamoNetworkService(
+  context: Context,
+  protected val log: LogUtil,
+  protected val authProvider: AuthProvider
+) {
   private val applicationContext = context.applicationContext
   private val credentialsProvider: CognitoCachingCredentialsProvider by lazy {
     CognitoCachingCredentialsProvider(
@@ -33,7 +39,7 @@ abstract class DynamoNetworkService(context: Context, protected val log: LogUtil
   private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
   protected suspend fun getDb(): DynamoDBMapper {
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUser = authProvider.currentUser.lastOrNull()
       ?: throw UserNotLoggedInException("Firebase user not logged in")
     val idToken = currentUser.getIdToken(false).await()
     val logins = mapOf(Pair(openIdSource, idToken.token))

@@ -5,6 +5,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
 import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
+import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.models.dynamo.DynamoGroupDefinition
@@ -15,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -22,9 +24,10 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class DynamoWorkoutPlanNetworkService @Inject constructor(
   @ApplicationContext context: Context,
-  log: LogUtil
+  log: LogUtil,
+  authProvider: AuthProvider
 ) :
-  DynamoNetworkService(context, log), WorkoutPlanNetworkService {
+  DynamoNetworkService(context, log, authProvider), WorkoutPlanNetworkService {
 
   private fun querySpecificWorkoutPlans(
     db: DynamoDBMapper,
@@ -42,7 +45,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
     return withContext(Dispatchers.IO) {
       val db = getDb()
 
-      val currentUser = FirebaseAuth.getInstance().currentUser
+      val currentUser = authProvider.currentUser.lastOrNull()
         ?: throw IllegalStateException("Firebase user not logged in")
       val idToken = currentUser.getIdToken(false).await()
       val group = idToken.claims["group"]?.toString()

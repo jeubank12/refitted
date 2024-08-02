@@ -3,6 +3,7 @@ package com.litus_animae.refitted.data.dynamo
 import android.content.Context
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
+import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.models.DayAndWorkout
@@ -20,9 +21,10 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class DynamoExerciseSetNetworkService @Inject constructor(
   @ApplicationContext context: Context,
-  log: LogUtil
+  log: LogUtil,
+  authProvider: AuthProvider
 ) :
-  DynamoNetworkService(context, log), ExerciseSetNetworkService {
+  DynamoNetworkService(context, log, authProvider), ExerciseSetNetworkService {
   override suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet> {
     val (workoutDay, workoutId) = dayAndWorkout
     return withContext(Dispatchers.IO) {
