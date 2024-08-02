@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.data.room
 
-import android.util.Log
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
@@ -17,15 +16,16 @@ import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalPagingApi::class)
 class WorkoutPlanRemoteMediator(
-  private val database: RefittedRoom,
+  private val roomProvider: RefittedRoomProvider,
   private val networkService: WorkoutPlanNetworkService,
   private val log: LogUtil
 ) : RemoteMediator<Int, WorkoutPlan>() {
-  private val workoutPlanDao = database.getWorkoutPlanDao()
-  private val savedStateDao = database.getSavedStateDao()
+  private val database by lazy { roomProvider.refittedRoom }
+  private val workoutPlanDao by lazy { database.getWorkoutPlanDao() }
+  private val savedStateDao by lazy { database.getSavedStateDao() }
 
   override suspend fun initialize(): InitializeAction {
-    Log.d(TAG, "initializing")
+    log.d(TAG, "initializing WorkoutPlanRemoteMediator")
     val workoutsLastRefreshed = savedStateDao
       .loadState(SavedStateKeys.CacheTimeKey)?.value?.toLongOrNull()
       ?: return InitializeAction.LAUNCH_INITIAL_REFRESH

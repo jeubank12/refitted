@@ -1,9 +1,15 @@
 package com.litus_animae.refitted.data.room
 
 import android.util.Log
-import androidx.paging.*
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.LoadType
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.PagingState
+import androidx.paging.RemoteMediator
+import androidx.paging.map
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
-import com.litus_animae.refitted.data.room.WorkoutPlanRemoteMediator.Companion
 import com.litus_animae.refitted.models.DayAndWorkout
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
@@ -17,11 +23,11 @@ import kotlinx.coroutines.flow.mapLatest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalPagingApi::class)
 class ExerciseSetPager(
   dayAndWorkout: DayAndWorkout,
-  refittedRoom: RefittedRoom,
+  roomProvider: RefittedRoomProvider,
   private val networkService: ExerciseSetNetworkService,
   private val log: LogUtil
 ) {
-  private val exerciseDao = refittedRoom.getExerciseDao()
+  private val exerciseDao by lazy { roomProvider.refittedRoom.getExerciseDao() }
 
   private val remoteMediator = object : RemoteMediator<Int, String>() {
     override suspend fun initialize(): InitializeAction {
