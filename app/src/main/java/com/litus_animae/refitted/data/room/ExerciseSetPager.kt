@@ -72,7 +72,7 @@ class ExerciseSetPager(
       val exercise = exerciseDao.getExercise(set.name, set.workout)
       ExerciseSet(set, exercise.flowOn(Dispatchers.IO))
     }
-  }
+  }.flowOn(Dispatchers.IO)
 
   companion object {
     private const val TAG = "ExerciseSetRemoteMediator"
