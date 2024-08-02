@@ -18,9 +18,11 @@ import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -44,14 +46,13 @@ class UserViewModel @Inject constructor(
         if (it.isNullOrBlank()) {
           null
         } else it
-      }
-      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = authProvider.auth.currentUser?.email)
+      }.flowOn(Dispatchers.IO)
 
   val userIsAdmin =
     authProvider.currentUser
       .map { it?.getIdToken(false)?.await() }
       .map { it?.claims?.get("admin")?.toString() == "true" }
-      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = false)
+      .flowOn(Dispatchers.IO)
 
   fun handleSignOut() {
     authProvider.auth.signOut()

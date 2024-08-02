@@ -68,8 +68,8 @@ fun Calendar(
     Dispatchers.IO
   )
 
-  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsStateWithLifecycle(initialValue = null)
-  if (shouldShowChangelog == true) {
+  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsStateWithLifecycle(initialValue = false)
+  if (shouldShowChangelog) {
     Changelog { userModel.setChangelogShown() }
   }
 
@@ -119,7 +119,7 @@ fun Calendar(
                   }
                   .padding(start = 5.dp, end = 15.dp)
                   .padding(vertical = 5.dp))
-              val isAdmin by userModel.userIsAdmin.collectAsStateWithLifecycle()
+              val isAdmin by userModel.userIsAdmin.collectAsStateWithLifecycle(initialValue = false)
               if (isAdmin) {
                 Text("Crash",
                   Modifier
@@ -167,13 +167,13 @@ fun Calendar(
             duration = SnackbarDuration.Indefinite
           )
       }
-      val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsState(initial = "")
+      val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
       WorkoutPlanMenu(Modifier.weight(1f), lastRefresh, workoutPlanPagingItems, workoutPlanError) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         workoutModel.loadWorkoutDaysCompleted(it)
       }
       Row(Modifier.padding(10.dp)) {
-        val currentEmail by userModel.userEmail.collectAsStateWithLifecycle()
+        val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
         val coroutineScope = rememberCoroutineScope()
         var signInClicked by remember { mutableStateOf(false) }
 
