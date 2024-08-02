@@ -8,25 +8,20 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialResponse
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.AuthCredential
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.litus_animae.refitted.BuildConfig
 import com.litus_animae.refitted.data.SavedStateRepository
+import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -38,35 +33,28 @@ import javax.inject.Inject
 @HiltViewModel
 class UserViewModel @Inject constructor(
   private val log: LogUtil,
-  private val savedStateRepo: SavedStateRepository
+  private val savedStateRepo: SavedStateRepository,
+  private val authProvider: AuthProvider
 ) : ViewModel() {
 
-  private val auth by lazy { FirebaseAuth.getInstance() }
-  private val userState by lazy { MutableStateFlow(auth.currentUser) }
-  private val _currentUser by lazy {
-    userState.map { it ?: auth.signInAnonymously().await().user }
-  }
-  val userEmail by lazy {
-    _currentUser
+  val userEmail =
+    authProvider.currentUser
       .map { it?.email }
       .map {
         if (it.isNullOrBlank()) {
           null
         } else it
       }
-      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = auth.currentUser?.email)
-  }
+      .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = authProvider.auth.currentUser?.email)
 
-  val userIsAdmin by lazy {
-    _currentUser
+  val userIsAdmin =
+    authProvider.currentUser
       .map { it?.getIdToken(false)?.await() }
       .map { it?.claims?.get("admin")?.toString() == "true" }
       .stateIn(viewModelScope, SharingStarted.Lazily, initialValue = false)
-  }
 
   fun handleSignOut() {
-    auth.signOut()
-    viewModelScope.launch { userState.emit(null) }
+    authProvider.auth.signOut()
   }
 
   fun handleSignIn(result: GetCredentialResponse) {
@@ -103,16 +91,15 @@ class UserViewModel @Inject constructor(
 
   private fun firebaseAuthWithGoogle(credential: AuthCredential) {
     viewModelScope.launch {
-      if (auth.currentUser == null) firebaseSignInWithGoogle(credential)
+      val currentUser = authProvider.currentUser.lastOrNull()
+      if (currentUser == null) firebaseSignInWithGoogle(credential)
       else {
-        val user = auth.currentUser!!
         try {
-          val convertResult = user.linkWithCredential(credential).await()
+          currentUser.linkWithCredential(credential).await()
           log.d(TAG, "linkWithCredential:success")
-          userState.emit(convertResult.user)
         } catch (e: Throwable) {
           log.e(TAG, "linkWithCredential:failure", e)
-          firebaseSignInWithGoogle(credential, user)
+          firebaseSignInWithGoogle(credential, currentUser)
         }
       }
     }
@@ -123,9 +110,8 @@ class UserViewModel @Inject constructor(
     oldUser: FirebaseUser? = null
   ) {
     try {
-      val signInResult = auth.signInWithCredential(credential).await()
+      authProvider.auth.signInWithCredential(credential).await()
       log.d(TAG, "signInWithCredential:success")
-      userState.emit(signInResult.user)
       if (oldUser?.isAnonymous == true) {
         oldUser.delete().await()
         log.d(TAG, "delete:success")
