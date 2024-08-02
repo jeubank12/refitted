@@ -60,10 +60,6 @@ class ExerciseViewModel @Inject constructor(
         log.i(TAG, "Processed set of exercises to: $instructions")
         instructions
       }
-      .catch {
-        log.e(TAG, "There was an error loading exercises", it)
-        exercisesError = "There was an error loading exercises"
-      }
 
   private fun getLastCompletedAlternateIndex(
     thisSets: NonEmptyList<ExerciseSet>,

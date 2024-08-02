@@ -3,7 +3,6 @@ package com.litus_animae.refitted.data.dynamo
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
-import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
@@ -16,7 +15,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -45,8 +43,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
     return withContext(Dispatchers.IO) {
       val db = getDb()
 
-      val currentUser = authProvider.currentUser.lastOrNull()
-        ?: throw IllegalStateException("Firebase user not logged in")
+      val currentUser = authProvider.auth().currentUser!!
       val idToken = currentUser.getIdToken(false).await()
       val group = idToken.claims["group"]?.toString()
         ?: if (currentUser.isAnonymous) "anon" else "free"

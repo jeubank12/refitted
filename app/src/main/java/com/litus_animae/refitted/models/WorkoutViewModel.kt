@@ -15,7 +15,17 @@ import com.litus_animae.refitted.util.SavedStateKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -75,10 +85,6 @@ class WorkoutViewModel @Inject constructor(
   val currentWorkout = combine(_currentWorkout, savedWorkout) { current, saved ->
     saved ?: current
   }.distinctUntilChanged()
-    .catch {
-      log.e(TAG, "There was an error loading the current workout", it)
-      workoutError = "There was an error loading this workout plan"
-    }
 
   private fun hydratePlan(
     name: String?,
@@ -156,10 +162,6 @@ class WorkoutViewModel @Inject constructor(
   var workoutError: String? by mutableStateOf(null)
     private set
   val workouts: Flow<PagingData<WorkoutPlan>> = workoutPlanRepo.workouts
-    .catch {
-      log.e(TAG, "There was an error loading workouts", it)
-      workoutError = "There was an error loading workouts"
-    }
 
   val workoutsLastRefreshed: Flow<String> =
     savedStateRepo.getState(SavedStateKeys.CacheTimeKey)

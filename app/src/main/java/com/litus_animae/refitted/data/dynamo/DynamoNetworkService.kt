@@ -12,7 +12,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
-import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.lastOrNull
@@ -38,9 +37,10 @@ abstract class DynamoNetworkService(
   private val tableName: String = applicationContext.getString(R.string.dynamo_table)
   private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
+  // TODO this needs to be called again when the user changes...
   protected suspend fun getDb(): DynamoDBMapper {
-    val currentUser = authProvider.currentUser.lastOrNull()
-      ?: throw UserNotLoggedInException("Firebase user not logged in")
+    log.d(TAG, "getting Dynamo db")
+    val currentUser = authProvider.auth().currentUser!!
     val idToken = currentUser.getIdToken(false).await()
     val logins = mapOf(Pair(openIdSource, idToken.token))
     credentialsProvider.logins = logins

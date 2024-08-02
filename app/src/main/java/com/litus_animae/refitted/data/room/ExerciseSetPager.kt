@@ -8,7 +8,6 @@ import com.litus_animae.refitted.models.DayAndWorkout
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
-import com.litus_animae.refitted.util.exception.UserNotLoggedInException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -41,24 +40,15 @@ class ExerciseSetPager(
         LoadType.APPEND, LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
         else -> {}
       }
-      try {
-        val networkSets = networkService.getExerciseSets(dayAndWorkout)
-        log.d(TAG, "Storing to cache: $networkSets")
-        val (exercises, sets) = networkSets.map {
-          val roomExerciseSet = RoomExerciseSet(it.set)
-          log.d(TAG, "Saving ${it.exercise}, $roomExerciseSet")
-          Pair(it.exercise, roomExerciseSet)
-        }.unzip()
-        exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
-        return MediatorResult.Success(endOfPaginationReached = true)
-      } catch (ex: UserNotLoggedInException) {
-        Log.w(TAG, ex.message ?: "user not logged in")
-        return MediatorResult.Error(ex)
-      } catch (ex: com.amazonaws.services.cognitoidentity.model.NotAuthorizedException) {
-        return MediatorResult.Error(ex)
-      } catch (ex: com.amazonaws.services.cognitoidentity.model.InvalidIdentityPoolConfigurationException) {
-        return MediatorResult.Error(ex)
-      }
+      val networkSets = networkService.getExerciseSets(dayAndWorkout)
+      log.d(TAG, "Storing to cache: $networkSets")
+      val (exercises, sets) = networkSets.map {
+        val roomExerciseSet = RoomExerciseSet(it.set)
+        log.d(TAG, "Saving ${it.exercise}, $roomExerciseSet")
+        Pair(it.exercise, roomExerciseSet)
+      }.unzip()
+      exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
+      return MediatorResult.Success(endOfPaginationReached = true)
     }
   }
 

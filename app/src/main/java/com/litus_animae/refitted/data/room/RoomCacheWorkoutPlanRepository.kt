@@ -7,13 +7,15 @@ import androidx.paging.PagingData
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import javax.inject.Inject
 
 class RoomCacheWorkoutPlanRepository @Inject constructor(
     database: RefittedRoom,
-    networkService: WorkoutPlanNetworkService
+    networkService: WorkoutPlanNetworkService,
+    log: LogUtil
 ) : WorkoutPlanRepository {
 
     private val workoutPlanDao = database.getWorkoutPlanDao()
@@ -21,7 +23,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
     override val workouts: Flow<PagingData<WorkoutPlan>> =
         Pager(
             config = PagingConfig(pageSize = 10),
-            remoteMediator = WorkoutPlanRemoteMediator(database, networkService)
+            remoteMediator = WorkoutPlanRemoteMediator(database, networkService, log)
         ) {
             workoutPlanDao.pagingSource()
         }.flow
