@@ -14,6 +14,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.floor
 import kotlin.math.min
 
 @Composable
@@ -87,7 +89,8 @@ fun ColumnScope.ExerciseTimer(
         },
         Modifier.fillMaxWidth()
       ) {
-        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.value.toLong())
+        val runningValue by remember { derivedStateOf { floor(exerciseTimerMillis.value / 1000f).toLong() * 1000 }}
+        val timerValue = Instant.ofEpochMilli(displayedTimeLimit.intValue.toLong() - runningValue)
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
