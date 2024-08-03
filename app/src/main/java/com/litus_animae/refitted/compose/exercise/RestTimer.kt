@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateIntAsState
@@ -47,33 +49,21 @@ fun Timer(
   }
 
   LaunchedEffect(start, isRunning) {
-    if (isRunning) {
-      val alreadyElapsedMillis =
-        min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
-      val target = start.toEpochMilli() + durationMillis
-      if (alreadyElapsedMillis < durationMillis - 100f) {
-        elapsedMillis.animateTo(
-          alreadyElapsedMillis + 100f,
-          tween(100, easing = LinearEasing)
-        )
-      }
-      val remainingMillis = max(0, (target - Instant.now().toEpochMilli()).toInt())
-      elapsedMillis.animateTo(
-        durationMillis.toFloat(),
-        tween(remainingMillis, easing = LinearEasing)
-      )
-      onFinish()
-    } else {
-      elapsedMillis.animateTo(0f, tween(500))
-    }
+    animateTimer(isRunning, durationMillis, start, elapsedMillis, onFinish = onFinish)
   }
 
   if (animateTimer) {
     if (debugView) {
       Column {
-        DrawTimer(Modifier.fillMaxWidth(), durationMillis, { elapsedMillis.value.toInt() }, countDown)
+        DrawTimer(
+          Modifier.fillMaxWidth(),
+          durationMillis,
+          { elapsedMillis.value.toInt() },
+          countDown
+        )
+        val elapsed by remember { derivedStateOf { elapsedMillis.value.toInt() }}
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-          Text("el: ${elapsedMillis.value}")
+          Text("el: $elapsed")
           Text("r: $isRunning")
           Text("d: $durationMillis")
         }
@@ -81,6 +71,37 @@ fun Timer(
     } else {
       DrawTimer(Modifier.fillMaxWidth(), durationMillis, { elapsedMillis.value.toInt() }, countDown)
     }
+  }
+}
+
+suspend fun animateTimer(
+  isRunning: Boolean,
+  durationMillis: Int,
+  start: Instant,
+  elapsedMillis: Animatable<Float, AnimationVector1D>,
+  catchupDurationMillis: Int = 100,
+  whilePausedAnimationSpec: AnimationSpec<Float> = tween(500),
+  pausedTarget: Int = 0,
+  onFinish: () -> Unit = {}
+) {
+  if (isRunning) {
+    val alreadyElapsedMillis =
+      min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
+    val target = start.toEpochMilli() + durationMillis
+    if (alreadyElapsedMillis < durationMillis - catchupDurationMillis) {
+      elapsedMillis.animateTo(
+        alreadyElapsedMillis + catchupDurationMillis.toFloat(),
+        tween(100, easing = LinearEasing)
+      )
+    }
+    val remainingMillis = max(0, (target - Instant.now().toEpochMilli()).toInt())
+    elapsedMillis.animateTo(
+      durationMillis.toFloat(),
+      tween(remainingMillis, easing = LinearEasing)
+    )
+    onFinish()
+  } else {
+    elapsedMillis.animateTo(pausedTarget.toFloat(), whilePausedAnimationSpec)
   }
 }
 

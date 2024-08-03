@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,9 +16,10 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +41,7 @@ import com.litus_animae.refitted.models.Record
 import com.litus_animae.refitted.util.MonadUtil.optionWhen
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
+import kotlin.math.min
 
 @Composable
 fun ExerciseSetView(
@@ -80,7 +84,33 @@ fun ColumnScope.ExerciseSetView(
     inputs = arrayOf(exerciseSet, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
   val timerRunning = rememberSaveable { mutableStateOf(false) }
-  val timerMillis = rememberSaveable { mutableLongStateOf(0L) }
+  val timerStart = rememberSaveable { mutableStateOf(Instant.now()) }
+  val timerDuration = rememberSaveable { mutableIntStateOf(exerciseSet.rest * 1000) }
+  LaunchedEffect(timerRunning.value, exerciseSet) {
+    if (!timerRunning.value) {
+      timerDuration.intValue = exerciseSet.rest * 1000
+    }
+  }
+  val timerElapsed = remember {
+    Animatable(
+      if (timerRunning.value)
+        min(
+          timerDuration.intValue.toLong(),
+          timerStart.value.toEpochMilli() + timerDuration.intValue - Instant.now().toEpochMilli()
+        ).toFloat()
+      else timerDuration.intValue.toFloat()
+    )
+  }
+  LaunchedEffect(timerRunning.value) {
+    animateTimer(
+      timerRunning.value,
+      timerDuration.intValue,
+      timerStart.value,
+      timerElapsed,
+      whilePausedAnimationSpec = snap(),
+      pausedTarget = timerDuration.intValue
+    )
+  }
   val saveWeight by weight.value
   val saveReps by reps.value
 
@@ -144,15 +174,25 @@ fun ColumnScope.ExerciseSetView(
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       val localRestFormat = stringResource(R.string.seconds_rest_phrase)
+      val runningDisplayTime by remember {
+        derivedStateOf {
+          String.format(localRestFormat, timerElapsed.value / 1000)
+        }
+      }
       val timerDisplayTime =
-        if (timerRunning.value) String.format(localRestFormat, timerMillis.longValue / 1000f)
-        else String.format(localRestFormat, exerciseSet.rest.toFloat())
+          if (timerRunning.value) runningDisplayTime
+          else String.format(localRestFormat, exerciseSet.rest.toFloat())
       Text(timerDisplayTime, style = MaterialTheme.typography.h4)
       AnimatedVisibility(isTimerRunning || exerciseSet.rest > 0) {
-        Timer(isTimerRunning,
-          millisToElapse = exerciseSet.rest * 1000L,
-          countDown = true,
-          onUpdate = { timerMillis.longValue = it }) { timerRunning.value = false }
+        Timer(
+          timerStart.value,
+          isTimerRunning,
+          durationMillis = timerDuration.intValue,
+          countDown = true
+        ) {
+          timerRunning.value = false
+          timerDuration.intValue = exerciseSet.rest * 1000
+        }
       }
     }
     Column(
@@ -180,9 +220,11 @@ fun ColumnScope.ExerciseSetView(
     onClick = {
       if (!isTimerRunning) {
         onSave(record.copy(weight = saveWeight, reps = saveReps))
-        timerMillis.longValue = exerciseSet.rest * 1000L
       }
-      if (exerciseSet.rest > 0 || isTimerRunning) timerRunning.value = !isTimerRunning
+      if (exerciseSet.rest > 0 || isTimerRunning) {
+        timerRunning.value = !isTimerRunning
+        timerStart.value = Instant.now()
+      }
     },
     Modifier.fillMaxWidth(),
     enabled = setWithRecord.exerciseIncomplete
