@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.compose.exercise
+package com.litus_animae.refitted.compose.exercise.set
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -31,8 +31,15 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import arrow.core.Option
 import arrow.core.getOrElse
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.exercise.RepsDisplay
+import com.litus_animae.refitted.compose.exercise.SetsDisplay
+import com.litus_animae.refitted.compose.exercise.Timer
+import com.litus_animae.refitted.compose.exercise.WeightDisplay
+import com.litus_animae.refitted.compose.exercise.animateTimer
+import com.litus_animae.refitted.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.state.Weight
@@ -216,7 +223,9 @@ fun ColumnScope.ExerciseSetView(
       }
     }
   }
-  Button(
+
+  CompleteExerciseSetButton(
+    Modifier,
     onClick = {
       if (!isTimerRunning) {
         onSave(record.copy(weight = saveWeight, reps = saveReps))
@@ -226,45 +235,14 @@ fun ColumnScope.ExerciseSetView(
         timerStart.value = Instant.now()
       }
     },
-    Modifier.fillMaxWidth(),
-    enabled = setWithRecord.exerciseIncomplete
-  ) {
-    val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
-    val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
-    val toCompletionSetPhrase = optionWhen(exerciseSet.sets < 0) {
-      if (exerciseSet.reps(numCompleted) < 0)
-        String.format(
-          pluralStringResource(id = R.plurals.complete_reps, count = saveReps),
-          saveReps
-        )
-      else String.format(
-        pluralStringResource(id = R.plurals.complete_reps_of_workout, count = saveReps),
-        saveReps
-      )
-    }
-    val completeSetPhrase = toCompletionSetPhrase
-      .getOrElse {
-        exerciseSet.superSetStep.fold({
-          String.format(
-            stringResource(id = R.string.complete_set_of_workout),
-            numCompleted + 1
-          )
-        }) {
-          String.format(
-            pluralStringResource(
-              id = R.plurals.complete_superset_part_x,
-              count = exerciseSet.sets
-            ),
-            it + 1
-          )
-        }
-      }
-    val setText =
-      if (setWithRecord.exerciseIncomplete) completeSetPhrase
-      else exerciseCompletePhrase
-    val buttonText = if (isTimerRunning) cancelRestPhrase else setText
-    Text(buttonText, style = MaterialTheme.typography.h5)
-  }
+    setWithRecord.exerciseIncomplete,
+    exerciseSet.sets,
+    exerciseSet.reps(numCompleted),
+    saveReps,
+    exerciseSet.superSetStep,
+    numCompleted,
+    isTimerRunning
+  )
 }
 
 @Composable

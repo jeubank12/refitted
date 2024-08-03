@@ -29,6 +29,7 @@ import androidx.window.layout.DisplayFeature
 import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
+import com.litus_animae.refitted.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
