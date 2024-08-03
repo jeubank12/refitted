@@ -8,7 +8,9 @@ import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import java.time.Instant
 import javax.inject.Inject
 
@@ -27,7 +29,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
             remoteMediator = WorkoutPlanRemoteMediator(roomProvider, networkService, log)
         ) {
             workoutPlanDao.pagingSource()
-        }.flow
+        }.flow.flowOn(Dispatchers.IO)
 
     override fun workoutByName(name: String): Flow<WorkoutPlan?> {
         return workoutPlanDao.planByName(name)

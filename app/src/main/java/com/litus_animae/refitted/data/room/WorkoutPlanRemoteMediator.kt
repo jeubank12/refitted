@@ -10,6 +10,8 @@ import com.litus_animae.refitted.models.SavedState
 import com.litus_animae.refitted.models.WorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -25,15 +27,17 @@ class WorkoutPlanRemoteMediator(
   private val savedStateDao by lazy { database.getSavedStateDao() }
 
   override suspend fun initialize(): InitializeAction {
-    log.d(TAG, "initializing WorkoutPlanRemoteMediator")
-    val workoutsLastRefreshed = savedStateDao
-      .loadState(SavedStateKeys.CacheTimeKey)?.value?.toLongOrNull()
-      ?: return InitializeAction.LAUNCH_INITIAL_REFRESH
-    val nextRefreshDate = Instant.ofEpochMilli(workoutsLastRefreshed)
-      .plus(CacheLimitHours, ChronoUnit.HOURS)
-    val now = Instant.now()
-    return if (nextRefreshDate.isBefore(now)) InitializeAction.LAUNCH_INITIAL_REFRESH
-    else InitializeAction.SKIP_INITIAL_REFRESH
+    return withContext(Dispatchers.IO) {
+    log.d(TAG, "initializing WorkoutPlanRemoteMediator on ${Thread.currentThread().name}")
+      val workoutsLastRefreshed = savedStateDao
+        .loadState(SavedStateKeys.CacheTimeKey)?.value?.toLongOrNull()
+        ?: return@withContext InitializeAction.LAUNCH_INITIAL_REFRESH
+      val nextRefreshDate = Instant.ofEpochMilli(workoutsLastRefreshed)
+        .plus(CacheLimitHours, ChronoUnit.HOURS)
+      val now = Instant.now()
+      if (nextRefreshDate.isBefore(now)) InitializeAction.LAUNCH_INITIAL_REFRESH
+      else InitializeAction.SKIP_INITIAL_REFRESH
+    }
   }
 
   override suspend fun load(
