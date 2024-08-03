@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.ColumnScope
@@ -13,7 +15,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,43 +25,73 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.min
 
 @Composable
 fun ColumnScope.ExerciseTimer(
-  timeLimitMilliseconds: Long?
+  timeLimitMilliseconds: Int?
 ) {
   val exerciseTimerRunning = rememberSaveable { mutableStateOf(false) }
-  val exerciseTimerMillis = rememberSaveable { mutableLongStateOf(0L) }
+  val exerciseTimerStart = rememberSaveable { mutableStateOf(Instant.now()) }
+  val exerciseTimerDuration = rememberSaveable { mutableIntStateOf(timeLimitMilliseconds ?: 0) }
+
+  val exerciseTimerMillis = remember {
+    Animatable(
+      if (exerciseTimerRunning.value)
+        min(
+          exerciseTimerDuration.intValue.toLong(),
+          exerciseTimerStart.value.toEpochMilli() + exerciseTimerDuration.intValue - Instant.now()
+            .toEpochMilli()
+        ).toFloat()
+      else exerciseTimerDuration.intValue.toFloat()
+    )
+  }
+  LaunchedEffect(exerciseTimerRunning.value) {
+    animateTimer(
+      exerciseTimerRunning.value,
+      exerciseTimerDuration.intValue,
+      exerciseTimerStart.value,
+      exerciseTimerMillis,
+      whilePausedAnimationSpec = snap(),
+    )
+  }
+
   val isExerciseTimerRunning by exerciseTimerRunning
-  Timer(isExerciseTimerRunning,
-    millisToElapse = timeLimitMilliseconds ?: 0,
+  Timer(
+    exerciseTimerStart.value,
+    isExerciseTimerRunning,
+    durationMillis = timeLimitMilliseconds ?: 0,
     countDown = true,
-    animateTimer = false,
-    onUpdate = { exerciseTimerMillis.longValue = it }) { exerciseTimerRunning.value = false }
+    animateTimer = false
+  ) {
+    exerciseTimerRunning.value = false
+    exerciseTimerDuration.intValue = timeLimitMilliseconds ?: 0
+  }
   AnimatedVisibility(
     timeLimitMilliseconds != null,
     enter = expandVertically(expandFrom = Alignment.Top),
     exit = shrinkVertically(shrinkTowards = Alignment.Top)
   ) {
-    val displayedTimeLimit = remember { mutableLongStateOf(timeLimitMilliseconds ?: 0L) }
+    val displayedTimeLimit = remember { mutableIntStateOf(timeLimitMilliseconds ?: 0) }
     LaunchedEffect(timeLimitMilliseconds) {
-      if (timeLimitMilliseconds != null) displayedTimeLimit.longValue = timeLimitMilliseconds
+      if (timeLimitMilliseconds != null) displayedTimeLimit.intValue = timeLimitMilliseconds
     }
     Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
       Button(
         onClick = {
           if (!isExerciseTimerRunning) {
-            exerciseTimerMillis.longValue = displayedTimeLimit.longValue
+            exerciseTimerDuration.intValue = displayedTimeLimit.intValue
           }
           exerciseTimerRunning.value = !isExerciseTimerRunning
+          exerciseTimerStart.value = Instant.now()
         },
         Modifier.fillMaxWidth()
       ) {
-        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.longValue)
+        val timerValue = Instant.ofEpochMilli(exerciseTimerMillis.value.toLong())
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
-        val timerMax = Instant.ofEpochMilli(displayedTimeLimit.longValue)
+        val timerMax = Instant.ofEpochMilli(displayedTimeLimit.intValue.toLong())
           .atZone(ZoneId.systemDefault())
           .toLocalTime()
           .format(DateTimeFormatter.ofPattern("m:ss"))
