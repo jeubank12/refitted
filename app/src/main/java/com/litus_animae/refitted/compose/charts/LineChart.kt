@@ -52,7 +52,6 @@ fun LineChart(
 
   Canvas(
     modifier
-      .fillMaxSize()
       .padding(20.dp)
       .defaultMinSize(100.dp, 100.dp)) {
 
