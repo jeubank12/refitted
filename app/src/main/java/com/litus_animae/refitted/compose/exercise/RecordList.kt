@@ -17,9 +17,12 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
+import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -27,12 +30,17 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
+fun SetRecordList(
+  flow: Flow<PagingData<SetRecord>>,
+  listBackgroundColor: Color = Color.Unspecified
+) {
   val records = flow.collectAsLazyPagingItems()
   LazyColumn {
     item {
@@ -65,7 +73,10 @@ fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
 
     if (records.loadState.refresh is LoadState.Loading) {
       item {
-        Row(Modifier.fillMaxWidth()) {
+        Row(
+          Modifier
+            .fillMaxWidth()
+            .background(listBackgroundColor)) {
           LoadingView()
         }
       }
@@ -76,6 +87,7 @@ fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
         Row(
           Modifier
             .fillMaxWidth()
+            .background(listBackgroundColor)
             .padding(horizontal = 10.dp, vertical = 15.dp),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -105,6 +117,7 @@ fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
           Row(
             Modifier
               .fillMaxWidth()
+              .background(listBackgroundColor)
               .padding(horizontal = 10.dp, vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
@@ -126,4 +139,28 @@ fun SetRecordList(flow: Flow<PagingData<SetRecord>>) {
       }
     }
   }
+}
+
+@Preview
+@Composable
+private fun PreviewSetRecordList() {
+  val data = PagingData.from(
+    listOf(
+      SetRecord(35.0, 6, "X", "Y", Instant.ofEpochMilli(1000), "Z"),
+      SetRecord(37.5, 6, "X", "Y", Instant.ofEpochMilli(2000), "Z"),
+      SetRecord(35.0, 10, "X", "Y", Instant.ofEpochMilli(4000), "Z"),
+      SetRecord(40.0, 6, "X", "Y", Instant.ofEpochMilli(6000), "Z"),
+      SetRecord(45.0, 2, "X", "Y", Instant.ofEpochMilli(7000), "Z"),
+    ),
+    sourceLoadStates = LoadStates(
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true)
+    )
+  )
+
+  SetRecordList(
+    flowOf(data),
+    Color.White
+  )
 }
