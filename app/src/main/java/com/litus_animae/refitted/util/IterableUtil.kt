@@ -39,3 +39,19 @@ inline fun <T, R> Sequence<T>.progressiveZipWithPrevious(crossinline transform: 
   }
 }
 
+inline fun <T, R : Comparable<R>> Iterable<T>.rangeOf(transform: (a: T) -> R): Pair<R, R> {
+  val iterator = iterator()
+  if (!iterator.hasNext()) throw IllegalArgumentException("empty iterable provided")
+
+  var current = iterator.next()
+  var min = transform(current)
+  var max = min
+  while (iterator.hasNext()) {
+    current = iterator.next()
+    val value = transform(current)
+    if (value < min) min = value
+    if (value > max) max = value
+  }
+  return min to max
+}
+
