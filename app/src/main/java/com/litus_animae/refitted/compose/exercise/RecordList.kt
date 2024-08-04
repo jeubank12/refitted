@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
@@ -29,6 +31,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.charts.LineChart
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.flow.Flow
@@ -72,8 +75,9 @@ fun SetRecordList(
         tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
     }
 
-    LazyColumn(Modifier.weight(1f)) {
+    LazyColumn(Modifier.weight(2f)) {
 
+      // TODO does this cause everything to recompose? Should we just overlay?
       if (records.loadState.refresh is LoadState.Loading) {
         item {
           Row(Modifier.fillMaxWidth()) {
@@ -81,6 +85,7 @@ fun SetRecordList(
           }
         }
       } else {
+        // TODO if we can pull the loading state out, then make this sticky at the top outside the lazycolumn
         val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
           .withZone(ZoneId.systemDefault())
         item {
@@ -117,6 +122,14 @@ fun SetRecordList(
           }
         }
       }
+    }
+
+    if (records.itemCount > 0) {
+      LineChart(
+        Modifier
+          .fillMaxWidth()
+          .weight(1f),
+        data = records.itemSnapshotList.items.map { it.completed to it.weight.toFloat() })
     }
   }
 }
@@ -167,7 +180,10 @@ private fun PreviewSetRecordList() {
   )
 
   SetRecordList(
-    Modifier.background(Color.White),
+    Modifier
+      .background(Color.White)
+      .height(400.dp)
+      .width(200.dp),
     flowOf(data)
   )
 }
