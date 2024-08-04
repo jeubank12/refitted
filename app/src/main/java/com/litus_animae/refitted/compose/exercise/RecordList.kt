@@ -3,7 +3,9 @@ package com.litus_animae.refitted.compose.exercise
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,107 +40,112 @@ import java.time.format.FormatStyle
 
 @Composable
 fun SetRecordList(
-  flow: Flow<PagingData<SetRecord>>,
-  listBackgroundColor: Color = Color.Unspecified
+  modifier: Modifier = Modifier,
+  flow: Flow<PagingData<SetRecord>>
 ) {
   val records = flow.collectAsLazyPagingItems()
-  LazyColumn {
-    item {
-      Row(
-        Modifier
-          .fillMaxWidth()
-          .background(MaterialTheme.colors.primary)
-          .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-      ) {
-        // TODO localize
-        Text(
-          "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
-            backgroundColor = MaterialTheme.colors.primary
-          )
+
+  Column(modifier.fillMaxSize()) {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .background(MaterialTheme.colors.primary)
+        .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+      // TODO localize
+      Text(
+        "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
+          backgroundColor = MaterialTheme.colors.primary
         )
-        Icon(
-          Icons.Default.Refresh,
-          // TODO localize
-          "refresh",
-          modifier = Modifier
-            .clickable {
-              records.refresh()
-            }
-            .padding(start = 10.dp, end = 10.dp),
-          tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
-      }
+      )
+      Icon(
+        Icons.Default.Refresh,
+        // TODO localize
+        "refresh",
+        modifier = Modifier
+          .clickable {
+            records.refresh()
+          }
+          .padding(start = 10.dp, end = 10.dp),
+        tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
     }
 
-    if (records.loadState.refresh is LoadState.Loading) {
-      item {
-        Row(
-          Modifier
-            .fillMaxWidth()
-            .background(listBackgroundColor)) {
-          LoadingView()
-        }
-      }
-    } else {
-      val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-        .withZone(ZoneId.systemDefault())
-      item {
-        Row(
-          Modifier
-            .fillMaxWidth()
-            .background(listBackgroundColor)
-            .padding(horizontal = 10.dp, vertical = 15.dp),
-          horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-          Text(
-            stringResource(id = R.string.date),
-            style = MaterialTheme.typography.button
-          )
-          Text(
-            stringResource(id = R.string.reps_label),
-            style = MaterialTheme.typography.button
-          )
-          val weightLabel = stringResource(id = R.string.weight_label)
-          val weightUnits = stringResource(id = R.string.lbs)
-          Text(
-            "$weightLabel ($weightUnits)",
-            style = MaterialTheme.typography.button
-          )
-        }
-      }
+    LazyColumn(Modifier.weight(1f)) {
 
-      items(
-        count = records.itemCount,
-        key = records.itemKey { it.completed }
-      ) { index ->
-        val record = records[index]
-        if (record != null) {
+      if (records.loadState.refresh is LoadState.Loading) {
+        item {
+          Row(Modifier.fillMaxWidth()) {
+            LoadingView()
+          }
+        }
+      } else {
+        val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+          .withZone(ZoneId.systemDefault())
+        item {
           Row(
             Modifier
               .fillMaxWidth()
-              .background(listBackgroundColor)
               .padding(horizontal = 10.dp, vertical = 15.dp),
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
             Text(
-              dateFormat.format(record.completed),
+              stringResource(id = R.string.date),
               style = MaterialTheme.typography.button
             )
             Text(
-              record.reps.toString(),
+              stringResource(id = R.string.reps_label),
               style = MaterialTheme.typography.button
             )
+            val weightLabel = stringResource(id = R.string.weight_label)
+            val weightUnits = stringResource(id = R.string.lbs)
             Text(
-              String.format("%.1f", record.weight),
+              "$weightLabel ($weightUnits)",
               style = MaterialTheme.typography.button
             )
           }
-          Divider()
+        }
+
+        items(
+          count = records.itemCount,
+          key = records.itemKey { it.completed }
+        ) { index ->
+          val record = records[index]
+          if (record != null) {
+            RecordItem(dateFormat, record)
+          }
         }
       }
     }
   }
+}
+
+@Composable
+private fun RecordItem(
+  dateFormat: DateTimeFormatter,
+  record: SetRecord
+) {
+  Row(
+    Modifier
+      .fillMaxWidth()
+      .padding(horizontal = 10.dp, vertical = 15.dp),
+    horizontalArrangement = Arrangement.SpaceBetween
+  ) {
+    Text(
+      dateFormat.format(record.completed),
+      style = MaterialTheme.typography.button
+    )
+    Text(
+      record.reps.toString(),
+      style = MaterialTheme.typography.button
+    )
+    Text(
+      String.format("%.1f", record.weight),
+      style = MaterialTheme.typography.button
+    )
+  }
+  Divider()
 }
 
 @Preview
@@ -160,7 +167,7 @@ private fun PreviewSetRecordList() {
   )
 
   SetRecordList(
-    flowOf(data),
-    Color.White
+    Modifier.background(Color.White),
+    flowOf(data)
   )
 }
