@@ -3,23 +3,14 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.2.4</item>
-        <item>**v1.2.3</item>
-        <item>Periodic Maintenance</item>
-        <item>**v1.2.2</item>
-        <item>Updated to modern sign in</item>
-        <item>**v1.2.1</item>
-        <item>Periodic Maintenance</item>
-        <item>**v1.2.0</item>
+        <item>Add a chart of set weight history</item>
+        <item>Smoother rest timer</item>
+        <item>**v1.2.0-v1.2.3</item>
         <item>New UI for exercise, bigger display!</item>
-        <item>Fixed a bug which didn\'t update rest times correctly</item>
-        <item>**v1.1.6 (not released)</item>
-        <item>The rest timer and weight and repetition changes are remembered after rotating the screen</item>
-        <item>**v1.1.5</item>
-        <item>Small fix where users in the new plan restrictions couldn\'t see exercise descriptions</item>
+        <item>Periodic Maintenance</item>
+        <item>Updated to modern sign in</item>
         <item>Known Issues:</item>
         <item>  if the first exercise is an alternate and you already completed one exercise for the day, then navigating back to that workout will cause a flicker event. Click \'Alternate\' to escape it</item>
-        <item>**v1.1.4</item>
-        <item>Groundwork to limit which workout plans can be viewed</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
