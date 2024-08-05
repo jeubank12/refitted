@@ -67,7 +67,7 @@ jobs:
         run: echo $FIREBASE_SECRET | base64 --decode > app/google-services.json
 
       - name: set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           dependency-graph: generate-and-submit
           

@@ -81,7 +81,7 @@ jobs:
 
     - name: set up Gradle
       if: ${{ matrix.language == 'java-kotlin' }}
-      uses: gradle/actions/setup-gradle@v3
+      uses: gradle/actions/setup-gradle@v4
       with:
         dependency-graph: generate-and-submit
     - name: Build with Gradle
