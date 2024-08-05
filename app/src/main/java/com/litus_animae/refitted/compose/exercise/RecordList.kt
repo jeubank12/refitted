@@ -129,7 +129,8 @@ fun SetRecordList(
         Modifier
           .fillMaxWidth()
           .weight(1f),
-        data = records.itemSnapshotList.items.map { it.completed to it.weight.toFloat() })
+        data = records.itemSnapshotList.items.reversed()
+          .map { it.completed to it.weight.toFloat() })
     }
   }
 }
