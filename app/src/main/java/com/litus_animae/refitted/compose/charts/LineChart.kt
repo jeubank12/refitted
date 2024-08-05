@@ -3,7 +3,6 @@ package com.litus_animae.refitted.compose.charts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.litus_animae.refitted.util.rangeOf
 import java.time.Instant
+import kotlin.math.max
 
 @Composable
 fun LineChart(
@@ -32,11 +32,11 @@ fun LineChart(
 
   val (minTime, maxTime) = remember(data) { data.first().first.toEpochMilli() to data.last().first.toEpochMilli() }
   val timeRange = remember(minTime, maxTime) {
-    (maxTime - minTime).toFloat()
+    max((maxTime - minTime).toFloat(), 1f)
   }
 
   val (minValue, maxValue) = remember(data) { data.rangeOf { it.second } }
-  val valueRange = remember(minValue, maxValue) { maxValue - minValue }
+  val valueRange = remember(minValue, maxValue) { max(maxValue - minValue, 1f) }
 
   val points = remember(data) {
     data.map { (time, value) ->
@@ -47,13 +47,14 @@ fun LineChart(
     }
   }
 
-  val pointWeight = with(LocalDensity.current){pointSize.toPx()}
-  val lineWeight = with(LocalDensity.current){lineSize.toPx()}
+  val pointWeight = with(LocalDensity.current) { pointSize.toPx() }
+  val lineWeight = with(LocalDensity.current) { lineSize.toPx() }
 
   Canvas(
     modifier
       .padding(20.dp)
-      .defaultMinSize(100.dp, 100.dp)) {
+      .defaultMinSize(100.dp, 100.dp)
+  ) {
 
     drawPoints(points
       .zipWithNext()
@@ -90,6 +91,38 @@ private fun PreviewLineChart() {
       Instant.ofEpochMilli(8000) to 45.0f,
       Instant.ofEpochMilli(9000) to 65.0f,
       Instant.ofEpochMilli(10000) to 85.0f,
+    ),
+    pointColor = Color.Red
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewLineChartFlat() {
+  LineChart(
+    Modifier
+      .size(300.dp)
+      .background(Color.White),
+    listOf(
+      Instant.ofEpochMilli(1000) to 35.0f,
+      Instant.ofEpochMilli(2000) to 35.0f,
+    ),
+    pointColor = Color.Red
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewLineChartLong() {
+  LineChart(
+    Modifier
+      .size(300.dp)
+      .background(Color.White),
+    listOf(
+      Instant.ofEpochMilli(1000) to 35.0f,
+      Instant.ofEpochMilli(1001) to 38.0f,
+      Instant.ofEpochMilli(1002) to 40.0f,
+      Instant.ofEpochMilli(10000) to 40.0f,
     ),
     pointColor = Color.Red
   )
