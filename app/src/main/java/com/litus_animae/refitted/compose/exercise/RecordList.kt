@@ -19,6 +19,7 @@ import androidx.compose.material.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,8 +32,12 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
+import com.litus_animae.refitted.compose.LocalFeatures
+import com.litus_animae.refitted.compose.charts.BubbleChart
+import com.litus_animae.refitted.compose.charts.BubbleData
 import com.litus_animae.refitted.compose.charts.LineChart
 import com.litus_animae.refitted.compose.util.LoadingView
+import com.litus_animae.refitted.data.firebase.ConfigProvider
 import com.litus_animae.refitted.models.SetRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -125,12 +130,31 @@ fun SetRecordList(
     }
 
     if (records.itemCount > 0) {
-      LineChart(
-        Modifier
-          .fillMaxWidth()
-          .weight(1f),
-        data = records.itemSnapshotList.items.reversed()
-          .map { it.completed to it.weight.toFloat() })
+      val items = remember(records.itemSnapshotList) {
+        records.itemSnapshotList.items.reversed()
+      }
+      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble") {
+        val data = remember(items) {
+          items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
+        }
+
+        BubbleChart(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          data = data
+        )
+      } else {
+        val data = remember(items) {
+          items.map { it.completed to it.weight.toFloat() }
+        }
+        LineChart(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          data = data
+        )
+      }
     }
   }
 }
