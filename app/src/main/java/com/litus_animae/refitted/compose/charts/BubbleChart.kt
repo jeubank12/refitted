@@ -27,6 +27,7 @@ data class BubbleData(val time: Instant, val value: Float, val weight: Int)
 fun BubbleChart(
   modifier: Modifier = Modifier,
   data: List<BubbleData>,
+  inverseRelationship: Boolean = false,
   pointColor: Color = Color.Black,
   pointSize: Dp = 8.dp,
   pointSizeMax: Dp = 30.dp,
@@ -75,6 +76,9 @@ fun BubbleChart(
       }, PointMode.Lines, lineColor, lineWeight
     )
 
+    val pointWeightStart = if (inverseRelationship) pointWeightMax else pointWeight
+    val pointWeightEnd = if (inverseRelationship) pointWeight else pointWeightMax
+
     points.forEach { (it, weight) ->
       drawPoints(
         listOf(
@@ -85,7 +89,7 @@ fun BubbleChart(
         ),
         PointMode.Points,
         pointColor,
-        lerp(pointWeight, pointWeightMax, (weight - minWeight) / weightRange),
+        lerp(pointWeightStart, pointWeightEnd, (weight - minWeight) / weightRange),
         StrokeCap.Round
       )
     }

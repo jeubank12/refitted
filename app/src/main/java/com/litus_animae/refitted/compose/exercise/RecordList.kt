@@ -142,7 +142,8 @@ fun SetRecordList(
           Modifier
             .fillMaxWidth()
             .weight(1f),
-          data = data
+          data = data,
+          inverseRelationship = true
         )
       } else {
         val data = remember(items) {
