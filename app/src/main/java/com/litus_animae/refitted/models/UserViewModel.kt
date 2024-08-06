@@ -16,6 +16,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.litus_animae.refitted.BuildConfig
 import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.firebase.AuthProvider
+import com.litus_animae.refitted.data.firebase.ConfigProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,7 +32,8 @@ import javax.inject.Inject
 class UserViewModel @Inject constructor(
   private val log: LogUtil,
   private val savedStateRepo: SavedStateRepository,
-  private val authProvider: AuthProvider
+  private val authProvider: AuthProvider,
+  private val configProvider: ConfigProvider
 ) : ViewModel() {
 
   val userEmail =
@@ -134,6 +136,10 @@ class UserViewModel @Inject constructor(
 
   var userError: String? by mutableStateOf(null)
     private set
+
+  val featureFlags by lazy {
+    configProvider.currentConfig
+  }
 
   companion object {
     private const val TAG = "UserViewModel"
