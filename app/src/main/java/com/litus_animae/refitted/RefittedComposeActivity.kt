@@ -4,21 +4,35 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.litus_animae.refitted.compose.LocalFeatures
 import com.litus_animae.refitted.compose.Top
 import com.litus_animae.refitted.compose.util.Theme
+import com.litus_animae.refitted.data.firebase.ConfigProvider
+import com.litus_animae.refitted.models.UserViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 
 @FlowPreview
 @AndroidEntryPoint
 class RefittedComposeActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+  @OptIn(ExperimentalCoroutinesApi::class)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        setContent {
-            MaterialTheme(colors = Theme.darkColors) {
-                Top()
-            }
+    setContent {
+      val userModel: UserViewModel = hiltViewModel()
+      val config by userModel.featureFlags.collectAsStateWithLifecycle(initialValue = ConfigProvider.Companion.RemoteConfig())
+
+      CompositionLocalProvider(LocalFeatures provides config) {
+        MaterialTheme(colors = Theme.darkColors) {
+          Top()
         }
+      }
     }
+  }
 }

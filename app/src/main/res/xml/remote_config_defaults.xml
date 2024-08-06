@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<defaults>
+  <entry>
+    <key>record_chart_type</key>
+    <value>line</value>
+  </entry>
+</defaults>
