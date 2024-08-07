@@ -65,23 +65,20 @@ fun ColumnScope.WorkoutPlanMenu(
         horizontalArrangement = Arrangement.SpaceBetween
       ) {
         Column {
-          Row {
+          Row(verticalAlignment = Alignment.CenterVertically) {
             // TODO localize
             Text(
               "Workouts", style = MaterialTheme.typography.h6, color = contentColorFor(
                 backgroundColor = MaterialTheme.colors.primary
               )
             )
+            IconButton(onClick = { plans.refresh() }) {
             Icon(
               Icons.Default.Refresh,
               // TODO localize
               "refresh",
-              modifier = Modifier
-                .clickable {
-                  plans.refresh()
-                }
-                .padding(start = 10.dp, end = 10.dp),
               tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
+            }
           }
           Row {
             Text(
