@@ -28,7 +28,8 @@ fun WeightDisplay(
     Modifier
       .fillMaxWidth()
       .padding(5.dp)
-      .clickable { onStartEditWeight(weight) }) {
+      // TODO does this disrupt screen reader being able to see the contents?
+      .clickable(onClickLabel = "edit") { onStartEditWeight(weight) }) {
     Icon(
       Icons.Rounded.Edit,
       contentDescription = null,
