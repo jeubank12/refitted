@@ -84,11 +84,11 @@ class ConfigProvider @Inject constructor(private val log: LogUtil) {
       }
 
     }
-    val registration = instance.addOnConfigUpdateListener(listener)
-
     setup.await()
     log.d(TAG, "initializing config update on ${Thread.currentThread().name}")
     send(RemoteConfig(Feature.entries.associateWith { instance.getValue(it.flag) }))
+
+    val registration = instance.addOnConfigUpdateListener(listener)
 
     awaitClose {
       log.d(TAG, "closing config update on ${Thread.currentThread().name}")
