@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
@@ -19,7 +21,9 @@ fun Changelog(onDismiss: () -> Unit) {
   val versionHeader = stringResource(id = R.string.changelog_version_header)
   val changelog = stringArrayResource(id = R.array.changelog)
   val dismissText = stringArrayResource(id = R.array.dismiss_changelog).random()
-  AlertDialog(onDismissRequest = {},
+  AlertDialog(
+    modifier = Modifier.semantics { paneTitle = "Log of recent app changes" },
+    onDismissRequest = {},
     title = { Text("Changelog") },
     text = {
       LazyColumn {
