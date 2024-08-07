@@ -150,6 +150,7 @@ private fun CalendarDayButton(
     else contentColorFor(backgroundColor)
   ConstrainedButton(
     if (properties.isRestDay) "Rest" else String.format("%d", day),
+    if (properties.isRestDay) "Rest day $day" else "Day $day",
     onClick = { navigateToDay(day) },
     border = if (properties.isLastViewedDay) BorderStroke(6.dp, borderColor) else null,
     colors = ButtonDefaults.buttonColors(
