@@ -52,8 +52,9 @@ class UserViewModel @Inject constructor(
 
   fun handleSignOut() {
     viewModelScope.launch {
-      // TODO need to re-auth as anonymous user
       authProvider.auth().signOut()
+      log.d(TAG, "creating anonymous signin on ${Thread.currentThread().name}")
+      authProvider.auth().signInAnonymously().await()
     }
   }
 
