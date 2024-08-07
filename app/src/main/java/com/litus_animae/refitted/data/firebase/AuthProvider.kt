@@ -57,6 +57,7 @@ class AuthProvider @Inject constructor(log: LogUtil) {
     send(userTask.await())
 
     awaitClose {
+      log.d(TAG, "closing user flow on ${Thread.currentThread().name}")
       instance.removeAuthStateListener(listener)
     }
   }.flowOn(Dispatchers.IO)

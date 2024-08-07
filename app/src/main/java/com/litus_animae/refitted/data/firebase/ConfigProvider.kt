@@ -91,6 +91,7 @@ class ConfigProvider @Inject constructor(private val log: LogUtil) {
     send(RemoteConfig(Feature.entries.associateWith { instance.getValue(it.flag) }))
 
     awaitClose {
+      log.d(TAG, "closing config update on ${Thread.currentThread().name}")
       registration.remove()
     }
   }.flowOn(Dispatchers.IO)
