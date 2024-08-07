@@ -72,7 +72,7 @@ fun RepetitionsButtons(reps: Repetitions) {
 private fun RepetitionButton(repetitions: Int, onClick: (Int) -> Unit, size: Dp) {
   ConstrainedButton(
     String.format("%+d", repetitions),
-    Modifier.size(size),
+    modifier = Modifier.size(size),
     onClick = { onClick(repetitions) },
     contentPadding = PaddingValues(5.dp)
   )
