@@ -84,14 +84,14 @@ class ConfigProvider @Inject constructor(private val log: LogUtil) {
       }
 
     }
-    instance.addOnConfigUpdateListener(listener)
+    val registration = instance.addOnConfigUpdateListener(listener)
 
     setup.await()
     log.d(TAG, "initializing config update on ${Thread.currentThread().name}")
     send(RemoteConfig(Feature.entries.associateWith { instance.getValue(it.flag) }))
 
     awaitClose {
-      // there is no remove listener
+      registration.remove()
     }
   }.flowOn(Dispatchers.IO)
 }
