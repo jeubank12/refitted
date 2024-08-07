@@ -2,6 +2,8 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.2.5</item>
+        <item>Be on the lookout for a new variation on set weight history charts</item>
         <item>**v1.2.4</item>
         <item>Add a chart of set weight history</item>
         <item>Smoother rest timer</item>
