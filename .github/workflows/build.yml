@@ -77,7 +77,7 @@ jobs:
           # ORG_GRADLE_PROJECT_Refitted_OpenIdSource: ${{ secrets.REFITTED_OPENIDSOURCE }}
           ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: 'not-needed'
           ORG_GRADLE_PROJECT_Refitted_OpenIdSource: 'not-needed'
-        run: ./gradlew assembleMinDebug
+        run: ./gradlew assembleRelease --warning-mode=fail
 
   build-web:
     needs: changes
