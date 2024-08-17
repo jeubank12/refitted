@@ -32,7 +32,7 @@ fun WeightDisplay(
       .clickable(onClickLabel = "edit") { onStartEditWeight(weight) }) {
     Icon(
       Icons.Rounded.Edit,
-      contentDescription = null,
+      contentDescription = "edit weight",
       Modifier.align(Alignment.End)
     )
   }

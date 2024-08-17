@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
@@ -76,18 +77,18 @@ fun Exercise(
           contextMenu()
         },
         navigationIcon = {
-          Icon(
-            Icons.Default.History,
-            // TODO localize
-            "history",
-            modifier = Modifier
-              .clickable {
-                scaffoldScope.launch {
-                  if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                  else scaffoldState.drawerState.close()
-                }
-              }
-              .padding(start = 10.dp))
+          IconButton({
+            scaffoldScope.launch {
+              if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+              else scaffoldState.drawerState.close()
+            }
+          }) {
+            Icon(
+              Icons.Default.History,
+              // TODO localize
+              "history"
+            )
+          }
         }
       )
     },

@@ -73,11 +73,12 @@ fun ColumnScope.WorkoutPlanMenu(
               )
             )
             IconButton(onClick = { plans.refresh() }) {
-            Icon(
-              Icons.Default.Refresh,
-              // TODO localize
-              "refresh",
-              tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
+              Icon(
+                Icons.Default.Refresh,
+                // TODO localize
+                "refresh",
+                tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
+              )
             }
           }
           Row {
