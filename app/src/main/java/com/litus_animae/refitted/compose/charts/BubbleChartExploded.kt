@@ -21,10 +21,8 @@ import com.litus_animae.refitted.util.rangeOf
 import java.time.Instant
 import kotlin.math.max
 
-data class BubbleData(val time: Instant, val value: Float, val weight: Int)
-
 @Composable
-fun BubbleChart(
+fun BubbleChartExploded(
   modifier: Modifier = Modifier,
   data: List<BubbleData>,
   inverseRelationship: Boolean = false,
@@ -35,18 +33,25 @@ fun BubbleChart(
   lineSize: Dp = 3.dp
 ) {
 
-  val (minTime, maxTime) = remember(data) { data.first().time.toEpochMilli() to data.last().time.toEpochMilli() }
-  val timeRange = remember(minTime, maxTime) {
-    max((maxTime - minTime).toFloat(), 1f)
+  val indices = remember(data) {
+    data.zipWithNext().scan(0) { idx, (a, b) ->
+      val daysBetween = (b.time.toEpochMilli() - a.time.toEpochMilli()) / 86400000
+      if (daysBetween > 0) {
+        idx + daysBetween.toInt()
+      } else {
+        idx + 1
+      }
+    }
   }
+  val maxIndex = (indices.lastOrNull() ?: 1).toFloat()
 
   val (minValue, maxValue) = remember(data) { data.rangeOf { it.value } }
   val valueRange = remember(minValue, maxValue) { max(maxValue - minValue, 1f) }
 
   val points = remember(data) {
-    data.map { (time, value, size) ->
+    data.mapIndexed { idx, (_, value, size) ->
       Offset(
-        (time.toEpochMilli() - minTime) / timeRange,
+        indices.getOrElse(idx) { 0 } / maxIndex,
         (value - minValue) / valueRange
       ) to size
     }
@@ -98,19 +103,19 @@ fun BubbleChart(
 
 @Preview
 @Composable
-private fun PreviewBubbleChart() {
-  BubbleChart(
+private fun PreviewBubbleChartExploded() {
+  BubbleChartExploded(
     Modifier
       .size(300.dp)
       .background(Color.White),
     listOf(
-      BubbleData(Instant.ofEpochMilli(1000), 35.0f, 12),
-      BubbleData(Instant.ofEpochMilli(2000), 36.0f, 10),
-      BubbleData(Instant.ofEpochMilli(4000), 37.0f, 8),
-      BubbleData(Instant.ofEpochMilli(5000), 40.0f, 15),
-      BubbleData(Instant.ofEpochMilli(8000), 45.0f, 6),
-      BubbleData(Instant.ofEpochMilli(9000), 65.0f, 12),
-      BubbleData(Instant.ofEpochMilli(10000), 85.0f, 10),
+      BubbleData(Instant.ofEpochMilli(86400000), 35.0f, 12),
+      BubbleData(Instant.ofEpochMilli(86460000), 36.0f, 10),
+      BubbleData(Instant.ofEpochMilli(86520000), 37.0f, 8),
+      BubbleData(Instant.ofEpochMilli(86400000 * 2), 40.0f, 15),
+      BubbleData(Instant.ofEpochMilli(86400000 * 4), 45.0f, 6),
+      BubbleData(Instant.ofEpochMilli(86400000 * 4 + 60000), 65.0f, 12),
+      BubbleData(Instant.ofEpochMilli(86400000 * 8), 85.0f, 10),
     ),
     pointColor = Color.Red
   )
@@ -118,8 +123,8 @@ private fun PreviewBubbleChart() {
 
 @Preview
 @Composable
-private fun PreviewBubbleChartFlat() {
-  BubbleChart(
+private fun PreviewBubbleChartExplodedFlat() {
+  BubbleChartExploded(
     Modifier
       .size(300.dp)
       .background(Color.White),
@@ -133,8 +138,8 @@ private fun PreviewBubbleChartFlat() {
 
 @Preview
 @Composable
-private fun PreviewBubbleChartLong() {
-  BubbleChart(
+private fun PreviewBubbleChartExplodedLong() {
+  BubbleChartExploded(
     Modifier
       .size(300.dp)
       .background(Color.White),
@@ -142,7 +147,7 @@ private fun PreviewBubbleChartLong() {
       BubbleData(Instant.ofEpochMilli(1000), 35.0f, 12),
       BubbleData(Instant.ofEpochMilli(1001), 38.0f, 10),
       BubbleData(Instant.ofEpochMilli(1002), 40.0f, 7),
-      BubbleData(Instant.ofEpochMilli(10002), 40.0f, 8),
+      BubbleData(Instant.ofEpochMilli(86400000 * 10), 40.0f, 8),
     ),
     pointColor = Color.Red
   )

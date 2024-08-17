@@ -35,6 +35,7 @@ import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.LocalFeatures
 import com.litus_animae.refitted.compose.charts.BubbleChart
+import com.litus_animae.refitted.compose.charts.BubbleChartExploded
 import com.litus_animae.refitted.compose.charts.BubbleData
 import com.litus_animae.refitted.compose.charts.LineChart
 import com.litus_animae.refitted.compose.util.LoadingView
@@ -132,7 +133,19 @@ fun SetRecordList(
       val items = remember(records.itemSnapshotList) {
         records.itemSnapshotList.items.reversed()
       }
-      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble") {
+      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble-exploded") {
+        val data = remember(items) {
+          items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
+        }
+
+        BubbleChartExploded(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          data = data,
+          inverseRelationship = true
+        )
+      } else if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble") {
         val data = remember(items) {
           items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
         }
