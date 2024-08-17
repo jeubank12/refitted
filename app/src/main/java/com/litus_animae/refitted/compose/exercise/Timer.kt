@@ -85,20 +85,27 @@ suspend fun animateTimer(
   onFinish: () -> Unit = {}
 ) {
   if (isRunning) {
-    val alreadyElapsedMillis =
-      min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
     val target = start.toEpochMilli() + durationMillis
-    if (alreadyElapsedMillis < durationMillis - catchupDurationMillis) {
+    var alreadyElapsedMillis =
+      min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
+    while (alreadyElapsedMillis < durationMillis) {
+      if (alreadyElapsedMillis < durationMillis - catchupDurationMillis) {
+        elapsedMillis.animateTo(
+          alreadyElapsedMillis + catchupDurationMillis.toFloat(),
+          tween(100, easing = LinearEasing)
+        )
+      }
+      alreadyElapsedMillis =
+        min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
+      val targetToAnimate = min(target, alreadyElapsedMillis + 500L)
+      val animationMillis = max(0, targetToAnimate - alreadyElapsedMillis).toInt()
       elapsedMillis.animateTo(
-        alreadyElapsedMillis + catchupDurationMillis.toFloat(),
-        tween(100, easing = LinearEasing)
+        targetToAnimate.toFloat(),
+        tween(animationMillis, easing = LinearEasing)
       )
+      alreadyElapsedMillis =
+        min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
     }
-    val remainingMillis = max(0, (target - Instant.now().toEpochMilli()).toInt())
-    elapsedMillis.animateTo(
-      durationMillis.toFloat(),
-      tween(remainingMillis, easing = LinearEasing)
-    )
     onFinish()
   } else {
     elapsedMillis.animateTo(pausedTarget.toFloat(), whilePausedAnimationSpec)
