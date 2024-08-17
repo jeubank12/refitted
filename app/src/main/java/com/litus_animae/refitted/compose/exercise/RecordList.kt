@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.contentColorFor
@@ -68,16 +69,14 @@ fun SetRecordList(
           backgroundColor = MaterialTheme.colors.primary
         )
       )
-      Icon(
-        Icons.Default.Refresh,
-        // TODO localize
-        "refresh",
-        modifier = Modifier
-          .clickable {
-            records.refresh()
-          }
-          .padding(start = 10.dp, end = 10.dp),
-        tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary))
+      IconButton({ records.refresh() }) {
+        Icon(
+          Icons.Default.Refresh,
+          // TODO localize
+          "refresh",
+          tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
+        )
+      }
     }
 
     LazyColumn(Modifier.weight(2f)) {

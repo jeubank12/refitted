@@ -9,6 +9,7 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.SnackbarDuration
@@ -68,7 +69,8 @@ fun Calendar(
     Dispatchers.IO
   )
 
-  val shouldShowChangelog by userModel.shouldShowChangelog().collectAsStateWithLifecycle(initialValue = false)
+  val shouldShowChangelog by userModel.shouldShowChangelog()
+    .collectAsStateWithLifecycle(initialValue = false)
   if (shouldShowChangelog) {
     Changelog { userModel.setChangelogShown() }
   }
@@ -85,28 +87,29 @@ fun Calendar(
         },
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
-          Icon(
-            Icons.Default.Menu,
-            // TODO localize
-            "menu",
-            modifier = Modifier
-              .clickable {
-                scaffoldScope.launch {
-                  if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                  else scaffoldState.drawerState.close()
-                }
+          IconButton(
+            {
+              scaffoldScope.launch {
+                if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                else scaffoldState.drawerState.close()
               }
-              .padding(start = 10.dp))
+            }
+          ) {
+            Icon(
+              Icons.Default.Menu,
+              // TODO localize
+              "menu"
+            )
+          }
         },
         actions = {
           if (selectedWorkoutPlan != null) {
             val (expanded, setExpanded) = rememberSaveable { mutableStateOf(false) }
             val (alerted, setAlerted) = rememberSaveable { mutableStateOf(false) }
-            // TODO localize
-            Icon(Icons.Default.MoreVert, "workout menu",
-              modifier = Modifier
-                .clickable { setExpanded(!expanded) }
-                .padding(end = 10.dp))
+            IconButton({ setExpanded(!expanded) }) {
+              // TODO localize
+              Icon(Icons.Default.MoreVert, "workout menu")
+            }
             DropdownMenu(
               expanded = expanded,
               onDismissRequest = { setExpanded(false) }) {
