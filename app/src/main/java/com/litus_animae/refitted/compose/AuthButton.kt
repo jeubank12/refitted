@@ -6,8 +6,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -26,6 +30,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +45,7 @@ import com.litus_animae.refitted.R
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AuthButton(
   modifier: Modifier = Modifier,
@@ -62,7 +69,7 @@ fun AuthButton(
   }
 
   Column(
-    modifier,
+    modifier.fillMaxWidth(),
     horizontalAlignment = Alignment.End
   ) {
     AnimatedContent(authedEmail, label = "SignedInAs") {
@@ -70,10 +77,22 @@ fun AuthButton(
         Text("Signed in as $authedEmail", Modifier.padding(bottom = 10.dp))
       }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      AnimatedContent(authedEmail, label = "AuthCTA") {
+    FlowRow(horizontalArrangement = Arrangement.End) {
+      AnimatedContent(
+        authedEmail,
+        Modifier
+          .weight(1f)
+          .align(Alignment.CenterVertically),
+        label = "AuthCTA"
+      ) {
         if (it == null) {
-          Text("Sign in for more workouts", Modifier.padding(end = 10.dp))
+          Text(
+            "Sign in for more workouts",
+            Modifier
+              .fillMaxWidth()
+              .padding(end = 10.dp),
+            textAlign = TextAlign.End
+          )
         }
       }
 
@@ -117,9 +136,17 @@ fun AuthButton(
             color = Color(0xFF1F1F1F)
           )
         }
-        AnimatedContent(authedEmail, label = "AuthActionText") {
+        AnimatedContent(
+          authedEmail,
+          Modifier.weight(1f, fill = false), label = "AuthActionText"
+        ) {
           if (it == null) {
-            Text("Sign in with Google", style = style)
+            Text(
+              "Sign in with Google",
+              style = style,
+              overflow = TextOverflow.Visible,
+              softWrap = false
+            )
           } else {
             Text("Sign Out", style = style)
           }
@@ -160,6 +187,9 @@ private suspend fun signIn(
 }
 
 @Preview
+@Preview(widthDp = 300)
+@Preview(widthDp = 100)
+@Preview(widthDp = 200)
 @Composable
 private fun SignInButtonPreview() {
   Row(Modifier.background(Color.LightGray)) {
