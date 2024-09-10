@@ -116,8 +116,8 @@ dependencies {
     implementation libs.dagger
     implementation libs.dagger.hilt.android
     implementation libs.dagger.hilt.core
-    kapt libs.dagger.compiler
-    kapt libs.dagger.hilt.android.compiler
+    ksp libs.dagger.compiler
+    ksp libs.dagger.hilt.android.compiler
     annotationProcessor libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
 
