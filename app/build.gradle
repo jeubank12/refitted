@@ -6,7 +6,6 @@ plugins {
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.jetbrains.kotlin.android
-    alias libs.plugins.jetbrains.kotlin.kapt
     alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
@@ -118,7 +117,6 @@ dependencies {
     implementation libs.dagger.hilt.core
     ksp libs.dagger.compiler
     ksp libs.dagger.hilt.android.compiler
-    annotationProcessor libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
 
     implementation libs.androidx.hilt.navigation.compose
