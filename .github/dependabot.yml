@@ -75,6 +75,8 @@ updates:
       patterns:
       - "@aws-sdk/*"
       - "@types/aws*"
+    firebase:
+      patterns:
       - "firebase*"
     next:
       patterns:
