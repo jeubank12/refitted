@@ -79,13 +79,6 @@ updates:
     next:
       patterns:
       - "next*"
-    react:
-      patterns:
-      - "*react*"
-      - "*redux*"
-      - "reselect"
-      exclude-patterns:
-      - "@emotion/react"
     eslint:
       patterns:
       - "*eslint*"
@@ -93,6 +86,13 @@ updates:
       update-types:
         - "minor"
         - "patch"
+    react:
+      patterns:
+      - "*react*"
+      - "*redux*"
+      - "reselect"
+      exclude-patterns:
+      - "@emotion/react"
     emotion:
       patterns:
       - "@emotion*"
