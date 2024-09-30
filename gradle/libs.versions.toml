@@ -1,5 +1,5 @@
 [versions]
-accompanistAdaptive = "0.34.0"
+accompanistAdaptive = "0.36.0"
 activity = "1.9.1"
 annotation = "1.8.2"
 appcompat = "1.7.0"
