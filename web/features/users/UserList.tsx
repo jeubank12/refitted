@@ -19,37 +19,39 @@ const UserList = () => {
   else if (!data) return <div>empty</div>
   else
     return (
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <TableCell>Email</TableCell>
-              {claimTypes.map(claimName => (
-                <TableCell align="right" key={claimName}>
-                  {claimName}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.users.map(user => (
-              <TableRow
-                key={user.uid}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {user.email}
-                </TableCell>
+      <Paper sx={{ width: '100%', maxWidth: 900, overflow: 'hidden' }}>
+        <TableContainer sx={{ maxHeight: '100%' }}>
+          <Table stickyHeader sx={{ minWidth: 650 }} aria-label="sticky table">
+            <TableHead>
+              <TableRow>
+                <TableCell>Email</TableCell>
                 {claimTypes.map(claimName => (
                   <TableCell align="right" key={claimName}>
-                    {JSON.stringify(user.customClaims?.[claimName])}
+                    {claimName}
                   </TableCell>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {data.users.map(user => (
+                <TableRow
+                  key={user.uid}
+                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                >
+                  <TableCell component="th" scope="row">
+                    {user.email || '(anonymous)'}
+                  </TableCell>
+                  {claimTypes.map(claimName => (
+                    <TableCell align="right" key={claimName}>
+                      {JSON.stringify(user.customClaims?.[claimName])}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
     )
 }
 
