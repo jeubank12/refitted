@@ -1,9 +1,10 @@
+import { useContext } from 'react'
+
 import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers'
 import { LambdaClient } from '@aws-sdk/client-lambda'
 
 import { clientConfig, identityPoolId } from './awsConfig'
 import { firebaseLogins } from 'src/lib/firebase/firebaseConfig'
-import { useContext } from 'react'
 import { UserContext } from 'src/lib/firebase/auth'
 
 export const useAwsCredentials = () => {

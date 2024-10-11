@@ -1,10 +1,13 @@
-import { QueryReturnValue } from '.'
-import { useAppCheck } from '../firebase/firebaseApp'
-import { useLambdaClient } from './awsClient'
+import { useCallback, useEffect, useState } from 'react'
+
+// import { useAppCheck } from '../firebase/firebaseApp'
 import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { ListUsersResult } from 'firebase-admin/auth'
 import { toUtf8, fromUtf8 } from '@aws-sdk/util-utf8-node'
-import { useCallback, useEffect, useState } from 'react'
+
+import { QueryReturnValue } from '.'
+
+import { useLambdaClient } from './awsClient'
 
 function useLambda<T, M>(
   functionName: string,
@@ -13,7 +16,7 @@ function useLambda<T, M>(
   defaultIfEmpty: () => QueryReturnValue<T, unknown, M>
 ) {
   const [result, setResult] = useState<QueryReturnValue<T, unknown, M>>()
-  const [error, setError] = useState<any>()
+  const [error, setError] = useState<unknown>()
   const [isLoading, setIsLoading] = useState(false)
   const client = useLambdaClient()
   const appCheckToken = '1234'
