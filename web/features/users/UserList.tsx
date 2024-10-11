@@ -8,13 +8,27 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 
-import { useGetUsersQuery } from 'store/aws/lambda/lambdaEndpoints'
 import Loading from 'features/components/loading'
-import { getUserCustomClaimTypes } from 'store/aws/lambda/lambdaSelectors'
+import { useGetUsersQuery } from 'src/lib/aws/lambda'
+import { UserRecord } from 'firebase-admin/auth'
+import { useMemo } from 'react'
+
+const getUserCustomClaimTypes = (users: Array<UserRecord> | undefined) => {
+  const allCustomClaims = users?.map(user => user.customClaims ?? {}) ?? []
+  const customClaimsKeys = allCustomClaims
+    .map(claims => Object.keys(claims))
+    .reduce((agg, claims) => {
+      return [...agg, ...claims]
+    }, [])
+  return [...new Set(customClaimsKeys)]
+}
 
 const UserList = () => {
   const { data, isLoading } = useGetUsersQuery()
-  const claimTypes = useSelector(getUserCustomClaimTypes)
+  const claimTypes = useMemo(
+    () => getUserCustomClaimTypes(data?.users),
+    [data?.users]
+  )
   if (isLoading) return <Loading />
   else if (!data) return <div>empty</div>
   else

@@ -1,9 +1,8 @@
-import { doLogin } from 'store/auth/authSlice'
-import { useReduxDispatch } from 'store/hooks'
+import { useLogin } from 'src/lib/firebase/auth'
 
 const Login = () => {
-  const dispatch = useReduxDispatch()
-  return <button onClick={() => dispatch(doLogin)}>Sign In with Google</button>
+  const { doLogin } = useLogin()
+  return <button onClick={doLogin}>Sign In with Google</button>
 }
 
 export default Login
