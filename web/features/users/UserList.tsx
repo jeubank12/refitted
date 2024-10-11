@@ -1,4 +1,4 @@
-import { useSelector } from 'react-redux'
+import { useMemo } from 'react'
 
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -7,11 +7,10 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
+import { UserRecord } from 'firebase-admin/auth'
 
 import Loading from 'features/components/loading'
 import { useGetUsersQuery } from 'src/lib/aws/lambda'
-import { UserRecord } from 'firebase-admin/auth'
-import { useMemo } from 'react'
 
 const getUserCustomClaimTypes = (users: Array<UserRecord> | undefined) => {
   const allCustomClaims = users?.map(user => user.customClaims ?? {}) ?? []

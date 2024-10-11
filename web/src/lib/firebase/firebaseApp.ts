@@ -1,10 +1,13 @@
+import { useEffect } from 'react'
+
 import { initializeApp } from 'firebase/app'
 // import { getAnalytics } from 'firebase/analytics'
 import { AppCheck, initializeAppCheck } from 'firebase/app-check'
+
 import { firebaseConfig, recaptchaProvider } from './firebaseConfig'
-import { useEffect } from 'react'
 
 declare global {
+  // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean
 }
 

@@ -1,3 +1,5 @@
+import { createContext, useCallback, useContext, useState } from 'react'
+
 import { AppCheck, getToken } from 'firebase/app-check'
 import {
   browserSessionPersistence,
@@ -9,7 +11,6 @@ import {
 } from 'firebase/auth'
 
 import { app, useAppCheck } from './firebaseApp'
-import { createContext, useCallback, useContext, useState } from 'react'
 
 interface UserState {
   initialized: boolean
