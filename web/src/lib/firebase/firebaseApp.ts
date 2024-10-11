@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getAnalytics } from 'firebase/analytics'
+// import { getAnalytics } from 'firebase/analytics'
 import { AppCheck, initializeAppCheck } from 'firebase/app-check'
 import { firebaseConfig, recaptchaProvider } from './firebaseConfig'
 import { useEffect } from 'react'
