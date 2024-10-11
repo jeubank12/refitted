@@ -1,23 +1,17 @@
-import { useEffect } from 'react'
-
 import type { NextPage } from 'next'
 import Head from 'next/head'
 
 import styles from 'styles/Home.module.css'
 import Login from 'features/auth/login'
 import Logout from 'features/auth/logout'
-import { getIsInitializing, getIsLoggedIn } from 'store/auth/authSelectors'
-import { initializeFirebase } from 'store/auth/authSlice'
-import { useReduxDispatch, useReduxSelector } from 'store/hooks'
 import UserList from 'features/users/UserList'
+import { UserContext, useUserContext } from 'src/lib/firebase/auth'
 
 const Admin: NextPage = () => {
-  const dispatch = useReduxDispatch()
-  useEffect(() => {
-    dispatch(initializeFirebase)
-  }, [])
-  const isLoggedIn = useReduxSelector(getIsLoggedIn)
-  const initializing = useReduxSelector(getIsInitializing)
+  const userContext = useUserContext()
+  const { initialized, firebaseUser } = userContext
+  const isLoggedIn = !!firebaseUser
+  const initializing = !initialized
   return (
     <div className={styles.container}>
       <Head>
@@ -28,9 +22,11 @@ const Admin: NextPage = () => {
       <header>{isLoggedIn && <Logout />}</header>
 
       <main className={styles.main}>
-        {/* TODO initializing/loading */}
-        {!isLoggedIn && !initializing && <Login />}
-        {isLoggedIn && <UserList />}
+        <UserContext.Provider value={userContext}>
+          {/* TODO initializing/loading */}
+          {!isLoggedIn && !initializing && <Login />}
+          {isLoggedIn && <UserList />}
+        </UserContext.Provider>
       </main>
     </div>
   )
