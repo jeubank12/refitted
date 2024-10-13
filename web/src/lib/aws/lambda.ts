@@ -8,6 +8,7 @@ import { toUtf8, fromUtf8 } from '@aws-sdk/util-utf8-node'
 import { QueryReturnValue } from '.'
 
 import { useLambdaClient } from './awsClient'
+import { useAppCheckToken } from '../firebase/auth'
 
 function useLambda<T, M>(
   functionName: string,
@@ -19,33 +20,37 @@ function useLambda<T, M>(
   const [error, setError] = useState<unknown>()
   const [isLoading, setIsLoading] = useState(false)
   const client = useLambdaClient()
-  const appCheckToken = '1234'
+  const { getAppCheckToken } = useAppCheckToken()
   const invokeLambda = useCallback(() => {
     if (client) {
       setIsLoading(true)
-      const command = new InvokeCommand({
-        FunctionName: functionName,
-        Payload: fromUtf8(
-          JSON.stringify({ firebaseAppCheckToken: appCheckToken })
-        ),
-      })
-      return client
-        .send(command)
-        .then(
-          result =>
-            setResult(
-              result.Payload
-                ? transform(JSON.parse(toUtf8(result.Payload)))
-                : defaultIfEmpty()
+      return getAppCheckToken()
+        .then(appCheckToken => {
+          const command = new InvokeCommand({
+            FunctionName: functionName,
+            Payload: fromUtf8(
+              JSON.stringify({ firebaseAppCheckToken: appCheckToken })
             ),
-          error => setError(error)
-        )
-        .catch(error =>
-          setError({ error: ['error deserializing the result', error] })
-        )
+          })
+          return client
+            .send(command)
+            .then(
+              result =>
+                setResult(
+                  result.Payload
+                    ? transform(JSON.parse(toUtf8(result.Payload)))
+                    : defaultIfEmpty()
+                ),
+              error => setError(error)
+            )
+            .catch(error =>
+              setError({ error: ['error deserializing the result', error] })
+            )
+        })
+        .catch(error => setError({ error: ['error in AppCheck', error] }))
         .finally(() => setIsLoading(false))
     }
-  }, [client, appCheckToken])
+  }, [client, setIsLoading, getAppCheckToken, setError, setResult])
 
   return { invokeLambda, result, error, isLoading }
 }

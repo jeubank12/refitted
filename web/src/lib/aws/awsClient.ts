@@ -5,7 +5,7 @@ import { LambdaClient } from '@aws-sdk/client-lambda'
 
 import { clientConfig, identityPoolId } from './awsConfig'
 import { firebaseLogins } from 'src/lib/firebase/firebaseConfig'
-import { UserContext } from 'src/lib/firebase/auth'
+import { UserContext } from '../firebase/UserProvider'
 
 export const useAwsCredentials = () => {
   const { firebaseToken } = useContext(UserContext)

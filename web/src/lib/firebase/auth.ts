@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 
-import { AppCheck, getToken } from 'firebase/app-check'
+import { getToken } from 'firebase/app-check'
 import {
   browserSessionPersistence,
   getAuth,
@@ -11,34 +11,28 @@ import {
 } from 'firebase/auth'
 
 import { app, useAppCheck } from './firebaseApp'
-
-interface UserState {
-  initialized: boolean
-  firebaseUser?: User
-  setFirebaseUser: (user: User | undefined) => void
-  firebaseToken?: string
-  setFirebaseToken: (token: string | undefined) => void
-}
-export const UserContext = createContext<UserState>({
-  initialized: false,
-  setFirebaseUser: () => {},
-  setFirebaseToken: () => {},
-})
+import { UserContext } from './UserProvider'
 
 const provider = new GoogleAuthProvider()
 
 export const useLogin = () => {
-  const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
   const [error, setError] = useState<string | null>(null)
-  const appCheck = useAppCheck()
+  const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
+  const { getAppCheckToken } = useAppCheckToken()
+  const finishLogin = useFinishLogin(
+    setFirebaseUser,
+    setFirebaseToken,
+    getAppCheckToken,
+    setError
+  )
 
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
     signInWithPopup(auth, provider).then(
-      success => {
+      async success => {
         const credential = GoogleAuthProvider.credentialFromResult(success)
         if (!credential?.idToken) setError('Failed to get idToken')
-        finishLogin(setFirebaseUser, setFirebaseToken, appCheck, setError)
+        await finishLogin()
       },
       error => setError(error.message)
     )
@@ -46,65 +40,82 @@ export const useLogin = () => {
   return { error, doLogin }
 }
 
-export const useUserContext = (): UserState => {
-  const [initialized, setInitialized] = useState(false)
-  const [firebaseUser, setFirebaseUser] = useState<User>()
-  const [firebaseToken, setFirebaseToken] = useState<string>()
-
-  const appCheck = useAppCheck()
-
-  const auth = getAuth(app)
-  setPersistence(auth, browserSessionPersistence).then(async () => {
-    await finishLogin(setFirebaseUser, setFirebaseToken, appCheck, null)
-    setInitialized(true)
-  })
-  return {
-    initialized,
-    firebaseUser,
-    setFirebaseUser,
-    firebaseToken,
-    setFirebaseToken,
-  }
-}
-
-const finishLogin = (
+export const useFirebaseAuth = (
   setFirebaseUser: (user: User | undefined) => void,
   setFirebaseToken: (token: string | undefined) => void,
-  appCheck: AppCheck | null,
-  setError: ((error: string) => void) | null
+  setInitialized: () => void
 ) => {
+  const { getAppCheckToken } = useAppCheckToken()
+  const finishLogin = useFinishLogin(
+    setFirebaseUser,
+    setFirebaseToken,
+    getAppCheckToken,
+    null
+  )
+
   const auth = getAuth(app)
-  const userForToken = auth.currentUser
-  if (userForToken) {
-    return userForToken.getIdTokenResult().then(async success => {
-      if (success.claims?.admin) {
-        setFirebaseUser(userForToken), setFirebaseToken(success.token)
-        if (!appCheck) throw new Error('app check not initialized')
-        await getToken(appCheck, /* forceRefresh */ false)
-      } else {
-        setError?.('Insufficient Permissions')
-        auth.signOut()
-        setFirebaseUser(undefined)
-        setFirebaseToken(undefined)
-      }
+  useEffect(() => {
+    setPersistence(auth, browserSessionPersistence).then(async () => {
+      await finishLogin()
+      setInitialized()
     })
-  }
+  }, [])
 }
 
-// const getAppCheckToken: ReduxThunk = (dispatch, getState) => {
-//   getToken(appCheck, /* forceRefresh */ false).then(success => {
-//     if (success) dispatch(appCheckToken(success.token))
-//   })
-// }
+const useFinishLogin = (
+  setFirebaseUser: (user: User | undefined) => void,
+  setFirebaseToken: (token: string | undefined) => void,
+  getAppCheckToken: () => Promise<string>,
+  setError: ((error: string) => void) | null
+) => {
+  // const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
+  const finishLogin = useCallback(() => {
+    const auth = getAuth(app)
+    const userForToken = auth.currentUser
+    if (userForToken) {
+      return userForToken.getIdTokenResult().then(async success => {
+        if (success.claims?.admin) {
+          console.debug('logged in as', userForToken)
+          setFirebaseUser(userForToken)
+          setFirebaseToken(success.token)
+          await getAppCheckToken()
+        } else {
+          if (setError) setError('Insufficient Permissions')
+          else console.error('Insufficient Permissions')
+          auth.signOut()
+          setFirebaseUser(undefined)
+          setFirebaseToken(undefined)
+        }
+      })
+    } else {
+      console.log('no user logged in')
+    }
+  }, [setFirebaseUser, setFirebaseToken, getAppCheckToken])
+  return finishLogin
+}
+
+export const useAppCheckToken = () => {
+  const appCheck = useAppCheck()
+  const getAppCheckToken = useCallback(() => {
+    if (!appCheck.current) throw new Error('app check not initialized')
+    return getToken(appCheck.current, /* forceRefresh */ false).then(
+      success => success.token
+    )
+  }, [appCheck])
+
+  return { getAppCheckToken }
+}
 
 export const useLogout = () => {
   const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
 
   const doLogout = useCallback(() => {
+    console.log('Logging out')
     const auth = getAuth(app)
-    auth.signOut()
-    setFirebaseUser(undefined)
-    setFirebaseToken(undefined)
+    auth.signOut().then(() => {
+      setFirebaseUser(undefined)
+      setFirebaseToken(undefined)
+    })
   }, [setFirebaseUser, setFirebaseToken])
 
   return { doLogout }
