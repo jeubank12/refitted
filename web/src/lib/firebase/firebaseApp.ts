@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { initializeApp } from 'firebase/app'
 // import { getAnalytics } from 'firebase/analytics'
@@ -19,12 +19,14 @@ globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN =
 
 let appCheck: AppCheck | null = null
 export const useAppCheck = () => {
+  const appCheckRef = useRef(appCheck)
   useEffect(() => {
     if (!appCheck) {
       appCheck = initializeAppCheck(app, {
         provider: recaptchaProvider,
       })
+      appCheckRef.current = appCheck
     }
   }, [])
-  return appCheck
+  return appCheckRef
 }

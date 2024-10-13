@@ -1,7 +1,8 @@
 import { useContext } from 'react'
 
 import styles from 'styles/Home.module.css'
-import { useLogout, UserContext } from 'src/lib/firebase/auth'
+import { useLogout } from 'src/lib/firebase/auth'
+import { UserContext } from 'src/lib/firebase/UserProvider'
 
 const Logout = () => {
   const { doLogout } = useLogout()
