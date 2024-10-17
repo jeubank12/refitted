@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { getToken } from 'firebase/app-check'
 import {
@@ -11,20 +11,14 @@ import {
 } from 'firebase/auth'
 
 import { app, useAppCheck } from './firebaseApp'
-import { UserContext } from './UserProvider'
 
 const provider = new GoogleAuthProvider()
 
 export const useLogin = () => {
   const [error, setError] = useState<string | null>(null)
-  const { setFirebaseToken } = useContext(UserContext)
   const { getAppCheckToken } = useAppCheckToken()
 
-  const finishLogin = useFinishLogin(
-    setFirebaseToken,
-    getAppCheckToken,
-    setError
-  )
+  const finishLogin = useFinishLogin(getAppCheckToken, setError)
 
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
@@ -41,8 +35,7 @@ export const useLogin = () => {
 }
 
 export const useFirebaseAuth = (
-  setFirebaseUser: (user: User | null) => void,
-  setFirebaseToken: (token: string | undefined) => void
+  setFirebaseUser: (user: User | null) => void
 ) => {
   const { getAppCheckToken } = useAppCheckToken()
 
@@ -54,7 +47,7 @@ export const useFirebaseAuth = (
     })
   }, [])
 
-  const finishLogin = useFinishLogin(setFirebaseToken, getAppCheckToken, null)
+  const finishLogin = useFinishLogin(getAppCheckToken, null)
 
   useEffect(() => {
     const auth = getAuth(app)
@@ -62,12 +55,26 @@ export const useFirebaseAuth = (
   }, [])
 }
 
+export const useFirebaseToken = () => {
+  const [firebaseToken, setFirebaseToken] = useState<string | null>()
+
+  useEffect(() => {
+    const auth = getAuth(app)
+    return auth.onIdTokenChanged(user => {
+      console.debug('token change', user)
+      if (user) {
+        user.getIdToken().then(setFirebaseToken)
+      }
+    })
+  }, [setFirebaseToken])
+
+  return firebaseToken
+}
+
 const useFinishLogin = (
-  setFirebaseToken: (token: string | undefined) => void,
   getAppCheckToken: () => Promise<string>,
   setError: ((error: string) => void) | null
 ) => {
-  // const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
   const finishLogin = useCallback(() => {
     const auth = getAuth(app)
     const userForToken = auth.currentUser
@@ -75,19 +82,17 @@ const useFinishLogin = (
       return userForToken.getIdTokenResult().then(async success => {
         if (success.claims?.admin) {
           console.debug('logged in as', userForToken)
-          setFirebaseToken(success.token)
           await getAppCheckToken()
         } else {
           if (setError) setError('Insufficient Permissions')
           else console.error('Insufficient Permissions')
           auth.signOut()
-          setFirebaseToken(undefined)
         }
       })
     } else {
       console.log('no user logged in')
     }
-  }, [setFirebaseToken, getAppCheckToken])
+  }, [getAppCheckToken])
   return finishLogin
 }
 
@@ -104,15 +109,11 @@ export const useAppCheckToken = () => {
 }
 
 export const useLogout = () => {
-  const { setFirebaseToken } = useContext(UserContext)
-
   const doLogout = useCallback(() => {
     console.log('Logging out')
     const auth = getAuth(app)
-    auth.signOut().then(() => {
-      setFirebaseToken(undefined)
-    })
-  }, [setFirebaseToken])
+    auth.signOut()
+  }, [])
 
   return { doLogout }
 }
