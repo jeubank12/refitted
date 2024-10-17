@@ -1,3 +1,4 @@
+'use client'
 import { useContext } from 'react'
 
 import styles from 'styles/Home.module.css'

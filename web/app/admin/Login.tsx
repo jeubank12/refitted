@@ -1,3 +1,4 @@
+'use client'
 import { useLogin } from 'src/lib/firebase/auth'
 
 const Login = () => {

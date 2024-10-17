@@ -1,3 +1,4 @@
+'use client'
 import { useMemo } from 'react'
 
 import Table from '@mui/material/Table'
