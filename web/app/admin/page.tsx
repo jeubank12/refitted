@@ -1,4 +1,4 @@
-import Home from './Home'
+import AdminContent from './AdminContent'
 
 // async function getPosts() {
 //   const res = await fetch('https://...')
@@ -10,5 +10,5 @@ export default function Page() {
   // Fetch data directly in a Server Component
   // const recentPosts = await getPosts()
   // Forward fetched data to your Client Component
-  return <Home />
+  return <AdminContent />
 }
