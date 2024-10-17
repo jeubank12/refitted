@@ -6,8 +6,8 @@ import { useFirebaseAuth } from './auth'
 
 interface UserState {
   initialized: boolean
-  firebaseUser?: User
-  setFirebaseUser: (user: User | undefined) => void
+  firebaseUser?: User | null
+  setFirebaseUser: (user: User | null) => void
   firebaseToken?: string
   setFirebaseToken: (token: string | undefined) => void
 }
@@ -19,11 +19,12 @@ export const UserContext = createContext<UserState>({
 })
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [initialized, setInitialized] = useState(false)
-  const [firebaseUser, setFirebaseUser] = useState<User>()
+  const [firebaseUser, setFirebaseUser] = useState<User | null>()
   const [firebaseToken, setFirebaseToken] = useState<string>()
 
-  useFirebaseAuth(setFirebaseUser, setFirebaseToken, () => setInitialized(true))
+  useFirebaseAuth(setFirebaseUser, setFirebaseToken)
+
+  const initialized = firebaseUser !== undefined
 
   return (
     <UserContext.Provider

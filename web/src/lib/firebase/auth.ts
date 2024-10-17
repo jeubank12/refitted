@@ -17,10 +17,10 @@ const provider = new GoogleAuthProvider()
 
 export const useLogin = () => {
   const [error, setError] = useState<string | null>(null)
-  const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
+  const { setFirebaseToken } = useContext(UserContext)
   const { getAppCheckToken } = useAppCheckToken()
+
   const finishLogin = useFinishLogin(
-    setFirebaseUser,
     setFirebaseToken,
     getAppCheckToken,
     setError
@@ -41,29 +41,28 @@ export const useLogin = () => {
 }
 
 export const useFirebaseAuth = (
-  setFirebaseUser: (user: User | undefined) => void,
-  setFirebaseToken: (token: string | undefined) => void,
-  setInitialized: () => void
+  setFirebaseUser: (user: User | null) => void,
+  setFirebaseToken: (token: string | undefined) => void
 ) => {
   const { getAppCheckToken } = useAppCheckToken()
-  const finishLogin = useFinishLogin(
-    setFirebaseUser,
-    setFirebaseToken,
-    getAppCheckToken,
-    null
-  )
 
-  const auth = getAuth(app)
   useEffect(() => {
-    setPersistence(auth, browserSessionPersistence).then(async () => {
-      await finishLogin()
-      setInitialized()
+    const auth = getAuth(app)
+    return auth.onAuthStateChanged(user => {
+      console.debug('auth user', user)
+      setFirebaseUser(user)
     })
+  }, [])
+
+  const finishLogin = useFinishLogin(setFirebaseToken, getAppCheckToken, null)
+
+  useEffect(() => {
+    const auth = getAuth(app)
+    setPersistence(auth, browserSessionPersistence).then(() => finishLogin())
   }, [])
 }
 
 const useFinishLogin = (
-  setFirebaseUser: (user: User | undefined) => void,
   setFirebaseToken: (token: string | undefined) => void,
   getAppCheckToken: () => Promise<string>,
   setError: ((error: string) => void) | null
@@ -76,21 +75,19 @@ const useFinishLogin = (
       return userForToken.getIdTokenResult().then(async success => {
         if (success.claims?.admin) {
           console.debug('logged in as', userForToken)
-          setFirebaseUser(userForToken)
           setFirebaseToken(success.token)
           await getAppCheckToken()
         } else {
           if (setError) setError('Insufficient Permissions')
           else console.error('Insufficient Permissions')
           auth.signOut()
-          setFirebaseUser(undefined)
           setFirebaseToken(undefined)
         }
       })
     } else {
       console.log('no user logged in')
     }
-  }, [setFirebaseUser, setFirebaseToken, getAppCheckToken])
+  }, [setFirebaseToken, getAppCheckToken])
   return finishLogin
 }
 
@@ -107,16 +104,15 @@ export const useAppCheckToken = () => {
 }
 
 export const useLogout = () => {
-  const { setFirebaseUser, setFirebaseToken } = useContext(UserContext)
+  const { setFirebaseToken } = useContext(UserContext)
 
   const doLogout = useCallback(() => {
     console.log('Logging out')
     const auth = getAuth(app)
     auth.signOut().then(() => {
-      setFirebaseUser(undefined)
       setFirebaseToken(undefined)
     })
-  }, [setFirebaseUser, setFirebaseToken])
+  }, [setFirebaseToken])
 
   return { doLogout }
 }
