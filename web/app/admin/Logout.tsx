@@ -13,7 +13,7 @@ const Logout = () => {
       <span>
         Logged in as {`${firebaseUser?.displayName} (${firebaseUser?.email})`}
       </span>
-      <button onClick={() => doLogout}>Logout</button>
+      <button onClick={doLogout}>Logout</button>
     </div>
   )
 }
