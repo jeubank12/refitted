@@ -1,20 +1,20 @@
-import { useContext } from 'react'
-
 import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers'
 import { LambdaClient } from '@aws-sdk/client-lambda'
 
 import { clientConfig, identityPoolId } from './awsConfig'
 import { firebaseLogins } from 'src/lib/firebase/firebaseConfig'
-import { UserContext } from '../firebase/UserProvider'
+import { useFirebaseToken } from '../firebase/auth'
 
 export const useAwsCredentials = () => {
-  const { firebaseToken } = useContext(UserContext)
-  if (firebaseToken)
+  const firebaseToken = useFirebaseToken()
+
+  if (firebaseToken) {
     return fromCognitoIdentityPool({
       identityPoolId,
       logins: firebaseLogins(firebaseToken),
       clientConfig,
     })
+  }
 }
 
 export const useLambdaClient = () => {

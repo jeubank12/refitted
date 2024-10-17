@@ -8,21 +8,17 @@ interface UserState {
   initialized: boolean
   firebaseUser?: User | null
   setFirebaseUser: (user: User | null) => void
-  firebaseToken?: string
-  setFirebaseToken: (token: string | undefined) => void
 }
 
 export const UserContext = createContext<UserState>({
   initialized: false,
   setFirebaseUser: () => {},
-  setFirebaseToken: () => {},
 })
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>()
-  const [firebaseToken, setFirebaseToken] = useState<string>()
 
-  useFirebaseAuth(setFirebaseUser, setFirebaseToken)
+  useFirebaseAuth(setFirebaseUser)
 
   const initialized = firebaseUser !== undefined
 
@@ -32,8 +28,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         initialized,
         firebaseUser,
         setFirebaseUser,
-        firebaseToken,
-        setFirebaseToken,
       }}
     >
       {children}

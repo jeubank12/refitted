@@ -19,8 +19,14 @@ function useLambda<T, M>(
   const [result, setResult] = useState<QueryReturnValue<T, unknown, M>>()
   const [error, setError] = useState<unknown>()
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const client = useLambdaClient()
   const { getAppCheckToken } = useAppCheckToken()
+
+  useEffect(() => {
+    setIsInitialized(!!client)
+  }, [client])
+
   const invokeLambda = useCallback(() => {
     if (client) {
       setIsLoading(true)
@@ -52,11 +58,11 @@ function useLambda<T, M>(
     }
   }, [client, setIsLoading, getAppCheckToken, setError, setResult])
 
-  return { invokeLambda, result, error, isLoading }
+  return { invokeLambda, result, error, isLoading, isInitialized }
 }
 
 export const useGetUsersQuery = () => {
-  const { invokeLambda, result, error, isLoading } = useLambda<
+  const { invokeLambda, result, error, isLoading, isInitialized } = useLambda<
     ListUsersResult,
     void
   >(
@@ -71,7 +77,7 @@ export const useGetUsersQuery = () => {
 
   useEffect(() => {
     invokeLambda()
-  }, [])
+  }, [isInitialized])
 
   return { data: result?.data, error, isLoading }
 }
