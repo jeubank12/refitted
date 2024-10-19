@@ -34,6 +34,19 @@ export const useLogin = () => {
   return { error, doLogin }
 }
 
+export const useFirebaseUser = () => {
+  const [firebaseUser, setFirebaseUser] = useState<User | null>()
+
+  useEffect(() => {
+    const auth = getAuth(app)
+    return auth.onAuthStateChanged(user => {
+      setFirebaseUser(user)
+    })
+  }, [])
+
+  return firebaseUser
+}
+
 export const useFirebaseAuth = (
   setFirebaseUser: (user: User | null) => void
 ) => {
@@ -42,7 +55,6 @@ export const useFirebaseAuth = (
   useEffect(() => {
     const auth = getAuth(app)
     return auth.onAuthStateChanged(user => {
-      console.debug('auth user', user)
       setFirebaseUser(user)
     })
   }, [])
