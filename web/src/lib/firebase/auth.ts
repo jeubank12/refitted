@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { getToken } from 'firebase/app-check'
 import {
   browserSessionPersistence,
   getAuth,
@@ -10,15 +9,14 @@ import {
   User,
 } from 'firebase/auth'
 
-import { app, useAppCheck } from './firebaseApp'
+import { app } from './firebaseApp'
 
 const provider = new GoogleAuthProvider()
 
 export const useLogin = () => {
   const [error, setError] = useState<string | null>(null)
-  const { getAppCheckToken } = useAppCheckToken()
 
-  const finishLogin = useFinishLogin(getAppCheckToken, setError)
+  const finishLogin = useFinishLogin(setError)
 
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
@@ -47,19 +45,8 @@ export const useFirebaseUser = () => {
   return firebaseUser
 }
 
-export const useFirebaseAuth = (
-  setFirebaseUser: (user: User | null) => void
-) => {
-  const { getAppCheckToken } = useAppCheckToken()
-
-  useEffect(() => {
-    const auth = getAuth(app)
-    return auth.onAuthStateChanged(user => {
-      setFirebaseUser(user)
-    })
-  }, [])
-
-  const finishLogin = useFinishLogin(getAppCheckToken, null)
+export const useFirebaseAuth = () => {
+  const finishLogin = useFinishLogin()
 
   useEffect(() => {
     const auth = getAuth(app)
@@ -78,15 +65,13 @@ export const useFirebaseToken = () => {
         user.getIdToken().then(setFirebaseToken)
       }
     })
-  }, [setFirebaseToken])
+  }, [])
 
   return firebaseToken
 }
 
-const useFinishLogin = (
-  getAppCheckToken: () => Promise<string>,
-  setError: ((error: string) => void) | null
-) => {
+// TODO replace with 401 page
+const useFinishLogin = (setError?: (error: string) => void) => {
   const finishLogin = useCallback(() => {
     const auth = getAuth(app)
     const userForToken = auth.currentUser
@@ -94,7 +79,6 @@ const useFinishLogin = (
       return userForToken.getIdTokenResult().then(async success => {
         if (success.claims?.admin) {
           console.debug('logged in as', userForToken)
-          await getAppCheckToken()
         } else {
           if (setError) setError('Insufficient Permissions')
           else console.error('Insufficient Permissions')
@@ -104,20 +88,8 @@ const useFinishLogin = (
     } else {
       console.log('no user logged in')
     }
-  }, [getAppCheckToken])
+  }, [])
   return finishLogin
-}
-
-export const useAppCheckToken = () => {
-  const appCheck = useAppCheck()
-  const getAppCheckToken = useCallback(() => {
-    if (!appCheck.current) throw new Error('app check not initialized')
-    return getToken(appCheck.current, /* forceRefresh */ false).then(
-      success => success.token
-    )
-  }, [appCheck])
-
-  return { getAppCheckToken }
 }
 
 export const useLogout = () => {

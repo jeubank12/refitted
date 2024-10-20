@@ -23,7 +23,7 @@ const getUserCustomClaimTypes = (users: Array<UserRecord> | undefined) => {
   return [...new Set(customClaimsKeys)]
 }
 
-const UserList = () => {
+export default function UsersList() {
   const { data, isLoading } = useGetUsersQuery()
   const claimTypes = useMemo(
     () => getUserCustomClaimTypes(data?.users),
@@ -68,5 +68,3 @@ const UserList = () => {
       </Paper>
     )
 }
-
-export default UserList
