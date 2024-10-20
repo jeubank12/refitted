@@ -1,4 +1,8 @@
 'use client'
+import { useEffect } from 'react'
+
+import { useRouter } from 'next/navigation'
+
 import styles from 'styles/Home.module.css'
 import {
   useFirebaseAuth,
@@ -10,6 +14,13 @@ export default function Logout() {
   useFirebaseAuth()
   const { doLogout } = useLogout()
   const firebaseUser = useFirebaseUser()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (firebaseUser === null) {
+      router.push('/admin')
+    }
+  }, [firebaseUser])
 
   return (
     firebaseUser && (
