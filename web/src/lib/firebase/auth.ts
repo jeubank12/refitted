@@ -16,15 +16,12 @@ const provider = new GoogleAuthProvider()
 export const useLogin = () => {
   const [error, setError] = useState<string | null>(null)
 
-  const finishLogin = useFinishLogin(setError)
-
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
     signInWithPopup(auth, provider).then(
       async success => {
         const credential = GoogleAuthProvider.credentialFromResult(success)
         if (!credential?.idToken) setError('Failed to get idToken')
-        await finishLogin()
       },
       error => setError(error.message)
     )
@@ -46,11 +43,9 @@ export const useFirebaseUser = () => {
 }
 
 export const useFirebaseAuth = () => {
-  const finishLogin = useFinishLogin()
-
   useEffect(() => {
     const auth = getAuth(app)
-    setPersistence(auth, browserSessionPersistence).then(() => finishLogin())
+    setPersistence(auth, browserSessionPersistence)
   }, [])
 }
 
@@ -70,33 +65,38 @@ export const useFirebaseToken = () => {
   return firebaseToken
 }
 
-// TODO replace with 401 page
-const useFinishLogin = (setError?: (error: string) => void) => {
-  const finishLogin = useCallback(() => {
-    const auth = getAuth(app)
-    const userForToken = auth.currentUser
-    if (userForToken) {
-      return userForToken.getIdTokenResult().then(async success => {
+export const useIsAdmin = (setError?: (error: string) => void) => {
+  const firebaseUser = useFirebaseUser()
+  const [isAdmin, setIsAdmin] = useState<boolean>()
+
+  useEffect(() => {
+    if (firebaseUser) {
+      firebaseUser.getIdTokenResult().then(async success => {
         if (success.claims?.admin) {
-          console.debug('logged in as', userForToken)
+          console.debug('logged in as', firebaseUser)
+          setIsAdmin(true)
         } else {
           if (setError) setError('Insufficient Permissions')
           else console.error('Insufficient Permissions')
-          auth.signOut()
+          // auth.signOut()
+          // TODO replace with 401 page
+          setIsAdmin(false)
         }
       })
     } else {
+      setIsAdmin(undefined)
       console.log('no user logged in')
     }
   }, [])
-  return finishLogin
+
+  return isAdmin
 }
 
 export const useLogout = () => {
   const doLogout = useCallback(() => {
     console.log('Logging out')
     const auth = getAuth(app)
-    auth.signOut()
+    return auth.signOut()
   }, [])
 
   return { doLogout }
