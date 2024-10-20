@@ -29,8 +29,8 @@ export default function UsersList() {
     () => getUserCustomClaimTypes(data?.users),
     [data?.users]
   )
-  if (isLoading) return <Loading />
-  else if (!data) return <div>empty</div>
+  if (isLoading || !data) return <Loading />
+  else if (!data?.users.length) return <div>empty</div>
   else
     return (
       <Paper sx={{ width: '100%', maxWidth: 900, overflow: 'hidden' }}>
