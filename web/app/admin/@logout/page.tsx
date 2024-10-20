@@ -1,9 +1,13 @@
 'use client'
-
 import styles from 'styles/Home.module.css'
-import { useFirebaseUser, useLogout } from 'src/lib/firebase/auth'
+import {
+  useFirebaseAuth,
+  useFirebaseUser,
+  useLogout,
+} from 'src/lib/firebase/auth'
 
-const Logout = () => {
+export default function Logout() {
+  useFirebaseAuth()
   const { doLogout } = useLogout()
   const firebaseUser = useFirebaseUser()
 
@@ -18,5 +22,3 @@ const Logout = () => {
     )
   )
 }
-
-export default Logout
