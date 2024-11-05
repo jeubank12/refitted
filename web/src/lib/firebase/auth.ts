@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 
 import { app } from './firebaseApp'
+import { login } from 'app/admin/actions/login'
 
 const provider = new GoogleAuthProvider()
 
@@ -21,7 +22,18 @@ export const useLogin = () => {
     signInWithPopup(auth, provider).then(
       async success => {
         const credential = GoogleAuthProvider.credentialFromResult(success)
-        if (!credential?.idToken) setError('Failed to get idToken')
+        // TODO does this also need to sign out?
+        if (!credential?.idToken) {
+          setError('Failed to get idToken')
+          return
+        }
+        await auth.authStateReady()
+        if (!auth.currentUser) {
+          setError('not logged in')
+          return
+        }
+        const idToken = await auth.currentUser.getIdToken()
+        login(idToken)
       },
       error => setError(error.message)
     )
