@@ -13,7 +13,7 @@ async function createSession(isAdmin: boolean) {
   const sessionContent = JSON.stringify({
     isAdmin,
   })
-  await cookies().set('session', sessionContent, {
+  cookies().set('session', sessionContent, {
     httpOnly: true,
     secure: true,
     expires: expiresAt,
