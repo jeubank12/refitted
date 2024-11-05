@@ -8,10 +8,12 @@ import { getAuth } from 'firebase/auth'
 
 import { firebaseConfig } from 'src/lib/firebase/firebaseConfig'
 
-async function createSession(isAdmin: boolean) {
+async function createSession(idToken: string, isAdmin: boolean) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const sessionContent = JSON.stringify({
     isAdmin,
+    // TODO encrypt
+    idToken,
   })
   cookies().set('session', sessionContent, {
     httpOnly: true,
@@ -38,7 +40,7 @@ export async function login(idToken: string) {
   // TODO 404?
   if (!auth.currentUser) return
   const idTokenResult = await auth.currentUser.getIdTokenResult()
-  createSession(!!idTokenResult.claims?.admin)
+  createSession(idToken, !!idTokenResult.claims?.admin)
   console.log('Logged in', auth.currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })

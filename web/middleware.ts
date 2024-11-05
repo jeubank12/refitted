@@ -7,7 +7,6 @@ export const config = {
 
 export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('session')
-  console.debug('middleware', request.url, cookie) // => { name: 'nextjs', value: 'fast', Path: '/' }
 
   const session = JSON.parse(cookie?.value ?? '{}')
   if (!session.isAdmin) {

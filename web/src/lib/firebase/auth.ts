@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth'
 
 import { app } from './firebaseApp'
-import { login, logout } from 'app/admin/actions/auth'
+import { login, logout } from 'src/lib/firebase/actions/auth'
 
 const provider = new GoogleAuthProvider()
 
@@ -72,12 +72,14 @@ export const useFirebaseToken = () => {
         user.getIdToken().then(setFirebaseToken)
       }
     })
+    // TODO embed in logout, call server action to refresh session
   }, [])
 
   return firebaseToken
 }
 
 export const useLogout = () => {
+  // TODO move to logout.tsx
   const doLogout = useCallback(async () => {
     console.log('Logging out')
     const auth = getAuth(app)
