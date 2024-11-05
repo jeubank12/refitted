@@ -8,14 +8,16 @@ import {
   signInWithPopup,
   User,
 } from 'firebase/auth'
+import { getToken } from 'firebase/app-check'
 
-import { app } from './firebaseApp'
+import { app, useAppCheck } from './firebaseApp'
 import { login, logout, refreshSession } from 'src/lib/firebase/actions/auth'
 
 const provider = new GoogleAuthProvider()
 
 export const useLogin = () => {
   const [error, setError] = useState<string | null>(null)
+  const appCheck = useAppCheck()
 
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
@@ -34,7 +36,11 @@ export const useLogin = () => {
           return
         }
         const idToken = await auth.currentUser.getIdToken()
-        login(idToken)
+        const check = appCheck.current
+        if (!check) return
+        const result = await getToken(check)
+        // TODO should this be awaited?
+        login(idToken, result.token)
       },
       error => setError(error.message)
     )
@@ -44,6 +50,7 @@ export const useLogin = () => {
 
 export const useUserSession = () => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>()
+  const appCheck = useAppCheck()
 
   useEffect(() => {
     const auth = getAuth(app)
@@ -58,7 +65,10 @@ export const useUserSession = () => {
     return auth.onIdTokenChanged(async user => {
       console.debug('token change', user)
       const idToken = await user?.getIdToken()
-      await refreshSession(idToken)
+      const check = appCheck.current
+      if (!check) return
+      const result = await getToken(check)
+      await refreshSession(idToken, result.token)
     })
   }, [])
 

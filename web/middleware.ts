@@ -10,6 +10,7 @@ export function middleware(request: NextRequest) {
 
   const session = JSON.parse(cookie?.value ?? '{}')
   if (!session.isAdmin) {
+    // TODO 404/logout? Otherwise infinite loop
     return NextResponse.redirect(new URL('/admin', request.url))
   }
   return NextResponse.next()

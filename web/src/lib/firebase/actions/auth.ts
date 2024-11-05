@@ -8,12 +8,17 @@ import { getAuth, User } from 'firebase/auth'
 
 import { firebaseConfig } from '../firebaseConfig'
 
-async function writeSession(idToken: string, isAdmin: boolean) {
+async function writeSession(
+  idToken: string,
+  appCheckToken: string,
+  isAdmin: boolean
+) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const sessionContent = JSON.stringify({
     isAdmin,
     // TODO encrypt
     idToken,
+    appCheckToken,
   })
   cookies().set('session', sessionContent, {
     httpOnly: true,
@@ -40,23 +45,30 @@ async function getAppForUser(idToken: string) {
   return { firebaseServerApp, currentUser: auth.currentUser }
 }
 
-export async function login(idToken: string) {
+export async function login(idToken: string, appCheckToken: string) {
   const { currentUser } = await getAppForUser(idToken)
 
   if (!currentUser) return
-  return createSession(currentUser)
+  return createSession(currentUser, appCheckToken)
 }
 
-async function createSession(user: User) {
+async function createSession(user: User, appCheckToken: string) {
   const idTokenResult = await user.getIdTokenResult()
-  writeSession(idTokenResult.token, !!idTokenResult.claims?.admin)
+  writeSession(
+    idTokenResult.token,
+    appCheckToken,
+    !!idTokenResult.claims?.admin
+  )
   console.log('Logged in', user.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
   return redirect('/admin/users')
 }
 
-export async function refreshSession(idToken?: string) {
+export async function refreshSession(
+  idToken: string | undefined,
+  appCheckToken: string
+) {
   if (!idToken) {
     return await logout()
   }
@@ -71,10 +83,10 @@ export async function refreshSession(idToken?: string) {
   if (!(await sessionIdToken)) {
     console.log()
     // if there was no session, treat this as login
-    return createSession(currentUser)
+    return createSession(currentUser, appCheckToken)
   }
   const idTokenResult = await currentUser.getIdTokenResult()
-  writeSession(idToken, !!idTokenResult.claims?.admin)
+  writeSession(idToken, appCheckToken, !!idTokenResult.claims?.admin)
   console.log('Refreshed', currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
