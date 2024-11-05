@@ -77,33 +77,6 @@ export const useFirebaseToken = () => {
   return firebaseToken
 }
 
-export const useIsAdmin = (setError?: (error: string) => void) => {
-  const firebaseUser = useFirebaseUser()
-  const [isAdmin, setIsAdmin] = useState<boolean>()
-
-  useEffect(() => {
-    if (firebaseUser) {
-      firebaseUser.getIdTokenResult().then(async success => {
-        if (success.claims?.admin) {
-          console.debug('logged in as', firebaseUser)
-          setIsAdmin(true)
-        } else {
-          if (setError) setError('Insufficient Permissions')
-          else console.error('Insufficient Permissions')
-          // auth.signOut()
-          // TODO replace with 401 page
-          setIsAdmin(false)
-        }
-      })
-    } else {
-      setIsAdmin(undefined)
-      console.log('no user logged in')
-    }
-  }, [])
-
-  return isAdmin
-}
-
 export const useLogout = () => {
   const doLogout = useCallback(async () => {
     console.log('Logging out')
