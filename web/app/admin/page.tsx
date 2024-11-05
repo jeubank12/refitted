@@ -1,18 +1,8 @@
-'use client'
+import { optimisticCheckLogin } from 'src/lib/firebase/actions/auth'
+import Login from './Login'
 
-import { useLogin } from 'src/lib/firebase/auth'
+export default async function Page() {
+  await optimisticCheckLogin()
 
-// async function getPosts() {
-//   const res = await fetch('https://...')
-//   const posts = await res.json()
-//   return posts
-// }
-
-export default function Login() {
-  // Fetch data directly in a Server Component
-  // const recentPosts = await getPosts()
-  // Forward fetched data to your Client Component
-  const { doLogin } = useLogin()
-
-  return <button onClick={doLogin}>Sign In with Google</button>
+  return <Login />
 }
