@@ -1,6 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 import { initializeServerApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
@@ -41,4 +42,5 @@ export async function login(idToken: string) {
   console.log('Logged in', auth.currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
+  return redirect('/admin/users')
 }
