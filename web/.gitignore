@@ -2,6 +2,7 @@
 
 awsConfig.ts
 firebaseConfig.ts
+firebase.json
 set-roles.json
 set-android-roles.json
 

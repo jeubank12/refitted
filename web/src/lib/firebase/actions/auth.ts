@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { initializeServerApp } from 'firebase/app'
 import { getAuth, User } from 'firebase/auth'
 
-import { firebaseConfig } from 'src/lib/firebase/firebaseConfig'
+import { firebaseConfig } from '../firebaseConfig'
 
 async function writeSession(idToken: string, isAdmin: boolean) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)

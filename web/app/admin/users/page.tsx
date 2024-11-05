@@ -1,4 +1,4 @@
-import { listAllUsers } from 'src/lib/aws/actions/lambda'
+import { listAllUsers } from 'src/lib/firebase/actions/users'
 import ListUsersTable from './ListUsersTable'
 
 export default async function UsersList() {

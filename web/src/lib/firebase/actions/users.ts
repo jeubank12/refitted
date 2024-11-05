@@ -6,7 +6,7 @@ import {
 } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 
-import serviceAccount from 'src/lib/firebase/firebase.json' assert { type: 'json' }
+import serviceAccount from '../firebase.json' assert { type: 'json' }
 
 export async function listAllUsers() {
   // TODO add app check
