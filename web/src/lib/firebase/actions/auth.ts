@@ -24,7 +24,7 @@ async function createSession(idToken: string, isAdmin: boolean) {
   })
 }
 
-export async function login(idToken: string) {
+async function getAppForUser(idToken: string) {
   const firebaseServerApp = initializeServerApp(
     firebaseConfig,
     idToken
@@ -37,11 +37,17 @@ export async function login(idToken: string) {
   const auth = getAuth(firebaseServerApp)
   await auth.authStateReady()
 
+  return { firebaseServerApp, currentUser: auth.currentUser }
+}
+
+export async function login(idToken: string) {
+  const { currentUser } = await getAppForUser(idToken)
+
   // TODO 404?
-  if (!auth.currentUser) return
-  const idTokenResult = await auth.currentUser.getIdTokenResult()
+  if (!currentUser) return
+  const idTokenResult = await currentUser.getIdTokenResult()
   createSession(idToken, !!idTokenResult.claims?.admin)
-  console.log('Logged in', auth.currentUser.email, {
+  console.log('Logged in', currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
   return redirect('/admin/users')
@@ -50,4 +56,22 @@ export async function login(idToken: string) {
 export async function logout() {
   await cookies().delete('session')
   return redirect('/admin')
+}
+
+export async function getIdToken(): Promise<string | undefined> {
+  const cookie = cookies().get('session')
+  const session = JSON.parse(cookie?.value ?? '{}')
+  return Promise.resolve(session?.idToken)
+}
+
+export async function getUserInfo() {
+  const idToken = await getIdToken()
+  if (!idToken) return
+  const { currentUser } = await getAppForUser(idToken)
+  return currentUser
+    ? {
+        displayName: currentUser.displayName ?? undefined,
+        email: currentUser.email ?? undefined,
+      }
+    : undefined
 }
