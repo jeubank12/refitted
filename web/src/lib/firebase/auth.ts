@@ -19,6 +19,7 @@ export const useLogin = () => {
 
   const doLogin = useCallback(() => {
     const auth = getAuth(app)
+    setPersistence(auth, browserSessionPersistence)
     signInWithPopup(auth, provider).then(
       async success => {
         const credential = GoogleAuthProvider.credentialFromResult(success)
@@ -41,7 +42,7 @@ export const useLogin = () => {
   return { error, doLogin }
 }
 
-export const useFirebaseUser = () => {
+export const useUserSession = () => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>()
 
   useEffect(() => {
@@ -51,35 +52,14 @@ export const useFirebaseUser = () => {
     })
   }, [])
 
-  return firebaseUser
-}
-
-export const useFirebaseAuth = () => {
-  useEffect(() => {
-    const auth = getAuth(app)
-    setPersistence(auth, browserSessionPersistence)
-  }, [])
-}
-
-export const useFirebaseToken = () => {
-  const [firebaseToken, setFirebaseToken] = useState<string | null>()
-
   useEffect(() => {
     const auth = getAuth(app)
     return auth.onIdTokenChanged(user => {
       console.debug('token change', user)
-      if (user) {
-        user.getIdToken().then(setFirebaseToken)
-      }
+      // TODO refresh session
     })
-    // TODO embed in logout, call server action to refresh session
   }, [])
 
-  return firebaseToken
-}
-
-export const useLogout = () => {
-  // TODO move to logout.tsx
   const doLogout = useCallback(async () => {
     console.log('Logging out')
     const auth = getAuth(app)
@@ -87,5 +67,5 @@ export const useLogout = () => {
     await auth.signOut()
   }, [])
 
-  return { doLogout }
+  return { logout: doLogout, firebaseUser }
 }
