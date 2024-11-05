@@ -9,6 +9,7 @@ export default function UserInfo({
   displayName?: string
   email?: string
 }) {
+  // somehow if we are on login page, detect and redirect on successful refresh
   const { logout, firebaseUser } = useUserSession()
 
   return (
