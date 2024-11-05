@@ -16,9 +16,7 @@ export async function listAllUsers() {
       databaseURL: 'https://refitted-361ee.firebaseio.com',
     })
   }
-  console.log('calling get users')
   const users = await getAuth().listUsers(1000)
-  console.log('users', users)
 
   return users
 }
