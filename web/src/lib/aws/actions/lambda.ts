@@ -17,7 +17,7 @@ async function callLambda<T, M>(
     FunctionName: functionName,
     Payload: fromUtf8(JSON.stringify({})),
   })
-  const client = getClient()
+  const client = await getClient()
   if (!client) return redirect('/admin')
   const result = await client.send(command)
   return result.Payload

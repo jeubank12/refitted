@@ -48,6 +48,7 @@ export const useUserSession = () => {
   useEffect(() => {
     const auth = getAuth(app)
     return auth.onAuthStateChanged(user => {
+      console.log('user change', user)
       setFirebaseUser(user)
     })
   }, [])
