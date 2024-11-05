@@ -14,8 +14,6 @@
     "@aws-sdk/client-lambda": "^3.656.0",
     "@aws-sdk/credential-providers": "^3.654.0",
     "@aws-sdk/util-utf8-node": "^3.259.0",
-    "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^11.13.0",
     "@mui/material": "^5.16.7",
     "@reduxjs/toolkit": "^2.2.7",
     "firebase": "^10.13.2",
