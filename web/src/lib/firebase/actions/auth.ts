@@ -53,7 +53,23 @@ export async function login(idToken: string) {
   return redirect('/admin/users')
 }
 
+export async function refreshSession(idToken?: string) {
+  if (!idToken) {
+    return await logout()
+  }
+  const { currentUser } = await getAppForUser(idToken)
+
+  // TODO is this a logout?
+  if (!currentUser) return
+  const idTokenResult = await currentUser.getIdTokenResult()
+  createSession(idToken, !!idTokenResult.claims?.admin)
+  console.log('Refreshed', currentUser.email, {
+    isAdmin: !!idTokenResult.claims?.admin,
+  })
+}
+
 export async function logout() {
+  console.log('Logout')
   await cookies().delete('session')
   return redirect('/admin')
 }

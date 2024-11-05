@@ -18,10 +18,8 @@ export default function UserInfo({
           Logged in as{' '}
           {`${firebaseUser?.displayName ?? displayName} (${firebaseUser?.email ?? email})`}
         </span>
-        {/** is disabled better, or something to show loading progress? */}
-        <button onClick={logout} disabled={firebaseUser === undefined}>
-          Logout
-        </button>
+        {/** add form state to disable after submit? */}
+        <button onClick={logout}>Logout</button>
       </div>
     )
   )

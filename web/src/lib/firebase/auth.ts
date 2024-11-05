@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth'
 
 import { app } from './firebaseApp'
-import { login, logout } from 'src/lib/firebase/actions/auth'
+import { login, logout, refreshSession } from 'src/lib/firebase/actions/auth'
 
 const provider = new GoogleAuthProvider()
 
@@ -55,9 +55,10 @@ export const useUserSession = () => {
 
   useEffect(() => {
     const auth = getAuth(app)
-    return auth.onIdTokenChanged(user => {
+    return auth.onIdTokenChanged(async user => {
       console.debug('token change', user)
-      // TODO refresh session
+      const idToken = await user?.getIdToken()
+      await refreshSession(idToken)
     })
   }, [])
 
@@ -65,6 +66,7 @@ export const useUserSession = () => {
     console.log('Logging out')
     const auth = getAuth(app)
     await logout()
+    await auth.authStateReady()
     await auth.signOut()
   }, [])
 
