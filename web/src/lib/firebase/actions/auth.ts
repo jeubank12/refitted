@@ -103,3 +103,9 @@ export async function getUserInfo() {
       }
     : undefined
 }
+
+export async function optimisticCheckLogin() {
+  const idToken = await getIdToken()
+  if (!idToken) return
+  return redirect('/admin/users')
+}
