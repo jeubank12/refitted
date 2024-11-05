@@ -4,11 +4,11 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { initializeServerApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, User } from 'firebase/auth'
 
 import { firebaseConfig } from 'src/lib/firebase/firebaseConfig'
 
-async function createSession(idToken: string, isAdmin: boolean) {
+async function writeSession(idToken: string, isAdmin: boolean) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const sessionContent = JSON.stringify({
     isAdmin,
@@ -43,11 +43,14 @@ async function getAppForUser(idToken: string) {
 export async function login(idToken: string) {
   const { currentUser } = await getAppForUser(idToken)
 
-  // TODO 404?
   if (!currentUser) return
-  const idTokenResult = await currentUser.getIdTokenResult()
-  createSession(idToken, !!idTokenResult.claims?.admin)
-  console.log('Logged in', currentUser.email, {
+  return createSession(currentUser)
+}
+
+async function createSession(user: User) {
+  const idTokenResult = await user.getIdTokenResult()
+  writeSession(idTokenResult.token, !!idTokenResult.claims?.admin)
+  console.log('Logged in', user.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
   return redirect('/admin/users')
@@ -59,10 +62,19 @@ export async function refreshSession(idToken?: string) {
   }
   const { currentUser } = await getAppForUser(idToken)
 
-  // TODO is this a logout?
-  if (!currentUser) return
+  const sessionIdToken = getIdToken()
+  if (!currentUser) {
+    // if there is no session either, go to login
+    if (!(await sessionIdToken)) return redirect('/admin')
+    return
+  }
+  if (!(await sessionIdToken)) {
+    console.log()
+    // if there was no session, treat this as login
+    return createSession(currentUser)
+  }
   const idTokenResult = await currentUser.getIdTokenResult()
-  createSession(idToken, !!idTokenResult.claims?.admin)
+  writeSession(idToken, !!idTokenResult.claims?.admin)
   console.log('Refreshed', currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
