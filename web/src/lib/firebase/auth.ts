@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth'
 
 import { app } from './firebaseApp'
-import { login } from 'app/admin/actions/login'
+import { login, logout } from 'app/admin/actions/auth'
 
 const provider = new GoogleAuthProvider()
 
@@ -105,10 +105,11 @@ export const useIsAdmin = (setError?: (error: string) => void) => {
 }
 
 export const useLogout = () => {
-  const doLogout = useCallback(() => {
+  const doLogout = useCallback(async () => {
     console.log('Logging out')
     const auth = getAuth(app)
-    return auth.signOut()
+    await logout()
+    await auth.signOut()
   }, [])
 
   return { doLogout }

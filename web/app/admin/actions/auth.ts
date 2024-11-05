@@ -44,3 +44,8 @@ export async function login(idToken: string) {
   })
   return redirect('/admin/users')
 }
+
+export async function logout() {
+  await cookies().delete('session')
+  return redirect('/admin')
+}
