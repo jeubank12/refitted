@@ -12,6 +12,7 @@ import androidx.compose.material.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -69,7 +70,11 @@ fun ValueTextField(
         })
         .padding(bottom = 1.dp)
     ) {
-      Column(Modifier.weight(1f)) {
+      // FIXME maybe try alignment lines https://developer.android.com/develop/ui/compose/layouts/alignment-lines
+      Column(
+        Modifier
+          .weight(1f)
+          .align(Alignment.CenterVertically)) {
         content()
       }
       if (suffix != null) {
