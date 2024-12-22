@@ -1,6 +1,7 @@
 plugins {
     alias libs.plugins.application
     alias libs.plugins.dagger.hilt.android
+    alias libs.plugins.dependency.analysis
     alias libs.plugins.compose.compiler
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
@@ -89,8 +90,6 @@ dependencies {
     implementation libs.androidx.recyclerview
 
     implementation libs.androidx.room.paging
-    implementation libs.androidx.paging.common
-    implementation libs.androidx.paging.common.ktx
     implementation libs.androidx.paging.compose
     implementation libs.androidx.paging.runtime
 
@@ -98,7 +97,6 @@ dependencies {
     androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.junit
     debugRuntimeOnly libs.androidx.compose.ui.test.manifest
-    testImplementation libs.junit.jupiter
     testImplementation libs.junit.jupiter.api
     testRuntimeOnly libs.junit.jupiter.engine
     testImplementation libs.truth
