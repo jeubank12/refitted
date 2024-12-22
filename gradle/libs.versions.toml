@@ -80,9 +80,9 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-androidx-runner = { module = "androidx.test:runner", version.ref = "testRunner" }
 androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqlite" }
 androidx-test-monitor = { module = "androidx.test:monitor", version.ref = "testMonitor" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "testRunner" }
 arrow-core = { module = "io.arrow-kt:arrow-core" }
 arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrowStack" }
 aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "aws" }

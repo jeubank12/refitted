@@ -26,7 +26,7 @@ updates:
       patterns:
         - "*junit*"
         - "com.google.truth*"
-        - "androidx.test.*"
+        - "androidx-test*"
     compose:
       patterns:
         - "*compose*"
