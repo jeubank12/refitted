@@ -49,7 +49,7 @@ fun ValueTextField(
     textStyle = TextStyle(fontSize = fontSize, textAlign = alignment),
     keyboardOptions = KeyboardOptions(
       keyboardType = KeyboardType.Number,
-      autoCorrect = false,
+      autoCorrectEnabled = false,
       imeAction = ImeAction.Done
     ),
     keyboardActions = KeyboardActions(onDone = {
