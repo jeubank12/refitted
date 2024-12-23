@@ -1,5 +1,6 @@
 plugins {
     alias libs.plugins.application
+    alias libs.plugins.dagger.hilt.android
     alias libs.plugins.dependency.analysis
     alias libs.plugins.compose.compiler
     alias libs.plugins.google.services
@@ -10,6 +11,9 @@ plugins {
 }
 
 android {
+    hilt {
+        enableAggregatingTask = true
+    }
 
     defaultConfig {
         applicationId "com.litus_animae.refitted"
