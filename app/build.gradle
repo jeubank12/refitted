@@ -11,6 +11,10 @@ plugins {
 }
 
 android {
+    hilt {
+        enableAggregatingTask = true
+    }
+
     defaultConfig {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
@@ -23,12 +27,6 @@ android {
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas".toString())
             arg("room.expandProjection", "true")
-        }
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += []
-            }
         }
     }
     buildTypes {
@@ -78,7 +76,6 @@ android {
 dependencies {
 
     implementation libs.androidx.activity
-    implementation libs.androidx.annotation
     implementation libs.androidx.appcompat
     implementation libs.guava
     implementation libs.javax.inject
