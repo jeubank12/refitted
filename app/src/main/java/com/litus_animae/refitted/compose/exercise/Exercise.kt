@@ -112,7 +112,7 @@ fun ExerciseView(
               savedRecord.set
             )
           )
-          instruction?.offsetToNextSuperSet?.map {
+          instruction?.offsetToNextSuperSet?.let {
             // TODO if previous sets are incomplete, then nav to them
             // TODO if all challenge sets are complete, don't nav
             val isChallengeSet = exerciseSet!!.sets < 0
