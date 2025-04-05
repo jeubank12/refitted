@@ -1,7 +1,10 @@
 package com.litus_animae.refitted
 
+import android.graphics.Color
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
@@ -23,6 +26,9 @@ class RefittedComposeActivity : AppCompatActivity() {
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // this is slow still
+    enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT))
 
     setContent {
       val userModel: UserViewModel = hiltViewModel()

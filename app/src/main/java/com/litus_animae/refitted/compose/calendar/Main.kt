@@ -2,10 +2,20 @@ package com.litus_animae.refitted.compose.calendar
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material.AlertDialog
+import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Icon
@@ -76,6 +86,7 @@ fun Calendar(
   }
 
   Scaffold(
+    contentWindowInsets = WindowInsets.navigationBars,
     modifier,
     scaffoldState = scaffoldState,
     topBar = {
@@ -85,6 +96,7 @@ fun Calendar(
           if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan!!.workout)
           else Text(appName)
         },
+        windowInsets = AppBarDefaults.topAppBarWindowInsets,
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
           IconButton(
@@ -113,7 +125,8 @@ fun Calendar(
             DropdownMenu(
               expanded = expanded,
               onDismissRequest = { setExpanded(false) }) {
-              Text("Reset workout",
+              Text(
+                "Reset workout",
                 Modifier
                   .fillMaxWidth()
                   .clickable {
@@ -124,7 +137,8 @@ fun Calendar(
                   .padding(vertical = 5.dp))
               val isAdmin by userModel.userIsAdmin.collectAsStateWithLifecycle(initialValue = false)
               if (isAdmin) {
-                Text("Crash",
+                Text(
+                  "Crash",
                   Modifier
                     .fillMaxWidth()
                     .clickable {
@@ -135,7 +149,8 @@ fun Calendar(
               }
             }
             if (alerted) {
-              AlertDialog(onDismissRequest = { setAlerted(false) },
+              AlertDialog(
+                onDismissRequest = { setAlerted(false) },
                 // TODO localize
                 title = { Text("Reset Workout Completion") },
                 text = { Text("This will reset your completed days. Are you sure? (This does not remove records of your previous exercise sets") },
@@ -171,11 +186,20 @@ fun Calendar(
           )
       }
       val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
-      WorkoutPlanMenu(Modifier.weight(1f), lastRefresh, workoutPlanPagingItems, workoutPlanError) {
+      WorkoutPlanMenu(
+        Modifier.weight(1f),
+        lastRefresh,
+        workoutPlanPagingItems,
+        workoutPlanError
+      ) {
         scaffoldScope.launch { scaffoldState.drawerState.close() }
         workoutModel.loadWorkoutDaysCompleted(it)
       }
-      Row(Modifier.padding(10.dp)) {
+      Row(
+        Modifier
+          .windowInsetsPadding(WindowInsets.navigationBars)
+          .padding(start = 10.dp, end = 10.dp, top = 10.dp)
+      ) {
         val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
         val coroutineScope = rememberCoroutineScope()
         var signInClicked by remember { mutableStateOf(false) }
