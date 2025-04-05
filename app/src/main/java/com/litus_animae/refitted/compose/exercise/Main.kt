@@ -3,7 +3,10 @@ package com.litus_animae.refitted.compose.exercise
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -69,9 +72,11 @@ fun Exercise(
     mutableStateOf(emptyFlow<PagingData<SetRecord>>())
   }
   Scaffold(
+    contentWindowInsets = WindowInsets.navigationBars,
     topBar = {
       TopAppBar(
         title = { Text("$title: $workoutId $dayWord $day") },
+        windowInsets = AppBarDefaults.topAppBarWindowInsets,
         backgroundColor = MaterialTheme.colors.primary,
         actions = {
           contextMenu()

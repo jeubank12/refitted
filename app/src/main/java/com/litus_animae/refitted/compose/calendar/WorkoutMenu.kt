@@ -60,7 +60,8 @@ fun ColumnScope.WorkoutPlanMenu(
         Modifier
           .fillMaxWidth()
           .background(MaterialTheme.colors.primary)
-          .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+          .windowInsetsPadding(WindowInsets.systemBars)
+          .padding(start = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
       ) {

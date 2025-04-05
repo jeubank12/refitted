@@ -17,13 +17,13 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.259.0",
     "@aws-sdk/client-iam": "^3.259.0",
-    "firebase-admin": "^12.1.0"
+    "firebase-admin": "^13.0.2"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.103",
     "@typescript-eslint/eslint-plugin": "^7.15.0",
     "@typescript-eslint/parser": "^7.15.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.25.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",

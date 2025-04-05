@@ -18,10 +18,10 @@ android {
     defaultConfig {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
-        compileSdk 34
-        targetSdkVersion 34
-        versionCode 3426008
-        versionName "1.2.8-SNAPSHOT"
+        compileSdk 35
+        targetSdkVersion 35
+        versionCode 3526000
+        versionName "1.2.9-SNAPSHOT"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ksp {
@@ -167,7 +167,6 @@ dependencies {
 
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
     implementation libs.accompanist.adaptive
-
 
     implementation libs.androidx.credentials
 
