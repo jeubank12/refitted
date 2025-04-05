@@ -6,7 +6,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import arrow.core.*
+import arrow.core.NonEmptyList
+import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
@@ -33,8 +34,8 @@ class ExerciseViewModel @Inject constructor(
         val recordsByPrimaryStep = records.groupBy { it.targetSet.primaryStep }
         log.i(TAG, "Received new set of exercises: $sets")
         val instructions = sets.groupBy { it.primaryStep }
-          .map { it.value.toNonEmptyListOrNull().toOption() }
-          .flattenOption()
+          .map { it.value.toNonEmptyListOrNull() }
+          .filterNotNull()
           .maybeZipWithNext { thisSets, nextSets ->
             val mostRecentAlternateStep =
               getLastCompletedAlternateIndex(thisSets, recordsByPrimaryStep)
@@ -42,16 +43,16 @@ class ExerciseViewModel @Inject constructor(
             if (thisSets.head.isSuperSet) {
               val nextSet = nextSets?.head
               if (nextSet?.isSuperSet == true && nextSet.superStep == thisSets.head.superStep) {
-                ExerciseInstruction(thisSets, Some(1), mostRecentAlternateStep)
+                ExerciseInstruction(thisSets, 1, mostRecentAlternateStep)
               } else {
                 ExerciseInstruction(
                   thisSets,
-                  thisSets.head.superSetStep.map { it * -1 },
+                  thisSets.head.superSetStep?.let { it * -1 },
                   mostRecentAlternateStep
                 )
               }
             } else {
-              ExerciseInstruction(thisSets, None, mostRecentAlternateStep)
+              ExerciseInstruction(thisSets, null, mostRecentAlternateStep)
             }
           }
         if (instructions.isNotEmpty()) {
@@ -97,7 +98,7 @@ class ExerciseViewModel @Inject constructor(
 
   data class ExerciseInstruction(
     val sets: NonEmptyList<ExerciseSet>,
-    val offsetToNextSuperSet: Option<Int>,
+    val offsetToNextSuperSet: Int?,
     val initialSetIndex: Flow<Int>
   ) {
     val hasAlternate = sets.size > 1

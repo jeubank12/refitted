@@ -22,7 +22,7 @@ fun CompleteExerciseSetButton(
   sets: Int,
   repsCompleted: Int,
   saveReps: Int,
-  superSetStep: Option<Int>,
+  superSetStep: Int?,
   numCompleted: Int,
   isTimerRunning: Boolean
 ) {
@@ -46,12 +46,7 @@ fun CompleteExerciseSetButton(
     }
     val completeSetPhrase = toCompletionSetPhrase
       .getOrElse {
-        superSetStep.fold({
-          String.format(
-            stringResource(id = R.string.complete_set_of_workout),
-            numCompleted + 1
-          )
-        }) {
+        superSetStep?.let{
           String.format(
             pluralStringResource(
               id = R.plurals.complete_superset_part_x,
@@ -59,7 +54,11 @@ fun CompleteExerciseSetButton(
             ),
             it + 1
           )
-        }
+        } ?:
+          String.format(
+            stringResource(id = R.string.complete_set_of_workout),
+            numCompleted + 1
+          )
       }
     val setText =
       if (exerciseIncomplete) completeSetPhrase

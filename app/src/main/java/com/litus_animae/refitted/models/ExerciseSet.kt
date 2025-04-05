@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.models
 
-import arrow.core.toOption
 import kotlinx.coroutines.flow.Flow
 
 data class ExerciseSet(
@@ -46,9 +45,9 @@ data class ExerciseSet(
   /**
    * 0-indexed number indicating where this superset is in the sequence
    */
-  val superSetStep = superSetRegex.find(step, 0)?.groupValues?.get(1).toOption()
-    .map { it.toInt() - 1 }
-  val isSuperSet = superSetStep.isSome()
+  val superSetStep = superSetRegex.find(step, 0)?.groupValues?.get(1)
+    ?.let { it.toInt() - 1 }
+  val isSuperSet = superSetStep != null
 
   override fun toString(): String {
     return "ExerciseSet:$id"
