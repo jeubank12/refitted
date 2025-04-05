@@ -173,7 +173,6 @@ dependencies {
     // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
     implementation libs.accompanist.adaptive
 
-
     implementation libs.androidx.credentials
 
     // optional - needed for credentials support from play services, for devices running
