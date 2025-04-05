@@ -15,9 +15,9 @@ android {
     defaultConfig {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
-        compileSdk 34
-        targetSdkVersion 34
-        versionCode 3426008
+        compileSdk 35
+        targetSdkVersion 35
+        versionCode 3526000
         versionName "1.2.8-SNAPSHOT"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
