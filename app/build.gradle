@@ -18,7 +18,7 @@ android {
         compileSdk 35
         targetSdkVersion 35
         versionCode 3526000
-        versionName "1.2.8-SNAPSHOT"
+        versionName "1.2.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ksp {
