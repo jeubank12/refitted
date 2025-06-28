@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -55,12 +57,14 @@ fun SetRecordList(
 ) {
   val records = flow.collectAsLazyPagingItems()
 
-  Column(modifier.fillMaxSize()) {
+  Column(modifier
+    .fillMaxSize()) {
     Row(
       Modifier
         .fillMaxWidth()
         .background(MaterialTheme.colors.primary)
-        .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+        .windowInsetsPadding(AppBarDefaults.topAppBarWindowInsets)
+        .padding(start = 10.dp, bottom = 10.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.SpaceBetween
     ) {
