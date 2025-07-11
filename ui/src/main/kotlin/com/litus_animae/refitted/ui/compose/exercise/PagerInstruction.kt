@@ -53,7 +53,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.random.Random
 
-private val pageRotations = listOf(1f, -2f, 1.5f, -0.7f)
+private val pageRotations = listOf(2f, 4f, 6f, 8f)
 private val pageColors = listOf(Color.Red, Color.Cyan, Color.Green, Color.Blue)
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -87,20 +87,21 @@ fun PagerExerciseInstructions(
       val rotation = remember(page) { pageRotations[page % pageRotations.size] }
       val direction = (page - pagerState.currentPage).sign
       val magnitude = (page - pagerState.currentPage).absoluteValue
-      BoxWithConstraints(Modifier
-        .zIndex(
-          if (magnitude == 0) 0f
-          else if (direction > 0) -2f
-          else -3f
-        )) {
-        val widthInPx = with(LocalDensity.current){ maxWidth.toPx() }
+      BoxWithConstraints(
+        Modifier
+          .zIndex(
+            if (magnitude == 0) 0f
+            else if (direction > 0) -2f
+            else -3f
+          )
+      ) {
+        val widthInPx = with(LocalDensity.current) { maxWidth.toPx() }
         Box(
           Modifier
             .graphicsLayer {
               if (magnitude == 1) {
                 translationX = if (offset == 0f) {
                   // not moving
-                  // TODO translation needs to be a percent of the actual width
                   -direction * widthInPx
                 } else if (offset.sign.toInt() == direction) {
                   // swipe is toward this card
@@ -111,19 +112,22 @@ fun PagerExerciseInstructions(
               }
             }
         ) {
-          if (direction > 0 && magnitude == 1) {
-            if (pagerState.currentPage > 0)
-              (0.rangeUntil(pagerState.currentPage)).map { idx ->
-                Card(
-                  Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
-                  backgroundColor = pageColors[idx]
-                ) {}
-              }
-            (page.rangeUntil(instructions.size)).map { idx ->
+          if ((direction > 0 && magnitude == 1) || page == instructions.size - 1) {
+// need to consider offset and direction
+            val endPage = if (offset < 0f) pagerState.currentPage - 1 else pagerState.currentPage
+            (0.rangeUntil(endPage)).map { idx ->
               Card(
                 Modifier
+                  .zIndex(-(instructions.size)-idx.toFloat())
+                  .fillMaxSize()
+                  .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
+                backgroundColor = pageColors[idx]
+              ) {}
+            }
+            ((page + 1).rangeUntil(instructions.size)).map { idx ->
+              Card(
+                Modifier
+                  .zIndex(idx * -1f)
                   .fillMaxSize()
                   .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
                 backgroundColor = pageColors[idx]
@@ -140,6 +144,10 @@ fun PagerExerciseInstructions(
                   } else if (offset.sign.toInt() == direction) {
                     // swipe is toward this card
                     lerp(rotation, 0f, offset.absoluteValue * 2)
+                  } else if (direction < 0) {
+                    // swipe is away from this card
+                    0f
+                    // TODO probably scale it down just a little to hide it
                   } else {
                     rotation
                   }
@@ -174,9 +182,9 @@ fun PagerExerciseInstructions(
 @Composable
 private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
-    val pagerState = rememberPagerState { 3 }
+    val pagerState = rememberPagerState { 4 }
     PagerExerciseInstructions(
-      instructions = IntArray(3) { 1 }.asList().map { _ ->
+      instructions = IntArray(4) { 1 }.asList().map { _ ->
         ExerciseViewModel.ExerciseInstruction(
           nonEmptyListOf(
             exerciseSet
