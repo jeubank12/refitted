@@ -117,7 +117,13 @@ fun PagerExerciseInstructions(
                   .fillMaxSize()
                   .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
                 backgroundColor = pageColors[idx]
-              ) {}
+              ) {
+                val instruction = instructions.getOrNull(idx)
+                val exerciseSet by instruction?.set(alternateIndex)
+                  ?.collectAsStateWithLifecycle(initialValue = null)
+                  ?: remember { mutableStateOf<ExerciseSet?>(null) }
+                ExerciseInstructions(exerciseSet)
+              }
             }
             ((page + 1).rangeUntil(instructions.size)).map { idx ->
               Card(
@@ -126,25 +132,32 @@ fun PagerExerciseInstructions(
                   .fillMaxSize()
                   .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
                 backgroundColor = pageColors[idx]
-              ) {}
+              ) {
+                val instruction = instructions.getOrNull(idx)
+                val exerciseSet by instruction?.set(alternateIndex)
+                  ?.collectAsStateWithLifecycle(initialValue = null)
+                  ?: remember { mutableStateOf<ExerciseSet?>(null) }
+                ExerciseInstructions(exerciseSet)}
             }
           }
           Card(
             Modifier
               .graphicsLayer {
                 if (magnitude == 1) {
-                  rotationZ = if (offset == 0f) {
+                  if (offset == 0f) {
                     // not moving
-                    rotation
+                    rotationZ = rotation
                   } else if (offset.sign.toInt() == direction) {
                     // swipe is toward this card
-                    lerp(rotation, 0f, offset.absoluteValue * 2)
+                    rotationZ = lerp(rotation, 0f, offset.absoluteValue * 2)
                   } else if (direction < 0) {
                     // swipe is away from this card
-                    0f
+                    rotationZ = 0f
+                    scaleX = 0.9f
+                    scaleY = 0.9f
                     // TODO probably scale it down just a little to hide it
                   } else {
-                    rotation
+                    rotationZ = rotation
                   }
                 } else if (magnitude != 0) {
                   rotationZ = rotation
