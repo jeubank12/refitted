@@ -16,7 +16,6 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -28,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
 import androidx.window.layout.DisplayFeature
+import arrow.core.nonEmptyListOf
 import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
@@ -41,17 +41,18 @@ import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
-import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 
 @OptIn(ExperimentalMaterialApi::class)
 @FlowPreview
 @Composable
-fun ExerciseView(
+fun PagerExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
@@ -65,9 +66,10 @@ fun ExerciseView(
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
   // TODO not saving, perhaps need rememberSaveableStateHolder
-  val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
-  val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
+// TODO we probably need to know the step count into this composable
+  val pagerState = rememberPagerState(pageCount = { instructions.size })
+  val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
   val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
@@ -101,14 +103,10 @@ fun ExerciseView(
         .zIndex(100f)
     )
     Column {
-      DetailView(
-        index,
-        instructions.size - 1,
-        setWithRecord = currentSetRecord,
-        updateIndex = { newIndex, updatedRecord ->
-          currentSetRecord!!.saveRecordInState(updatedRecord)
-          setIndex(newIndex)
-        },
+      PagerDetailView(
+        instructions,
+        pagerState,
+        currentSetRecord,
         onSave = { updatedRecord ->
           val savedRecord = updatedRecord.copy(stored = true)
           currentSetRecord!!.saveRecordInState(savedRecord)
@@ -126,7 +124,7 @@ fun ExerciseView(
             val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
             val isLastExerciseInSuperset = it <= 0
             if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-              setIndex(index + it)
+              pagerState.animateScrollToPage(pagerState.settledPage + it)
           }
         },
         onStartEditWeight = onStartEditWeight
@@ -136,14 +134,18 @@ fun ExerciseView(
 }
 
 @Composable
-fun DetailView(
-  index: Int,
-  maxIndex: Int,
-  setWithRecord: ExerciseSetWithRecord?,
-  updateIndex: (Int, Record) -> Unit,
-  onSave: (Record) -> Unit,
+fun PagerDetailView(
+  instructions: List<ExerciseViewModel.ExerciseInstruction>,
+  pagerState: PagerState,
+  activeSetWithRecord: ExerciseSetWithRecord?,
+  onSave: suspend (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit
 ) {
+//  val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
+//  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
+//    ?.collectAsState(initial = null, Dispatchers.IO)
+//    ?: remember { mutableStateOf<ExerciseSet?>(null) }
+
   // TODO support fold by specifying features
   val displayFeatures = emptyList<DisplayFeature>()
   val (strategy, paddingValuesFirst, paddingValuesSecond) =
@@ -159,16 +161,16 @@ fun DetailView(
       PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
     )
   TwoPane(
-    @Composable { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
+    @Composable { PagerExerciseInstructions(instructions, pagerState, 0, Modifier.padding(paddingValuesFirst)) },
     @Composable {
       // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
-      if (setWithRecord != null)
+      if (activeSetWithRecord != null)
         ExerciseSetView(
-          setWithRecord,
-          index,
-          maxIndex,
-          updateIndex,
-          onSave,
+          activeSetWithRecord,
+          pagerState.settledPage,
+          instructions.size,
+          { _, _ -> },
+          { _ -> },
           onStartEditWeight,
           Modifier.padding(paddingValuesSecond)
         )
@@ -181,23 +183,34 @@ fun DetailView(
 @Preview(showBackground = true)
 @Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
-private fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
+/**
+ * Note: only visible in interactive mode
+ */
+private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
     val records = remember { mutableStateListOf<Record>() }
     val currentRecord =
       remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
+    val pagerState = rememberPagerState { 3 }
     Column {
-      DetailView(
-        index = 0,
-        maxIndex = 2,
-        setWithRecord = ExerciseSetWithRecord(
+      PagerDetailView(
+        instructions = IntArray(3) { 1 }.asList().map { _ ->
+          ExerciseViewModel.ExerciseInstruction(
+            nonEmptyListOf(
+              exerciseSet
+            ),
+            null,
+            MutableStateFlow(0)
+          )
+        },
+        pagerState,
+        activeSetWithRecord = ExerciseSetWithRecord(
           exerciseSet,
           currentRecord,
           numCompleted = 1,
           setRecords = records,
           allSets = emptyFlow()
         ),
-        updateIndex = { _, _ -> },
         onSave = { },
         onStartEditWeight = {})
     }
