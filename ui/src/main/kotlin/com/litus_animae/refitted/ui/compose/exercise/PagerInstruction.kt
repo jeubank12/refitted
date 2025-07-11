@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Card
@@ -22,10 +20,8 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -39,16 +35,11 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
-import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
-import com.litus_animae.refitted.data.models.Record
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
-import java.time.Instant
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.random.Random
@@ -94,6 +85,10 @@ fun PagerExerciseInstructions(
             else if (direction > 0) -2f
             else -3f
           )
+          .graphicsLayer {
+            val directionFromCenter = (direction - offset).sign
+            translationX = lerp(0f, directionFromCenter * 90f, offset.absoluteValue)
+          }
       ) {
         val widthInPx = with(LocalDensity.current) { maxWidth.toPx() }
         Box(
@@ -118,7 +113,7 @@ fun PagerExerciseInstructions(
             (0.rangeUntil(endPage)).map { idx ->
               Card(
                 Modifier
-                  .zIndex(-(instructions.size)-idx.toFloat())
+                  .zIndex(-(instructions.size) - idx.toFloat())
                   .fillMaxSize()
                   .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
                 backgroundColor = pageColors[idx]
