@@ -211,8 +211,12 @@ fun PagerExerciseInstructions(
         }
       }
     }
+    val instruction = instructions.getOrNull(pagerState.currentPage)
+    val exerciseSet by instruction?.set(alternateIndex)
+      ?.collectAsStateWithLifecycle(initialValue = null)
+      ?: remember { mutableStateOf<ExerciseSet?>(null) }
 
-//    ExerciseTimer(timeLimitMilliseconds = setWithRecord?.exerciseSet?.timeLimitMilliseconds)
+    ExerciseTimer(timeLimitMilliseconds = exerciseSet?.timeLimitMilliseconds)
   }
 }
 
