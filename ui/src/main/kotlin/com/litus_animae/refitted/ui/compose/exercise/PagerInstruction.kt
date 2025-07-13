@@ -46,8 +46,8 @@ import kotlin.math.sign
 import kotlin.random.Random
 
 private const val minRotation = 1f
-private const val maxRotation = 4f
-private const val maxTranslation = 0.15f
+private const val maxRotation = 3f
+private const val maxTranslation = 15f
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, FlowPreview::class)
@@ -67,12 +67,12 @@ fun PagerExerciseInstructions(
   }
   val xTransforms = remember(instructions.size) {
     0.rangeUntil(instructions.size)
-      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) + 0.5f }
+      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) }
       .toList()
   }
   val yTransforms = remember(instructions.size) {
     0.rangeUntil(instructions.size)
-      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) + 0.5f }
+      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) }
       .toList()
   }
   Column {
@@ -135,10 +135,8 @@ fun PagerExerciseInstructions(
                   .zIndex(-(instructions.size) - idx.toFloat())
                   .fillMaxSize()
                   .graphicsLayer {
-                    transformOrigin = TransformOrigin(
-                      xTransforms[idx % xTransforms.size],
-                      yTransforms[idx % yTransforms.size]
-                    )
+                    translationX = xTransforms[idx % xTransforms.size]
+                    translationY = yTransforms[idx % yTransforms.size]
                     rotationZ = pageRotations[idx % pageRotations.size]
                   },
               ) {
@@ -155,10 +153,8 @@ fun PagerExerciseInstructions(
                   .zIndex(idx * -1f)
                   .fillMaxSize()
                   .graphicsLayer {
-                    transformOrigin = TransformOrigin(
-                      xTransforms[idx % xTransforms.size],
-                      yTransforms[idx % yTransforms.size]
-                    )
+                    translationX = xTransforms[idx % xTransforms.size]
+                    translationY = yTransforms[idx % yTransforms.size]
                     rotationZ = pageRotations[idx % pageRotations.size]
                   },
               ) {
@@ -173,17 +169,19 @@ fun PagerExerciseInstructions(
           Card(
             Modifier
               .graphicsLayer {
-                transformOrigin = TransformOrigin(
-                  xTransforms[page % xTransforms.size],
-                  yTransforms[page % yTransforms.size]
-                )
                 if (magnitude == 1) {
                   if (offset == 0f) {
                     // not moving
                     rotationZ = rotation
+                    translationX = xTransforms[page % xTransforms.size]
+                    translationY = yTransforms[page % yTransforms.size]
                   } else if (offset.sign.toInt() == direction) {
                     // swipe is toward this card
                     rotationZ = lerp(rotation, 0f, offset.absoluteValue * 2)
+                    translationX =
+                      lerp(xTransforms[page % xTransforms.size], 0f, offset.absoluteValue * 2)
+                    translationY =
+                      lerp(yTransforms[page % yTransforms.size], 0f, offset.absoluteValue * 2)
                   } else if (direction < 0) {
                     // swipe is away from this card
                     rotationZ = 0f
@@ -195,6 +193,8 @@ fun PagerExerciseInstructions(
                   }
                 } else if (magnitude != 0) {
                   rotationZ = rotation
+                  translationX = xTransforms[page % xTransforms.size]
+                  translationY = yTransforms[page % yTransforms.size]
                 }
               },
           ) {
