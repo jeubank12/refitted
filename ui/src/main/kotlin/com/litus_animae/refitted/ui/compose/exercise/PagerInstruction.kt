@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,8 +45,9 @@ import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.random.Random
 
-private val pageRotations = listOf(2f, 4f, 6f, 8f)
-private val pageColors = listOf(Color.Red, Color.Cyan, Color.Green, Color.Blue)
+private const val minRotation = 1f
+private const val maxRotation = 4f
+private const val maxTranslation = 0.15f
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, FlowPreview::class)
@@ -56,6 +58,23 @@ fun PagerExerciseInstructions(
   alternateIndex: Int?,
   contentPadding: PaddingValues
 ) {
+// hint use set lists of colors and predictable rotations to debug
+  val pageRotations = remember(instructions.size) {
+    val rotation = maxRotation - minRotation
+    0.rangeUntil(instructions.size)
+      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -rotation else rotation) + minRotation }
+      .toList()
+  }
+  val xTransforms = remember(instructions.size) {
+    0.rangeUntil(instructions.size)
+      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) + 0.5f }
+      .toList()
+  }
+  val yTransforms = remember(instructions.size) {
+    0.rangeUntil(instructions.size)
+      .map { _ -> Random.nextFloat() * (if (Random.nextBoolean()) -maxTranslation else maxTranslation) + 0.5f }
+      .toList()
+  }
   Column {
     HorizontalPager(
       pagerState,
@@ -115,8 +134,13 @@ fun PagerExerciseInstructions(
                 Modifier
                   .zIndex(-(instructions.size) - idx.toFloat())
                   .fillMaxSize()
-                  .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
-                backgroundColor = pageColors[idx]
+                  .graphicsLayer {
+                    transformOrigin = TransformOrigin(
+                      xTransforms[idx % xTransforms.size],
+                      yTransforms[idx % yTransforms.size]
+                    )
+                    rotationZ = pageRotations[idx % pageRotations.size]
+                  },
               ) {
                 val instruction = instructions.getOrNull(idx)
                 val exerciseSet by instruction?.set(alternateIndex)
@@ -130,19 +154,29 @@ fun PagerExerciseInstructions(
                 Modifier
                   .zIndex(idx * -1f)
                   .fillMaxSize()
-                  .graphicsLayer { rotationZ = pageRotations[idx % pageRotations.size] },
-                backgroundColor = pageColors[idx]
+                  .graphicsLayer {
+                    transformOrigin = TransformOrigin(
+                      xTransforms[idx % xTransforms.size],
+                      yTransforms[idx % yTransforms.size]
+                    )
+                    rotationZ = pageRotations[idx % pageRotations.size]
+                  },
               ) {
                 val instruction = instructions.getOrNull(idx)
                 val exerciseSet by instruction?.set(alternateIndex)
                   ?.collectAsStateWithLifecycle(initialValue = null)
                   ?: remember { mutableStateOf<ExerciseSet?>(null) }
-                ExerciseInstructions(exerciseSet)}
+                ExerciseInstructions(exerciseSet)
+              }
             }
           }
           Card(
             Modifier
               .graphicsLayer {
+                transformOrigin = TransformOrigin(
+                  xTransforms[page % xTransforms.size],
+                  yTransforms[page % yTransforms.size]
+                )
                 if (magnitude == 1) {
                   if (offset == 0f) {
                     // not moving
@@ -163,7 +197,6 @@ fun PagerExerciseInstructions(
                   rotationZ = rotation
                 }
               },
-            backgroundColor = pageColors[page]
           ) {
             CompositionLocalProvider(
               LocalOverscrollFactory provides null
