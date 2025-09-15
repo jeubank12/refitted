@@ -31,7 +31,7 @@ room = "2.7.0"
 sqlite = "2.6.0"
 testMonitor = "1.7.2"
 testRunner = "1.6.2"
-truth = "1.4.4"
+truth = "1.4.5"
 viewModel = "2.8.7"
 lifecycleRuntimeComposeAndroid = "2.8.7"
 
