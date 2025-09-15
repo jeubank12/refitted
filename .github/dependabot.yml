@@ -71,13 +71,6 @@ updates:
   reviewers:
   - "jeubank12"
   groups:
-    aws:
-      patterns:
-      - "@aws-sdk/*"
-      - "@types/aws*"
-    firebase:
-      patterns:
-      - "firebase*"
     next:
       patterns:
       - "next*"
@@ -100,6 +93,7 @@ updates:
       - "typescript"
       - "esbuild"
       - "@types/node"
-    lodash:
-      patterns:
+      - "@aws-sdk/*"
+      - "@types/aws*"
+      - "firebase*"
       - "*lodash*"
