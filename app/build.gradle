@@ -6,12 +6,15 @@ plugins {
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.jetbrains.kotlin.android
-    alias libs.plugins.jetbrains.kotlin.kapt
     alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
 
 android {
+    hilt {
+        enableAggregatingTask = true
+    }
+
     defaultConfig {
         applicationId "com.litus_animae.refitted"
         minSdkVersion 26
@@ -24,12 +27,6 @@ android {
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas".toString())
             arg("room.expandProjection", "true")
-        }
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += []
-            }
         }
     }
     buildTypes {
@@ -79,7 +76,6 @@ android {
 dependencies {
 
     implementation libs.androidx.activity
-    implementation libs.androidx.annotation
     implementation libs.androidx.appcompat
     implementation libs.guava
     implementation libs.javax.inject
@@ -116,9 +112,8 @@ dependencies {
     implementation libs.dagger
     implementation libs.dagger.hilt.android
     implementation libs.dagger.hilt.core
-    kapt libs.dagger.compiler
-    kapt libs.dagger.hilt.android.compiler
-    annotationProcessor libs.dagger.hilt.android.compiler
+    ksp libs.dagger.compiler
+    ksp libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
 
     implementation libs.androidx.hilt.navigation.compose
