@@ -34,16 +34,16 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
-            ndk { debugSymbolLevel 'FULL' }
+            minifyEnabled = true
+            shrinkResources = true
+            ndk { debugSymbolLevel = 'FULL' }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             debuggable = false
         }
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
             resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             applicationIdSuffix ".debug"
@@ -51,9 +51,9 @@ android {
         }
     }
     buildFeatures {
-        dataBinding true
-        compose true
-        buildConfig true
+        dataBinding = true
+        compose = true
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -63,7 +63,7 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
         freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
-    namespace 'com.litus_animae.refitted'
+    namespace = 'com.litus_animae.refitted'
     
     testOptions {
         unitTests.all {
@@ -72,7 +72,7 @@ android {
     }
 
     lint {
-        checkDependencies true
+        checkDependencies = true
     }
 }
 
