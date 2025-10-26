@@ -18,7 +18,7 @@ android {
         compileSdk = 36
         targetSdkVersion 36
         versionCode = 3626000
-        versionName = "1.2.9"
+        versionName = "1.2.10-SNAPSHOT"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ksp {
