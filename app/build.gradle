@@ -13,13 +13,13 @@ plugins {
 
 android {
     defaultConfig {
-        applicationId "com.litus_animae.refitted"
+        applicationId = "com.litus_animae.refitted"
         minSdkVersion 26
-        compileSdk 35
-        targetSdkVersion 35
-        versionCode 3526000
-        versionName "1.2.9-SNAPSHOT"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        compileSdk = 36
+        targetSdkVersion 36
+        versionCode = 3526000
+        versionName = "1.2.9-SNAPSHOT"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas".toString())

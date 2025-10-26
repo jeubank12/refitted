@@ -2,6 +2,7 @@ package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,7 +34,7 @@ fun ExerciseInstructions(
     Row(Modifier.weight(5f, fill = true)) {
       Card {
         CompositionLocalProvider(
-          LocalOverscrollConfiguration provides null
+          LocalOverscrollFactory provides null
         ) {
           ExerciseInstructions(setWithRecord)
         }
