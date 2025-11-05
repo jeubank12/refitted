@@ -84,15 +84,6 @@ fun PagerExerciseInstructions(
       contentPadding = contentPadding
     ) { page ->
 
-      // Pages 1, 2, 3
-      // X, 1(0), 2r+3r
-      // X , 1(-0.5), 2+3r
-      // 1, 2(0.5), 3r
-      // 1r, 2, 3r
-      // X, 2(-0.5), 3+1r
-      // 2, 3(0.5), 1r
-      // 2r, 3, 1r
-
       val offset by remember { derivedStateOf { pagerState.currentPageOffsetFraction } }
       val rotation = remember(page) { pageRotations[page % pageRotations.size] }
       val direction = (page - pagerState.currentPage).sign
@@ -187,7 +178,6 @@ fun PagerExerciseInstructions(
                     rotationZ = 0f
                     scaleX = 0.9f
                     scaleY = 0.9f
-                    // TODO probably scale it down just a little to hide it
                   } else {
                     rotationZ = rotation
                   }

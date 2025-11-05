@@ -161,7 +161,7 @@ fun PagerDetailView(
       PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
     )
   TwoPane(
-    @Composable { PagerExerciseInstructions(instructions, pagerState, 0, Modifier.padding(paddingValuesFirst)) },
+    @Composable { PagerExerciseInstructions(instructions, pagerState, 0, paddingValuesFirst) },
     @Composable {
       // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
       if (activeSetWithRecord != null)
