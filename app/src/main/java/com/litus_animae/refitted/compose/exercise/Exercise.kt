@@ -19,8 +19,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -40,12 +38,10 @@ import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Weight
-import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
 import com.litus_animae.refitted.models.ExerciseSet
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.Record
-import com.litus_animae.refitted.models.SetRecord
 import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -59,14 +55,12 @@ fun ExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
-  setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
+  setHistoryList: (Flow<PagingData<com.litus_animae.refitted.models.SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit
 ) {
   val screenState by model.screenState.collectAsStateWithLifecycle()
-  // TODO why is this re-evaluated every time?
-  val setRecords = recordsByExerciseId(allRecords = screenState.records)
 
   // TODO not saving, perhaps need rememberSaveableStateHolder
   val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
@@ -78,7 +72,13 @@ fun ExerciseView(
   } ?: 0
   val exerciseSet = instruction?.sets?.getOrNull(workoutPlan?.globalAlternate ?: activeIndex)
 
-  val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
+  val currentSetRecord = exerciseSet?.let { screenState.setRecords[it.id] }
+
+  LaunchedEffect(currentSetRecord) {
+    if (currentSetRecord != null) {
+      model.selectSetToEdit(currentSetRecord)
+    }
+  }
 
   LaunchedEffect(exerciseSet, activeIndex) {
     setContextMenu {
@@ -128,31 +128,28 @@ fun ExerciseView(
         index,
         instructions.size - 1,
         setWithRecord = currentSetRecord,
-        updateIndex = { newIndex, updatedRecord ->
-          currentSetRecord!!.saveRecordInState(updatedRecord)
+        editedRecord = screenState.editedRecord,
+        updateIndex = { newIndex, _ ->
+          // This is now handled in the ViewModel
           setIndex(newIndex)
         },
-        onSave = { updatedRecord ->
-          val savedRecord = updatedRecord.copy(stored = true)
-          currentSetRecord!!.saveRecordInState(savedRecord)
-          model.saveExercise(
-            SetRecord(
-              savedRecord.weight,
-              savedRecord.reps,
-              savedRecord.set
-            )
-          )
-          instruction?.offsetToNextSuperSet?.let {
-            // TODO if previous sets are incomplete, then nav to them
-            // TODO if all challenge sets are complete, don't nav
-            val isChallengeSet = exerciseSet!!.sets < 0
-            val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
-            val isLastExerciseInSuperset = it <= 0
-            if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-              setIndex(index + it)
+        onSave = {
+          val savedRecord = model.saveCurrentRecord()
+          if (savedRecord != null) {
+            instruction?.offsetToNextSuperSet?.let {
+              // TODO if previous sets are incomplete, then nav to them
+              // TODO if all challenge sets are complete, don't nav
+              val isChallengeSet = savedRecord.set.sets < 0
+              val isLastSet = (currentSetRecord?.numCompleted ?: 0) >= savedRecord.set.sets - 1
+              val isLastExerciseInSuperset = it <= 0
+              if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
+                setIndex(index + it)
+            }
           }
         },
-        onStartEditWeight = onStartEditWeight
+        onStartEditWeight = onStartEditWeight,
+        onRepsChange = model::onRepsChange,
+        onWeightChange = model::onWeightChange
       )
     }
   }
@@ -163,23 +160,24 @@ fun ExerciseView(
 @Composable
 fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
-    val records = remember { mutableStateListOf<Record>() }
-    val currentRecord =
-      remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
+    val record = Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())
     Column {
       DetailView(
         index = 0,
         maxIndex = 2,
         setWithRecord = ExerciseSetWithRecord(
           exerciseSet,
-          currentRecord,
-          numCompleted = 1,
-          setRecords = records,
+          record,
+          todaysRecords = emptyList(),
           allSets = emptyFlow()
         ),
+        editedRecord = record,
         updateIndex = { _, _ -> },
         onSave = { },
-        onStartEditWeight = { })
+        onStartEditWeight = {},
+        onRepsChange = {},
+        onWeightChange = {}
+      )
     }
   }
 }
@@ -189,9 +187,12 @@ fun DetailView(
   index: Int,
   maxIndex: Int,
   setWithRecord: ExerciseSetWithRecord?,
+  editedRecord: Record?,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit,
-  onStartEditWeight: (Weight) -> Unit
+  onStartEditWeight: (Weight) -> Unit,
+  onRepsChange: (Int) -> Unit,
+  onWeightChange: (Double) -> Unit
 ) {
   // TODO support fold by specifying features
   val displayFeatures = emptyList<DisplayFeature>()
@@ -211,16 +212,18 @@ fun DetailView(
     { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
     {
       // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
-      if (setWithRecord != null)
+      if (setWithRecord != null && editedRecord != null) {
         ExerciseSetView(
-          setWithRecord,
-          index,
-          maxIndex,
-          updateIndex,
-          onSave,
-          onStartEditWeight,
-          Modifier.padding(paddingValuesSecond)
+          setWithRecord = setWithRecord,
+          editedRecord = editedRecord,
+          pageIndex = index,
+          maxPageIndex = maxIndex,
+          onSave = onSave,
+          onStartEditWeight = onStartEditWeight,
+          onRepsChange = onRepsChange,
+          onWeightChange = onWeightChange
         )
+      }
     },
     strategy = strategy,
     displayFeatures = displayFeatures

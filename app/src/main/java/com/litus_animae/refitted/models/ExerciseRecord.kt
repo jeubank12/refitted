@@ -2,18 +2,14 @@ package com.litus_animae.refitted.models
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
+/**
+ * A simple, stateless data container that holds all information for a given exercise set,
+ * including its most recent performance and today's performances.
+ */
 data class ExerciseRecord(
   val targetSet: ExerciseSet,
-  val defaultRecord: Record,
-  val latestRecord: Flow<Record>,
-  val allSets: Flow<PagingData<SetRecord>>,
-  val currentRecords: Flow<List<Record>>
-) {
-  val currentRecordsCount = currentRecords.map { sets -> sets.size }
-
-  override fun toString(): String {
-    return "Record:$targetSet"
-  }
-}
+  val latestRecord: Record?,
+  val todaysRecords: List<Record>,
+  val allSets: Flow<PagingData<SetRecord>>
+)

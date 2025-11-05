@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
+import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
@@ -33,23 +34,30 @@ class ExerciseViewModel @Inject constructor(
   var exercisesError: String? by mutableStateOf(null)
     private set
 
+  private data class UiState(
+    val activeAlternateIndices: Map<String, Int> = emptyMap(),
+    val editedRecordSetId: String? = null,
+    val editedRecord: Record? = null
+  )
+
   data class ExerciseScreenState(
     val isLoading: Boolean = true,
     val instructions: List<ExerciseInstruction> = emptyList(),
-    val records: List<ExerciseRecord> = emptyList(),
+    val setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
     val activeAlternateIndices: Map<String, Int> = emptyMap(),
+    val editedRecord: Record? = null,
     val error: String? = null
   )
 
-  private val _activeAlternateIndices = MutableStateFlow<Map<String, Int>>(emptyMap())
+  private val _uiState = MutableStateFlow(UiState())
 
   val screenState: StateFlow<ExerciseScreenState> = combine(
     exerciseRepo.exercises,
     exerciseRepo.records,
     exerciseRepo.workoutRecords,
     exerciseRepo.exercisesAreLoading,
-    _activeAlternateIndices
-  ) { sets, records, workoutRecords, isLoading, activeIndices ->
+    _uiState
+  ) { sets, records, workoutRecords, isLoading, uiState ->
     log.i(TAG, "Received new set of exercises: $sets")
     val instructions = sets.groupBy { it.primaryStep }
       .mapNotNull { it.value.toNonEmptyListOrNull() }
@@ -75,24 +83,36 @@ class ExerciseViewModel @Inject constructor(
       primaryStep to index
     }
 
-    if (instructions.isNotEmpty()) {
-      log.d(TAG, "Finished Loading")
+    val setRecords = records.associate {
+      val defaultRecord = Record(
+        weight = 25.0, // TODO: Better default
+        reps = it.targetSet.reps(it.todaysRecords.size),
+        set = it.targetSet,
+        completed = Instant.ofEpochMilli(0)
+      )
+      it.targetSet.id to ExerciseSetWithRecord(
+        exerciseSet = it.targetSet,
+        latestRecord = it.latestRecord ?: defaultRecord,
+        todaysRecords = it.todaysRecords,
+        allSets = it.allSets
+      )
     }
-    log.i(TAG, "Processed set of exercises to: $instructions")
 
-    // The screen is loading if the repo says it's loading, or if we have exercises but are still waiting for the records.
-    val screenIsLoading = isLoading || (sets.isNotEmpty() && records.size != sets.size)
+    val recordSetIds = records.map { it.targetSet.id }.toSet()
+    val screenIsLoading =
+      isLoading || (sets.isNotEmpty() && !recordSetIds.containsAll(sets.map { it.id }.toSet()))
 
     log.i(
       TAG,
-      "Loading check: repoIsLoading=$isLoading, sets.isNotEmpty=${sets.isNotEmpty()}, records.size=${records.size}, sets.size=${sets.size}, condition=${records.size != sets.size}, finalIsLoading=$screenIsLoading"
+      "Loading check: repoIsLoading=$isLoading, sets=${sets.size}, records=${records.size} screenIsLoading=$screenIsLoading"
     )
 
     ExerciseScreenState(
-      screenIsLoading,
-      instructions,
-      records,
-      initialIndices + activeIndices
+      isLoading = screenIsLoading,
+      instructions = instructions,
+      setRecords = setRecords,
+      activeAlternateIndices = initialIndices + uiState.activeAlternateIndices,
+      editedRecord = uiState.editedRecord
     )
   }.stateIn(
     scope = viewModelScope,
@@ -114,9 +134,43 @@ class ExerciseViewModel @Inject constructor(
   }
 
   fun onAlternateSelected(primaryStep: String, index: Int) {
-    _activeAlternateIndices.update { currentIndices ->
-      currentIndices.toMutableMap().apply { this[primaryStep] = index }
+    _uiState.update { it.copy(activeAlternateIndices = it.activeAlternateIndices + (primaryStep to index)) }
+  }
+
+  fun selectSetToEdit(setWithRecord: ExerciseSetWithRecord) {
+    val recordToEdit = setWithRecord.latestRecord.copy(stored = false)
+    _uiState.update {
+      it.copy(
+        editedRecordSetId = setWithRecord.exerciseSet.id,
+        editedRecord = recordToEdit
+      )
     }
+  }
+
+  fun onRepsChange(reps: Int) {
+    _uiState.update { it.copy(editedRecord = it.editedRecord?.copy(reps = reps)) }
+  }
+
+  fun onWeightChange(weight: Double) {
+    _uiState.update { it.copy(editedRecord = it.editedRecord?.copy(weight = weight)) }
+  }
+
+  fun saveCurrentRecord(): Record? {
+    val recordToSave = _uiState.value.editedRecord?.copy(stored = true)
+    if (recordToSave != null) {
+      viewModelScope.launch {
+        exerciseRepo.storeSetRecord(
+          SetRecord(
+            recordToSave.weight,
+            recordToSave.reps,
+            recordToSave.set
+          )
+        )
+      }
+    }
+    // TODO select next record to edit
+    _uiState.update { it.copy(editedRecord = null, editedRecordSetId = null) }
+    return recordToSave
   }
 
   fun loadExercises(day: String, workoutId: String) {
@@ -125,7 +179,6 @@ class ExerciseViewModel @Inject constructor(
         exerciseRepo.loadExercises(day, workoutId)
       }
       viewModelScope.launch {
-        // we probably will want a per-day version of this to speed up load. We don't need the full history unless we open the menu
         exerciseRepo.loadWorkoutRecords(workoutId)
       }
     } catch (ex: Throwable) {
@@ -136,17 +189,6 @@ class ExerciseViewModel @Inject constructor(
 
   fun refreshExercises() {
     exerciseRepo.refreshExercises()
-  }
-
-  fun saveExercise(record: SetRecord) {
-    try {
-      viewModelScope.launch {
-        exerciseRepo.storeSetRecord(record)
-      }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error storing set record", ex)
-      exercisesError = "There was an error storing the set record"
-    }
   }
 
   companion object {

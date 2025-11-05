@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.lang.Integer.min
@@ -118,7 +118,9 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
-  override val records = exercises.map(this::getRecordsForLoadedExercises)
+  override val records: Flow<List<ExerciseRecord>> = exercises.flatMapLatest {
+    getRecordsForLoadedExercises(it)
+  }
 
   override suspend fun storeSetRecord(record: SetRecord) {
     withContext(Dispatchers.IO) {
@@ -132,28 +134,23 @@ class RoomCacheExerciseRepository @Inject constructor(
     currentWorkout.value = workoutId
   }
 
-  private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): List<ExerciseRecord> {
+  private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): Flow<List<ExerciseRecord>> {
     log.i(
       TAG,
       "getRecordsForLoadedExercises: detected ${loadedExercises.size} new exercises, loading records"
     )
     // FIXME this should be a real timezone?
     val tonightMidnight = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.ofHours(0))
-    val recordObjects = loadedExercises.map { e ->
+
+    val recordFlows = loadedExercises.map { e ->
       val defaultReps = when {
         e.repsUnit.isNotBlank() -> 10
         e.sets < 0 && e.reps(0) < 0 -> 10
         e.sets < 0 -> min(10, e.reps(0))
         else -> e.reps(0)
       }
-      // TODO (#8) appropriate default weights
-      val defaultRecord = Record(
-        weight = 25.0,
-        defaultReps,
-        e,
-        Instant.ofEpochMilli(0)
-      )
-      val currentRecords = refittedRoom.getExerciseDao()
+
+      val currentRecordsFlow = refittedRoom.getExerciseDao()
         .getSetRecords(tonightMidnight, e.exerciseName, e.id)
         .map {
           it.asSequence()
@@ -165,36 +162,39 @@ class RoomCacheExerciseRepository @Inject constructor(
               )
             }.toList()
         }
-      val latestRecord =
-        combine(
-          currentRecords,
-          refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
-        ) { todayRecords, latestRecord ->
-          todayRecords.lastOrNull() ?: latestRecord?.let {
-            // here we know that the exercise has not been performed today
-            // reps should not necessarily be blindly copied from the last set
-            val reps = when {
-              e.repsUnit.isNotBlank() && e.id == it.targetSet -> it.reps
-              e.repsUnit.isNotBlank() -> 10
-              e.reps(0) < 0 -> it.reps
-              e.sets < 0 -> min(10, e.reps(0))
-              else -> e.reps(0)
-            }
-            Record(it.weight, reps, e, it.completed)
+
+      val latestRecordFlow = refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
+
+      combine(currentRecordsFlow, latestRecordFlow) { todayRecords, latestDbRecord ->
+        val latestRecord = todayRecords.lastOrNull() ?: latestDbRecord?.let {
+          // here we know that the exercise has not been performed today
+          // reps should not necessarily be blindly copied from the last set
+          val reps = when {
+            e.repsUnit.isNotBlank() && e.id == it.targetSet -> it.reps
+            e.repsUnit.isNotBlank() -> 10
+            e.reps(0) < 0 -> it.reps
+            e.sets < 0 -> min(10, e.reps(0))
+            else -> e.reps(0)
           }
-        }.mapNotNull { it }
-      ExerciseRecord(
-        e,
-        defaultRecord,
-        latestRecord,
-        Pager(config = PagingConfig(pageSize = 20)) {
-          refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
-        }.flow,
-        currentRecords
-      )
+          Record(it.weight, reps, e, it.completed)
+        }
+
+        ExerciseRecord(
+          targetSet = e,
+          latestRecord = latestRecord,
+          todaysRecords = todayRecords,
+          allSets = Pager(config = PagingConfig(pageSize = 20)) {
+            refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
+          }.flow
+        )
+      }
     }
-    log.i(TAG, "getRecordsForLoadedExercises: records loaded")
-    return recordObjects
+
+    return if (recordFlows.isEmpty()) {
+      MutableStateFlow(emptyList()) // Return a flow with an empty list if there are no exercises
+    } else {
+      combine(recordFlows) { it.toList() }
+    }
   }
 
   companion object {
