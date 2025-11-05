@@ -3,6 +3,7 @@
 package com.litus_animae.refitted.compose.exercise
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +14,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +42,11 @@ import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.*
-import kotlinx.coroutines.Dispatchers
+import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.Record
+import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -53,27 +64,46 @@ fun ExerciseView(
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit
 ) {
+  val screenState by model.screenState.collectAsStateWithLifecycle()
   // TODO why is this re-evaluated every time?
-  val allRecords by model.records.collectAsState(initial = emptyList())
-  val setRecords = recordsByExerciseId(allRecords = allRecords)
+  val setRecords = recordsByExerciseId(allRecords = screenState.records)
 
   // TODO not saving, perhaps need rememberSaveableStateHolder
   val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
-  val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
+  val instructions = screenState.instructions
   val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
-  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
-    ?.collectAsState(initial = null, Dispatchers.IO)
-    ?: remember { mutableStateOf<ExerciseSet?>(null) }
-  val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
+
+  val activeIndex = instruction?.let {
+    screenState.activeAlternateIndices[it.sets.head.primaryStep]
+  } ?: 0
+  val exerciseSet = instruction?.sets?.getOrNull(workoutPlan?.globalAlternate ?: activeIndex)
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
-  LaunchedEffect(exerciseSet) {
-    setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
+  LaunchedEffect(exerciseSet, activeIndex) {
+    setContextMenu {
+      instruction?.let {
+        ExerciseContextMenu(
+          it,
+          workoutPlan,
+          onAlternateChange,
+          activeIndex
+        )
+      }
+    }
     currentSetRecord?.allSets?.let { setHistoryList(it) }
   }
 
-  val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null
+  val showRefreshIndicator =
+    screenState.isLoading || exerciseSet == null || currentSetRecord == null
+
+  LaunchedEffect(screenState.isLoading, exerciseSet, currentSetRecord) {
+    Log.d(
+      "ExerciseView",
+      "StateCheck: isLoading=${screenState.isLoading}, exerciseSet is null=${exerciseSet == null}, currentSetRecord is null=${currentSetRecord == null}, showRefreshIndicator=$showRefreshIndicator"
+    )
+  }
+
   val pullRefreshState =
     rememberPullRefreshState(
       refreshing = showRefreshIndicator,
@@ -83,15 +113,15 @@ fun ExerciseView(
   // FIXME the column doesn't fill the full space and pull to refresh only works on content
   Box(
     modifier = Modifier
-      .pullRefresh(pullRefreshState)
-      .padding(contentPadding)
+        .pullRefresh(pullRefreshState)
+        .padding(contentPadding)
   ) {
     PullRefreshIndicator(
       refreshing = showRefreshIndicator,
       state = pullRefreshState,
       Modifier
-        .align(Alignment.TopCenter)
-        .zIndex(100f)
+          .align(Alignment.TopCenter)
+          .zIndex(100f)
     )
     Column {
       DetailView(
@@ -149,7 +179,7 @@ fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exercise
         ),
         updateIndex = { _, _ -> },
         onSave = { },
-        onStartEditWeight = {})
+        onStartEditWeight = { })
     }
   }
 }
@@ -178,8 +208,8 @@ fun DetailView(
       PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
     )
   TwoPane(
-    @Composable { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
-    @Composable {
+    { ExerciseInstructions(setWithRecord, Modifier.padding(paddingValuesFirst)) },
+    {
       // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
       if (setWithRecord != null)
         ExerciseSetView(
