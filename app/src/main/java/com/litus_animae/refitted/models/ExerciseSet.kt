@@ -2,6 +2,9 @@ package com.litus_animae.refitted.models
 
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Container for a loaded ExerciseSet and the Exercise description (as a flow to load on demand)
+ */
 data class ExerciseSet(
   private val roomExerciseSet: RoomExerciseSet,
   val exercise: Flow<Exercise?>
