@@ -5,6 +5,7 @@ plugins {
     alias libs.plugins.compose.compiler
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
+    alias libs.plugins.jacoco
     alias libs.plugins.jetbrains.kotlin.android
     alias libs.plugins.jetbrains.kotlin.kapt
     alias libs.plugins.jetbrains.kotlin.parcelize
@@ -48,6 +49,7 @@ android {
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             applicationIdSuffix ".debug"
             versionNameSuffix "-DEBUG"
+            testCoverageEnabled = true
         }
     }
     buildFeatures {
@@ -95,13 +97,22 @@ dependencies {
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.junit
+    androidTestImplementation platform(libs.junit)
+    androidTestImplementation libs.junit.jupiter
     debugRuntimeOnly libs.androidx.compose.ui.test.manifest
+    testImplementation platform(libs.junit)
+    testImplementation libs.junit.jupiter
     testImplementation libs.junit.jupiter.api
     testRuntimeOnly libs.junit.jupiter.engine
+    testRuntimeOnly libs.junit.platform.engine
+    testRuntimeOnly libs.junit.platform.launcher
     testImplementation libs.truth
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.monitor
+
+    testImplementation libs.mockk
+    testImplementation libs.turbine
+    testImplementation libs.kotlinx.coroutines.test
 
     implementation libs.androidx.room.common
     ksp libs.androidx.room.compiler
