@@ -1,5 +1,11 @@
 package com.litus_animae.refitted.util
 
+/**
+ * Consumes an iterable and applies transforms on pairs of elements
+ * The last element will be called with null as the next element
+ *
+ * Will not terminate for infinite sequences
+ */
 inline fun <T, R> Iterable<T>.maybeZipWithNext(transform: (a: T, b: T?) -> R): List<R> {
   val iterator = iterator()
   if (!iterator.hasNext()) return emptyList()
@@ -14,6 +20,12 @@ inline fun <T, R> Iterable<T>.maybeZipWithNext(transform: (a: T, b: T?) -> R): L
   return result
 }
 
+/**
+ * Consumes an iterable and applies transforms on pairs of elements
+ * The first element will be called with null as the previous element
+ *
+ * Will not terminate for infinite sequences
+ */
 inline fun <T, R> Iterable<T>.maybeZipWithPrevious(transform: (previous: T?, current: T) -> R): List<R> {
   val iterator = iterator()
   if (!iterator.hasNext()) return emptyList()
@@ -28,6 +40,9 @@ inline fun <T, R> Iterable<T>.maybeZipWithPrevious(transform: (previous: T?, cur
   return result
 }
 
+/**
+ * Consumes a sequence and applies transforms on each element and the result of the previous transform
+ */
 inline fun <T, R> Sequence<T>.progressiveZipWithPrevious(crossinline transform: (previous: R?, current: T) -> R): Sequence<R> {
   return sequence {
     var current: R? = null
@@ -39,6 +54,13 @@ inline fun <T, R> Sequence<T>.progressiveZipWithPrevious(crossinline transform: 
   }
 }
 
+/**
+ * Consumes an iterable and determines the minimum and maximum values
+ *
+ * Will not terminate for an infinite sequence
+ *
+ * @return Pair of minimum and maximum values. The first value is always less than or equal to the second value
+ */
 inline fun <T, R : Comparable<R>> Iterable<T>.rangeOf(transform: (a: T) -> R): Pair<R, R> {
   val iterator = iterator()
   if (!iterator.hasNext()) throw IllegalArgumentException("empty iterable provided")
