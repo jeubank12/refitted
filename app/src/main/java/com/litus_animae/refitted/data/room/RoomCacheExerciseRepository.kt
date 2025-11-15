@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -118,7 +119,14 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
-  override val records = exercises.map(this::getRecordsForLoadedExercises)
+  override val records =
+    exercises.map { loadedExercises ->
+      // FIXME this should be a real timezone?
+      val tonightMidnight = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.ofHours(0))
+
+      getRecordsForLoadedExercises(tonightMidnight, loadedExercises)
+    }
+
 
   override suspend fun storeSetRecord(record: SetRecord) {
     withContext(Dispatchers.IO) {
@@ -132,70 +140,95 @@ class RoomCacheExerciseRepository @Inject constructor(
     currentWorkout.value = workoutId
   }
 
-  private fun getRecordsForLoadedExercises(loadedExercises: List<ExerciseSet>): List<ExerciseRecord> {
+  fun getRecordsForLoadedExercises(
+    sinceDate: Instant,
+    loadedExercises: List<ExerciseSet>
+  ): List<ExerciseRecord> {
     log.i(
       TAG,
       "getRecordsForLoadedExercises: detected ${loadedExercises.size} new exercises, loading records"
     )
-    // FIXME this should be a real timezone?
-    val tonightMidnight = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.ofHours(0))
     val recordObjects = loadedExercises.map { e ->
-      val defaultReps = when {
-        e.repsUnit.isNotBlank() -> 10
-        e.sets < 0 && e.reps(0) < 0 -> 10
-        e.sets < 0 -> min(10, e.reps(0))
-        else -> e.reps(0)
-      }
-      // TODO (#8) appropriate default weights
-      val defaultRecord = Record(
-        weight = 25.0,
-        defaultReps,
-        e,
-        Instant.ofEpochMilli(0)
-      )
-      val currentRecords = refittedRoom.getExerciseDao()
-        .getSetRecords(tonightMidnight, e.exerciseName, e.id)
-        .map {
-          it.asSequence()
-            .progressiveZipWithPrevious { lastRecord: Record?, setRecord ->
-              Record(
-                setRecord.weight, setRecord.reps, e, setRecord.completed,
-                setRecord.reps + (lastRecord?.cumulativeReps ?: 0),
-                stored = true
-              )
-            }.toList()
-        }
-      val latestRecord =
-        combine(
-          currentRecords,
-          refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
-        ) { todayRecords, latestRecord ->
-          todayRecords.lastOrNull() ?: latestRecord?.let {
-            // here we know that the exercise has not been performed today
-            // reps should not necessarily be blindly copied from the last set
-            val reps = when {
-              e.repsUnit.isNotBlank() && e.id == it.targetSet -> it.reps
-              e.repsUnit.isNotBlank() -> 10
-              e.reps(0) < 0 -> it.reps
-              e.sets < 0 -> min(10, e.reps(0))
-              else -> e.reps(0)
-            }
-            Record(it.weight, reps, e, it.completed)
-          }
-        }.mapNotNull { it }
-      ExerciseRecord(
-        e,
-        defaultRecord,
-        latestRecord,
-        Pager(config = PagingConfig(pageSize = 20)) {
-          refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
-        }.flow,
-        currentRecords
-      )
+      buildExerciseRecord(e, sinceDate)
     }
     log.i(TAG, "getRecordsForLoadedExercises: records loaded")
     return recordObjects
   }
+
+  fun buildExerciseRecord(
+    e: ExerciseSet,
+    sinceDate: Instant
+  ): ExerciseRecord {
+    val defaultRecord = buildDefaultRecordForExerciseSet(e)
+    val currentRecords = getCurrentRecords(sinceDate, e)
+    val latestRecord =
+      combine(
+        currentRecords,
+        refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
+      ) { todayRecords, latestRecord ->
+        todayRecords.lastOrNull() ?: latestRecord?.let {
+          buildNewDayUnstoredRecord(e, it)
+        }
+      }.mapNotNull { it }
+    return ExerciseRecord(
+      e,
+      defaultRecord,
+      latestRecord,
+      Pager(config = PagingConfig(pageSize = 20)) {
+        refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
+      }.flow,
+      currentRecords
+    )
+  }
+
+  fun buildNewDayUnstoredRecord(
+    e: ExerciseSet,
+    record: SetRecord
+  ): Record {
+    // here we know that the exercise has not been performed today
+    // reps should not necessarily be blindly copied from the last set
+    val reps = when {
+      e.repsUnit.isNotBlank() && e.id == record.targetSet -> record.reps
+      e.repsUnit.isNotBlank() -> 10
+      e.reps(0) < 0 -> record.reps
+      e.sets < 0 -> min(10, e.reps(0))
+      else -> e.reps(0)
+    }
+    return Record(record.weight, reps, e, record.completed)
+  }
+
+  fun buildDefaultRecordForExerciseSet(e: ExerciseSet): Record {
+    val defaultReps = when {
+      e.repsUnit.isNotBlank() -> 10
+      e.sets < 0 && e.reps(0) < 0 -> 10
+      e.sets < 0 -> min(10, e.reps(0))
+      else -> e.reps(0)
+    }
+    // TODO (#8) appropriate default weights
+    val defaultRecord = Record(
+      weight = 25.0,
+      defaultReps,
+      e,
+      Instant.ofEpochMilli(0)
+    )
+    return defaultRecord
+  }
+
+  fun getCurrentRecords(
+    sinceDate: Instant,
+    targetExerciseSet: ExerciseSet
+  ): Flow<List<Record>> = refittedRoom.getExerciseDao()
+    .getSetRecords(sinceDate, targetExerciseSet.exerciseName, targetExerciseSet.id)
+    .map {
+      it.asSequence()
+        .progressiveZipWithPrevious { lastRecord: Record?, setRecord ->
+          Record(
+            setRecord.weight, setRecord.reps, targetExerciseSet, setRecord.completed,
+            setRecord.reps + (lastRecord?.cumulativeReps ?: 0),
+            stored = true
+          )
+        }.toList()
+    }
 
   companion object {
     private const val TAG = "RoomCacheExerciseRepository"
