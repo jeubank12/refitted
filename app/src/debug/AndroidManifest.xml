@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Test activity for Compose UI instrumented tests -->
+        <activity
+            android:name="com.litus_animae.refitted.HiltTestActivity"
+            android:exported="true" />
+    </application>
+
+</manifest>
