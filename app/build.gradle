@@ -20,7 +20,7 @@ android {
         targetSdkVersion 36
         versionCode = 3626000
         versionName = "1.2.10-SNAPSHOT"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.litus_animae.refitted.HiltTestRunner"
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas".toString())
@@ -76,6 +76,12 @@ android {
     lint {
         checkDependencies = true
     }
+
+    packaging {
+        resources {
+            excludes += ['/META-INF/LICENSE.md', '/META-INF/LICENSE-notice.md']
+        }
+    }
 }
 
 dependencies {
@@ -97,9 +103,13 @@ dependencies {
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
     androidTestImplementation platform(libs.junit)
     androidTestImplementation libs.junit.jupiter
     debugRuntimeOnly libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.dagger.hilt.android.testing
+    kaptAndroidTest libs.dagger.hilt.android.compiler
+    androidTestImplementation libs.androidx.room.testing
     testImplementation platform(libs.junit)
     testImplementation libs.junit.jupiter
     testImplementation libs.junit.jupiter.api
@@ -131,6 +141,7 @@ dependencies {
     kapt libs.dagger.hilt.android.compiler
     annotationProcessor libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
+    kspAndroidTest libs.androidx.hilt.compiler
 
     implementation libs.androidx.hilt.navigation.compose
     implementation libs.androidx.navigation.compose
