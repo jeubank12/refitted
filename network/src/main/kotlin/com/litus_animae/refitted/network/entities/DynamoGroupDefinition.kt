@@ -1,10 +1,14 @@
-package com.litus_animae.refitted.models.dynamo
+package com.litus_animae.refitted.network.entities
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBRangeKey
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
 
+/**
+ * DynamoDB entity for user group definitions.
+ * Defines which workouts are accessible to different user groups (free, premium, etc.)
+ */
 @DynamoDBTable(tableName = "refitted-exercise")
 data class DynamoGroupDefinition @JvmOverloads constructor(
   @get:DynamoDBAttribute(attributeName = "Id")
@@ -18,6 +22,5 @@ data class DynamoGroupDefinition @JvmOverloads constructor(
   @get:DynamoDBAttribute(attributeName = "Workouts")
   var workouts: Set<String> = emptySet(),
 ) {
-
   constructor() : this(null)
 }
