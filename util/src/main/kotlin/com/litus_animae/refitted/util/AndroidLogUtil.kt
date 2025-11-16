@@ -2,7 +2,7 @@ package com.litus_animae.refitted.util
 
 import android.util.Log
 
-object AndroidLogUtil : LogUtil{
+object AndroidLogUtil : LogUtil {
     override fun v(tag: String, msg: String) {
         Log.v(tag, msg)
     }

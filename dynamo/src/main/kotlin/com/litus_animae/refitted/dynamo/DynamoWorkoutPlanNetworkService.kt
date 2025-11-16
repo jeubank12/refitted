@@ -4,7 +4,7 @@ import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
 import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
-import com.litus_animae.refitted.data.firebase.AuthProvider
+import com.litus_animae.refitted.dynamo.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.dynamo.entities.DynamoGroupDefinition

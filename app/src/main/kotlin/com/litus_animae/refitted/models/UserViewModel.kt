@@ -15,7 +15,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.litus_animae.refitted.BuildConfig
 import com.litus_animae.refitted.data.SavedStateRepository
-import com.litus_animae.refitted.data.firebase.AuthProvider
+import com.litus_animae.refitted.dynamo.firebase.AuthProvider
 import com.litus_animae.refitted.data.firebase.ConfigProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel

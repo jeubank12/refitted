@@ -35,11 +35,16 @@ dependencies {
 
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // AWS SDK
     implementation(libs.aws.android.sdk.core)
     implementation(libs.aws.android.sdk.ddb)
     implementation(libs.aws.android.sdk.ddb.mapper)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 
     // Hilt
     implementation(libs.dagger.hilt.core)
