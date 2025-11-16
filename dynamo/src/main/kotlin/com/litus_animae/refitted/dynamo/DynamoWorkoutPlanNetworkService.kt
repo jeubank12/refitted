@@ -1,15 +1,15 @@
-package com.litus_animae.refitted.data.dynamo
+package com.litus_animae.refitted.dynamo
 
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
-import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
+import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
-import com.litus_animae.refitted.network.entities.DynamoGroupDefinition
-import com.litus_animae.refitted.network.entities.DynamoWorkoutDay
-import com.litus_animae.refitted.network.entities.DynamoWorkoutPlan
+import com.litus_animae.refitted.dynamo.entities.DynamoGroupDefinition
+import com.litus_animae.refitted.dynamo.entities.DynamoWorkoutDay
+import com.litus_animae.refitted.dynamo.entities.DynamoWorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -18,14 +18,18 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Named
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class DynamoWorkoutPlanNetworkService @Inject constructor(
   @ApplicationContext context: Context,
   log: LogUtil,
-  authProvider: AuthProvider
+  authProvider: AuthProvider,
+  @Named("cognitoIdentityPoolId") cognitoIdentityPoolId: String,
+  @Named("dynamoTable") dynamoTable: String,
+  @Named("firebaseIdSource") firebaseIdSource: String
 ) :
-  DynamoNetworkService(context, log, authProvider), WorkoutPlanNetworkService {
+  DynamoNetworkService(context, log, authProvider, cognitoIdentityPoolId, dynamoTable, firebaseIdSource), WorkoutPlanNetworkService {
 
   private fun querySpecificWorkoutPlans(
     db: DynamoDBMapper,

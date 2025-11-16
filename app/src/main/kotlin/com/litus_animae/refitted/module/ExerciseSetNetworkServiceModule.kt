@@ -1,6 +1,6 @@
 package com.litus_animae.refitted.module
 
-import com.litus_animae.refitted.data.dynamo.DynamoExerciseSetNetworkService
+import com.litus_animae.refitted.dynamo.DynamoExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import dagger.Binds
 import dagger.Module

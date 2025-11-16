@@ -22,5 +22,5 @@ dependencyResolutionManagement {
 include ':app'
 include ':data'
 include ':room'
-include ':network'
+include ':dynamo'
 include ':tomove'

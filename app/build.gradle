@@ -88,7 +88,7 @@ dependencies {
     // Module dependencies
     implementation project(':tomove')
     implementation project(':room')
-    implementation project(':network')
+    implementation project(':dynamo')
 
     implementation libs.androidx.activity
     implementation libs.androidx.annotation
