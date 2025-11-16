@@ -13,12 +13,14 @@ import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map as flowMap
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 
@@ -52,10 +54,11 @@ class ExerciseSetPager(
       }
       val networkSets = networkService.getExerciseSets(dayAndWorkout)
       log.d(TAG, "Storing to cache: $networkSets")
-      val (exercises, sets) = networkSets.map {
-        val roomExerciseSet = RoomExerciseSet.fromDomain(it.set)
-        log.d(TAG, "Saving ${it.exercise}, $roomExerciseSet")
-        Pair(com.litus_animae.refitted.room.entities.RoomExercise.fromDomain(it.exercise), roomExerciseSet)
+      val (exercises, sets) = networkSets.map { networkSet ->
+        val roomExerciseSet = RoomExerciseSet.fromDomain(networkSet.set)
+        val roomExercise = RoomExercise.fromDomain(networkSet.exercise)
+        log.d(TAG, "Saving ${networkSet.exercise}, $roomExerciseSet")
+        Pair(roomExercise, roomExerciseSet)
       }.unzip()
       exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
       return MediatorResult.Success(endOfPaginationReached = true)
@@ -70,7 +73,7 @@ class ExerciseSetPager(
   }.flow.mapLatest {
     it.map { step ->
       val roomSet = exerciseDao.loadExerciseSet(dayAndWorkout.day, dayAndWorkout.workoutId, step)!!
-      val exercise = exerciseDao.getExercise(roomSet.name, roomSet.workout).map { it?.toDomain() }.flowOn(Dispatchers.IO)
+      val exercise = exerciseDao.getExercise(roomSet.name, roomSet.workout).flowMap { it?.toDomain() }
       ExerciseSet(
         workout = roomSet.workout,
         day = roomSet.day,

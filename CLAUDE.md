@@ -276,3 +276,4 @@ This repository contains three components:
 3. **admin/** - AWS Lambda functions (TypeScript)
 
 All three share the same AWS DynamoDB backend for data storage.
+- Avoid fully qualified class names in code. Prefer file imports and use renames in the import syntax

@@ -23,7 +23,7 @@ class WorkoutPlanRemoteMediator(
   private val roomProvider: RefittedRoomProvider,
   private val networkService: WorkoutPlanNetworkService,
   private val log: LogUtil
-) : RemoteMediator<Int, WorkoutPlan>() {
+) : RemoteMediator<Int, RoomWorkoutPlan>() {
   private val database by lazy { roomProvider.refittedRoom }
   private val workoutPlanDao by lazy { database.getWorkoutPlanDao() }
   private val savedStateDao by lazy { database.getSavedStateDao() }
@@ -44,7 +44,7 @@ class WorkoutPlanRemoteMediator(
 
   override suspend fun load(
     loadType: LoadType,
-    state: PagingState<Int, WorkoutPlan>
+    state: PagingState<Int, RoomWorkoutPlan>
   ): MediatorResult {
     log.d(TAG, "Got request to load")
     when (loadType) {
