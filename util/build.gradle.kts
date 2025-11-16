@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.litus_animae.refitted.data"
+    namespace = "com.litus_animae.refitted.util"
     compileSdk = 36
 
     defaultConfig {
@@ -26,18 +26,12 @@ android {
 }
 
 dependencies {
-    // Module dependencies
-    api(project(":util"))
-
     // Core dependencies
     implementation(libs.androidx.annotation)
     implementation(libs.javax.inject)
 
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
-
-    // Paging
-    api(libs.androidx.paging.runtime)
 
     // Hilt
     implementation(libs.dagger.hilt.core)

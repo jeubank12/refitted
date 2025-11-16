@@ -3,7 +3,7 @@ package com.litus_animae.refitted.dynamo
 import android.content.Context
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
-import com.litus_animae.refitted.data.firebase.AuthProvider
+import com.litus_animae.refitted.dynamo.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.data.models.DayAndWorkout

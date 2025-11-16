@@ -9,7 +9,7 @@ import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.google.firebase.auth.FirebaseAuth
-import com.litus_animae.refitted.data.firebase.AuthProvider
+import com.litus_animae.refitted.dynamo.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
