@@ -33,6 +33,9 @@ dependencies {
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
 
+    // Paging
+    api(libs.androidx.paging.runtime)
+
     // Hilt
     implementation(libs.dagger.hilt.core)
     implementation(libs.dagger.hilt.android)
