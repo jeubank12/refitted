@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.network.entities
+package com.litus_animae.refitted.dynamo.entities
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBAttribute
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBHashKey

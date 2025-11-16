@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.dynamo
+package com.litus_animae.refitted.dynamo
 
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression

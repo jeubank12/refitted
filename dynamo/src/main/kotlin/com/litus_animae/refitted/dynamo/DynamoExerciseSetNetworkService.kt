@@ -1,15 +1,15 @@
-package com.litus_animae.refitted.data.dynamo
+package com.litus_animae.refitted.dynamo
 
 import android.content.Context
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
-import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
+import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.Exercise
-import com.litus_animae.refitted.network.entities.DynamoExercise
-import com.litus_animae.refitted.network.entities.DynamoExerciseSet
+import com.litus_animae.refitted.dynamo.entities.DynamoExercise
+import com.litus_animae.refitted.dynamo.entities.DynamoExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -17,14 +17,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Named
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class DynamoExerciseSetNetworkService @Inject constructor(
   @ApplicationContext context: Context,
   log: LogUtil,
-  authProvider: AuthProvider
+  authProvider: AuthProvider,
+  @Named("cognitoIdentityPoolId") cognitoIdentityPoolId: String,
+  @Named("dynamoTable") dynamoTable: String,
+  @Named("firebaseIdSource") firebaseIdSource: String
 ) :
-  DynamoNetworkService(context, log, authProvider), ExerciseSetNetworkService {
+  DynamoNetworkService(context, log, authProvider, cognitoIdentityPoolId, dynamoTable, firebaseIdSource), ExerciseSetNetworkService {
   override suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet> {
     val (workoutDay, workoutId) = dayAndWorkout
     return withContext(Dispatchers.IO) {

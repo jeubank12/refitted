@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.litus_animae.refitted.network"
+    namespace = "com.litus_animae.refitted.dynamo"
     compileSdk = 36
 
     defaultConfig {

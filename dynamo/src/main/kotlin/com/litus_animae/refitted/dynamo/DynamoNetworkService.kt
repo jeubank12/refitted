@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.dynamo
+package com.litus_animae.refitted.dynamo
 
 import android.content.Context
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
@@ -9,7 +9,6 @@ import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.google.firebase.auth.FirebaseAuth
-import com.litus_animae.refitted.R
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,18 +23,21 @@ import java.time.Instant
 abstract class DynamoNetworkService(
   context: Context,
   protected val log: LogUtil,
-  protected val authProvider: AuthProvider
+  protected val authProvider: AuthProvider,
+  private val cognitoIdentityPoolId: String,
+  private val dynamoTable: String,
+  private val firebaseIdSource: String
 ) {
   private val applicationContext = context.applicationContext
   private val credentialsProvider: CognitoCachingCredentialsProvider by lazy {
     CognitoCachingCredentialsProvider(
       applicationContext,
-      applicationContext.getString(R.string.cognito_identity_pool_id),
+      cognitoIdentityPoolId,
       Regions.US_EAST_2
     )
   }
-  private val tableName: String = applicationContext.getString(R.string.dynamo_table)
-  private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
+  private val tableName: String = dynamoTable
+  private val openIdSource: String = firebaseIdSource
 
   // TODO this needs to be called again when the user changes...
   protected suspend fun getDb(): DynamoDBMapper {
