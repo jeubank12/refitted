@@ -7,9 +7,9 @@ import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
-import com.litus_animae.refitted.models.dynamo.DynamoGroupDefinition
-import com.litus_animae.refitted.models.dynamo.DynamoWorkoutDay
-import com.litus_animae.refitted.models.dynamo.DynamoWorkoutPlan
+import com.litus_animae.refitted.network.entities.DynamoGroupDefinition
+import com.litus_animae.refitted.network.entities.DynamoWorkoutDay
+import com.litus_animae.refitted.network.entities.DynamoWorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
