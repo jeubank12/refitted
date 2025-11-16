@@ -85,6 +85,10 @@ android {
 }
 
 dependencies {
+    // Module dependencies
+    implementation project(':tomove')
+    implementation project(':room')
+    implementation project(':network')
 
     implementation libs.androidx.activity
     implementation libs.androidx.annotation
