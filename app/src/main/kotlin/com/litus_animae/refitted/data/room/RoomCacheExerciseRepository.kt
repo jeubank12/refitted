@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
@@ -50,7 +51,14 @@ class RoomCacheExerciseRepository @Inject constructor(
 
   private val currentWorkout = MutableStateFlow("")
   override val workoutRecords = currentWorkout.flatMapLatest {
-    refittedRoom.getExerciseDao().getDayCompletedSets(it)
+    refittedRoom.getExerciseDao().getDayCompletedSets(it).map { daoRecords ->
+      daoRecords.map { daoRecord ->
+        ExerciseCompletionRecord(
+          latestCompletion = daoRecord.latestCompletion,
+          dayAndSet = daoRecord.dayAndSet
+        )
+      }
+    }
   }
 
   private val exerciseState: MutableStateFlow<List<ExerciseSet>> = MutableStateFlow(emptyList())

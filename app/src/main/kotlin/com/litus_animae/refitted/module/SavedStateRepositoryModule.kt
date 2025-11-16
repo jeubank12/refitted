@@ -1,7 +1,7 @@
 package com.litus_animae.refitted.module
 
 import com.litus_animae.refitted.data.SavedStateRepository
-import com.litus_animae.refitted.data.room.RoomSavedStateRepository
+import com.litus_animae.refitted.room.RoomSavedStateRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

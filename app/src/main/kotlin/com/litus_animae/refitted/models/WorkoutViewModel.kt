@@ -10,6 +10,7 @@ import androidx.paging.PagingData
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
 import dagger.hilt.android.lifecycle.HiltViewModel

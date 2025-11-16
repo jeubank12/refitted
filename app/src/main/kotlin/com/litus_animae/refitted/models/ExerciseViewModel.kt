@@ -9,6 +9,9 @@ import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.models.ExerciseRecord
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
 import dagger.hilt.android.lifecycle.HiltViewModel
