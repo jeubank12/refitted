@@ -6,10 +6,10 @@ import com.litus_animae.refitted.data.models.SavedState
 
 /**
  * Room entity for SavedState persistence.
- * Internal to the room module - domain code uses SavedState from :data.
+ * Domain code should use the corresponding model from :data instead - domain code uses SavedState from :data.
  */
 @Entity(tableName = "SavedState")
-internal data class RoomSavedState(
+data class RoomSavedState(
     @PrimaryKey
     val key: String,
     val value: String

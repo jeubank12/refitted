@@ -7,7 +7,7 @@ import androidx.room.Index
 
 /**
  * Room entity for ExerciseSet persistence.
- * Internal to the room module - domain code uses ExerciseSet from :data.
+ * Domain code should use the corresponding model from :data instead - domain code uses ExerciseSet from :data.
  */
 @Entity(
     tableName = "exerciseset",
@@ -19,7 +19,7 @@ import androidx.room.Index
     )],
     indices = [Index(value = ["name", "workout"])]
 )
-internal data class RoomExerciseSet(
+data class RoomExerciseSet(
     val workout: String,
     val day: String,
     val step: String,

@@ -6,13 +6,13 @@ import com.litus_animae.refitted.data.models.Exercise
 
 /**
  * Room entity for Exercise persistence.
- * Internal to the room module - domain code uses Exercise from :data.
+ * Domain code should use Exercise from :data instead.
  */
 @Entity(
     tableName = "Exercise",
     primaryKeys = ["exercise_name", "exercise_workout"]
 )
-internal data class RoomExercise(
+data class RoomExercise(
     @ColumnInfo(name = "exercise_workout")
     val workout: String,
 

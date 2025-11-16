@@ -12,7 +12,8 @@ import androidx.paging.map
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.ExerciseSet
-import com.litus_animae.refitted.models.RoomExerciseSet
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,9 +53,9 @@ class ExerciseSetPager(
       val networkSets = networkService.getExerciseSets(dayAndWorkout)
       log.d(TAG, "Storing to cache: $networkSets")
       val (exercises, sets) = networkSets.map {
-        val roomExerciseSet = RoomExerciseSet(it.set)
+        val roomExerciseSet = RoomExerciseSet.fromDomain(it.set)
         log.d(TAG, "Saving ${it.exercise}, $roomExerciseSet")
-        Pair(it.exercise, roomExerciseSet)
+        Pair(com.litus_animae.refitted.room.entities.RoomExercise.fromDomain(it.exercise), roomExerciseSet)
       }.unzip()
       exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
       return MediatorResult.Success(endOfPaginationReached = true)
@@ -69,8 +70,8 @@ class ExerciseSetPager(
   }.flow.mapLatest {
     it.map { step ->
       val set = exerciseDao.loadExerciseSet(dayAndWorkout.day, dayAndWorkout.workoutId, step)!!
-      val exercise = exerciseDao.getExercise(set.name, set.workout)
-      ExerciseSet(set, exercise.flowOn(Dispatchers.IO))
+      val exercise = exerciseDao.getExercise(set.name, set.workout).map { it?.toDomain() }
+      ExerciseSet(set.toDomain(), exercise.flowOn(Dispatchers.IO))
     }
   }.flowOn(Dispatchers.IO)
 

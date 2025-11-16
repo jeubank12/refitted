@@ -1,11 +1,11 @@
-package com.litus_animae.refitted.data.room
+package com.litus_animae.refitted.room
 
 import androidx.paging.PagingSource
 import androidx.room.*
 import com.litus_animae.refitted.data.models.DayAndWorkout
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.RoomExerciseSet
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.room.entities.RoomExercise
+import com.litus_animae.refitted.room.entities.RoomExerciseSet
+import com.litus_animae.refitted.room.entities.RoomSetRecord
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -41,22 +41,22 @@ interface ExerciseDao {
   suspend fun loadExerciseSet(day: String, workout: String, step: String): RoomExerciseSet?
 
   @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
-  fun getExercise(name: String, workout: String): Flow<Exercise?>
+  fun getExercise(name: String, workout: String): Flow<RoomExercise?>
 
   @Insert(onConflict = OnConflictStrategy.REPLACE)
-  suspend fun storeExercise(exercise: Exercise)
+  suspend fun storeExercise(exercise: RoomExercise)
 
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun storeExerciseSet(exerciseSet: RoomExerciseSet)
 
   @Transaction
-  suspend fun storeExerciseAndSet(exercise: Exercise, exerciseSet: RoomExerciseSet) {
+  suspend fun storeExerciseAndSet(exercise: RoomExercise, exerciseSet: RoomExerciseSet) {
     storeExercise(exercise)
     storeExerciseSet(exerciseSet)
   }
 
   @Insert(onConflict = OnConflictStrategy.REPLACE)
-  suspend fun storeExercises(exercise: List<Exercise>)
+  suspend fun storeExercises(exercise: List<RoomExercise>)
 
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun storeExerciseSets(exerciseSet: List<RoomExerciseSet>)
@@ -65,7 +65,7 @@ interface ExerciseDao {
   suspend fun clearExerciseSets(vararg exerciseSets: RoomExerciseSet)
 
   @Transaction
-  suspend fun storeExercisesAndSets(dayAndWorkout: DayAndWorkout, exercise: List<Exercise>, exerciseSet: List<RoomExerciseSet>) {
+  suspend fun storeExercisesAndSets(dayAndWorkout: DayAndWorkout, exercise: List<RoomExercise>, exerciseSet: List<RoomExerciseSet>) {
     val steps = loadSteps(dayAndWorkout.day, dayAndWorkout.workoutId)
     val existingSets = loadExerciseSets(dayAndWorkout.day, dayAndWorkout.workoutId, *steps.toTypedArray())
     clearExerciseSets(*existingSets.toTypedArray())
@@ -81,22 +81,22 @@ interface ExerciseDao {
     minDate: Instant,
     targetExercise: String,
     targetSet: String
-  ): Flow<List<SetRecord>>
+  ): Flow<List<RoomSetRecord>>
 
   /**
    * Gets the newest record for the [targetExercise]
    */
   @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit 1")
-  fun getLatestSetRecord(targetExercise: String): Flow<SetRecord?>
+  fun getLatestSetRecord(targetExercise: String): Flow<RoomSetRecord?>
 
   /**
    * Gets all recocrds for [targetExercise] in descending chronological order
    */
   @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
-  fun getAllSetRecord(targetExercise: String): PagingSource<Int, SetRecord>
+  fun getAllSetRecord(targetExercise: String): PagingSource<Int, RoomSetRecord>
 
   @Insert
-  suspend fun storeExerciseRecord(exerciseRecord: SetRecord)
+  suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 
   @Query(
     "select max(completed) as latest_completion, target_set from setrecord " +

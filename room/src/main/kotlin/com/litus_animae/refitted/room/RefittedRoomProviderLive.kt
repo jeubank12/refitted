@@ -1,14 +1,13 @@
-package com.litus_animae.refitted.data.room
+package com.litus_animae.refitted.room
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
-import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class RefittedRoomProviderLive @Inject constructor(
-  @ApplicationContext context: Context,
-  log: LogUtil
+  @ApplicationContext context: Context
 ) : RefittedRoomProvider {
   companion object {
     private const val db_name = "dev01.2.db"
@@ -16,7 +15,7 @@ class RefittedRoomProviderLive @Inject constructor(
   }
 
   override val refittedRoom: RefittedRoom by lazy {
-    log.i(TAG, "building Room database on ${Thread.currentThread().name}")
+    Log.i(TAG, "building Room database on ${Thread.currentThread().name}")
     Room.databaseBuilder(
       context,
       RefittedRoom::class.java, db_name
