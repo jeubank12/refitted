@@ -1,26 +1,26 @@
-package com.litus_animae.refitted.data.room
+package com.litus_animae.refitted.room
 
 import androidx.paging.PagingSource
 import androidx.room.*
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.room.entities.RoomWorkoutPlan
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WorkoutPlanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(plans: List<WorkoutPlan>)
+    suspend fun insertAll(plans: List<RoomWorkoutPlan>)
 
     @Update
-    fun update(workoutPlan: WorkoutPlan)
+    fun update(workoutPlan: RoomWorkoutPlan)
 
     @Query("SELECT * FROM workouts")
-    fun pagingSource(): PagingSource<Int, WorkoutPlan>
+    fun pagingSource(): PagingSource<Int, RoomWorkoutPlan>
 
     @Query("SELECT * FROM workouts")
-    suspend fun getAll(): List<WorkoutPlan>
+    suspend fun getAll(): List<RoomWorkoutPlan>
 
     @Query("SELECT * FROM workouts where `workout` = :name")
-    fun planByName(name: String): Flow<WorkoutPlan?>
+    fun planByName(name: String): Flow<RoomWorkoutPlan?>
 
     @Query("DELETE FROM workouts")
     suspend fun clearAll()

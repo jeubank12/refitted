@@ -7,13 +7,13 @@ import java.time.Instant
 
 /**
  * Room entity for SetRecord persistence.
- * Internal to the room module - domain code uses SetRecord from :data.
+ * Domain code should use the corresponding model from :data instead - domain code uses SetRecord from :data.
  */
 @Entity(
     tableName = "SetRecord",
     primaryKeys = ["exercise", "completed"]
 )
-internal data class RoomSetRecord(
+data class RoomSetRecord(
     val weight: Double,
     val reps: Int,
     val workout: String,

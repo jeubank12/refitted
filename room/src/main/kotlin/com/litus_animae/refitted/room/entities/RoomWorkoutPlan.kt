@@ -7,10 +7,10 @@ import java.time.Instant
 
 /**
  * Room entity for WorkoutPlan persistence.
- * Internal to the room module - domain code uses WorkoutPlan from :data.
+ * Domain code should use the corresponding model from :data instead - domain code uses WorkoutPlan from :data.
  */
 @Entity(tableName = "workouts")
-internal data class RoomWorkoutPlan(
+data class RoomWorkoutPlan(
     @PrimaryKey
     val workout: String,
     val totalDays: Int = 84,

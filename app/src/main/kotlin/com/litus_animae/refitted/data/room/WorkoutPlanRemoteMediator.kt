@@ -6,8 +6,10 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
-import com.litus_animae.refitted.data.models.SavedState
 import com.litus_animae.refitted.data.models.WorkoutPlan
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.entities.RoomSavedState
+import com.litus_animae.refitted.room.entities.RoomWorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
 import kotlinx.coroutines.Dispatchers
@@ -52,21 +54,21 @@ class WorkoutPlanRemoteMediator(
     log.d(TAG, "Reading plans")
     val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
     database.withTransaction {
-      val currentPlansByName = workoutPlanDao.getAll().associateBy { it.workout }
+      val currentPlansByName = workoutPlanDao.getAll().map { it.toDomain() }.associateBy { it.workout }
       workoutPlanDao.clearAll()
       val upsertPlans = plans.map { newPlan ->
-        val existingPlan = currentPlansByName[newPlan.workout] ?: return@map newPlan
-        existingPlan.copy(
+        val existingPlan = currentPlansByName[newPlan.workout] ?: return@map RoomWorkoutPlan.fromDomain(newPlan)
+        RoomWorkoutPlan.fromDomain(existingPlan.copy(
           totalDays = newPlan.totalDays,
           restDays = newPlan.restDays,
           description = newPlan.description,
           globalAlternateLabels = newPlan.globalAlternateLabels,
           globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
-        )
+        ))
       }
       workoutPlanDao.insertAll(upsertPlans)
       savedStateDao.insert(
-        SavedState(
+        RoomSavedState(
           SavedStateKeys.CacheTimeKey,
           Instant.now().toEpochMilli().toString()
         )

@@ -4,6 +4,7 @@ import androidx.paging.AsyncPagingDataDiffer
 import androidx.paging.LoadState
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.map
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
@@ -13,6 +14,8 @@ import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.Dispatchers
@@ -131,7 +134,7 @@ class RoomCacheExerciseRepository @Inject constructor(
   override suspend fun storeSetRecord(record: SetRecord) {
     withContext(Dispatchers.IO) {
       log.d(TAG, "storing set record")
-      refittedRoom.getExerciseDao().storeExerciseRecord(record)
+      refittedRoom.getExerciseDao().storeExerciseRecord(RoomSetRecord.fromDomain(record))
       log.d(TAG, "stored set record")
     }
   }
@@ -164,7 +167,7 @@ class RoomCacheExerciseRepository @Inject constructor(
     val latestRecord =
       combine(
         currentRecords,
-        refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName)
+        refittedRoom.getExerciseDao().getLatestSetRecord(e.exerciseName).map { it?.toDomain() }
       ) { todayRecords, latestRecord ->
         todayRecords.lastOrNull() ?: latestRecord?.let {
           buildNewDayUnstoredRecord(e, it)
@@ -176,7 +179,7 @@ class RoomCacheExerciseRepository @Inject constructor(
       latestRecord,
       Pager(config = PagingConfig(pageSize = 20)) {
         refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
-      }.flow,
+      }.flow.map { it.map { roomRecord -> roomRecord.toDomain() } },
       currentRecords
     )
   }
@@ -219,8 +222,9 @@ class RoomCacheExerciseRepository @Inject constructor(
     targetExerciseSet: ExerciseSet
   ): Flow<List<Record>> = refittedRoom.getExerciseDao()
     .getSetRecords(sinceDate, targetExerciseSet.exerciseName, targetExerciseSet.id)
-    .map {
-      it.asSequence()
+    .map { roomRecords ->
+      roomRecords.asSequence()
+        .map { it.toDomain() }
         .progressiveZipWithPrevious { lastRecord: Record?, setRecord ->
           Record(
             setRecord.weight, setRecord.reps, targetExerciseSet, setRecord.completed,

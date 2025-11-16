@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.data.room
+package com.litus_animae.refitted.room
 
 import androidx.room.TypeConverter
 import java.time.Instant

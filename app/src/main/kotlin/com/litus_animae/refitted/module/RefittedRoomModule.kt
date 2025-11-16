@@ -1,9 +1,8 @@
 package com.litus_animae.refitted.module
 
 import android.content.Context
-import com.litus_animae.refitted.data.room.RefittedRoom
-import com.litus_animae.refitted.data.room.RefittedRoomProvider
-import com.litus_animae.refitted.data.room.RefittedRoomProviderLive
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.RefittedRoomProviderLive
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

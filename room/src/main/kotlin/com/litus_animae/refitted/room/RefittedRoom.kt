@@ -1,14 +1,14 @@
-package com.litus_animae.refitted.data.room
+package com.litus_animae.refitted.room
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.litus_animae.refitted.models.*
+import com.litus_animae.refitted.room.entities.*
 
 @Database(
-  entities = [Exercise::class, RoomExerciseSet::class, SetRecord::class, WorkoutPlan::class, SavedState::class],
+  entities = [RoomExercise::class, RoomExerciseSet::class, RoomSetRecord::class, RoomWorkoutPlan::class, RoomSavedState::class],
   version = 12
 )
 @TypeConverters(Converters::class)
