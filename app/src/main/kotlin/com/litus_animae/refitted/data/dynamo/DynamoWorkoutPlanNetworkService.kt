@@ -6,7 +6,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExp
 import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.models.dynamo.DynamoGroupDefinition
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutDay
 import com.litus_animae.refitted.models.dynamo.DynamoWorkoutPlan

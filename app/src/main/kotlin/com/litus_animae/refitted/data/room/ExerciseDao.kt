@@ -2,7 +2,7 @@ package com.litus_animae.refitted.data.room
 
 import androidx.paging.PagingSource
 import androidx.room.*
-import com.litus_animae.refitted.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.models.Exercise
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.models.SetRecord

@@ -20,8 +20,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.Record
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Record
 
 @Composable
 fun SetsDisplay(

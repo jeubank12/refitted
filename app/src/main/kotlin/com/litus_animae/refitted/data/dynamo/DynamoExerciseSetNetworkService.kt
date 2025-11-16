@@ -6,8 +6,8 @@ import com.litus_animae.refitted.data.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.data.firebase.AuthProvider
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
-import com.litus_animae.refitted.models.DayAndWorkout
-import com.litus_animae.refitted.models.Exercise
+import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.models.dynamo.MutableExercise
 import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
 import com.litus_animae.refitted.util.LogUtil

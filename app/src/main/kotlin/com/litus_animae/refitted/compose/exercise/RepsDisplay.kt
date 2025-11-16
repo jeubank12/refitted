@@ -33,8 +33,8 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Repetitions
 import com.litus_animae.refitted.compose.util.NumberPicker
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.Record
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Record
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
 

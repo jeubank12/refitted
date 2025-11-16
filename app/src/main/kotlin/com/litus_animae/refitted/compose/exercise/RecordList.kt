@@ -42,7 +42,7 @@ import com.litus_animae.refitted.compose.charts.BubbleData
 import com.litus_animae.refitted.compose.charts.LineChart
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.data.firebase.ConfigProvider
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant

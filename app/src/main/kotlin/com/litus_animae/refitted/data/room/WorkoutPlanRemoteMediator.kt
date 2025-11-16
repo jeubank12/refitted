@@ -6,8 +6,8 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
-import com.litus_animae.refitted.models.SavedState
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.SavedState
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
 import kotlinx.coroutines.Dispatchers

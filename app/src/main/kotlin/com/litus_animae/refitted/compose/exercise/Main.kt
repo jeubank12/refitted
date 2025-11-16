@@ -37,7 +37,7 @@ import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.models.ExerciseViewModel
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -10,8 +10,8 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.paging.map
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
-import com.litus_animae.refitted.models.DayAndWorkout
-import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.Dispatchers

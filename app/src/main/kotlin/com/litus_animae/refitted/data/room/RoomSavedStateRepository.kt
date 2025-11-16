@@ -1,7 +1,7 @@
 package com.litus_animae.refitted.data.room
 
 import com.litus_animae.refitted.data.SavedStateRepository
-import com.litus_animae.refitted.models.SavedState
+import com.litus_animae.refitted.data.models.SavedState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

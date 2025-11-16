@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.compose.exercise.Timer
 import com.litus_animae.refitted.compose.exercise.animateTimer
-import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.data.models.ExerciseSet
 import java.time.Instant
 import kotlin.math.min
 

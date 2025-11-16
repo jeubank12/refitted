@@ -1,8 +1,8 @@
 package com.litus_animae.refitted.compose.exercise
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Exercise
+import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.models.RoomExerciseSet
 import kotlinx.coroutines.flow.MutableStateFlow
 

@@ -4,10 +4,10 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.paging.PagingData
-import com.litus_animae.refitted.models.ExerciseRecord
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.Record
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.data.models.ExerciseRecord
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Record
+import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 

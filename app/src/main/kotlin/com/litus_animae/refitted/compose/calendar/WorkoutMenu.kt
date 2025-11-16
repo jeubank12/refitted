@@ -20,7 +20,7 @@ import androidx.paging.compose.itemKey
 import com.google.firebase.auth.FirebaseUser
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf
 
 @Preview(showBackground = true, widthDp = 200, heightDp = 400)

@@ -34,7 +34,11 @@ import com.litus_animae.refitted.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.compose.state.Weight
 import com.litus_animae.refitted.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.*
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.data.models.WorkoutPlan
+import com.litus_animae.refitted.models.ExerciseViewModel
+import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
