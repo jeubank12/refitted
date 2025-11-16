@@ -33,7 +33,9 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
             remoteMediator = WorkoutPlanRemoteMediator(roomProvider, networkService, log)
         ) {
             workoutPlanDao.pagingSource()
-        }.flow.map { it.map { roomPlan -> roomPlan.toDomain() } }.flowOn(Dispatchers.IO)
+        }.flow.map { pagingData ->
+            pagingData.map { roomPlan: RoomWorkoutPlan -> roomPlan.toDomain() }
+        }.flowOn(Dispatchers.IO)
 
     override fun workoutByName(name: String): Flow<WorkoutPlan?> {
         return workoutPlanDao.planByName(name).map { it?.toDomain() }

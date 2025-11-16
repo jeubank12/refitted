@@ -69,9 +69,25 @@ class ExerciseSetPager(
     exerciseDao.getStepsPages(dayAndWorkout.day, dayAndWorkout.workoutId)
   }.flow.mapLatest {
     it.map { step ->
-      val set = exerciseDao.loadExerciseSet(dayAndWorkout.day, dayAndWorkout.workoutId, step)!!
-      val exercise = exerciseDao.getExercise(set.name, set.workout).map { it?.toDomain() }
-      ExerciseSet(set.toDomain(), exercise.flowOn(Dispatchers.IO))
+      val roomSet = exerciseDao.loadExerciseSet(dayAndWorkout.day, dayAndWorkout.workoutId, step)!!
+      val exercise = exerciseDao.getExercise(roomSet.name, roomSet.workout).map { it?.toDomain() }.flowOn(Dispatchers.IO)
+      ExerciseSet(
+        workout = roomSet.workout,
+        day = roomSet.day,
+        step = roomSet.step,
+        name = roomSet.name,
+        note = roomSet.note,
+        reps = roomSet.reps,
+        sets = roomSet.sets,
+        isToFailure = roomSet.isToFailure,
+        rest = roomSet.rest,
+        repsUnit = roomSet.repsUnit,
+        repsRange = roomSet.repsRange,
+        timeLimit = roomSet.timeLimit,
+        timeLimitUnit = roomSet.timeLimitUnit,
+        repsSequence = roomSet.repsSequence,
+        exercise = exercise
+      )
     }
   }.flowOn(Dispatchers.IO)
 
