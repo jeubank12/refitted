@@ -14,7 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.R
 import com.litus_animae.refitted.models.ExerciseViewModel
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 
 // suppressed to prevent wrapping this Composable in a column

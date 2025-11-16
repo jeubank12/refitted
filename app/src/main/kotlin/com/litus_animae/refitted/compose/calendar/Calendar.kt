@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.compose.util.ConstrainedButton
 import com.litus_animae.refitted.compose.util.Theme
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import java.time.Instant
 import kotlin.math.ceil
 

@@ -11,7 +11,7 @@ import com.litus_animae.refitted.compose.calendar.Calendar
 import com.litus_animae.refitted.compose.exercise.Exercise
 import com.litus_animae.refitted.models.ExerciseViewModel
 import com.litus_animae.refitted.models.UserViewModel
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview

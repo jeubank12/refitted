@@ -8,11 +8,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
-import com.litus_animae.refitted.models.DayAndWorkout
-import com.litus_animae.refitted.models.ExerciseRecord
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.Record
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.ExerciseRecord
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Record
+import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.Dispatchers

@@ -50,7 +50,7 @@ import com.litus_animae.refitted.compose.AuthButton
 import com.litus_animae.refitted.compose.Changelog
 import com.litus_animae.refitted.compose.util.LoadingView
 import com.litus_animae.refitted.models.UserViewModel
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
