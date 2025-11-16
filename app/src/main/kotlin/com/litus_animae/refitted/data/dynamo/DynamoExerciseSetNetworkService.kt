@@ -8,8 +8,8 @@ import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.network.NetworkExerciseSet
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.Exercise
-import com.litus_animae.refitted.models.dynamo.MutableExercise
-import com.litus_animae.refitted.models.dynamo.MutableExerciseSet
+import com.litus_animae.refitted.network.entities.DynamoExercise
+import com.litus_animae.refitted.network.entities.DynamoExerciseSet
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +30,7 @@ class DynamoExerciseSetNetworkService @Inject constructor(
     return withContext(Dispatchers.IO) {
       val db = getDb()
 
-      val keyValues = MutableExerciseSet(workoutId)
+      val keyValues = DynamoExerciseSet(workoutId)
       log.i(
         TAG,
         "Sending query request to load day $workoutDay from workout $workoutId"
@@ -38,7 +38,7 @@ class DynamoExerciseSetNetworkService @Inject constructor(
 
       val dynamoSets =
         db.queryReverseIndex(
-          MutableExerciseSet::class.java,
+          DynamoExerciseSet::class.java,
           keyValues,
           "$workoutDay.",
           ComparisonOperator.BEGINS_WITH
@@ -47,21 +47,20 @@ class DynamoExerciseSetNetworkService @Inject constructor(
       val exerciseSets = dynamoSets.map { set ->
         try {
           log.i(TAG, "loading exercise ${set.workout}: ${set.name} from dynamo")
-          val mutableExercise =
+          val dynamoExercise =
             db.queryReverseIndex(
-              MutableExercise::class.java,
-              MutableExercise(workout = set.workout),
+              DynamoExercise::class.java,
+              DynamoExercise(workout = set.workout),
               set.name
             ).firstOrNull()
-          val exercise = mutableExercise?.let { Exercise(it) } ?: Exercise(set.workout, set.name)
-          mutableExercise ?: log.w(TAG, "Exercise not found")
-          // TODO this is bad form, should move the constructors over to converters on the Room/Dynamo classes
-          NetworkExerciseSet(set, exercise)
+          val exercise = dynamoExercise?.toDomain() ?: Exercise(set.workout, set.name, null)
+          dynamoExercise ?: log.w(TAG, "Exercise not found")
+          NetworkExerciseSet(set.toDomain(), exercise)
         } catch (ex: Exception) {
           log.e(TAG, "error loading Exercise", ex)
           // create an empty exercise
-          val exercise = Exercise(set.workout, set.name)
-          NetworkExerciseSet(set, exercise)
+          val exercise = Exercise(set.workout, set.name, null)
+          NetworkExerciseSet(set.toDomain(), exercise)
         }
       }
       log.d(TAG, "Finished dynamo load $dayAndWorkout: $exerciseSets")
