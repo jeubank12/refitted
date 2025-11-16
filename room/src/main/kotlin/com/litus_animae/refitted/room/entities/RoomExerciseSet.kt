@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.litus_animae.refitted.data.models.ExerciseSet
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Room entity for ExerciseSet persistence.
@@ -39,7 +41,51 @@ data class RoomExerciseSet(
     val timeLimitUnit: String?,
     val repsSequence: List<Int>
 ) {
+    /**
+     * Convert Room entity to domain model
+     */
+    fun toDomain(): ExerciseSet = ExerciseSet(
+        workout = workout,
+        day = day,
+        step = step,
+        name = name,
+        note = note,
+        reps = reps,
+        sets = sets,
+        isToFailure = isToFailure,
+        rest = rest,
+        repsUnit = repsUnit,
+        repsRange = repsRange,
+        timeLimit = timeLimit,
+        timeLimitUnit = timeLimitUnit,
+        repsSequence = repsSequence,
+        exercise = flowOf(null) // Exercise lookup handled separately
+    )
+
     companion object {
+        /**
+         * Convert domain model to Room entity
+         */
+        fun fromDomain(exerciseSet: ExerciseSet): RoomExerciseSet = RoomExerciseSet(
+            workout = exerciseSet.workout,
+            day = exerciseSet.day,
+            step = exerciseSet.step,
+            primaryStep = parsePrimaryStep(exerciseSet.step),
+            superSetStep = parseSuperSetStep(exerciseSet.step),
+            alternateStep = parseAlternateStep(exerciseSet.step),
+            name = exerciseSet.name,
+            note = exerciseSet.note,
+            reps = exerciseSet.reps,
+            sets = exerciseSet.sets,
+            isToFailure = exerciseSet.isToFailure,
+            rest = exerciseSet.rest,
+            repsUnit = exerciseSet.repsUnit,
+            repsRange = exerciseSet.repsRange,
+            timeLimit = exerciseSet.timeLimit,
+            timeLimitUnit = exerciseSet.timeLimitUnit,
+            repsSequence = exerciseSet.repsSequence
+        )
+
         /**
          * Parse alternate step identifier from full step (e.g., "1.2.a" -> "a")
          */

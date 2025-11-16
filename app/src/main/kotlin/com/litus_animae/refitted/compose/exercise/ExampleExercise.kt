@@ -3,8 +3,7 @@ package com.litus_animae.refitted.compose.exercise
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
-import com.litus_animae.refitted.models.RoomExerciseSet
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 
 val exampleExercise = Exercise(
     workout = "Refitted Exercise",
@@ -25,29 +24,24 @@ val exampleExercise = Exercise(
             " of screens can use this app"
 )
 
-val exampleExerciseSet =
-    ExerciseSet(
-        RoomExerciseSet(
-            workout = "Refitted Exercise",
-            day = "1",
-            step = "1",
-            primaryStep = 1,
-            superSetStep = null,
-            alternateStep = null,
-            name = "A_Do Things",
-            note = "These are instructions that are specific to this particular set. " +
-                    "They are usually fairly short",
-            reps = -1,
-            sets = 3,
-            isToFailure = true,
-            rest = 60,
-            repsUnit = "",
-            repsRange = 0,
-            timeLimit = null,
-            timeLimitUnit = null,
-            repsSequence = emptyList()
-        ), MutableStateFlow(exampleExercise)
-    )
+val exampleExerciseSet = ExerciseSet(
+    workout = "Refitted Exercise",
+    day = "1",
+    step = "1",
+    name = "A_Do Things",
+    note = "These are instructions that are specific to this particular set. " +
+            "They are usually fairly short",
+    reps = -1,
+    sets = 3,
+    isToFailure = true,
+    rest = 60,
+    repsUnit = "",
+    repsRange = 0,
+    timeLimit = null,
+    timeLimitUnit = null,
+    repsSequence = emptyList(),
+    exercise = flowOf(exampleExercise)
+)
 
 class ExampleExerciseProvider : PreviewParameterProvider<ExerciseSet> {
     override val values = sequenceOf(exampleExerciseSet)
