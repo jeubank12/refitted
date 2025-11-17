@@ -91,7 +91,7 @@ data class DynamoExerciseSet @JvmOverloads constructor(
             return if (parts.size == 2) {
                 Pair(parts[0], parts[1])
             } else {
-                Pair("", id)
+                Pair(id, "")
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.models;
+package com.litus_animae.refitted.data.models
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test

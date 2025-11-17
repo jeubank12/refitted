@@ -3,11 +3,15 @@ package com.litus_animae.refitted.data.room
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.ExerciseSet
-import com.litus_animae.refitted.models.Record
-import com.litus_animae.refitted.models.RoomExerciseSet
-import com.litus_animae.refitted.models.SetRecord
+import com.litus_animae.refitted.data.models.Exercise
+import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.Record
+import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.entities.RoomExerciseSet
+import com.litus_animae.refitted.room.entities.RoomSetRecord
+import com.litus_animae.refitted.room.RefittedRoom
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.util.LogUtil
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -62,7 +66,23 @@ class RoomCacheExerciseRepositoryTest {
     timeLimitUnit = null,
     repsSequence = emptyList()
   )
-  private val simpleExerciseSet = ExerciseSet(simpleRoomSet, exercise)
+  private val simpleExerciseSet = ExerciseSet(
+    workout = workoutName,
+    day = "1",
+    step = "1",
+    name = "Chest_Bench Press",
+    note = "",
+    reps = 10,
+    sets = 3,
+    isToFailure = false,
+    rest = 60,
+    repsUnit = "reps",
+    repsRange = 0,
+    timeLimit = null,
+    timeLimitUnit = null,
+    repsSequence = emptyList(),
+    exercise = exercise
+  )
 
   @BeforeEach
   fun setUp() {
@@ -83,7 +103,7 @@ class RoomCacheExerciseRepositoryTest {
         targetExerciseSet.exerciseName,
         targetExerciseSet.id
       )
-    } returns flowOf(expectedRecords)
+    } returns flowOf(expectedRecords.map { RoomSetRecord.fromDomain(it) })
   }
 
 
@@ -227,7 +247,7 @@ class RoomCacheExerciseRepositoryTest {
         simpleExerciseSet,
       ).copy(completed = completionTime)
       setupGetSetRecords(runTime, simpleExerciseSet, listOf(record))
-      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(record)
+      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(RoomSetRecord.fromDomain(record))
 
       // When
       val result = subject.buildExerciseRecord(simpleExerciseSet, runTime)
@@ -264,7 +284,7 @@ class RoomCacheExerciseRepositoryTest {
         simpleExerciseSet,
       ).copy(completed = completionTime)
       setupGetSetRecords(runTime, simpleExerciseSet, emptyList())
-      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(record)
+      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(RoomSetRecord.fromDomain(record))
 
       // When
       val result = subject.buildExerciseRecord(simpleExerciseSet, runTime)
@@ -310,7 +330,7 @@ class RoomCacheExerciseRepositoryTest {
       subject.storeSetRecord(newRecord)
 
       // Then
-      coVerify { exerciseDao.storeExerciseRecord(newRecord) }
+      coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(newRecord)) }
     }
   }
 }
