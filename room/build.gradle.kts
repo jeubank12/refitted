@@ -47,16 +47,16 @@ dependencies {
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
 
-    // Room
-    implementation(libs.androidx.room.common)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    implementation(libs.androidx.sqlite)
+    // Room (exposed as api - :app repository implementations use these)
+    api(libs.androidx.room.common)
+    api(libs.androidx.room.runtime)
+    api(libs.androidx.room.ktx)
+    api(libs.androidx.room.paging)
+    api(libs.androidx.sqlite)
     ksp(libs.androidx.room.compiler)
 
-    // Paging
-    implementation(libs.androidx.paging.runtime)
+    // Paging (exposed as api - :app repository implementations use these)
+    api(libs.androidx.paging.runtime)
 
     // Hilt
     implementation(libs.dagger.hilt.core)
