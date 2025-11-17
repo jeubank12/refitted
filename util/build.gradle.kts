@@ -23,6 +23,12 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
         freeCompilerArgs += listOf("-opt-in=kotlin.RequiresOptIn")
     }
+
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -38,4 +44,12 @@ dependencies {
     implementation(libs.dagger.hilt.android)
     kapt(libs.dagger.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
+
+    // Testing
+    testImplementation(platform(libs.junit))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
