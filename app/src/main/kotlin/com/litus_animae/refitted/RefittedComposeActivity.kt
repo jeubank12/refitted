@@ -11,11 +11,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.litus_animae.refitted.compose.LocalFeatures
-import com.litus_animae.refitted.compose.Top
-import com.litus_animae.refitted.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.LocalFeatures
+import com.litus_animae.refitted.ui.compose.Top
+import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.identity.ConfigProvider
-import com.litus_animae.refitted.models.UserViewModel
+import com.litus_animae.refitted.ui.models.UserViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview

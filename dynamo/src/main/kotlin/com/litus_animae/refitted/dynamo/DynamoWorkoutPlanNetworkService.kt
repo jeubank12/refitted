@@ -25,11 +25,8 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
   @ApplicationContext context: Context,
   log: LogUtil,
   authProvider: AuthProvider,
-  @Named("cognitoIdentityPoolId") cognitoIdentityPoolId: String,
-  @Named("dynamoTable") dynamoTable: String,
-  @Named("firebaseIdSource") firebaseIdSource: String
 ) :
-  DynamoNetworkService(context, log, authProvider, cognitoIdentityPoolId, dynamoTable, firebaseIdSource), WorkoutPlanNetworkService {
+  DynamoNetworkService(context, log, authProvider), WorkoutPlanNetworkService {
 
   private fun querySpecificWorkoutPlans(
     db: DynamoDBMapper,

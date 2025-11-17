@@ -1,9 +1,9 @@
 package com.litus_animae.refitted.data
 
-import com.litus_animae.refitted.models.Exercise
-import com.litus_animae.refitted.models.RoomExerciseSet
-import com.litus_animae.refitted.models.SetRecord
-import com.litus_animae.refitted.models.WorkoutPlan
+import com.litus_animae.refitted.ui.models.Exercise
+import com.litus_animae.refitted.ui.models.RoomExerciseSet
+import com.litus_animae.refitted.ui.models.SetRecord
+import com.litus_animae.refitted.ui.models.WorkoutPlan
 import java.time.Instant
 
 /**
