@@ -67,9 +67,9 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.recyclerview)
 
-    // Paging
-    implementation(libs.androidx.paging.compose)
-    implementation(libs.androidx.paging.runtime)
+    // Paging (exposed as api - ViewModels expose Flow<PagingData<T>>)
+    api(libs.androidx.paging.compose)
+    api(libs.androidx.paging.runtime)
 
     // Hilt
     implementation(libs.dagger)

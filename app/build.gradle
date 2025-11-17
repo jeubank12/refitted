@@ -22,11 +22,6 @@ android {
         versionName = "1.2.10-SNAPSHOT"
         testInstrumentationRunner = "com.litus_animae.refitted.HiltTestRunner"
 
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas".toString())
-            arg("room.expandProjection", "true")
-        }
-
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments += []
@@ -102,10 +97,6 @@ dependencies {
     implementation libs.androidx.fragment
     implementation libs.androidx.recyclerview
 
-    implementation libs.androidx.room.paging
-    implementation libs.androidx.paging.compose
-    implementation libs.androidx.paging.runtime
-
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.androidx.compose.ui.test.junit4
@@ -129,15 +120,8 @@ dependencies {
     testImplementation libs.turbine
     testImplementation libs.kotlinx.coroutines.test
 
-    implementation libs.androidx.room.common
+    // Room compiler still needed for :app's own usage (DAOs in repositories)
     ksp libs.androidx.room.compiler
-    implementation libs.androidx.room.runtime
-    implementation libs.androidx.room.ktx
-    implementation libs.androidx.sqlite
-
-    implementation libs.aws.android.sdk.core
-    implementation libs.aws.android.sdk.ddb
-    implementation libs.aws.android.sdk.ddb.mapper
 
     implementation libs.dagger
     implementation libs.dagger.hilt.android
@@ -158,40 +142,17 @@ dependencies {
     implementation libs.firebase.auth
     implementation libs.firebase.config
     implementation libs.firebase.crashlytics
-    implementation libs.firebase.firestore
-
-    implementation platform(libs.arrow.stack)
-    implementation libs.arrow.core
 
     implementation libs.kotlinx.coroutines.core
     implementation libs.kotlinx.coroutines.play.services
 
+    // Compose (Activity uses MaterialTheme, CompositionLocalProvider)
     implementation platform(libs.androidx.compose.bom)
-    implementation libs.androidx.compose.ui
-    implementation libs.androidx.compose.ui.geomtery
-    implementation libs.androidx.compose.ui.graphics
-    implementation libs.androidx.compose.ui.text
-    implementation libs.androidx.compose.runtime
-    implementation libs.androidx.compose.runtime.saveable
-    // Tooling support (Previews, etc.)
-    implementation libs.androidx.compose.ui.tooling
-    implementation libs.androidx.compose.ui.tooling.preview
-    implementation libs.androidx.compose.ui.unit
-    // Foundation (Border, Background, Box, Image, Scroll, shapes, animations, etc.)
-    implementation libs.androidx.compose.foundation
-    implementation libs.androidx.compose.foundation.layout
-    // Material Design
-    implementation libs.androidx.compose.material
-    // Material design icons
-    implementation libs.androidx.compose.material.icons.core
-    implementation libs.androidx.compose.material.icons.extended
-    // Integration with observables
-    // Integration with activities
     implementation libs.androidx.activity.compose
-    // Animations
-    implementation libs.androidx.compose.animation
-    implementation libs.androidx.compose.animation.core
-    // Integration with ViewModels
+    implementation libs.androidx.compose.material
+    implementation libs.androidx.compose.runtime
+
+    // ViewModels (used in Activity)
     testImplementation libs.androidx.lifecycle.livedata.core
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.viewmodel.compose
