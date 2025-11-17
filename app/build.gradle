@@ -86,7 +86,7 @@ android {
 
 dependencies {
     // Module dependencies
-    implementation project(':tomove')
+    implementation project(':ui')
     implementation project(':room')
     implementation project(':dynamo')
     implementation project(':identity')

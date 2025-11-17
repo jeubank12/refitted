@@ -14,6 +14,21 @@ android {
         minSdk = 26
     }
 
+    buildTypes {
+      release {
+        val Refitted_IdentityPoolId: String by rootProject.extra
+        val Refitted_OpenIdSource: String by rootProject.extra
+        resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
+        resValue("string", "firebase_id_source", Refitted_OpenIdSource)
+      }
+      debug {
+        val Refitted_IdentityPoolId: String by rootProject.extra
+        val Refitted_OpenIdSource: String by rootProject.extra
+        resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
+        resValue("string", "firebase_id_source", Refitted_OpenIdSource)
+      }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

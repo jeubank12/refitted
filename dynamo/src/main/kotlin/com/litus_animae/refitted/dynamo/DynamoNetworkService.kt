@@ -23,20 +23,17 @@ abstract class DynamoNetworkService(
   context: Context,
   protected val log: LogUtil,
   protected val authProvider: AuthProvider,
-  private val cognitoIdentityPoolId: String,
-  private val dynamoTable: String,
-  private val firebaseIdSource: String
 ) {
   private val applicationContext = context.applicationContext
   private val credentialsProvider: CognitoCachingCredentialsProvider by lazy {
     CognitoCachingCredentialsProvider(
       applicationContext,
-      cognitoIdentityPoolId,
+      applicationContext.getString(R.string.cognito_identity_pool_id),
       Regions.US_EAST_2
     )
   }
-  private val tableName: String = dynamoTable
-  private val openIdSource: String = firebaseIdSource
+  private val tableName: String = applicationContext.getString(R.string.dynamo_table)
+  private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
   // TODO this needs to be called again when the user changes...
   protected suspend fun getDb(): DynamoDBMapper {

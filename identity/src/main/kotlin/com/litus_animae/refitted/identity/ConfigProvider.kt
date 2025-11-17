@@ -23,7 +23,6 @@ import javax.inject.Singleton
 class ConfigProvider @Inject constructor(
   private val log: LogUtil,
   private val isDebug: Boolean,
-  private val defaultsResourceId: Int
 ) {
   companion object {
     private const val TAG = "ConfigProvider"
@@ -49,10 +48,10 @@ class ConfigProvider @Inject constructor(
       }
 
       instance to instance.setConfigSettingsAsync(configSettings)
-        .continueWithTask { instance.setDefaultsAsync(defaultsResourceId) }
+        .continueWithTask { instance.setDefaultsAsync(R.xml.remote_config_defaults) }
         .continueWithTask { instance.fetchAndActivate() }
     } else {
-      instance to instance.setDefaultsAsync(defaultsResourceId)
+      instance to instance.setDefaultsAsync(R.xml.remote_config_defaults)
         .continueWithTask { instance.fetchAndActivate() }
     }
   }

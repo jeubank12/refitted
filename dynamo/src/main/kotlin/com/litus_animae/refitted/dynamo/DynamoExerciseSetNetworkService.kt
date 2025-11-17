@@ -24,11 +24,8 @@ class DynamoExerciseSetNetworkService @Inject constructor(
   @ApplicationContext context: Context,
   log: LogUtil,
   authProvider: AuthProvider,
-  @Named("cognitoIdentityPoolId") cognitoIdentityPoolId: String,
-  @Named("dynamoTable") dynamoTable: String,
-  @Named("firebaseIdSource") firebaseIdSource: String
 ) :
-  DynamoNetworkService(context, log, authProvider, cognitoIdentityPoolId, dynamoTable, firebaseIdSource), ExerciseSetNetworkService {
+  DynamoNetworkService(context, log, authProvider), ExerciseSetNetworkService {
   override suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet> {
     val (workoutDay, workoutId) = dayAndWorkout
     return withContext(Dispatchers.IO) {
