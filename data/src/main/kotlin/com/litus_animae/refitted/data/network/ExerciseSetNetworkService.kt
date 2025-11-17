@@ -9,13 +9,13 @@ import com.litus_animae.refitted.data.models.ExerciseSet
  * Used for network responses.
  */
 data class NetworkExerciseSet(
-    val set: ExerciseSet,
-    val exercise: Exercise
+  val set: ExerciseSet,
+  val exercise: Exercise
 )
 
 /**
  * Network service interface for fetching exercise sets.
  */
 interface ExerciseSetNetworkService {
-    suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet>
+  suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet>
 }
