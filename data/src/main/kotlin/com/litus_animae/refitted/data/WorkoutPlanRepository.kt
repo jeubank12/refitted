@@ -10,9 +10,9 @@ import java.time.Instant
  * Abstracts data access for workout plans and user preferences.
  */
 interface WorkoutPlanRepository {
-    val workouts: Flow<PagingData<WorkoutPlan>>
-    fun workoutByName(name: String): Flow<WorkoutPlan?>
-    suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
-    suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
-    suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)
+  val workouts: Flow<PagingData<WorkoutPlan>>
+  fun workoutByName(name: String): Flow<WorkoutPlan?>
+  suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
+  suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
+  suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)
 }
