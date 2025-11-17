@@ -99,42 +99,73 @@ npm run lint
 
 ## Architecture
 
+### Multi-Module Architecture
+
+The Android app uses **modular architecture** with clear separation of concerns. Each module has specific responsibilities and dependencies are managed via Gradle module dependencies and Hilt DI.
+
+**Module Dependency Graph:**
+```
+:app (Glue Layer)
+├── :ui (Presentation)
+│   ├── :data (Domain)
+│   ├── :identity (Firebase)
+│   └── :util (Utilities)
+├── :room (Local Persistence)
+│   └── :data
+├── :dynamo (Network)
+│   ├── :data
+│   └── :util
+└── :identity
+```
+
+**For detailed module documentation, see:**
+- `data/CLAUDE.md` - Domain models and repository interfaces
+- `room/CLAUDE.md` - Room database, entities, DAOs
+- `dynamo/CLAUDE.md` - DynamoDB network services
+- `util/CLAUDE.md` - Shared utility functions
+- `identity/CLAUDE.md` - Firebase Auth, Config, Crashlytics
+- `ui/CLAUDE.md` - ViewModels, Jetpack Compose UI
+- `app/CLAUDE.md` - Application entry point, DI, repository implementations
+
 ### MVVM with Repository Pattern
 
 **Layers (bottom to top):**
 
-1. **Data Sources**
-   - **Room Database** (`RefittedRoom`): Local SQLite cache with extensive migration history
-   - **Network Services** (DynamoDB): AWS-backed remote storage via `DynamoExerciseSetNetworkService` and `DynamoWorkoutPlanNetworkService`
+1. **Domain Layer** (`:data` module)
+   - Pure Kotlin domain models: `Exercise`, `ExerciseSet`, `WorkoutPlan`, `Record`
+   - Repository interfaces: `ExerciseRepository`, `WorkoutPlanRepository`, `SavedStateRepository`
+   - No Android or implementation dependencies
 
-2. **Data Access (DAOs)**
-   - `ExerciseDao`: Exercise sets, records, pagination
-   - `WorkoutPlanDao`: Workout plans with paging
-   - `SavedStateDao`: Key-value state persistence
+2. **Data Sources**
+   - **:room module**: Local SQLite cache with Room database, extensive migration history
+   - **:dynamo module**: Network access via AWS DynamoDB services
+   - **:identity module**: Firebase Auth, Remote Config, Crashlytics
 
-3. **Repositories** (abstraction layer)
-   - `ExerciseRepository` → `RoomCacheExerciseRepository`: Manages exercises with offline-first caching using `AsyncPagingDataDiffer`
-   - `WorkoutPlanRepository` → `RoomCacheWorkoutPlanRepository`: Paged workout plans with `RemoteMediator` for network sync
-   - `SavedStateRepository` → `RoomSavedStateRepository`: Simple state persistence
+3. **Repository Implementations** (`:app` module - glue layer)
+   - `RoomCacheExerciseRepository`: Offline-first caching bridging Room + DynamoDB
+   - `RoomCacheWorkoutPlanRepository`: Network-aware caching with `RemoteMediator`
+   - Implements domain interfaces, coordinates data sources
 
-4. **ViewModels** (business logic, Hilt-injected)
-   - `ExerciseViewModel`: Exercise flow, alternate exercises, complex Flow combinations
-   - `WorkoutViewModel`: Workout selection, progress tracking, uses `SavedStateHandle`
-   - `UserViewModel`: Firebase authentication, feature flags
-
-5. **UI (Jetpack Compose)**
-   - `compose/calendar/`: Workout selection and calendar view
-   - `compose/exercise/`: Exercise execution interface with sets, reps, weight input
-   - Custom saveable state objects (`Weight.Saver`, `Repetitions.Saver`)
+4. **Presentation** (`:ui` module)
+   - **ViewModels** (business logic, Hilt-injected):
+     - `ExerciseViewModel`: Exercise flow, alternate exercises, complex Flow combinations
+     - `WorkoutViewModel`: Workout selection, progress tracking, uses `SavedStateHandle`
+     - `UserViewModel`: Firebase authentication, feature flags
+   - **Jetpack Compose UI**:
+     - `compose/calendar/`: Workout selection and calendar view
+     - `compose/exercise/`: Exercise execution interface with sets, reps, weight input
+     - Custom saveable state objects (`Weight.Saver`, `Repetitions.Saver`)
 
 ### Dependency Injection (Hilt)
 
-All modules are in `module/` package:
-- `RefittedRoomModule`: Binds Room database provider (`@Singleton`)
+All Hilt modules are in `:app/module/` package:
+- `RefittedRoomModule`: Provides Room database and DAOs (`@Singleton`)
 - `ExerciseRepositoryModule`: Binds repository implementations (`@ViewModelComponent`)
-- `WorkoutPlanRepositoryModule`, `SavedStateRepositoryModule`, `ExerciseSetNetworkServiceModule`, `LogModule`
+- `WorkoutPlanRepositoryModule`, `SavedStateRepositoryModule`
+- `ExerciseSetNetworkServiceModule`, `WorkoutPlanNetworkServiceModule`
+- `IdentityModule`: Provides `AuthProvider` and `ConfigProvider`
 
-ViewModels use `@HiltViewModel` with constructor injection. Entry point is `RefittedComposeActivity` with `@AndroidEntryPoint`.
+ViewModels in `:ui` use `@HiltViewModel` with constructor injection. Application entry point is `RefittedComposeActivity` in `:app` with `@AndroidEntryPoint`.
 
 ### Key Domain Concepts
 
@@ -156,60 +187,81 @@ ViewModels use `@HiltViewModel` with constructor injection. Entry point is `Refi
 
 ### Data Models
 
-**Room Entities**:
+**Domain Models** (`:data` module):
 - `Exercise`: Exercise definitions
-- `RoomExerciseSet`: Exercise sets with step parsing logic
-- `SetRecord`: Completed set data (weight, reps, timestamp)
-- `WorkoutPlan`: Workout programs (days, duration, start date, alternates)
-- `SavedState`: Key-value persistence
-
-**Domain Models**:
-- `ExerciseSet`: Wraps `RoomExerciseSet` with lazy `Flow<Exercise?>` lookup
+- `ExerciseSet`: Exercise set with step parsing logic
 - `ExerciseRecord`: Aggregates exercise set + historical records + pagination info
-- `Record`: Domain model with accumulated stats
+- `Record`: Historical performance record with volume calculation
+- `WorkoutPlan`: Workout programs (days, duration, start date, alternates)
+- `SavedState`: Key-value persistence abstraction
 
-**Network Models** (in `models/dynamo/`):
+**Room Entities** (`:room` module):
+- `RoomExercise`, `RoomExerciseSet`, `RoomSetRecord`, `RoomWorkoutPlan`, `RoomSavedState`
+- Internal to `:room` module, mapped to domain models by repository implementations
+
+**Network Entities** (`:dynamo` module):
 - `MutableExerciseSet`, `DynamoWorkoutPlan`: Serialization models for DynamoDB
+- Internal to `:dynamo` module, mapped to domain models by network services
 
-### Firebase Integration
+### Firebase Integration (`:identity` module)
 
 - **Authentication**: Google Sign-In via `AuthProvider`, anonymous fallback
 - **Remote Config**: Feature flags via `ConfigProvider`
 - **Crashlytics**: Error tracking
-- Configuration exposed to Compose via `CompositionLocal` (`LocalFeatures`)
+- Abstractions allow testing with mocks
+- Configuration exposed to `:ui` Compose via `CompositionLocal` (`LocalFeatures`)
 
-## Package Structure
+## Module Organization
 
-```
-app/src/main/java/com/litus_animae/refitted/
-├── compose/              # Jetpack Compose UI
-│   ├── calendar/         # Workout selection screen
-│   ├── exercise/         # Exercise execution screen
-│   │   ├── input/        # Weight/reps input controls
-│   │   └── set/          # Exercise set display
-│   ├── charts/           # Data visualization
-│   ├── state/            # Reusable compose state
-│   └── util/             # Compose utilities
-├── data/                 # Data layer
-│   ├── room/             # Room DAOs, repositories, paging
-│   ├── dynamo/           # AWS DynamoDB network services
-│   └── network/          # Network service interfaces
-├── models/               # ViewModels and domain models
-│   └── dynamo/           # Network serialization models
-├── module/               # Hilt dependency injection modules
-└── util/                 # Utilities (IterableUtil, LogUtil, etc.)
-```
+The Android app is organized into the following Gradle modules:
+
+### Core Modules
+
+- **:data** - Pure Kotlin domain layer with models and repository interfaces
+- **:util** - Shared utility functions (collection helpers, logging)
+
+### Data Source Modules
+
+- **:room** - Room database for local persistence (SQLite)
+- **:dynamo** - DynamoDB network services for remote storage
+- **:identity** - Firebase integration (Auth, Remote Config, Crashlytics)
+
+### Presentation Module
+
+- **:ui** - ViewModels and Jetpack Compose UI
+
+### Application Module
+
+- **:app** - Application entry point, Hilt DI configuration, repository implementations
+
+**Dependency Flow**: `:app` coordinates all modules. `:data` is the foundation with no dependencies. `:ui`, `:room`, and `:dynamo` depend on `:data`. `:app` bridges `:room` and `:dynamo` to implement offline-first repositories.
+
+**For detailed documentation on each module, see the respective `CLAUDE.md` files:**
+- `data/CLAUDE.md`
+- `room/CLAUDE.md`
+- `dynamo/CLAUDE.md`
+- `util/CLAUDE.md`
+- `identity/CLAUDE.md`
+- `ui/CLAUDE.md`
+- `app/CLAUDE.md`
 
 ## Important Files
 
-| Component | Path |
-|-----------|------|
-| Application Entry | `RefittedApplication.kt`, `RefittedComposeActivity.kt` |
-| Database | `data/room/RefittedRoom.kt` |
-| Repositories | `data/room/RoomCacheExerciseRepository.kt`, `data/room/RoomCacheWorkoutPlanRepository.kt` |
-| ViewModels | `models/ExerciseViewModel.kt`, `models/WorkoutViewModel.kt`, `models/UserViewModel.kt` |
-| Main Screens | `compose/calendar/Main.kt`, `compose/exercise/Main.kt` |
-| Navigation | `compose/Top.kt` |
+| Component | Module | Path |
+|-----------|--------|------|
+| Application Entry | :app | `app/.../RefittedApplication.kt`, `RefittedComposeActivity.kt` |
+| Database | :room | `room/.../RefittedRoom.kt` |
+| Domain Models | :data | `data/.../models/*.kt` |
+| Repository Interfaces | :data | `data/.../repository/*.kt` |
+| Repository Implementations | :app | `app/.../data/room/RoomCache*Repository.kt` |
+| ViewModels | :ui | `ui/.../models/*ViewModel.kt` |
+| Main Screens | :ui | `ui/.../compose/calendar/Main.kt`, `compose/exercise/Main.kt` |
+| Navigation | :ui | `ui/.../compose/Top.kt` |
+| DAOs | :room | `room/.../*Dao.kt` |
+| Network Services | :dynamo | `dynamo/.../Dynamo*NetworkService.kt` |
+| Firebase Providers | :identity | `identity/.../*Provider.kt` |
+
+Note: Paths abbreviated with `...` represent the full package path `com/litus_animae/refitted/`
 
 ## Development Conventions
 
@@ -246,14 +298,14 @@ repository.someFlow.test {
 ```
 
 ### Database Migrations
-- Room database has extensive migration history with all migrations defined in `RefittedRoom.kt`
-- When modifying entities, always provide a migration path
-- Room schema location: `app/schemas/` (configured in build.gradle KSP args)
+- Room database has extensive migration history (v1-v20) defined in `:room/RefittedRoom.kt`
+- When modifying Room entities, always provide a migration path
+- Room schema location: `:room/schemas/` (configured in build.gradle KSP args)
 - DAO implementations are generated by KSP and should not be manually modified
 
 ### Compose State Management
 - Use `rememberSaveable` with custom `Saver` implementations for state that should survive configuration changes
-- Examples: `Weight.Saver`, `Repetitions.Saver` in `compose/exercise/set/`
+- Examples in `:ui` module: `Weight.Saver`, `Repetitions.Saver` in `compose/state/`
 - Prefer `StateFlow` in ViewModels, collect as state in Compose: `viewModel.flow.collectAsState()`
 
 ### Build Variants
@@ -268,12 +320,24 @@ GitHub Actions workflows (`.github/workflows/build.yml`):
 - **Admin**: Lambda function builds, matrix strategy for changed files only
 - **Checks**: Blocks fixup commit merges, path-based job filtering
 
-## Multi-Module Project
+## Repository Components
 
-This repository contains three components:
-1. **app/** - Android application (Kotlin + Compose)
+This repository contains three separate applications:
+
+1. **Android App** (multi-module Kotlin + Compose)
+   - Modules: `:app`, `:ui`, `:data`, `:room`, `:dynamo`, `:util`, `:identity`
+   - See module-specific `CLAUDE.md` files for details
+
 2. **web/** - Next.js web interface (TypeScript + React + Redux + Material-UI)
-3. **admin/** - AWS Lambda functions (TypeScript)
+   - Separate web application sharing DynamoDB backend
 
-All three share the same AWS DynamoDB backend for data storage.
+3. **admin/** - AWS Lambda functions (TypeScript)
+   - Backend administration functions
+
+All three components share the same AWS DynamoDB backend for data storage.
+
+## Code Conventions
+
 - Avoid fully qualified class names in code. Prefer file imports and use renames in the import syntax
+- Keep modules focused: domain logic in `:data`, persistence in `:room`, UI in `:ui`, etc.
+- Repository implementations in `:app` bridge multiple data sources (Room + DynamoDB)
