@@ -89,6 +89,7 @@ dependencies {
     implementation project(':tomove')
     implementation project(':room')
     implementation project(':dynamo')
+    implementation project(':identity')
 
     implementation libs.androidx.activity
     implementation libs.androidx.annotation
