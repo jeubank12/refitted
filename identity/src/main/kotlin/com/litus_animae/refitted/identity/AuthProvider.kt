@@ -1,4 +1,4 @@
-package com.litus_animae.refitted.dynamo.firebase
+package com.litus_animae.refitted.identity
 
 import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.firebase.auth.FirebaseAuth

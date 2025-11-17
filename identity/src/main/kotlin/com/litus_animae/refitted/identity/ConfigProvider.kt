@@ -1,5 +1,6 @@
-package com.litus_animae.refitted.data.firebase
+package com.litus_animae.refitted.identity
 
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.ConfigUpdate
 import com.google.firebase.remoteconfig.ConfigUpdateListener
@@ -8,11 +9,10 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigValue
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
-import com.litus_animae.refitted.BuildConfig
-import com.litus_animae.refitted.R
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
@@ -20,7 +20,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ConfigProvider @Inject constructor(private val log: LogUtil) {
+class ConfigProvider @Inject constructor(
+  private val log: LogUtil,
+  private val isDebug: Boolean,
+  private val defaultsResourceId: Int
+) {
   companion object {
     private const val TAG = "ConfigProvider"
 
@@ -35,20 +39,20 @@ class ConfigProvider @Inject constructor(private val log: LogUtil) {
     )
   }
 
-  private val _config by lazy {
+  private val _config: Pair<FirebaseRemoteConfig, Task<Boolean?>> by lazy {
     log.d(TAG, "initializing FirebaseConfig on ${Thread.currentThread().name}")
     val instance = Firebase.remoteConfig
 
-    if (BuildConfig.DEBUG) {
+    if (isDebug) {
       val configSettings = remoteConfigSettings {
         minimumFetchIntervalInSeconds = 60
       }
 
       instance to instance.setConfigSettingsAsync(configSettings)
-        .continueWithTask { instance.setDefaultsAsync(R.xml.remote_config_defaults) }
+        .continueWithTask { instance.setDefaultsAsync(defaultsResourceId) }
         .continueWithTask { instance.fetchAndActivate() }
     } else {
-      instance to instance.setDefaultsAsync(R.xml.remote_config_defaults)
+      instance to instance.setDefaultsAsync(defaultsResourceId)
         .continueWithTask { instance.fetchAndActivate() }
     }
   }
@@ -59,7 +63,7 @@ class ConfigProvider @Inject constructor(private val log: LogUtil) {
     return instance
   }
 
-  val currentConfig = callbackFlow {
+  val currentConfig: Flow<RemoteConfig> = callbackFlow {
     val (instance, setup) = _config
 
     log.d(TAG, "launching config flow on ${Thread.currentThread().name}")

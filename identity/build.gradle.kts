@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.litus_animae.refitted.dynamo"
+    namespace = "com.litus_animae.refitted.identity"
     compileSdk = 36
 
     defaultConfig {
@@ -26,9 +26,8 @@ android {
 }
 
 dependencies {
-    // Module dependencies
-    api(project(":data"))
-    implementation(project(":identity"))
+    // Modules
+    implementation(project(":util"))
 
     // Core dependencies
     implementation(libs.androidx.annotation)
@@ -38,14 +37,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
 
-    // AWS SDK
-    implementation(libs.aws.android.sdk.core)
-    implementation(libs.aws.android.sdk.ddb)
-    implementation(libs.aws.android.sdk.ddb.mapper)
-
-    // Firebase (for types returned by AuthProvider)
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.config)
 
     // Hilt
     implementation(libs.dagger.hilt.core)

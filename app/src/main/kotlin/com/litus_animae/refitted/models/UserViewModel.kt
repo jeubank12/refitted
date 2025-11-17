@@ -13,10 +13,9 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.litus_animae.refitted.BuildConfig
 import com.litus_animae.refitted.data.SavedStateRepository
-import com.litus_animae.refitted.dynamo.firebase.AuthProvider
-import com.litus_animae.refitted.data.firebase.ConfigProvider
+import com.litus_animae.refitted.identity.AuthProvider
+import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +25,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import javax.inject.Named
 
 @ExperimentalCoroutinesApi
 @HiltViewModel
@@ -33,7 +33,8 @@ class UserViewModel @Inject constructor(
   private val log: LogUtil,
   private val savedStateRepo: SavedStateRepository,
   private val authProvider: AuthProvider,
-  private val configProvider: ConfigProvider
+  private val configProvider: ConfigProvider,
+  @Named("versionCode") private val versionCode: Int
 ) : ViewModel() {
 
   val userEmail =
@@ -126,12 +127,12 @@ class UserViewModel @Inject constructor(
 
   fun shouldShowChangelog(): Flow<Boolean> {
     return savedStateRepo.getState(ChangelogState)
-      .mapLatest { it != null && it.value != BuildConfig.VERSION_CODE.toString() }
+      .mapLatest { it != null && it.value != versionCode.toString() }
   }
 
   fun setChangelogShown() {
     viewModelScope.launch {
-      savedStateRepo.setState(ChangelogState, BuildConfig.VERSION_CODE.toString())
+      savedStateRepo.setState(ChangelogState, versionCode.toString())
     }
   }
 
