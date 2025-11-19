@@ -99,19 +99,15 @@ dependencies {
 
     // UI Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.bundles.compose.testing
     androidTestImplementation platform(libs.junit)
-    androidTestImplementation libs.junit.jupiter
-    debugRuntimeOnly libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.bundles.junit
     androidTestImplementation libs.dagger.hilt.android.testing
     kaptAndroidTest libs.dagger.hilt.android.compiler
     androidTestImplementation libs.androidx.room.testing
     testImplementation platform(libs.junit)
-    testImplementation libs.junit.jupiter
-    testImplementation libs.junit.jupiter.api
-    testRuntimeOnly libs.junit.jupiter.engine
-    testRuntimeOnly libs.junit.platform.engine
-    testRuntimeOnly libs.junit.platform.launcher
+    testImplementation libs.bundles.junit
+    testRuntimeOnly libs.bundles.junit.runtime
     testImplementation libs.truth
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.monitor
@@ -123,12 +119,10 @@ dependencies {
     // Room compiler still needed for :app's own usage (DAOs in repositories)
     ksp libs.androidx.room.compiler
 
+    implementation libs.bundles.hilt
     implementation libs.dagger
-    implementation libs.dagger.hilt.android
-    implementation libs.dagger.hilt.core
     kapt libs.dagger.compiler
     kapt libs.dagger.hilt.android.compiler
-    annotationProcessor libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
     kspAndroidTest libs.androidx.hilt.compiler
 

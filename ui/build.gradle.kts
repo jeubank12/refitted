@@ -72,12 +72,10 @@ dependencies {
     api(libs.androidx.paging.runtime)
 
     // Hilt
+    implementation(libs.bundles.hilt)
     implementation(libs.dagger)
-    implementation(libs.dagger.hilt.android)
-    implementation(libs.dagger.hilt.core)
     kapt(libs.dagger.compiler)
     kapt(libs.dagger.hilt.android.compiler)
-    annotationProcessor(libs.dagger.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
@@ -101,23 +99,10 @@ dependencies {
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.geomtery)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.text)
-    implementation(libs.androidx.compose.runtime)
-    implementation(libs.androidx.compose.runtime.saveable)
-    implementation(libs.androidx.compose.ui.tooling)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.ui.unit)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.foundation.layout)
-    implementation(libs.androidx.compose.material)
-    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.bundles.compose)
+    implementation(libs.bundles.compose.tooling)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.animation)
-    implementation(libs.androidx.compose.animation.core)
 
     // Lifecycle
     testImplementation(libs.androidx.lifecycle.livedata.core)
@@ -135,11 +120,8 @@ dependencies {
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.junit.jupiter)
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testRuntimeOnly(libs.junit.platform.engine)
-    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.bundles.junit)
+    testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
