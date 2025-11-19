@@ -22,43 +22,75 @@ updates:
   reviewers:
   - "jeubank12"
   groups:
-    tests:
+    # ANDROID UI FRAMEWORK (mega group - handles all AndroidX convergence)
+    # Why grouped: room-paging bridges Room ↔ Paging ↔ Compose
+    #              All *-compose variants depend on compose.runtime
+    #              Platform-aligned lifecycle, navigation, activity, savedstate
+    android-ui-framework:
+      patterns:
+        - "*compose*"
+        - "*room*"
+        - "*sqlite*"
+        - "*paging*"
+        - "*navigation*"
+        - "*lifecycle*"
+        - "androidx.activity*"
+        - "androidx.fragment*"
+        - "*savedstate*"
+        - "*credentials*"
+        - "*accompanist*"
+        - "com.google.android.libraries.identity.googleid*"
+
+    # BACKEND SERVICES (interact for auth/identity federation)
+    # Why grouped: Firebase Auth used with AWS Cognito for identity
+    backend-services:
+      patterns:
+        - "com.google.firebase*"
+        - "*firebase*"
+        - "com.amazonaws*"
+
+    # DEPENDENCY INJECTION (hilt depends on dagger core)
+    dependency-injection:
+      patterns:
+        - "*hilt*"
+        - "*dagger*"
+
+    # KOTLIN ECOSYSTEM (language + stdlib + coroutines + functional)
+    # Why grouped: Coroutines BOM, Arrow platform, all Kotlin-related
+    kotlin-ecosystem:
+      patterns:
+        - "org.jetbrains.kotlin*"
+        - "org.jetbrains.kotlinx*"
+        - "kotlin*"
+        - "*ksp*"
+        - "io.arrow-kt*"
+
+    # TESTING (pure testing tools, no production convergence)
+    testing:
       patterns:
         - "*junit*"
         - "com.google.truth*"
-        - "androidx-test*"
-    compose:
-      patterns:
-        - "*compose*"
-        - "*accompanist*"
-      exclude-patterns:
-        - "*navigation-compose"
-        - "*lifecycle*"
-        - "*activity-compose"
-    room:
-      patterns:
-        - "*room*"
-        - "*sqlite"
-    androidx:
+        - "androidx.test*"
+        - "io.mockk*"
+        - "app.cash.turbine*"
+
+    # ANDROIDX CORE (fallback for remaining androidx libs)
+    androidx-core:
       patterns:
         - "androidx*"
-    paging:
-      patterns:
+      exclude-patterns:
+        - "*compose*"
+        - "*room*"
+        - "*sqlite*"
         - "*paging*"
-    lifecycle:
-      patterns:
+        - "*navigation*"
         - "*lifecycle*"
-    kotlin:
-      patterns:
-        - "org.jetbrains.kotlin*"
-        - "org.jetbrains.kotlinx"
-        - "kotlin*"
-        - "*ktx"
-        - "*ksp"
-    hilt:
-      patterns:
+        - "androidx.activity*"
+        - "androidx.fragment*"
+        - "*savedstate*"
+        - "*credentials*"
         - "*hilt*"
-        - "*navigation-compose"
+        - "androidx.test*"
 
 # Updates for npm dependencies used in web
 - package-ecosystem: npm
