@@ -48,10 +48,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     // Room (exposed as api - :app repository implementations use these)
-    api(libs.androidx.room.common)
-    api(libs.androidx.room.runtime)
-    api(libs.androidx.room.ktx)
-    api(libs.androidx.room.paging)
+    api(libs.bundles.room)
     api(libs.androidx.sqlite)
     ksp(libs.androidx.room.compiler)
 
@@ -59,18 +56,14 @@ dependencies {
     api(libs.androidx.paging.runtime)
 
     // Hilt
-    implementation(libs.dagger.hilt.core)
-    implementation(libs.dagger.hilt.android)
+    implementation(libs.bundles.hilt)
     kapt(libs.dagger.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.junit.jupiter)
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testRuntimeOnly(libs.junit.platform.engine)
-    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.bundles.junit)
+    testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
