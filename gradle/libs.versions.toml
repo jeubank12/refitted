@@ -120,6 +120,69 @@ truth = { module = "com.google.truth:truth", version.ref = "truth" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 androidx-lifecycle-runtime-compose-android = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose-android", version.ref = "lifecycleRuntimeComposeAndroid" }
 
+[bundles]
+# Compose - Core UI libraries used together in :ui and :app modules
+compose = [
+    "androidx-compose-ui",
+    "androidx-compose-ui-graphics",
+    "androidx-compose-ui-text",
+    "androidx-compose-ui-unit",
+    "androidx-compose-ui-geomtery",
+    "androidx-compose-runtime",
+    "androidx-compose-runtime-saveable",
+    "androidx-compose-foundation",
+    "androidx-compose-foundation-layout",
+    "androidx-compose-material",
+    "androidx-compose-material-icons-core",
+    "androidx-compose-animation",
+    "androidx-compose-animation-core",
+]
+
+# Compose - Development tooling (debug builds)
+compose-tooling = [
+    "androidx-compose-ui-tooling",
+    "androidx-compose-ui-tooling-preview",
+]
+
+# Compose - Testing utilities
+compose-testing = [
+    "androidx-compose-ui-test-junit4",
+    "androidx-compose-ui-test-manifest",
+]
+
+# Room - Runtime libraries for local persistence
+room = [
+    "androidx-room-common",
+    "androidx-room-runtime",
+    "androidx-room-ktx",
+    "androidx-room-paging",
+]
+
+# Hilt - Core dependency injection runtime
+hilt = [
+    "dagger-hilt-core",
+    "dagger-hilt-android",
+]
+
+# Hilt - Annotation processors (KSP/KAPT)
+hilt-compiler = [
+    "dagger-hilt-android-compiler",
+    "androidx-hilt-compiler",
+]
+
+# JUnit - Core testing framework
+junit = [
+    "junit-jupiter",
+    "junit-jupiter-api",
+]
+
+# JUnit - Test runtime engines
+junit-runtime = [
+    "junit-jupiter-engine",
+    "junit-platform-engine",
+    "junit-platform-launcher",
+]
+
 [plugins]
 application = { id = "com.android.application", version.ref = "gradle" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
