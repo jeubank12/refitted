@@ -27,6 +27,22 @@ plugins {
     alias libs.plugins.ksp apply false
 }
 
+dependencyAnalysis {
+    issues {
+        all {
+            onAny {
+                // Using 'warn' initially to identify issues without failing builds
+                // Goal: migrate to 'fail' once all issues are resolved
+                severity('warn')
+            }
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'com.autonomousapps.dependency-analysis'
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
