@@ -90,22 +90,21 @@ dependencies {
     implementation project(':dynamo')
     implementation project(':data')
     implementation project(':util')
+    implementation project(':identity')
 
     // Core Android
     implementation libs.androidx.activity
     implementation libs.androidx.appcompat
-    implementation libs.androidx.lifecycle.runtime.compose.android
+    implementation libs.guava
 
     // Hilt
     implementation libs.bundles.hilt
     implementation libs.dagger
+    implementation libs.javax.inject
     kapt libs.dagger.compiler
     kapt libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
     kspAndroidTest libs.androidx.hilt.compiler
-
-    // Hilt Compose Integration (used directly in Activity)
-    implementation libs.androidx.hilt.lifecycle.viewmodel.compose
 
     // Room compiler still needed for :app's own usage (PagingSource in repositories)
     ksp libs.androidx.room.compiler
@@ -114,12 +113,17 @@ dependencies {
     implementation libs.androidx.paging.common
     implementation libs.androidx.paging.runtime
     implementation libs.androidx.room.runtime
+    implementation libs.androidx.annotation
+    implementation libs.androidx.fragment
+    implementation libs.androidx.recyclerview
 
     // Lifecycle (used directly in repositories and Activity)
     implementation libs.androidx.lifecycle.common
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.lifecycle.viewmodel.savedstate
+    implementation libs.androidx.lifecycle.runtime.compose.android
+    implementation libs.androidx.hilt.lifecycle.viewmodel.compose
 
     // Firebase (app-level services)
     implementation platform(libs.firebase.bom)
@@ -150,15 +154,16 @@ dependencies {
 
     // Android Instrumentation Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.androidx.compose.ui.test.junit4
     androidTestRuntimeOnly libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.androidx.compose.ui.test
     androidTestImplementation platform(libs.junit)
     androidTestImplementation libs.androidx.test.ext.junit
     androidTestImplementation libs.androidx.test.core
-    androidTestImplementation libs.junit.legacy
     androidTestImplementation libs.androidx.test.runner
-    androidTestImplementation libs.dagger.hilt.android.testing
     androidTestImplementation libs.androidx.room.runtime
+    androidTestImplementation libs.junit.legacy
+    androidTestImplementation libs.dagger.hilt.android.testing
     kaptAndroidTest libs.dagger.compiler
     kaptAndroidTest libs.dagger.hilt.android.compiler
 }
