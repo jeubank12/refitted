@@ -3,9 +3,6 @@ import com.android.build.api.dsl.LibraryExtension
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
 extensions.configure<LibraryExtension> {
@@ -36,26 +33,19 @@ extensions.configure<LibraryExtension> {
 }
 
 dependencies {
-    // Module dependencies
-    api(project(":util"))
-
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
-
-    // Kotlin
+    // Kotlin & Coroutines
     implementation(libs.kotlinx.coroutines.core)
+    runtimeOnly(libs.kotlinx.coroutines.android)
 
-    // Paging
-    api(libs.androidx.paging.runtime)
+    // Paging (used directly in repository interfaces)
+    implementation(libs.androidx.paging.common)
 
-    // Hilt
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
+    // Dependency Injection (lint support)
+    runtimeOnly(libs.dagger.lint.aar)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
