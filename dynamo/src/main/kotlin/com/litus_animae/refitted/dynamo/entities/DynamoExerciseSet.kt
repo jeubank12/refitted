@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.flowOf
  * Domain code should use the corresponding model from :data instead.
  */
 @DynamoDBTable(tableName = "refitted-exercise")
-data class DynamoExerciseSet @JvmOverloads constructor(
+internal data class DynamoExerciseSet @JvmOverloads constructor(
   @get:DynamoDBIndexHashKey(attributeName = "Disc", globalSecondaryIndexName = "Reverse-index")
   @get:DynamoDBAttribute(attributeName = "Disc")
   @get:DynamoDBRangeKey(attributeName = "Disc")

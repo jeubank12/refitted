@@ -13,7 +13,7 @@ import com.litus_animae.refitted.data.models.Exercise
  * Domain code should use the corresponding model from :data instead.
  */
 @DynamoDBTable(tableName = "refitted-exercise")
-data class DynamoExercise @JvmOverloads constructor(
+internal data class DynamoExercise @JvmOverloads constructor(
   @get:DynamoDBIndexHashKey(attributeName = "Disc", globalSecondaryIndexName = "Reverse-index")
   @get:DynamoDBAttribute(attributeName = "Disc")
   @get:DynamoDBRangeKey(attributeName = "Disc")

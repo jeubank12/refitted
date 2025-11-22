@@ -6,7 +6,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.model.Condition
 
-object DynamoUtil {
+internal object DynamoUtil {
   fun <T> DynamoDBMapper.queryReverseIndex(
     clazz: Class<T>,
     hashValue: T,

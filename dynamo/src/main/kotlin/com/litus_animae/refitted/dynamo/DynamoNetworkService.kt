@@ -12,17 +12,16 @@ import com.litus_animae.refitted.identity.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.tasks.await
 import java.time.Duration
 import java.time.Instant
 
 @ExperimentalCoroutinesApi
 @FlowPreview
-abstract class DynamoNetworkService(
+internal class DynamoNetworkService(
   context: Context,
-  protected val log: LogUtil,
-  protected val authProvider: AuthProvider,
+  val log: LogUtil,
+  val authProvider: AuthProvider,
 ) {
   private val applicationContext = context.applicationContext
   private val credentialsProvider: CognitoCachingCredentialsProvider by lazy {
@@ -36,7 +35,7 @@ abstract class DynamoNetworkService(
   private val openIdSource: String = applicationContext.getString(R.string.firebase_id_source)
 
   // TODO this needs to be called again when the user changes...
-  protected suspend fun getDb(): DynamoDBMapper {
+  suspend fun getDb(): DynamoDBMapper {
     log.d(TAG, "getting Dynamo db")
     val currentUser = authProvider.auth().currentUser!!
     val idToken = currentUser.getIdToken(false).await()

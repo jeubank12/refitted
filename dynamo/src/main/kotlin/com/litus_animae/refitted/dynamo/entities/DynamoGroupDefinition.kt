@@ -10,7 +10,7 @@ import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBTable
  * Defines which workouts are accessible to different user groups (free, premium, etc.)
  */
 @DynamoDBTable(tableName = "refitted-exercise")
-data class DynamoGroupDefinition @JvmOverloads constructor(
+internal data class DynamoGroupDefinition @JvmOverloads constructor(
   @get:DynamoDBAttribute(attributeName = "Id")
   @get:DynamoDBHashKey(attributeName = "Id")
   var groupId: String?,
