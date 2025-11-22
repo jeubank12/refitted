@@ -319,3 +319,4 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Avoid fully qualified class names in code. Prefer file imports and use renames in the import syntax
 - Keep modules focused: domain logic in `:data`, persistence in `:room`, UI in `:ui`, etc.
 - Repository implementations in `:app` bridge multiple data sources (Room + DynamoDB)
+- prefer succinct commit messages that explain the changes that are not otherwise obvious from the code diff
