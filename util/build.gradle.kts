@@ -3,9 +3,7 @@ import com.android.build.api.dsl.LibraryExtension
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
 extensions.configure<LibraryExtension> {
@@ -36,19 +34,18 @@ extensions.configure<LibraryExtension> {
 }
 
 dependencies {
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
+    // Dependency Injection (Dagger)
+    api(libs.dagger)
+    kapt(libs.dagger.compiler)
+    runtimeOnly(libs.dagger.lint.aar)
 
-    // Kotlin
-    implementation(libs.kotlinx.coroutines.core)
-
-    // Hilt
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
+    // Coroutines runtime
+    runtimeOnly(libs.kotlinx.coroutines.android)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
