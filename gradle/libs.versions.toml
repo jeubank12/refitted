@@ -147,24 +147,10 @@ compose-tooling = [
     "androidx-compose-ui-tooling-preview",
 ]
 
-# Compose - Testing utilities
-compose-testing = [
-    "androidx-compose-ui-test-junit4",
-    "androidx-compose-ui-test-manifest",
-]
-
-# Room - Runtime libraries for local persistence
-room = [
-    "androidx-room-common",
-    "androidx-room-runtime",
-    "androidx-room-ktx",
-    "androidx-room-paging",
-]
-
-# JUnit - Core testing framework
-junit = [
-    "junit-jupiter",
-    "junit-jupiter-api",
+# Hilt - Core dependency injection runtime
+hilt = [
+    "dagger-hilt-core",
+    "dagger-hilt-android",
 ]
 
 # JUnit - Test runtime engines
