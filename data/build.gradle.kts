@@ -1,9 +1,6 @@
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -34,27 +31,19 @@ android {
 }
 
 dependencies {
-    // Module dependencies
-    api(project(":util"))
-
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
-
-    // Kotlin
+    // Kotlin & Coroutines
     implementation(libs.kotlinx.coroutines.core)
+    runtimeOnly(libs.kotlinx.coroutines.android)
 
-    // Paging
-    api(libs.androidx.paging.runtime)
+    // Paging (used directly in repository interfaces)
+    implementation(libs.androidx.paging.common)
 
-    // Hilt
-    implementation(libs.bundles.hilt)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    // Dependency Injection (lint support)
+    runtimeOnly(libs.dagger.lint.aar)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
