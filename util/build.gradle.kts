@@ -44,6 +44,5 @@ dependencies {
     testImplementation(platform(libs.junit))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
-    testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
 }
