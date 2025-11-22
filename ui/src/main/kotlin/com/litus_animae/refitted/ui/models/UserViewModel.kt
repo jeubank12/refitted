@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.models
 
+import android.os.Bundle
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +39,7 @@ class UserViewModel @Inject constructor(
   @param:Named("googleWebClientId") val googleWebClientId: String
 ) : ViewModel() {
 
-  val userEmail =
+  val userEmail: Flow<String?> =
     authProvider.currentUser
       .map { it?.email }
       .map {
@@ -47,7 +48,7 @@ class UserViewModel @Inject constructor(
         } else it
       }
 
-  val userIsAdmin =
+  val userIsAdmin: Flow<Boolean> =
     authProvider.currentUser
       .map { it?.getIdToken(false)?.await() }
       .map { it?.claims?.get("admin")?.toString() == "true" }
@@ -60,36 +61,19 @@ class UserViewModel @Inject constructor(
     }
   }
 
-  fun handleSignIn(result: GetCredentialResponse) {
-    // Handle the successfully returned credential.
-    when (val credential = result.credential) {
-
-      // GoogleIdToken credential
-      is CustomCredential -> {
-        if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-          try {
+  fun handleSignIn(credentialData: Bundle) {
+    try {
             // Use googleIdTokenCredential and extract id to validate and
             // authenticate on your server.
             val googleIdTokenCredential = GoogleIdTokenCredential
-              .createFrom(credential.data)
-            Log.d(TAG, "firebaseAuthWithGoogle:" + googleIdTokenCredential.id)
+              .createFrom(credentialData)
+            log.d(TAG, "firebaseAuthWithGoogle:" + googleIdTokenCredential.id)
             val googleCredential =
               GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
             firebaseAuthWithGoogle(googleCredential)
           } catch (e: GoogleIdTokenParsingException) {
-            Log.e(TAG, "Received an invalid google id token response", e)
+            log.e(TAG, "Received an invalid google id token response", e)
           }
-        } else {
-          // Catch any unrecognized custom credential type here.
-          Log.e(TAG, "Unexpected type of credential")
-        }
-      }
-
-      else -> {
-        // Catch any unrecognized credential type here.
-        Log.e(TAG, "Unexpected type of credential")
-      }
-    }
   }
 
   private fun firebaseAuthWithGoogle(credential: AuthCredential) {
@@ -127,25 +111,25 @@ class UserViewModel @Inject constructor(
   }
 
   fun shouldShowChangelog(): Flow<Boolean> {
-    return savedStateRepo.getState(ChangelogState)
+    return savedStateRepo.getState(CHANGELOG_STATE)
       .mapLatest { it != null && it.value != versionCode.toString() }
   }
 
   fun setChangelogShown() {
     viewModelScope.launch {
-      savedStateRepo.setState(ChangelogState, versionCode.toString())
+      savedStateRepo.setState(CHANGELOG_STATE, versionCode.toString())
     }
   }
 
   var userError: String? by mutableStateOf(null)
     private set
 
-  val featureFlags by lazy {
+  val featureFlags: Flow<ConfigProvider.Companion.RemoteConfig> by lazy {
     configProvider.currentConfig
   }
 
   companion object {
     private const val TAG = "UserViewModel"
-    private const val ChangelogState = "ChangelogState"
+    private const val CHANGELOG_STATE = "ChangelogState"
   }
 }
