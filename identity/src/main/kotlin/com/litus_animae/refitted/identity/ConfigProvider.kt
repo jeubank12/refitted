@@ -34,7 +34,7 @@ class ConfigProvider @Inject constructor(
     private val featureKeys = Feature.entries.map { it.flag }.toSet()
 
     data class RemoteConfig(
-      val flags: Map<Feature, FirebaseRemoteConfigValue> = emptyMap()
+      val flags: Map<Feature, String> = emptyMap()
     )
   }
 
@@ -74,7 +74,7 @@ class ConfigProvider @Inject constructor(
             if (it.isSuccessful && it.result) {
               log.d(TAG, "producing config update on ${Thread.currentThread().name}")
               trySend(RemoteConfig(Feature.entries.associateWith { feature ->
-                instance.getValue(
+                instance.getString(
                   feature.flag
                 )
               }))
@@ -89,7 +89,7 @@ class ConfigProvider @Inject constructor(
     }
     setup.await()
     log.d(TAG, "initializing config update on ${Thread.currentThread().name}")
-    send(RemoteConfig(Feature.entries.associateWith { instance.getValue(it.flag) }))
+    send(RemoteConfig(Feature.entries.associateWith { instance.getString(it.flag) }))
 
     val registration = instance.addOnConfigUpdateListener(listener)
 
