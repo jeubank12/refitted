@@ -1,9 +1,7 @@
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -29,11 +27,10 @@ android {
 
 dependencies {
     // Modules
-    implementation(project(":util"))
+    api(project(":util"))
 
     // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
+    api(libs.javax.inject)
 
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
@@ -44,8 +41,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.config)
 
-    // Hilt
-    implementation(libs.bundles.hilt)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    // Dependency Injection (Dagger)
+    api(libs.dagger)
+    kapt(libs.dagger.compiler)
 }
