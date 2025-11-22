@@ -58,27 +58,26 @@ extensions.configure<LibraryExtension> {
 dependencies {
     // Module dependencies
     api(project(":data"))
-    implementation(project(":util"))
-    implementation(project(":identity"))
+    api(project(":util"))
+    api(project(":identity"))
+
+    // Dependency Injection (exposed as api - used in public APIs)
+    api(libs.dagger)
+    api(libs.javax.inject)
+    implementation(libs.bundles.hilt)
+    kapt(libs.dagger.compiler)
+    kapt(libs.dagger.hilt.android.compiler)
+    ksp(libs.androidx.hilt.compiler)
+
+    // Hilt Compose Integration
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     // Core Android
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.annotation)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.guava)
-    implementation(libs.javax.inject)
     implementation(libs.androidx.lifecycle.runtime.compose.android)
-    implementation(libs.androidx.fragment)
-    implementation(libs.androidx.recyclerview)
 
     // Paging (exposed as api - ViewModels expose Flow<PagingData<T>>)
     api(libs.androidx.paging.compose)
-    api(libs.androidx.paging.runtime)
-
-    // Hilt
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.paging.common)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
@@ -103,29 +102,27 @@ dependencies {
     implementation(libs.bundles.compose)
     implementation(libs.bundles.compose.tooling)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.runtime.annotation)
+    implementation(libs.androidx.compose.ui.util)
 
     // Lifecycle
-    testImplementation(libs.androidx.lifecycle.livedata.core)
+    implementation(libs.androidx.lifecycle.common)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.savedstate)
 
-    // Accompanist
-    implementation(libs.accompanist.adaptive)
-
-    // Credentials
-    implementation(libs.androidx.credentials)
+    // Credentials (exposed as api - used in public APIs)
+    api(libs.androidx.credentials)
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Accompanist
+    implementation(libs.accompanist.adaptive)
+
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
-    testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.androidx.core.runtime)
 }
