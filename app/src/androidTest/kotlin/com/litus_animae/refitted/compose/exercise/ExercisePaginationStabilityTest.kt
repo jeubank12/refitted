@@ -9,7 +9,8 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.litus_animae.refitted.HiltTestActivity
 import com.litus_animae.refitted.data.TestDataBuilder
-import com.litus_animae.refitted.data.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.ui.compose.exercise.Exercise
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
