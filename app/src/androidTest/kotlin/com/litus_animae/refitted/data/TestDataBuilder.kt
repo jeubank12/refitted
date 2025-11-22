@@ -1,9 +1,9 @@
 package com.litus_animae.refitted.data
 
-import com.litus_animae.refitted.ui.models.Exercise
-import com.litus_animae.refitted.ui.models.RoomExerciseSet
-import com.litus_animae.refitted.ui.models.SetRecord
-import com.litus_animae.refitted.ui.models.WorkoutPlan
+import com.litus_animae.refitted.room.entities.RoomExercise
+import com.litus_animae.refitted.room.entities.RoomExerciseSet
+import com.litus_animae.refitted.room.entities.RoomWorkoutPlan
+import com.litus_animae.refitted.data.models.SetRecord
 import java.time.Instant
 
 /**
@@ -48,15 +48,15 @@ object TestDataBuilder {
     }
 
     /**
-     * Creates matching Exercise entities for the given exercise sets.
+     * Creates matching RoomExercise entities for the given exercise sets.
      * These are needed for the ExerciseSet.exercise Flow to resolve.
      */
     fun createTestExercises(
         workout: String = TEST_WORKOUT,
         count: Int = 3
-    ): List<Exercise> {
+    ): List<RoomExercise> {
         return (1..count).map { index ->
-            Exercise(
+            RoomExercise(
                 workout = workout,
                 id = "TestCategory_TestExercise$index", // Must match the exercise name after underscore
                 description = "Test exercise $index description"
@@ -65,14 +65,14 @@ object TestDataBuilder {
     }
 
     /**
-     * Creates a test workout plan.
+     * Creates a test RoomWorkoutPlan.
      */
     fun createTestWorkoutPlan(
         workout: String = TEST_WORKOUT,
         totalDays: Int = 84,
         lastViewedDay: Int = 1
-    ): WorkoutPlan {
-        return WorkoutPlan(
+    ): RoomWorkoutPlan {
+        return RoomWorkoutPlan(
             workout = workout,
             totalDays = totalDays,
             lastViewedDay = lastViewedDay,
