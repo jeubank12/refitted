@@ -143,26 +143,22 @@ dependencies {
     testImplementation libs.junit.jupiter.api
     testRuntimeOnly libs.bundles.junit.runtime
     testImplementation libs.mockk
-    testImplementation("io.mockk:mockk-dsl:1.14.6")
+    testImplementation libs.mockk.dsl
     testImplementation libs.truth
     testImplementation libs.turbine
     testImplementation libs.kotlinx.coroutines.test
-    testImplementation project(':data')
-    testImplementation project(':util')
 
     // Android Instrumentation Tests
     androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation("androidx.compose.ui:ui-test:1.9.4")
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
     androidTestRuntimeOnly libs.androidx.compose.ui.test.manifest
     androidTestImplementation platform(libs.junit)
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test:core:1.5.0")
-    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.junit.legacy
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.dagger.hilt.android.testing
     androidTestImplementation libs.androidx.room.runtime
-    androidTestImplementation project(':data')
-    androidTestImplementation project(':util')
     kaptAndroidTest libs.dagger.compiler
     kaptAndroidTest libs.dagger.hilt.android.compiler
 }
