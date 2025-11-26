@@ -12,11 +12,8 @@ on:
 
 jobs:
   claude-review:
-    # Filter by PR author
-    if: |
-      github.event.pull_request.user.login == 'jeubank12' # ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Filter by PR author - only run for jeubank12's PRs
+    if: github.event.pull_request.user.login == 'jeubank12'
 
     runs-on: ubuntu-latest
     permissions:
