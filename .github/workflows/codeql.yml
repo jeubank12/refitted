@@ -22,6 +22,8 @@ on:
 jobs:
   analyze:
     name: Analyze
+    # Skip CodeQL analysis for dependabot commits
+    if: github.actor != 'dependabot[bot]'
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -84,6 +86,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v5
       with:
         dependency-graph: generate-and-submit
+        cache-disabled: true
     - name: Build with Gradle
       if: ${{ matrix.language == 'java-kotlin' }}
       env:
