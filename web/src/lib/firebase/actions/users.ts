@@ -24,6 +24,7 @@ export async function listAllUsers() {
   if (appCheckToken) {
     try {
       await getAppCheck().verifyToken(appCheckToken)
+      console.debug('App check token verified')
     } catch (error) {
       console.error('Failed to verify appcheck token', error)
     }
