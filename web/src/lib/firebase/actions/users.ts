@@ -1,57 +1,38 @@
 'use server'
-import { redirect } from 'next/navigation'
 
 import {
-  initializeApp,
-  cert,
-  ServiceAccount,
-  getApps,
-} from 'firebase-admin/app'
-import { getAuth } from 'firebase-admin/auth'
-import { getAppCheck } from 'firebase-admin/app-check'
+  getAuthenticatedAuth,
+  type AuthenticationError,
+} from './validateTokens'
 
-import { getIdToken } from './auth'
-import serviceAccount from '../firebase.json' assert { type: 'json' }
-import { getAppCheckToken } from './appCheck'
+import type { UserRecord } from 'firebase-admin/auth'
 
-export async function listAllUsers() {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(serviceAccount as ServiceAccount),
-      databaseURL: 'https://refitted-361ee.firebaseio.com',
-    })
+/**
+ * Lists all users in the Firebase Auth system
+ *
+ * This function demonstrates the standard pattern for authenticated server actions:
+ * 1. Get authenticated Auth instance (validates tokens + initializes Firebase Admin)
+ * 2. Return error if authentication fails
+ * 3. Perform authenticated operation
+ *
+ * **Error Handling:**
+ * - Returns AuthenticationError on validation failure
+ * - Client components should check for error and trigger logout
+ * - Do NOT redirect from server actions (causes logout bugs)
+ *
+ * @returns List of users or AuthenticationError
+ */
+export async function listAllUsers(): Promise<
+  { users: UserRecord[] } | AuthenticationError
+> {
+  // Get authenticated Auth instance (handles validation + initialization)
+  const authOrError = await getAuthenticatedAuth()
+  if ('error' in authOrError) {
+    return authOrError
   }
 
-  const appCheckToken = await getAppCheckToken()
-
-  if (appCheckToken) {
-    try {
-      await getAppCheck().verifyToken(appCheckToken)
-      console.debug('App check token verified')
-    } catch (error) {
-      console.error('Failed to verify appcheck token', error)
-      return redirect('/admin')
-    }
-  } else {
-    console.error('No app check token present')
-    return redirect('/admin')
-  }
-
-  const idToken = await getIdToken()
-  if (idToken) {
-    try {
-      await getAuth().verifyIdToken(idToken)
-      console.debug('Id token verified')
-    } catch (error) {
-      console.error('Failed to verify ID token', error)
-      return redirect('/admin')
-    }
-  } else {
-    console.error('No id token present')
-    return redirect('/admin')
-  }
-
-  const users = await getAuth().listUsers(1000)
+  // Perform the authenticated operation
+  const users = await authOrError.listUsers(1000)
 
   return users
 }

@@ -1,4 +1,4 @@
-'use-client'
+'use client'
 import { useMemo } from 'react'
 
 import Table from '@mui/material/Table'
@@ -9,9 +9,20 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 
-import type { UserRecord } from 'firebase-admin/auth'
+/**
+ * Serialized user record from Firebase Admin SDK
+ * This is a plain object version of UserRecord (result of toJSON())
+ */
+type SerializedUserRecord = {
+  uid: string
+  email?: string
+  customClaims?: Record<string, unknown>
+  // Add other fields as needed
+}
 
-const getUserCustomClaimTypes = (users: Array<UserRecord> | undefined) => {
+const getUserCustomClaimTypes = (
+  users: Array<SerializedUserRecord> | undefined
+) => {
   const allCustomClaims = users?.map(user => user.customClaims ?? {}) ?? []
   const customClaimsKeys = allCustomClaims
     .map(claims => Object.keys(claims))
@@ -21,7 +32,11 @@ const getUserCustomClaimTypes = (users: Array<UserRecord> | undefined) => {
   return [...new Set(customClaimsKeys)]
 }
 
-export default function UsersList({ users }: { users: Array<UserRecord> }) {
+export default function UsersList({
+  users,
+}: {
+  users: Array<SerializedUserRecord>
+}) {
   const claimTypes = useMemo(() => getUserCustomClaimTypes(users), [users])
 
   return (

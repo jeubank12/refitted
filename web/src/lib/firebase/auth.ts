@@ -68,7 +68,20 @@ export const useUserSession = () => {
       const check = appCheck.current
       if (!check) return
       const result = await getToken(check)
-      await refreshSession(idToken, result.token)
+      const refreshResult = await refreshSession(idToken, result.token)
+
+      // Check if refresh failed due to tampering
+      if (refreshResult && 'error' in refreshResult) {
+        console.error(
+          'Session refresh failed:',
+          refreshResult.error,
+          '- triggering logout'
+        )
+        // Trigger client-side logout
+        await logout()
+        await auth.authStateReady()
+        await auth.signOut()
+      }
     })
   }, [])
 
