@@ -8,6 +8,7 @@ import {
 import { getAuth } from 'firebase-admin/auth'
 import { getAppCheck } from 'firebase-admin/app-check'
 
+import { getIdToken, logout } from './auth'
 import serviceAccount from '../firebase.json' assert { type: 'json' }
 import { getAppCheckToken } from './appCheck'
 
@@ -27,11 +28,27 @@ export async function listAllUsers() {
       console.debug('App check token verified')
     } catch (error) {
       console.error('Failed to verify appcheck token', error)
+      return logout()
     }
   } else {
     console.error('No app check token present')
+    return logout()
   }
-  // TODO verify id token
+
+  const idToken = await getIdToken()
+  if (idToken) {
+    try {
+      await getAuth().verifyIdToken(idToken)
+      console.debug('Id token verified')
+    } catch (error) {
+      console.error('Failed to verify ID token', error)
+      return logout()
+    }
+  } else {
+    console.error('No id token present')
+    return logout()
+  }
+
   const users = await getAuth().listUsers(1000)
 
   return users
