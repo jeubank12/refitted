@@ -49,7 +49,8 @@ async function writeSession(
     idToken,
     appCheckToken,
   })
-  cookies().set('session', sessionContent, {
+  const requestCookies = await cookies()
+  requestCookies.set('session', sessionContent, {
     httpOnly: true,
     secure: true,
     expires: expiresAt,
@@ -169,7 +170,7 @@ export async function refreshSession(
   // This means session should be cleared
   if (!idToken && (existingIdToken || existingAppCheckToken)) {
     console.log('No idToken from client, clearing existing session')
-    await cookies().delete('session')
+    await (await cookies()).delete('session')
     return { error: 'NO_ID_TOKEN' }
   }
 
@@ -183,7 +184,7 @@ export async function refreshSession(
       'Refresh rejected - partial session (only one token present), likely tampered'
     )
     // Session is compromised, delete it and return error
-    await cookies().delete('session')
+    await (await cookies()).delete('session')
     return { error: 'TAMPERED' }
   }
 
@@ -200,7 +201,7 @@ export async function refreshSession(
         existingValidation.error
       )
       // Existing session is compromised, delete it and return error
-      await cookies().delete('session')
+      await (await cookies()).delete('session')
       return { error: 'TAMPERED' }
     }
   }
@@ -209,7 +210,7 @@ export async function refreshSession(
   if (!idToken) {
     // This should never happen due to earlier checks, but TypeScript needs it
     console.error('Unexpected: idToken is undefined after validation checks')
-    await cookies().delete('session')
+    await (await cookies()).delete('session')
     return { error: 'NO_ID_TOKEN' }
   }
 
@@ -217,7 +218,7 @@ export async function refreshSession(
   const validation = await validateTokens({ idToken, appCheckToken })
   if (!validation.valid) {
     console.error('Refresh failed - invalid new tokens:', validation.error)
-    await cookies().delete('session')
+    await (await cookies()).delete('session')
     return { error: 'INVALID' }
   }
 
@@ -260,12 +261,12 @@ export async function refreshSession(
  */
 export async function logout() {
   console.log('Logout')
-  await cookies().delete('session')
+  await (await cookies()).delete('session')
   return redirect('/admin')
 }
 
 export async function getIdToken(): Promise<string | undefined> {
-  const cookie = cookies().get('session')
+  const cookie = (await cookies()).get('session')
   // Use || instead of ?? to handle empty strings (after cookie deletion)
   const session = JSON.parse(cookie?.value || '{}')
   return Promise.resolve(session?.idToken)
