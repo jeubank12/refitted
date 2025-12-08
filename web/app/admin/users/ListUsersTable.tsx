@@ -40,8 +40,16 @@ export default function UsersList({
   const claimTypes = useMemo(() => getUserCustomClaimTypes(users), [users])
 
   return (
-    <Paper sx={{ width: '100%', maxWidth: 900, overflow: 'hidden' }}>
-      <TableContainer sx={{ maxHeight: '100%' }}>
+    <Paper
+      elevation={3}
+      sx={{
+        width: '100%',
+        maxWidth: 1200,
+        overflow: 'hidden',
+        borderRadius: 2,
+      }}
+    >
+      <TableContainer sx={{ maxHeight: '70vh' }}>
         <Table stickyHeader sx={{ minWidth: 650 }} aria-label="sticky table">
           <TableHead>
             <TableRow>
@@ -57,7 +65,10 @@ export default function UsersList({
             {users.map(user => (
               <TableRow
                 key={user.uid}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                sx={{
+                  '&:last-child td, &:last-child th': { border: 0 },
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
               >
                 <TableCell component="th" scope="row">
                   {user.email || '(anonymous)'}

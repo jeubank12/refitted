@@ -1,4 +1,5 @@
 'use client'
+import Button from '@mui/material/Button'
 import styles from 'styles/Home.module.css'
 import { useUserSession } from 'src/lib/firebase/auth'
 
@@ -19,7 +20,13 @@ export default function UserInfo({
           {`${firebaseUser?.displayName ?? displayName} (${firebaseUser?.email ?? email})`}
         </span>
         {/** add form state to disable after submit? */}
-        <button onClick={logout}>Logout</button>
+        <Button
+          onClick={logout}
+          variant="contained"
+          color="error"
+        >
+          Logout
+        </Button>
       </div>
     )
   )
