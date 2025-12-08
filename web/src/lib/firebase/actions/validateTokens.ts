@@ -73,7 +73,7 @@ import {
 import { getAuth, type Auth } from 'firebase-admin/auth'
 import { getAppCheck } from 'firebase-admin/app-check'
 
-import serviceAccount from '../firebase.json' assert { type: 'json' }
+import serviceAccount from '../firebase.json' with { type: 'json' }
 import { getIdToken } from './auth'
 import { getAppCheckToken } from './appCheck'
 

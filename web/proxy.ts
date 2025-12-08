@@ -71,7 +71,7 @@ interface Session {
  *
  * Note: Does NOT validate token signatures (see validateTokens.ts for that)
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const cookie = request.cookies.get('session')
 
   // Parse session cookie (empty object if not present or empty string)
