@@ -7,50 +7,54 @@ import { initializeServerApp } from 'firebase/app'
 import { getAuth, User } from 'firebase/auth'
 
 import { firebaseConfig } from '../firebaseConfig'
+import { signSessionJwt } from '../../auth/jwt'
 import { getAppCheckToken } from './appCheck'
 import { validateTokens } from './validateTokens'
 
 /**
- * Writes authentication session to cookie
+ * Writes authentication session to cookie as signed JWT
  *
- * Creates an HTTP-only session cookie containing:
+ * Creates an HTTP-only session cookie containing a cryptographically signed JWT with:
+ * - userId: Firebase user ID (UID)
+ * - email: User email address
  * - isAdmin: Whether user has admin privileges
  * - idToken: Firebase ID token for user authentication
  * - appCheckToken: Firebase App Check token for app integrity
  *
  * **Session Cookie Structure:**
- * ```json
- * {
- *   "isAdmin": boolean,
- *   "idToken": string,
- *   "appCheckToken": string
- * }
- * ```
+ * Signed JWT with HMAC-SHA256 signature (three base64url parts separated by dots)
  *
  * **Security Properties:**
+ * - Cryptographically signed with JWT_SECRET (prevents tampering)
  * - httpOnly: Prevents JavaScript access (XSS protection)
  * - secure: HTTPS only
  * - sameSite: 'lax' (CSRF protection)
- * - expires: 7 days
+ * - expires: 7 days (matches JWT exp claim)
  *
+ * @param user - Authenticated Firebase user
  * @param idToken - Firebase ID token
  * @param appCheckToken - Firebase App Check token
  * @param isAdmin - Whether user has admin privileges
  */
 async function writeSession(
+  user: User,
   idToken: string,
   appCheckToken: string,
   isAdmin: boolean
 ) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const sessionContent = JSON.stringify({
+
+  // Create signed JWT
+  const sessionJwt = await signSessionJwt({
+    userId: user.uid,
+    email: user.email || 'unknown',
     isAdmin,
-    // TODO encrypt
     idToken,
     appCheckToken,
   })
+
   const requestCookies = await cookies()
-  requestCookies.set('session', sessionContent, {
+  requestCookies.set('session', sessionJwt, {
     httpOnly: true,
     secure: true,
     expires: expiresAt,
@@ -115,6 +119,7 @@ export async function login(idToken: string, appCheckToken: string) {
 async function createSession(user: User, appCheckToken: string) {
   const idTokenResult = await user.getIdTokenResult()
   writeSession(
+    user,
     idTokenResult.token,
     appCheckToken,
     !!idTokenResult.claims?.admin
@@ -235,7 +240,12 @@ export async function refreshSession(
     return createSession(currentUser, appCheckToken)
   }
   const idTokenResult = await currentUser.getIdTokenResult()
-  writeSession(idToken, appCheckToken, !!idTokenResult.claims?.admin)
+  writeSession(
+    currentUser,
+    idToken,
+    appCheckToken,
+    !!idTokenResult.claims?.admin
+  )
   console.log('Refreshed', currentUser.email, {
     isAdmin: !!idTokenResult.claims?.admin,
   })
