@@ -1,26 +1,49 @@
 /**
  * Token Validation Module
  *
- * This module provides centralized token validation for the authentication system.
+ * This module provides centralized Firebase token validation for operations
+ * that require Firebase Admin SDK access.
+ *
+ * ## IMPORTANT: When to Use These Functions
+ *
+ * ### ✅ Use validateTokens() or getAuthenticatedAuth() when:
+ * - Calling Firebase Admin SDK (getAuth(), getAppCheck(), etc.)
+ * - During login/refreshSession (initial token verification)
+ * - Example: listAllUsers() needs Firebase Admin Auth
+ *
+ * ### ❌ Do NOT use validateTokens() when:
+ * - In general server actions (JWT already verified by proxy middleware)
+ * - Checking isAdmin status (trust signed JWT payload)
+ * - Getting user info (use getUserInfo() from session.ts instead)
+ *
+ * ## Why This Architecture?
+ *
+ * **Before JWT Implementation:**
+ * - Every server action validated Firebase tokens (~100-200ms per call)
+ * - Heavy load on Firebase Admin SDK
+ * - Expensive and slow
+ *
+ * **After JWT Implementation:**
+ * - Proxy middleware verifies JWT signature (<1ms)
+ * - Server actions trust signed JWT payload
+ * - Only validate Firebase tokens when actually calling Firebase Admin SDK
+ * - Much better performance and lower Firebase quota usage
  *
  * ## Authentication Architecture Overview
  *
  * This application uses a **hybrid two-layer security model**:
  *
- * ### Layer 1: Middleware (Lightweight Routing Protection)
+ * ### Layer 1: Middleware (JWT Signature Verification)
  * - Runs in Next.js Edge runtime
- * - Checks that session cookie exists
- * - Verifies tokens are present (not null/undefined)
- * - Verifies isAdmin flag is set
- * - Does NOT verify token signatures (Edge runtime has limited Firebase Admin SDK support)
- * - Purpose: Fast routing decisions, prevent unnecessary server action calls
+ * - Verifies JWT signature with HMAC-SHA256
+ * - Trusts isAdmin flag from signed payload
+ * - Purpose: Fast routing decisions with cryptographic security
  *
- * ### Layer 2: Server Actions (Full Validation)
+ * ### Layer 2: Server Actions (Conditional Firebase Validation)
  * - Runs in Node.js runtime (full Firebase Admin SDK available)
- * - Validates token signatures using Firebase Admin SDK
- * - Verifies token expiration and authenticity
- * - Returns validation errors instead of redirecting
- * - Purpose: Actual security enforcement at data access layer
+ * - Only validates Firebase tokens when calling Firebase Admin SDK
+ * - Uses getAuthenticatedAuth() for Firebase operations
+ * - Purpose: Firebase-specific security enforcement
  *
  * ## Token Lifecycle
  *

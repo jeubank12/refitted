@@ -1,8 +1,8 @@
-import { optimisticCheckLogin } from 'src/lib/firebase/actions/auth'
 import Login from './Login'
 
 export default async function Page() {
-  await optimisticCheckLogin()
-
+  // Redirect logic now handled by proxy middleware
+  // If user has valid JWT, proxy redirects to /admin/users
+  // If not, this page renders the login form
   return <Login />
 }

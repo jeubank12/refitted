@@ -50,10 +50,10 @@ import type { NextRequest } from 'next/server'
 import { verifySessionJwt, isJwt } from './src/lib/auth/jwt'
 
 /**
- * Protect all /admin/* routes (but not /admin itself)
+ * Protect all /admin routes (including /admin itself for redirect logic)
  */
 export const config = {
-  matcher: ['/admin/(.+)'],
+  matcher: ['/admin/:path*'],
 }
 
 /**
@@ -64,6 +64,10 @@ export const config = {
  * - Expiration check
  * - Admin privilege check
  *
+ * **Special handling for /admin login page:**
+ * - If user already has valid JWT → redirect to /admin/users
+ * - If no valid JWT → allow through to show login page
+ *
  * **Security:**
  * - Verifies JWT signature with HMAC-SHA256
  * - Rejects legacy plain JSON sessions
@@ -72,6 +76,22 @@ export const config = {
 export async function proxy(request: NextRequest) {
   const cookie = request.cookies.get('session')
 
+  // Special case for /admin login page
+  if (request.nextUrl.pathname === '/admin') {
+    if (cookie?.value && isJwt(cookie.value)) {
+      const payload = await verifySessionJwt(cookie.value)
+      if (payload?.isAdmin) {
+        // Already logged in with valid JWT, redirect to users page
+        console.debug('User already logged in, redirecting to /admin/users')
+        return NextResponse.redirect(new URL('/admin/users', request.url))
+      }
+    }
+    // No valid session, allow through to show login page
+    console.debug('No valid session, showing login page')
+    return NextResponse.next()
+  }
+
+  // For all other /admin/* routes, require valid JWT
   if (!cookie?.value) {
     console.debug('No session cookie, redirecting to login')
     return NextResponse.redirect(new URL('/admin', request.url))
