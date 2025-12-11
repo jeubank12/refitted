@@ -118,7 +118,7 @@ export async function login(idToken: string, appCheckToken: string) {
  */
 async function createSession(user: User, appCheckToken: string) {
   const idTokenResult = await user.getIdTokenResult()
-  writeSession(
+  await writeSession(
     user,
     idTokenResult.token,
     appCheckToken,
@@ -240,7 +240,7 @@ export async function refreshSession(
     return createSession(currentUser, appCheckToken)
   }
   const idTokenResult = await currentUser.getIdTokenResult()
-  writeSession(
+  await writeSession(
     currentUser,
     idToken,
     appCheckToken,
