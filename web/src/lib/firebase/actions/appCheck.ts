@@ -1,10 +1,4 @@
 'use server'
 
-import { cookies } from 'next/headers'
-
-export async function getAppCheckToken(): Promise<string | undefined> {
-  const cookie = (await cookies()).get('session')
-  // Use || instead of ?? to handle empty strings (after cookie deletion)
-  const session = JSON.parse(cookie?.value || '{}')
-  return Promise.resolve(session?.appCheckToken)
-}
+// getAppCheckToken is now extracted from JWT session
+export { getAppCheckToken } from '../../auth/session'

@@ -8,6 +8,7 @@ import { getAuth, User } from 'firebase/auth'
 
 import { firebaseConfig } from '../firebaseConfig'
 import { signSessionJwt } from '../../auth/jwt'
+import { getIdToken, getUserInfo } from '../../auth/session'
 import { getAppCheckToken } from './appCheck'
 import { validateTokens } from './validateTokens'
 
@@ -275,24 +276,8 @@ export async function logout() {
   return redirect('/admin')
 }
 
-export async function getIdToken(): Promise<string | undefined> {
-  const cookie = (await cookies()).get('session')
-  // Use || instead of ?? to handle empty strings (after cookie deletion)
-  const session = JSON.parse(cookie?.value || '{}')
-  return Promise.resolve(session?.idToken)
-}
-
-export async function getUserInfo() {
-  const idToken = await getIdToken()
-  if (!idToken) return
-  const { currentUser } = await getAppForUser(idToken)
-  return currentUser
-    ? {
-        displayName: currentUser.displayName ?? undefined,
-        email: currentUser.email ?? undefined,
-      }
-    : undefined
-}
+// Re-export session utilities for backward compatibility
+export { getIdToken, getUserInfo }
 
 /**
  * Redirects already-authenticated users from login page to admin panel
