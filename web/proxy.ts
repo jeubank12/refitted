@@ -1,49 +1,53 @@
 /**
  * Authentication Middleware
  *
- * This middleware provides lightweight routing protection for admin pages.
- * It runs in Next.js Edge runtime and performs fast token presence checks.
+ * This middleware provides JWT-based authentication for admin routes.
+ * It runs in Next.js Edge runtime and performs signature verification.
  *
- * ## Hybrid Security Architecture
+ * ## Updated Security Architecture
  *
- * This is **Layer 1** of our two-layer security model:
+ * **Layer 1 (This Middleware) - JWT Verification:**
+ * - Verifies JWT signature using jose library
+ * - Extracts and trusts isAdmin flag from signed payload
+ * - Fast Edge Runtime execution
+ * - Purpose: Routing protection with cryptographic verification
  *
- * **Layer 1 (This Middleware):**
- * - Checks that session cookie exists
- * - Verifies tokens are present (not null/undefined)
- * - Verifies isAdmin flag is set
- * - Does NOT validate token signatures (Edge runtime limitation)
- * - Purpose: Fast routing decisions, prevent unnecessary requests
- *
- * **Layer 2 (Server Actions):**
- * - Full token signature validation using Firebase Admin SDK
- * - See: src/lib/firebase/actions/validateTokens.ts
- * - Purpose: Actual security enforcement at data access layer
+ * **Layer 2 (Server Actions) - Conditional Firebase Validation:**
+ * - Only validates Firebase tokens when calling Firebase Admin SDK
+ * - getAuthenticatedAuth() → validates tokens for Firebase operations
+ * - Other actions → trust JWT payload (already verified by middleware)
+ * - Purpose: Firebase-specific security enforcement
  *
  * ## Route Protection Logic
  *
  * - `/admin` (exact) → ALLOWED (login page, needs no tokens)
- * - `/admin/*` → PROTECTED (requires valid session with tokens)
+ * - `/admin/*` → PROTECTED (requires valid JWT with isAdmin=true)
  *
  * This avoids redirect loops where invalid tokens would redirect to /admin,
  * but middleware would block /admin, creating an infinite loop.
  *
  * ## Error Handling
  *
- * If tokens are missing or user is not admin:
+ * If JWT is missing, invalid signature, expired, or user is not admin:
  * - Redirect to /admin login page
  * - User will see login form and can re-authenticate
  *
- * If tokens are present but INVALID (expired, tampered, etc.):
- * - Middleware allows request through (only checks presence)
- * - Server actions will detect invalid tokens and return errors
- * - Client-side code will trigger logout
+ * Legacy plain JSON sessions:
+ * - Detected by isJwt() check
+ * - Redirect to /admin for re-login
+ * - User gets JWT session on next login
  *
- * This separation ensures proper logout flow without redirect loops.
+ * ## Security Improvements
+ *
+ * - Before: Only checked token presence (no signature validation)
+ * - After: Cryptographically verifies JWT signature
+ * - isAdmin flag now trusted (can't be tampered with)
+ * - Reduces Firebase Admin SDK calls (better performance)
  */
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { verifySessionJwt, isJwt } from './src/lib/auth/jwt'
 
 /**
  * Protect all /admin/* routes (but not /admin itself)
@@ -53,42 +57,50 @@ export const config = {
 }
 
 /**
- * Session cookie structure
- */
-interface Session {
-  isAdmin?: boolean
-  idToken?: string
-  appCheckToken?: string
-}
-
-/**
- * Middleware function to protect admin routes
+ * Middleware function to protect admin routes with JWT verification
  *
- * Performs lightweight checks:
- * - Session cookie exists
- * - Both tokens are present
- * - User has admin flag
+ * Performs cryptographic verification:
+ * - JWT signature validation
+ * - Expiration check
+ * - Admin privilege check
  *
- * Note: Does NOT validate token signatures (see validateTokens.ts for that)
+ * **Security:**
+ * - Verifies JWT signature with HMAC-SHA256
+ * - Rejects legacy plain JSON sessions
+ * - Trusts isAdmin flag from verified JWT payload
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const cookie = request.cookies.get('session')
 
-  // Parse session cookie (empty object if not present or empty string)
-  // Use || instead of ?? to handle empty strings (after cookie deletion)
-  const session: Session = JSON.parse(cookie?.value || '{}')
-
-  // Check if user has admin privileges and both tokens are present
-  const hasAdminAccess =
-    session.isAdmin && session.idToken && session.appCheckToken
-
-  if (!hasAdminAccess) {
-    // Redirect to login page
-    // Note: /admin is not matched by this middleware, so no redirect loop
+  if (!cookie?.value) {
+    console.debug('No session cookie, redirecting to login')
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 
+  // Check if JWT format
+  if (!isJwt(cookie.value)) {
+    console.warn(
+      'Legacy plain JSON session detected in middleware, redirecting to login'
+    )
+    return NextResponse.redirect(new URL('/admin', request.url))
+  }
+
+  // Verify JWT signature and decode payload
+  const payload = await verifySessionJwt(cookie.value)
+
+  if (!payload) {
+    console.warn('Invalid JWT signature or expired token, redirecting to login')
+    return NextResponse.redirect(new URL('/admin', request.url))
+  }
+
+  // Check admin privileges from verified JWT
+  if (!payload.isAdmin) {
+    console.warn('User does not have admin privileges:', payload.email)
+    return NextResponse.redirect(new URL('/admin', request.url))
+  }
+
+  console.debug('JWT verified, admin access granted:', payload.email)
+
   // Allow request to proceed
-  // Note: Server actions will perform full token validation
   return NextResponse.next()
 }
