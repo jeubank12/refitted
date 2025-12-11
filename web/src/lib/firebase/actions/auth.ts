@@ -8,8 +8,7 @@ import { getAuth, User } from 'firebase/auth'
 
 import { firebaseConfig } from '../firebaseConfig'
 import { signSessionJwt } from '../../auth/jwt'
-import { getIdToken, getUserInfo } from '../../auth/session'
-import { getAppCheckToken } from './appCheck'
+import { getIdToken, getAppCheckToken, getUserInfo } from '../../auth/session'
 import { validateTokens } from './validateTokens'
 
 /**

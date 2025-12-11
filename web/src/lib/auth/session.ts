@@ -69,12 +69,13 @@ export async function getSession(): Promise<SessionPayload | null> {
       // Legacy sessions don't have userId/email, return null to force re-login
       // This ensures migration to JWT sessions
       console.warn(
-        'Legacy plain JSON session detected, forcing re-login to migrate to JWT'
+        'Legacy plain JSON session detected, returning null to force re-login'
       )
 
-      // Delete legacy session
-      const requestCookies = await cookies()
-      requestCookies.delete('session')
+      // Note: We don't delete the cookie here because getSession() can be called
+      // from Server Components where cookie modifications aren't allowed.
+      // The proxy middleware will reject the legacy session and redirect to login,
+      // where a new JWT session will be created on next successful login.
 
       return null
     } catch (error) {
