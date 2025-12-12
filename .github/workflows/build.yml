@@ -108,8 +108,6 @@ jobs:
 
       - run: npm run build
         working-directory: web
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   lint-web:
     needs: changes
@@ -140,8 +138,6 @@ jobs:
 
       - run: npm run lint
         working-directory: web
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   lint-admin:
     needs: changes

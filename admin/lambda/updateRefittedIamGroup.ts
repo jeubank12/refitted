@@ -41,6 +41,29 @@ interface PolicyDocument {
   Statement: Array<PolicyStatement>
 }
 
+/**
+ * Updates the IAM policy to enforce DynamoDB access control for a group.
+ *
+ * This is Step 3 of 3 for granting workout access:
+ * 1. setUserClaims - Set the "group" claim on the user's token (e.g., "Group1")
+ * 2. updateRefittedDynamoGroup - Map the group to workout code names in DynamoDB (helper for client)
+ * 3. updateRefittedIamGroup - Update IAM policy to enforce DynamoDB access control
+ *
+ * This updates the AWS IAM policy associated with the group to allow DynamoDB queries
+ * only for specific workout code names. It modifies the 'dynamodb:LeadingKeys' condition
+ * to include the group ID and the allowed workout code names.
+ *
+ * IMPORTANT: This is the actual enforcement mechanism. Without the correct IAM policy,
+ * DynamoDB will reject queries from the Android client even if the client knows about
+ * the workout code names from the DynamoDB group definition.
+ *
+ * The function automatically manages IAM policy versions (AWS allows max 5 versions),
+ * deleting the oldest non-default version before creating a new one if needed.
+ *
+ * @param group - The RefittedGroup enum value (e.g., RefittedGroup.Group1)
+ * @param addWorkouts - Array of workout code names to grant access to
+ * @param removeWorkouts - Array of workout code names to revoke access from
+ */
 const updateRefittedIamGroup = async ({
   group,
   addWorkouts = [],

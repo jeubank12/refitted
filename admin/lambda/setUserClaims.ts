@@ -14,6 +14,21 @@ interface SetUserClaimsEvent {
   claimValue?: object
 }
 
+/**
+ * Sets a custom claim on a Firebase Auth user's ID token.
+ *
+ * This is Step 1 of 3 for granting workout access:
+ * 1. setUserClaims - Set the "group" claim on the user's token (e.g., "Group1")
+ * 2. updateRefittedDynamoGroup - Map the group to workout code names in DynamoDB (helper for client)
+ * 3. updateRefittedIamGroup - Update IAM policy to enforce DynamoDB access control
+ *
+ * The Android client reads the "group" claim from the ID token to determine which
+ * DynamoDB group definition to query for the list of available workouts.
+ *
+ * @param email - User's email address
+ * @param claimName - Custom claim name (typically "group")
+ * @param claimValue - Claim value (e.g., "Group1" for paid tier access)
+ */
 const setUserClaims = async ({
   email,
   claimName,
