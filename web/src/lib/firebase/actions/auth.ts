@@ -61,7 +61,22 @@ export async function logout() {
   } catch (error) {
     console.error('Error during logout token revocation', error)
   }
-  redirect('/admin')
+}
+
+export async function serverLogout() {
+  ensureInitialized()
+
+  console.log('Server Logout')
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value ?? ''
+  try {
+    const decodedClaims = await getAuth().verifySessionCookie(session)
+    await getAuth().revokeRefreshTokens(decodedClaims.sub)
+  } catch (error) {
+    console.error('Error during logout token revocation', error)
+  }
+  // server logout needs to tell the client to also logout
+  redirect('/admin/logout')
 }
 
 async function validateAppCheck(

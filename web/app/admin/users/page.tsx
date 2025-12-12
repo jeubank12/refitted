@@ -18,7 +18,7 @@ import ListUsersTable from './ListUsersTable'
 export default async function UsersList() {
   const data = await listAllUsers()
 
-  if (!data.users.length) return <div>empty</div>
+  if (!data?.users.length) return <div>empty</div>
 
   // Serialize UserRecord objects to plain objects for client component
   // Firebase UserRecord has toJSON methods which can't be passed to client components
@@ -28,5 +28,9 @@ export default async function UsersList() {
     customClaims: user.customClaims,
   }))
 
-  return <ListUsersTable users={serializedUsers} />
+  return (
+    <>
+      <ListUsersTable users={serializedUsers} />
+    </>
+  )
 }

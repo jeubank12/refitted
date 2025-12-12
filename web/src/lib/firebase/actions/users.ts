@@ -1,10 +1,11 @@
 'use server'
 
 import type { UserRecord } from 'firebase-admin/auth'
-import { getAuthenticatedAuth } from './auth'
-import { redirect } from 'next/navigation'
+import { getAuthenticatedAuth, serverLogout } from './auth'
 
-export async function listAllUsers(): Promise<{ users: UserRecord[] }> {
+export async function listAllUsers(): Promise<
+  { users: UserRecord[] } | undefined
+> {
   try {
     const auth = await getAuthenticatedAuth()
 
@@ -14,6 +15,6 @@ export async function listAllUsers(): Promise<{ users: UserRecord[] }> {
     return users
   } catch (error) {
     console.error('Error listing users:', error)
-    return redirect('/admin')
+    await serverLogout()
   }
 }

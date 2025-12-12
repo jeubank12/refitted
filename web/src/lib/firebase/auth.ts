@@ -12,6 +12,7 @@ import { getToken } from 'firebase/app-check'
 
 import { app, useAppCheck } from './firebaseApp'
 import { login, logout } from 'src/lib/firebase/actions/auth'
+import { redirect } from 'next/navigation'
 
 const provider = new GoogleAuthProvider()
 
@@ -64,6 +65,8 @@ export const useUserSession = () => {
     await logout()
     await auth.authStateReady()
     await auth.signOut()
+    console.debug('Logged out, redirecting to /admin')
+    redirect('/admin')
   }, [])
 
   return { logout: doLogout, firebaseUser }
