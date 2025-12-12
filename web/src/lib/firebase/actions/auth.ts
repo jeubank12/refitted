@@ -3,277 +3,87 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { initializeServerApp } from 'firebase/app'
-import { getAuth, User } from 'firebase/auth'
+import { getAuth } from 'firebase-admin/auth'
+import {
+  cert,
+  getApps,
+  initializeApp,
+  ServiceAccount,
+} from 'firebase-admin/app'
 
-import { firebaseConfig } from '../firebaseConfig'
-import { signSessionJwt } from '../../auth/jwt'
-import { getIdToken, getAppCheckToken, getUserInfo } from '../../auth/session'
-import { validateTokens } from './validateTokens'
+import serviceAccount from '../firebase.json' with { type: 'json' }
+import { getAppCheck } from 'firebase-admin/app-check'
 
-/**
- * Writes authentication session to cookie as signed JWT
- *
- * Creates an HTTP-only session cookie containing a cryptographically signed JWT with:
- * - userId: Firebase user ID (UID)
- * - email: User email address
- * - isAdmin: Whether user has admin privileges
- * - idToken: Firebase ID token for user authentication
- * - appCheckToken: Firebase App Check token for app integrity
- *
- * **Session Cookie Structure:**
- * Signed JWT with HMAC-SHA256 signature (three base64url parts separated by dots)
- *
- * **Security Properties:**
- * - Cryptographically signed with JWT_SECRET (prevents tampering)
- * - httpOnly: Prevents JavaScript access (XSS protection)
- * - secure: HTTPS only
- * - sameSite: 'lax' (CSRF protection)
- * - expires: 7 days (matches JWT exp claim)
- *
- * @param user - Authenticated Firebase user
- * @param idToken - Firebase ID token
- * @param appCheckToken - Firebase App Check token
- * @param isAdmin - Whether user has admin privileges
- */
-async function writeSession(
-  user: User,
-  idToken: string,
-  appCheckToken: string,
-  isAdmin: boolean
-) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-
-  // Create signed JWT
-  const sessionJwt = await signSessionJwt({
-    userId: user.uid,
-    email: user.email || 'unknown',
-    isAdmin,
-    idToken,
-    appCheckToken,
-  })
-
-  const requestCookies = await cookies()
-  requestCookies.set('session', sessionJwt, {
-    httpOnly: true,
-    secure: true,
-    expires: expiresAt,
-    sameSite: 'lax',
-    path: '/',
-  })
+function ensureInitialized() {
+  // Initialize Firebase Admin if not already initialized
+  if (!getApps().length) {
+    initializeApp({
+      credential: cert(serviceAccount as ServiceAccount),
+      databaseURL: 'https://refitted-361ee.firebaseio.com',
+    })
+  }
 }
 
-async function getAppForUser(idToken: string) {
-  const firebaseServerApp = initializeServerApp(
-    firebaseConfig,
-    idToken
-      ? {
-          authIdToken: idToken,
-        }
-      : {}
-  )
-
-  const auth = getAuth(firebaseServerApp)
-  await auth.authStateReady()
-
-  return { firebaseServerApp, currentUser: auth.currentUser }
-}
-
-/**
- * Logs in a user with Firebase ID token and App Check token
- *
- * **Security:**
- * - Validates idToken by creating server app
- * - Validates appCheckToken before storing in session
- *
- * @param idToken - Firebase ID token from client authentication
- * @param appCheckToken - Firebase App Check token from client
- * @returns Redirect to admin panel or undefined on failure
- */
 export async function login(idToken: string, appCheckToken: string) {
-  // Validate idToken by getting user
-  const { currentUser } = await getAppForUser(idToken)
-  if (!currentUser) return
+  ensureInitialized()
 
   // Validate appCheckToken before creating session
-  const validation = await validateTokens({ idToken, appCheckToken })
-  if (!validation.valid) {
-    console.error('Login failed - invalid tokens:', validation.error)
+  const validationError = await validateAppCheck(appCheckToken)
+  if (validationError) {
+    console.error('Login failed', validationError)
     return
   }
 
-  return createSession(currentUser, appCheckToken)
-}
-
-/**
- * Creates a new session for an authenticated user
- *
- * **Security Note:**
- * This function assumes tokens have already been validated by the caller.
- * It's called from login() and refreshSession(), both of which validate tokens first.
- *
- * @param user - Authenticated Firebase user
- * @param appCheckToken - App Check token (should be pre-validated)
- * @returns Redirect to admin panel
- */
-async function createSession(user: User, appCheckToken: string) {
-  const idTokenResult = await user.getIdTokenResult()
-  await writeSession(
-    user,
-    idTokenResult.token,
-    appCheckToken,
-    !!idTokenResult.claims?.admin
-  )
-  console.log('Logged in', user.email, {
-    isAdmin: !!idTokenResult.claims?.admin,
+  const expiresIn = 60 * 60 * 1000
+  const session = await getAuth().createSessionCookie(idToken, {
+    expiresIn,
   })
-  return redirect('/admin/users')
-}
 
-/**
- * Refreshes the session with new tokens from client
- *
- * Called by client-side when Firebase tokens are refreshed.
- *
- * **Security:**
- * - First validates the EXISTING session tokens (prevents tamper-and-refresh attack)
- * - Detects partial tampering (only one token present) and rejects refresh
- * - Then validates the NEW tokens before updating session
- * - Returns error object if tampering detected (client must handle logout)
- * - This prevents attackers from bypassing App Check by tampering with cookie then refreshing
- *
- * **Tampering Detection:**
- * - Both tokens tampered → validation fails → return error
- * - One token tampered → validation fails → return error
- * - Only one token present in session → partial session → return error
- * - No session + no new tokens → normal "not logged in" state → no error
- *
- * **Important:** Client must check return value and trigger logout on error!
- *
- * @param idToken - Fresh ID token from Firebase Auth client
- * @param appCheckToken - Fresh App Check token from client
- * @returns { error: 'TAMPERED' | 'NO_ID_TOKEN' | 'INVALID' } on error, or void on success
- */
-export async function refreshSession(
-  idToken: string | undefined,
-  appCheckToken: string
-): Promise<{ error: string } | void> {
-  // SECURITY: Validate EXISTING session tokens first
-  // This prevents attack: tamper with cookie → client auto-refreshes with valid tokens
-  const existingIdToken = await getIdToken()
-  const existingAppCheckToken = await getAppCheckToken()
-
-  // If no idToken from client AND no existing session, this is just "not logged in"
-  // Don't return error (would cause logout loop on login page)
-  if (!idToken && !existingIdToken && !existingAppCheckToken) {
-    // No session, no new tokens - user is simply not logged in
-    // This is normal, not an error
-    return
-  }
-
-  // If no idToken from client BUT there IS an existing session
-  // This means session should be cleared
-  if (!idToken && (existingIdToken || existingAppCheckToken)) {
-    console.log('No idToken from client, clearing existing session')
-    await (await cookies()).delete('session')
-    return { error: 'NO_ID_TOKEN' }
-  }
-
-  // Check for partial tampering (only one token present in existing session)
-  const hasOnlyOneToken =
-    (existingIdToken && !existingAppCheckToken) ||
-    (!existingIdToken && existingAppCheckToken)
-
-  if (hasOnlyOneToken) {
-    console.error(
-      'Refresh rejected - partial session (only one token present), likely tampered'
-    )
-    // Session is compromised, delete it and return error
-    await (await cookies()).delete('session')
-    return { error: 'TAMPERED' }
-  }
-
-  if (existingIdToken && existingAppCheckToken) {
-    // There's an existing session - validate it before allowing refresh
-    const existingValidation = await validateTokens({
-      idToken: existingIdToken,
-      appCheckToken: existingAppCheckToken,
-    })
-
-    if (!existingValidation.valid) {
-      console.error(
-        'Refresh rejected - existing session has tampered tokens:',
-        existingValidation.error
-      )
-      // Existing session is compromised, delete it and return error
-      await (await cookies()).delete('session')
-      return { error: 'TAMPERED' }
-    }
-  }
-
-  // At this point, we know idToken exists (early returns handled above)
-  if (!idToken) {
-    // This should never happen due to earlier checks, but TypeScript needs it
-    console.error('Unexpected: idToken is undefined after validation checks')
-    await (await cookies()).delete('session')
-    return { error: 'NO_ID_TOKEN' }
-  }
-
-  // Validate the NEW tokens from client
-  const validation = await validateTokens({ idToken, appCheckToken })
-  if (!validation.valid) {
-    console.error('Refresh failed - invalid new tokens:', validation.error)
-    await (await cookies()).delete('session')
-    return { error: 'INVALID' }
-  }
-
-  const { currentUser } = await getAppForUser(idToken)
-
-  if (!currentUser) {
-    // if there is no session either, go to login
-    if (!existingIdToken) return redirect('/admin')
-    return
-  }
-  if (!existingIdToken) {
-    console.log()
-    // if there was no session, treat this as login
-    return createSession(currentUser, appCheckToken)
-  }
-  const idTokenResult = await currentUser.getIdTokenResult()
-  await writeSession(
-    currentUser,
-    idToken,
-    appCheckToken,
-    !!idTokenResult.claims?.admin
-  )
-  console.log('Refreshed', currentUser.email, {
-    isAdmin: !!idTokenResult.claims?.admin,
+  const cookieStore = await cookies()
+  cookieStore.set('session', session, {
+    httpOnly: true,
+    secure: true,
+    maxAge: expiresIn,
   })
+  redirect('/admin/users')
 }
 
-/**
- * Logs out the user by clearing the session cookie
- *
- * **Logout Flow:**
- * 1. Delete session cookie (clears server-side state)
- * 2. Redirect to /admin login page
- *
- * **Important: Client-side logout preferred**
- * This function should primarily be called from client-initiated logout actions,
- * not from server-side validation failures. For invalid tokens:
- * - Server actions return error objects
- * - Client components call useUserSession().logout() hook
- * - Client hook calls this function AND Firebase client signOut()
- *
- * This approach ensures proper cleanup of both server session and Firebase client state.
- *
- * @returns Redirect to /admin login page
- */
 export async function logout() {
+  ensureInitialized()
+
   console.log('Logout')
-  await (await cookies()).delete('session')
-  return redirect('/admin')
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value ?? ''
+  cookieStore.delete('session')
+  try {
+    const decodedClaims = await getAuth().verifySessionCookie(session)
+    await getAuth().revokeRefreshTokens(decodedClaims.sub)
+  } catch (error) {
+    console.error('Error during logout token revocation', error)
+  }
+  redirect('/admin')
 }
 
-// Re-export session utilities for backward compatibility
-export { getIdToken, getUserInfo }
+async function validateAppCheck(
+  appCheckToken: string
+): Promise<string | undefined> {
+  try {
+    await getAppCheck().verifyToken(appCheckToken)
+    console.debug('App check token verified')
+  } catch (error) {
+    console.error('Failed to verify appcheck token', error)
+    return `App Check verification failed: ${error instanceof Error ? error.message : String(error)}`
+  }
+}
+
+export async function getAuthenticatedAuth() {
+  ensureInitialized()
+
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value ?? ''
+  const decodedClaims = await getAuth().verifySessionCookie(session, true)
+  if (decodedClaims.admin === true) {
+    return getAuth()
+  }
+  return Promise.reject('User is not an admin')
+}

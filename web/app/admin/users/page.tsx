@@ -18,14 +18,7 @@ import ListUsersTable from './ListUsersTable'
 export default async function UsersList() {
   const data = await listAllUsers()
 
-  // Handle token validation errors
-  if ('error' in data) {
-    console.error('Token validation failed:', data.details)
-    // Redirect to login page - user will need to re-authenticate
-    redirect('/admin')
-  }
-
-  if (!data?.users.length) return <div>empty</div>
+  if (!data.users.length) return <div>empty</div>
 
   // Serialize UserRecord objects to plain objects for client component
   // Firebase UserRecord has toJSON methods which can't be passed to client components

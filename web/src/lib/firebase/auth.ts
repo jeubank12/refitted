@@ -11,7 +11,7 @@ import {
 import { getToken } from 'firebase/app-check'
 
 import { app, useAppCheck } from './firebaseApp'
-import { login, logout, refreshSession } from 'src/lib/firebase/actions/auth'
+import { login, logout } from 'src/lib/firebase/actions/auth'
 
 const provider = new GoogleAuthProvider()
 
@@ -39,8 +39,7 @@ export const useLogin = () => {
         const check = appCheck.current
         if (!check) return
         const result = await getToken(check)
-        // TODO should this be awaited?
-        login(idToken, result.token)
+        return login(idToken, result.token)
       },
       error => setError(error.message)
     )
@@ -50,38 +49,12 @@ export const useLogin = () => {
 
 export const useUserSession = () => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>()
-  const appCheck = useAppCheck()
 
   useEffect(() => {
     const auth = getAuth(app)
     return auth.onAuthStateChanged(user => {
       console.log('user change', user)
       setFirebaseUser(user)
-    })
-  }, [])
-
-  useEffect(() => {
-    const auth = getAuth(app)
-    return auth.onIdTokenChanged(async user => {
-      console.debug('token change', user)
-      const idToken = await user?.getIdToken()
-      const check = appCheck.current
-      if (!check) return
-      const result = await getToken(check)
-      const refreshResult = await refreshSession(idToken, result.token)
-
-      // Check if refresh failed due to tampering
-      if (refreshResult && 'error' in refreshResult) {
-        console.error(
-          'Session refresh failed:',
-          refreshResult.error,
-          '- triggering logout'
-        )
-        // Trigger client-side logout
-        await logout()
-        await auth.authStateReady()
-        await auth.signOut()
-      }
     })
   }, [])
 
