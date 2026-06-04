@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias libs.plugins.application
     alias libs.plugins.dagger.hilt.android
@@ -57,9 +59,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+            optIn.add("kotlin.RequiresOptIn")
+        }
     }
     namespace = 'com.litus_animae.refitted'
     
@@ -75,7 +79,7 @@ android {
 
     packaging {
         resources {
-            excludes += ['/META-INF/LICENSE.md', '/META-INF/LICENSE-notice.md']
+            it.excludes += ['/META-INF/LICENSE.md', '/META-INF/LICENSE-notice.md']
         }
     }
 }
