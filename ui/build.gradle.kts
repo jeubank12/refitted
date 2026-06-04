@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -8,7 +10,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.litus_animae.refitted.ui"
     compileSdk = 37
 
