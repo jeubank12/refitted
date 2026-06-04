@@ -16,9 +16,9 @@ android {
     defaultConfig {
         applicationId = "com.litus_animae.refitted"
         minSdkVersion 26
-        compileSdk = 36
-        targetSdkVersion 36
-        versionCode = 3626000
+        compileSdk = 37
+        targetSdkVersion 37
+        versionCode = 3726000
         versionName = "1.2.10-SNAPSHOT"
         testInstrumentationRunner = "com.litus_animae.refitted.HiltTestRunner"
 
