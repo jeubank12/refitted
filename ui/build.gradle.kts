@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.litus_animae.refitted.ui"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26

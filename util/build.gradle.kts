@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.litus_animae.refitted.util"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
