@@ -46,8 +46,8 @@ android {
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             applicationIdSuffix ".debug"
             versionNameSuffix "-DEBUG"
-            enableUnitTestCoverage true
-            enableAndroidTestCoverage true
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
     }
     buildFeatures {
