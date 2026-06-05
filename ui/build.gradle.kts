@@ -66,11 +66,11 @@ dependencies {
     api(libs.javax.inject)
     implementation(libs.bundles.hilt)
     kapt(libs.dagger.compiler)
-    kapt(libs.dagger.hilt.android.compiler)
+    ksp(libs.dagger.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
 
     // Hilt Compose Integration
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // Core Android
     implementation(libs.androidx.lifecycle.runtime.compose.android)
