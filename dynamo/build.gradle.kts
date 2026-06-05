@@ -3,7 +3,7 @@ import com.android.build.api.dsl.LibraryExtension
 plugins {
   id("com.android.library")
   alias(libs.plugins.jetbrains.kotlin.android)
-  alias(libs.plugins.jetbrains.kotlin.kapt)
+  alias(libs.plugins.ksp)
 }
 
 extensions.configure<LibraryExtension> {
@@ -58,7 +58,7 @@ dependencies {
   api(libs.dagger.core)
   api(libs.dagger.hilt.android)  // For @ApplicationContext qualifier
   api(libs.javax.inject)
-  kapt(libs.dagger.compiler)
+  ksp(libs.dagger.hilt.android.compiler)
 
   // Kotlin
   implementation(libs.kotlinx.coroutines.core)
