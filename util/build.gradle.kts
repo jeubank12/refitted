@@ -3,7 +3,6 @@ import com.android.build.api.dsl.LibraryExtension
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 extensions.configure<LibraryExtension> {
@@ -34,14 +33,6 @@ extensions.configure<LibraryExtension> {
 }
 
 dependencies {
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
-
-    // Dependency Injection
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
-
     // Coroutines runtime
     runtimeOnly(libs.kotlinx.coroutines.android)
 

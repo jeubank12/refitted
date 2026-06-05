@@ -34,7 +34,7 @@ extensions.configure<LibraryExtension> {
 
 dependencies {
     // Kotlin & Coroutines
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
     runtimeOnly(libs.kotlinx.coroutines.android)
 
     // Paging (used directly in repository interfaces)

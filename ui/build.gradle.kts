@@ -61,14 +61,11 @@ dependencies {
     api(project(":identity"))
 
     // Core dependencies
-    implementation(libs.javax.inject)
+    api(libs.javax.inject)
 
     // Dependency Injection
     implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
-
-    // Hilt Compose Integration
-    implementation(libs.androidx.hilt.navigation.compose)
 
     // Core Android
     implementation(libs.androidx.lifecycle.runtime.compose.android)
@@ -89,16 +86,16 @@ dependencies {
 
     // Arrow
     implementation(platform(libs.arrow.stack))
-    implementation(libs.arrow.core)
+    api(libs.arrow.core)
 
     // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
-    implementation(libs.bundles.compose.tooling)
+    api(libs.bundles.compose)
+    api(libs.bundles.compose.tooling)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.compose.ui.util)
@@ -107,7 +104,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.common)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.savedstate)
+    api(libs.androidx.lifecycle.viewmodel.savedstate)
 
     // Credentials (exposed as api - used in public APIs)
     implementation(libs.androidx.credentials)
