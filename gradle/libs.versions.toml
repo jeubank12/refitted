@@ -100,6 +100,8 @@ arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrowStack" }
 aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "aws" }
 aws-android-sdk-ddb = { module = "com.amazonaws:aws-android-sdk-ddb", version.ref = "aws" }
 aws-android-sdk-ddb-mapper = { module = "com.amazonaws:aws-android-sdk-ddb-mapper", version.ref = "aws" }
+dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
+dagger-core = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger" }
 dagger-hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "dagger" }
 dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }

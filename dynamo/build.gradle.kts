@@ -55,7 +55,7 @@ dependencies {
   api(project(":identity"))
 
   // Dependency Injection (Dagger + Hilt qualifier)
-  api(libs.dagger)
+  api(libs.dagger.core)
   api(libs.dagger.hilt.android)  // For @ApplicationContext qualifier
   api(libs.javax.inject)
   kapt(libs.dagger.compiler)

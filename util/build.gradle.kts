@@ -35,7 +35,7 @@ extensions.configure<LibraryExtension> {
 
 dependencies {
     // Dependency Injection (Dagger)
-    api(libs.dagger)
+    api(libs.dagger.core)
     kapt(libs.dagger.compiler)
     runtimeOnly(libs.dagger.lint.aar)
 
