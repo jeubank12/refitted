@@ -8,7 +8,6 @@ plugins {
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.jacoco
     alias libs.plugins.jetbrains.kotlin.android
-    alias libs.plugins.jetbrains.kotlin.kapt
     alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
@@ -101,7 +100,6 @@ dependencies {
     implementation libs.bundles.hilt
     implementation libs.dagger.core
     implementation libs.javax.inject
-    ksp libs.dagger.compiler
     ksp libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
     kspAndroidTest libs.androidx.hilt.compiler
@@ -164,6 +162,5 @@ dependencies {
     androidTestImplementation libs.androidx.room.runtime
     androidTestImplementation libs.junit.legacy
     androidTestImplementation libs.dagger.hilt.android.testing
-    kaptAndroidTest libs.dagger.compiler
-    kaptAndroidTest libs.dagger.hilt.android.compiler
+    kspAndroidTest libs.dagger.hilt.android.compiler
 }
