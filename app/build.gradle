@@ -102,7 +102,7 @@ dependencies {
     implementation libs.dagger.core
     implementation libs.javax.inject
     kapt libs.dagger.compiler
-    kapt libs.dagger.hilt.android.compiler
+    ksp libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
     kspAndroidTest libs.androidx.hilt.compiler
 
@@ -123,7 +123,7 @@ dependencies {
     implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.lifecycle.viewmodel.savedstate
     implementation libs.androidx.lifecycle.runtime.compose.android
-    implementation libs.androidx.hilt.lifecycle.viewmodel.compose
+    implementation libs.androidx.hilt.navigation.compose
 
     // Firebase (app-level services)
     implementation platform(libs.firebase.bom)
