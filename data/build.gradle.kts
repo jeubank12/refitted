@@ -50,7 +50,7 @@ dependencies {
     api(libs.androidx.paging.runtime)
 
     // Hilt
-    implementation (libs.dagger.hilt.android)
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
 
     // Testing
