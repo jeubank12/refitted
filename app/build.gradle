@@ -101,7 +101,7 @@ dependencies {
     implementation libs.bundles.hilt
     implementation libs.dagger.core
     implementation libs.javax.inject
-    kapt libs.dagger.compiler
+    ksp libs.dagger.compiler
     ksp libs.dagger.hilt.android.compiler
     ksp libs.androidx.hilt.compiler
     kspAndroidTest libs.androidx.hilt.compiler

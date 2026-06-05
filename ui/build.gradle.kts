@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.jetbrains.kotlin.parcelize)
     alias(libs.plugins.ksp)
 }
@@ -65,7 +64,7 @@ dependencies {
     api(libs.dagger.core)
     api(libs.javax.inject)
     implementation(libs.bundles.hilt)
-    kapt(libs.dagger.compiler)
+    ksp(libs.dagger.compiler)
     ksp(libs.dagger.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
 
