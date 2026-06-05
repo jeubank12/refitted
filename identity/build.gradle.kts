@@ -31,6 +31,10 @@ dependencies {
     // Modules
     api(project(":util"))
 
+    // Core dependencies
+    implementation(libs.androidx.annotation)
+    implementation(libs.javax.inject)
+
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)

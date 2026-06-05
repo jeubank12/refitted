@@ -42,12 +42,16 @@ dependencies {
     // Module dependencies
     api(project(":data"))
 
-    // Dependency Injection (Dagger + Hilt qualifier)
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
+    // Core dependencies
+    implementation(libs.androidx.annotation)
+    implementation(libs.javax.inject)
 
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
+
+    // Hilt
+    implementation(libs.dagger.hilt.android)
+    ksp(libs.dagger.hilt.android.compiler)
 
     // Room (exposed as api - :app repository implementations use these)
     api(libs.androidx.room.common)

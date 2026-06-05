@@ -54,13 +54,17 @@ dependencies {
   api(project(":util"))
   api(project(":identity"))
 
-  // Dependency Injection (Dagger + Hilt qualifier)
-  implementation(libs.dagger.hilt.android)
-  ksp(libs.dagger.hilt.android.compiler)
+  // Core dependencies
+  implementation(libs.androidx.annotation)
+  implementation(libs.javax.inject)
 
   // Kotlin
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.coroutines.play.services)
+
+  // Hilt
+  implementation(libs.dagger.hilt.android)
+  ksp(libs.dagger.hilt.android.compiler)
 
   // AWS SDK (exposed as api - return types use these)
   implementation(libs.aws.android.sdk.ddb)
