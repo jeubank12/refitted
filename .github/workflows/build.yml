@@ -87,6 +87,13 @@ jobs:
           ORG_GRADLE_PROJECT_Refitted_OpenIdSource: 'not-needed'
         run: ./gradlew buildHealth
 
+      - name: Upload dependency analysis report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-analysis-report
+          path: build/reports/dependency-analysis/
+
   build-web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' }}
