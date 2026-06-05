@@ -99,7 +99,7 @@ dependencies {
 
     // Hilt
     implementation libs.bundles.hilt
-    implementation libs.dagger
+    implementation libs.dagger.core
     implementation libs.javax.inject
     kapt libs.dagger.compiler
     kapt libs.dagger.hilt.android.compiler

@@ -62,7 +62,7 @@ dependencies {
     api(project(":identity"))
 
     // Dependency Injection (exposed as api - used in public APIs)
-    api(libs.dagger)
+    api(libs.dagger.core)
     api(libs.javax.inject)
     implementation(libs.bundles.hilt)
     kapt(libs.dagger.compiler)

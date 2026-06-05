@@ -44,6 +44,6 @@ dependencies {
     implementation(libs.firebase.config)
 
     // Dependency Injection (Dagger)
-    api(libs.dagger)
+    api(libs.dagger.core)
     kapt(libs.dagger.compiler)
 }
