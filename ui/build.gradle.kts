@@ -60,6 +60,9 @@ dependencies {
     api(project(":util"))
     api(project(":identity"))
 
+    // Core dependencies
+    implementation(libs.javax.inject)
+
     // Dependency Injection
     implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)

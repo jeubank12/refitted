@@ -95,6 +95,7 @@ dependencies {
     implementation libs.androidx.activity
     implementation libs.androidx.appcompat
     implementation libs.guava
+    implementation libs.javax.inject
 
     // Hilt
     implementation libs.dagger.hilt.android
