@@ -55,15 +55,14 @@ dependencies {
   api(project(":identity"))
 
   // Core dependencies
-  implementation(libs.androidx.annotation)
-  implementation(libs.javax.inject)
+  api(libs.javax.inject)
 
   // Kotlin
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.coroutines.play.services)
 
   // Hilt
-  implementation(libs.dagger.hilt.android)
+  api(libs.dagger.hilt.android)
   ksp(libs.dagger.hilt.android.compiler)
 
   // AWS SDK (exposed as api - return types use these)

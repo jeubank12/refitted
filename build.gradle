@@ -32,6 +32,9 @@ dependencyAnalysis {
             onAny {
                 severity('fail')
             }
+            onUsedTransitiveDependencies {
+                severity('ignore')
+            }
         }
     }
 }

@@ -3,7 +3,6 @@ import com.android.build.api.dsl.LibraryExtension
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 extensions.configure<LibraryExtension> {
@@ -32,19 +31,14 @@ dependencies {
     api(project(":util"))
 
     // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
+    api(libs.javax.inject)
 
     // Kotlin
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
 
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.config)
-
-    // Dependency Injection
-    implementation(libs.dagger.hilt.android)
-    ksp(libs.dagger.hilt.android.compiler)
 }

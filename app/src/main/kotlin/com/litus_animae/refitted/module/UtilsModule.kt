@@ -1,14 +1,15 @@
 package com.litus_animae.refitted.module
 
-import com.litus_animae.refitted.util.UtilModule
+import com.litus_animae.refitted.util.AndroidLogUtil
+import com.litus_animae.refitted.util.LogUtil
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
-/**
- * Hilt module that includes UtilModule (plain Dagger module) into the Hilt component graph.
- * This makes LogUtil available for dependency injection throughout the app.
- */
-@Module(includes = [UtilModule::class])
+@Module
 @InstallIn(SingletonComponent::class)
-object UtilsModule
+object UtilsModule {
+    @Provides
+    fun provideLogUtil(): LogUtil = AndroidLogUtil
+}
