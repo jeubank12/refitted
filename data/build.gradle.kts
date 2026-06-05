@@ -40,9 +40,6 @@ dependencies {
     // Paging (used directly in repository interfaces)
     implementation(libs.androidx.paging.common)
 
-    // Dependency Injection (lint support)
-    runtimeOnly(libs.dagger.lint.aar)
-
     // Testing
     testImplementation(platform(libs.junit))
     testImplementation(libs.junit.jupiter.api)

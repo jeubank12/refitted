@@ -34,10 +34,9 @@ extensions.configure<LibraryExtension> {
 }
 
 dependencies {
-    // Dependency Injection (Dagger)
-    api(libs.dagger.core)
+    // Dependency Injection
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
-    runtimeOnly(libs.dagger.lint.aar)
 
     // Coroutines runtime
     runtimeOnly(libs.kotlinx.coroutines.android)

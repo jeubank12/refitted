@@ -43,9 +43,7 @@ dependencies {
     api(project(":data"))
 
     // Dependency Injection (Dagger + Hilt qualifier)
-    api(libs.dagger.core)
-    api(libs.dagger.hilt.android)  // For @ApplicationContext qualifier
-    api(libs.javax.inject)
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
 
     // Kotlin
