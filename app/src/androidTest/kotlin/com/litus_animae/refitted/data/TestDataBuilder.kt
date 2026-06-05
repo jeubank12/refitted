@@ -10,7 +10,6 @@ import java.time.Instant
  * Test data builder for creating sample exercises, workout plans, and records
  * for integration tests.
  */
-// TODO move to room and use in RoomFromDomainConversionTest?
 object TestDataBuilder {
 
     const val TEST_WORKOUT = "TestWorkout"
