@@ -31,9 +31,6 @@ dependencies {
     // Modules
     api(project(":util"))
 
-    // Core dependencies
-    api(libs.javax.inject)
-
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
@@ -43,7 +40,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.config)
 
-    // Dependency Injection (Dagger)
-    api(libs.dagger.core)
+    // Dependency Injection
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
 }

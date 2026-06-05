@@ -97,12 +97,8 @@ dependencies {
     implementation libs.guava
 
     // Hilt
-    implementation libs.bundles.hilt
-    implementation libs.dagger.core
-    implementation libs.javax.inject
+    implementation libs.dagger.hilt.android
     ksp libs.dagger.hilt.android.compiler
-    ksp libs.androidx.hilt.compiler
-    kspAndroidTest libs.androidx.hilt.compiler
 
     // Room compiler still needed for :app's own usage (PagingSource in repositories)
     ksp libs.androidx.room.compiler

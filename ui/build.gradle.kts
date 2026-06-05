@@ -60,13 +60,9 @@ dependencies {
     api(project(":util"))
     api(project(":identity"))
 
-    // Dependency Injection (exposed as api - used in public APIs)
-    api(libs.dagger.core)
-    api(libs.javax.inject)
-    implementation(libs.bundles.hilt)
-    ksp(libs.dagger.compiler)
+    // Dependency Injection
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
 
     // Hilt Compose Integration
     implementation(libs.androidx.hilt.navigation.compose)
