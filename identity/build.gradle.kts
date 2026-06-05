@@ -47,6 +47,6 @@ dependencies {
     implementation(libs.firebase.config)
 
     // Hilt
-    implementation (libs.dagger.hilt.android)
+    implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
 }
