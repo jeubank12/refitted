@@ -118,6 +118,7 @@ dependencies {
     implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.lifecycle.viewmodel.savedstate
     implementation libs.androidx.lifecycle.runtime.compose.android
+    implementation libs.androidx.hilt.lifecycle.viewmodel.compose
 
     // Firebase (app-level services)
     implementation platform(libs.firebase.bom)
