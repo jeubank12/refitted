@@ -66,6 +66,7 @@ dependencies {
     // Dependency Injection
     implementation(libs.dagger.hilt.android)
     ksp(libs.dagger.hilt.android.compiler)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     // Core Android
     implementation(libs.androidx.lifecycle.runtime.compose.android)
