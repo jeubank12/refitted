@@ -37,16 +37,42 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            You are performing a progressive code review. Follow these steps in order:
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            1. Fetch existing comments:
+               gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --comments --json comments
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+               Parse the output and extract all findings from any prior comments whose body begins with
+               "## Claude Code Review". Build a list of previously flagged issues.
+
+            2. Review the current diff:
+               gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+
+               Evaluate against: code quality and best practices, potential bugs, performance,
+               security concerns, and test coverage. Use the repository's CLAUDE.md for style guidance.
+
+            3. Filter your findings:
+               - Exclude anything already flagged in a prior review comment that has since been resolved
+               - Include findings that are EITHER:
+                 a) Brand new — not mentioned in any prior review comment
+                 b) Still-present blockers — previously flagged, still clearly unresolved in the diff
+
+            4. Decide whether to post:
+               - If you have no new or still-blocking findings → do NOT post any comment. Stay silent.
+               - If you have findings → post a new comment using:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body "..."
+
+               Format the comment as:
+               ## Claude Code Review
+               _(Progressive update — only new or still-unresolved findings shown)_
+
+               ### New Findings
+               ...
+
+               ### Still Unresolved (Blockers)
+               ...
+
+            Be constructive and helpful. Do not repeat findings that were already addressed.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
