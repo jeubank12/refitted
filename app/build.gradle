@@ -49,6 +49,15 @@ android {
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
         }
+        minifiedDebug {
+            initWith buildTypes.debug
+            matchingFallbacks = ['debug']
+            applicationIdSuffix ".min_debug"
+            versionNameSuffix "-MINIFIED"
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
     buildFeatures {
         dataBinding = true
