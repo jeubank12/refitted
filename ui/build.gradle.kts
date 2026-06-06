@@ -86,7 +86,7 @@ dependencies {
     implementation(libs.firebase.config)  // For ConfigProvider.RemoteConfig type
 
     // Arrow
-    implementation(platform(libs.arrow.stack))
+    api(platform(libs.arrow.stack))
     api(libs.arrow.core)
 
     // Coroutines
