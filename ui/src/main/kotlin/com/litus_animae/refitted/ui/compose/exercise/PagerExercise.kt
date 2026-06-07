@@ -161,13 +161,12 @@ fun PagerDetailView(
   AdaptiveExercisePanes(
     modifier = Modifier.fillMaxSize(),
     splitRatio = 0.45f,
-    gap = 0.dp,
+    gap = 8.dp,
     first = {
       PagerExerciseInstructions(
         instructions = instructions,
         pagerState = pagerState,
         alternateIndex = 0,
-        contentPadding = PaddingValues(0.dp),
         setRecords = setRecords
       )
     },
@@ -178,7 +177,7 @@ fun PagerDetailView(
         ExerciseSetView(
           modifier = Modifier
             .fillMaxSize()
-            .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(end = 16.dp, top = 8.dp, bottom = 8.dp),
           setWithRecord = activeSetWithRecord,
           currentIndex = pagerState.settledPage,
           maxIndex = instructions.size - 1,

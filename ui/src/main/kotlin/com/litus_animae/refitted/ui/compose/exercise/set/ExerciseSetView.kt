@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -135,12 +136,12 @@ fun ColumnScope.ExerciseSetView(
       Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         WeightDisplay(onStartEditWeight, weight, saveWeight)
       }
-      // Reps card: fills remaining left-column height
-      Card(
+      // RepsDisplay provides its own Card(fillMaxSize) — just give it the right constraints
+      Box(
         Modifier
           .fillMaxWidth()
-          .padding(top = 8.dp)
           .weight(1f)
+          .padding(top = 8.dp)
       ) {
         RepsDisplay(setWithRecord, reps)
       }

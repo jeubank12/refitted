@@ -76,7 +76,6 @@ fun PagerExerciseInstructions(
   instructions: List<ExerciseViewModel.ExerciseInstruction>,
   pagerState: PagerState,
   alternateIndex: Int?,
-  contentPadding: PaddingValues,
   /**
    * Records keyed by exercise-set ID. Each card looks up its own [numCompleted] so all
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
@@ -116,7 +115,7 @@ fun PagerExerciseInstructions(
       pagerState,
       Modifier.weight(5f, fill = true),
       beyondViewportPageCount = 1,
-      contentPadding = contentPadding
+      contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
     ) { page ->
 
       val offset by remember { derivedStateOf { pagerState.currentPageOffsetFraction } }
@@ -303,7 +302,6 @@ private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExercisePr
       },
       pagerState,
       null,
-      PaddingValues(16.dp)
     )
   }
 }
