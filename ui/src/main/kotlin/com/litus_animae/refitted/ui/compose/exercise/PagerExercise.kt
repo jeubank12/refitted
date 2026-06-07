@@ -5,6 +5,7 @@ package com.litus_animae.refitted.ui.compose.exercise
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -18,7 +19,6 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -26,11 +26,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
-import androidx.window.layout.DisplayFeature
 import arrow.core.nonEmptyListOf
-import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
-import com.google.accompanist.adaptive.TwoPane
-import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.Weight
@@ -47,6 +43,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import java.time.Instant
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -61,19 +58,17 @@ fun PagerExerciseView(
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit
 ) {
-  // TODO why is this re-evaluated every time?
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
-  // TODO not saving, perhaps need rememberSaveableStateHolder
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
-// TODO we probably need to know the step count into this composable
   val pagerState = rememberPagerState(pageCount = { instructions.size })
   val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
   val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
+  val maxRestSeconds by model.maxRestSeconds.collectAsState(initial = 0)
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
@@ -89,7 +84,6 @@ fun PagerExerciseView(
       onRefresh = model::refreshExercises
     )
 
-  // FIXME the column doesn't fill the full space and pull to refresh only works on content
   Box(
     modifier = Modifier
       .pullRefresh(pullRefreshState)
@@ -104,27 +98,28 @@ fun PagerExerciseView(
     )
     Column {
       PagerDetailView(
-        instructions,
-        pagerState,
-        currentSetRecord,
+        instructions = instructions,
+        pagerState = pagerState,
+        activeSetWithRecord = currentSetRecord,
+        setRecords = setRecords,
+        maxRestSeconds = maxRestSeconds,
+        timerStateByExerciseId = model.timerStateByExerciseId,
+        restOverrideByExerciseId = model.restOverrideByExerciseId,
+        onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
+        onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
         onSave = { updatedRecord ->
           val savedRecord = updatedRecord.copy(stored = true)
           currentSetRecord!!.saveRecordInState(savedRecord)
           model.saveExercise(
-            SetRecord(
-              savedRecord.weight,
-              savedRecord.reps,
-              savedRecord.set
-            )
+            SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
           )
-          instruction?.offsetToNextSuperSet?.let {
-            // TODO if previous sets are incomplete, then nav to them
-            // TODO if all challenge sets are complete, don't nav
+          // Superset auto-advance
+          instruction?.offsetToNextSuperSet?.let { offset ->
             val isChallengeSet = exerciseSet!!.sets < 0
             val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
-            val isLastExerciseInSuperset = it <= 0
+            val isLastExerciseInSuperset = offset <= 0
             if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-              pagerState.animateScrollToPage(pagerState.settledPage + it)
+              pagerState.requestScrollToPage(pagerState.settledPage + offset)
           }
         },
         onStartEditWeight = onStartEditWeight
@@ -138,54 +133,88 @@ fun PagerDetailView(
   instructions: List<ExerciseViewModel.ExerciseInstruction>,
   pagerState: PagerState,
   activeSetWithRecord: ExerciseSetWithRecord?,
-  onSave: suspend (Record) -> Unit,
+  setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
+  maxRestSeconds: Int = 0,
+  timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
+  restOverrideByExerciseId: Map<String, Int> = emptyMap(),
+  onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
+  onRestOverrideChange: (id: String, seconds: Int) -> Unit = { _, _ -> },
+  onSave: (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit
 ) {
-//  val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
-//  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
-//    ?.collectAsState(initial = null, Dispatchers.IO)
-//    ?: remember { mutableStateOf<ExerciseSet?>(null) }
+  val scope = rememberCoroutineScope()
+  val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
 
-  // TODO support fold by specifying features
-  val displayFeatures = emptyList<DisplayFeature>()
-  val (strategy, paddingValuesFirst, paddingValuesSecond) =
-    if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE)
-      Triple(
-        HorizontalTwoPaneStrategy(0.5f, 16.dp),
-        PaddingValues(top = 16.dp, start = 16.dp, bottom = 16.dp),
-        PaddingValues(top = 16.dp, end = 16.dp, bottom = 16.dp)
+  // The ring is anchored to whichever timer is currently running — not necessarily the settled
+  // pager page. Swiping moves the weight/reps controls but the countdown ring stays put.
+  val activeRunningEntry = timerStateByExerciseId.entries.firstOrNull { it.value.isRunning }
+  val activeRunningTimerState = activeRunningEntry?.value
+  val anyTimerRunning = activeRunningTimerState != null
+
+  // Ring shows the running timer's rest duration; +/- controls apply to the settled exercise
+  val ringRestSeconds = when {
+    activeRunningTimerState != null -> activeRunningTimerState.restSeconds
+    exerciseSetId != null -> restOverrideByExerciseId[exerciseSetId] ?: activeSetWithRecord?.exerciseSet?.rest ?: 0
+    else -> 0
+  }
+
+  AdaptiveExercisePanes(
+    modifier = Modifier.fillMaxSize(),
+    splitRatio = 0.45f,
+    gap = 0.dp,
+    first = {
+      PagerExerciseInstructions(
+        instructions = instructions,
+        pagerState = pagerState,
+        alternateIndex = 0,
+        contentPadding = PaddingValues(0.dp),
+        setRecords = setRecords
       )
-    else Triple(
-      VerticalTwoPaneStrategy(0.5f, 16.dp),
-      PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
-      PaddingValues(start = 16.dp, bottom = 16.dp, end = 16.dp)
-    )
-  TwoPane(
-    @Composable { PagerExerciseInstructions(instructions, pagerState, 0, paddingValuesFirst) },
-    @Composable {
-      // FIXME not pretty without the cards there, should pass this null check in deeper for navigation/buttons only
-      if (activeSetWithRecord != null)
-        ExerciseSetView(
-          activeSetWithRecord,
-          pagerState.settledPage,
-          instructions.size,
-          { _, _ -> },
-          { _ -> },
-          onStartEditWeight,
-          Modifier.padding(paddingValuesSecond)
-        )
     },
-    strategy = strategy,
-    displayFeatures = displayFeatures
+    second = {
+      if (activeSetWithRecord == null) {
+        Box(Modifier.fillMaxSize())
+      } else {
+        ExerciseSetView(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+          setWithRecord = activeSetWithRecord,
+          currentIndex = pagerState.settledPage,
+          maxIndex = instructions.size - 1,
+          updateIndex = { newIndex, record ->
+            activeSetWithRecord.saveRecordInState(record)
+            scope.launch { pagerState.animateScrollToPage(newIndex) }
+          },
+          onSave = onSave,
+          onStartEditWeight = onStartEditWeight,
+          showNavigationButtons = false,
+          // Always pass the active running timer (may be a different exercise)
+          externalTimerState = activeRunningTimerState,
+          onTimerToggle = exerciseSetId?.let {
+            {
+              if (anyTimerRunning) {
+                // Stop whichever timer is running (could be any exercise)
+                onTimerToggle(activeRunningEntry!!.key, false, 0)
+              } else {
+                // Start a timer for the settled exercise
+                val restSecs = restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest
+                onTimerToggle(it, true, restSecs)
+              }
+            }
+          },
+          maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
+          restOverride = ringRestSeconds,
+          onRestOverrideChange = null   // rest adjustment not exposed in pager path for now
+        )
+      }
+    }
   )
 }
 
 @Preview(showBackground = true)
 @Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
-/**
- * Note: only visible in interactive mode
- */
 private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {
     val records = remember { mutableStateListOf<Record>() }
@@ -196,14 +225,12 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
       PagerDetailView(
         instructions = IntArray(3) { 1 }.asList().map { _ ->
           ExerciseViewModel.ExerciseInstruction(
-            nonEmptyListOf(
-              exerciseSet
-            ),
+            nonEmptyListOf(exerciseSet),
             null,
             MutableStateFlow(0)
           )
         },
-        pagerState,
+        pagerState = pagerState,
         activeSetWithRecord = ExerciseSetWithRecord(
           exerciseSet,
           currentRecord,
@@ -211,8 +238,10 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
           setRecords = records,
           allSets = emptyFlow()
         ),
+        maxRestSeconds = 90,
         onSave = { },
-        onStartEditWeight = {})
+        onStartEditWeight = {}
+      )
     }
   }
 }

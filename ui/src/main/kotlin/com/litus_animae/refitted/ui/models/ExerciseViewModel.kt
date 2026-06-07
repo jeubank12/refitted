@@ -2,8 +2,10 @@ package com.litus_animae.refitted.ui.models
 
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
@@ -96,6 +98,39 @@ class ExerciseViewModel @Inject constructor(
   }
 
   val records = exerciseRepo.records
+
+  // Per-exercise timer sticky state — survives pager swipes and rotation
+  data class TimerState(
+    val isRunning: Boolean,
+    val startedAt: Instant = Instant.now(),
+    /** Rest duration in seconds, stored so the ring renders correctly even when viewing another exercise. */
+    val restSeconds: Int = 0
+  )
+  val timerStateByExerciseId: SnapshotStateMap<String, TimerState> = mutableStateMapOf()
+  val restOverrideByExerciseId: SnapshotStateMap<String, Int> = mutableStateMapOf()
+
+  fun setTimerRunning(id: String, running: Boolean, restSeconds: Int = 0) {
+    if (running) {
+      // Only one timer active at a time — cancel any other running timers first
+      timerStateByExerciseId.keys.toList().forEach { key ->
+        if (key != id && timerStateByExerciseId[key]?.isRunning == true) {
+          timerStateByExerciseId[key] = TimerState(isRunning = false)
+        }
+      }
+      timerStateByExerciseId[id] = TimerState(isRunning = true, startedAt = Instant.now(), restSeconds = restSeconds)
+    } else {
+      timerStateByExerciseId[id] = TimerState(isRunning = false)
+    }
+  }
+
+  fun setRestOverride(id: String, seconds: Int) {
+    restOverrideByExerciseId[id] = seconds.coerceAtLeast(0)
+  }
+
+  /** Largest rest value across all exercises in the day, used to normalise the ring fill. */
+  val maxRestSeconds: Flow<Int> = exercises.map { list ->
+    list.flatMap { it.sets.toList() }.maxOfOrNull { it.rest } ?: 0
+  }
 
   data class LatestRecord(val targetSet: ExerciseSet, val completed: Instant)
 

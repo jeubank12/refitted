@@ -111,7 +111,7 @@ fun Exercise(
       },
       sheetState = sheetState
     ) {
-      ExerciseView(exerciseModel,
+      PagerExerciseView(exerciseModel,
         workoutPlan = loadedWorkoutPlan,
         contentPadding = it,
         setHistoryList = { setHistoryList(it) },

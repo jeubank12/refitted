@@ -5,6 +5,9 @@ import androidx.compose.ui.graphics.Color
 
 object Theme {
 
+  val timerAmber = Color(0xFFFFB300)   // warning/almost-done arc colour
+  val timerTrack = Color(0x1FFFFFFF)   // muted track behind the arc
+
   val darkColors = Colors(
     primary = Color(0xFF0d47a1),
     primaryVariant = Color(0xFF002171),
