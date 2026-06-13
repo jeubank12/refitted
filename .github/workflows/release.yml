@@ -1,0 +1,87 @@
+name: Release to Play Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump-type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Decode secrets
+        env:
+          FIREBASE_SECRET: ${{ secrets.FIREBASE_SECRET }}
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          echo $FIREBASE_SECRET | base64 --decode > app/google-services.json
+          echo $RELEASE_KEYSTORE_B64 | base64 --decode > release.keystore
+
+      - name: Bump to release version
+        id: release-version
+        run: bash scripts/bump-version.sh release ${{ inputs.bump-type }}
+
+      - name: Commit release version
+        run: |
+          git add app/build.gradle
+          git commit -m "Release ${{ steps.release-version.outputs.VERSION_NAME }}"
+          git tag "v${{ steps.release-version.outputs.VERSION_NAME }}"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build release AAB
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: ${{ secrets.REFITTED_IDENTITYPOOLID }}
+          ORG_GRADLE_PROJECT_Refitted_OpenIdSource: ${{ secrets.REFITTED_OPENIDSOURCE }}
+        run: ./gradlew bundleRelease --warning-mode=fail
+
+      - name: Upload to Play Store internal track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.litus_animae.refitted
+          releaseFiles: app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: completed
+
+      - name: Bump to next snapshot version
+        id: snapshot-version
+        run: bash scripts/bump-version.sh snapshot
+
+      - name: Commit next snapshot version
+        run: |
+          git add app/build.gradle
+          git commit -m "Start ${{ steps.snapshot-version.outputs.VERSION_NAME }}"
+
+      - name: Push commits and tags
+        run: git push --follow-tags

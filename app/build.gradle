@@ -13,6 +13,18 @@ plugins {
 }
 
 android {
+    def releaseKeystoreFile = file("${rootDir}/release.keystore")
+    if (releaseKeystoreFile.exists()) {
+        signingConfigs {
+            release {
+                storeFile = releaseKeystoreFile
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.litus_animae.refitted"
         minSdk = 26
@@ -30,6 +42,9 @@ android {
     }
     buildTypes {
         release {
+            if (signingConfigs.findByName("release")) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled = true
             shrinkResources = true
             ndk { debugSymbolLevel = 'FULL' }
