@@ -177,7 +177,7 @@ fun PagerDetailView(
         ExerciseSetView(
           modifier = Modifier
             .fillMaxSize()
-            .padding(end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(end = 16.dp, top = 8.dp, bottom = 16.dp),
           setWithRecord = activeSetWithRecord,
           currentIndex = pagerState.settledPage,
           maxIndex = instructions.size - 1,
