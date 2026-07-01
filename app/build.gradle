@@ -18,8 +18,8 @@ android {
         minSdk = 26
         compileSdk = 37
         targetSdk = 37
-        versionCode = 3726000
-        versionName = "1.2.11-SNAPSHOT"
+        versionCode = 3726001
+        versionName = "1.2.11"
         testInstrumentationRunner = "com.litus_animae.refitted.HiltTestRunner"
 
         javaCompileOptions {
