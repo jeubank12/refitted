@@ -1,0 +1,16 @@
+*.js
+*.d.ts
+!jest.config.js
+!cdk.json
+
+# Root .gitignore has a blanket `bin/` rule for Android build output —
+# this CDK app's entry point source lives at bin/refitted.ts, not build output.
+!bin/
+!bin/**
+
+cdk.out/
+cdk.context.json
+import-mapping.*.json
+import-record.md
+node_modules/
+dist/
