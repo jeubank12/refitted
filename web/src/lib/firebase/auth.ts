@@ -12,7 +12,7 @@ import { getToken } from 'firebase/app-check'
 
 import { app, useAppCheck } from './firebaseApp'
 import { login, logout } from 'src/lib/firebase/actions/auth'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 const provider = new GoogleAuthProvider()
 
@@ -54,6 +54,7 @@ export const useLogin = () => {
 
 export const useUserSession = () => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>()
+  const router = useRouter()
 
   useEffect(() => {
     const auth = getAuth(app)
@@ -70,8 +71,8 @@ export const useUserSession = () => {
     await auth.authStateReady()
     await auth.signOut()
     console.debug('Logged out, redirecting to /admin')
-    redirect('/admin')
-  }, [])
+    router.push('/admin')
+  }, [router])
 
   return { logout: doLogout, firebaseUser }
 }
