@@ -2,8 +2,6 @@ import { defineConfig } from "eslint/config";
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import react from "eslint-plugin-react";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
-import _import from "eslint-plugin-import";
-import { fixupPluginRules } from "@eslint/compat";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import path from "node:path";
@@ -30,7 +28,6 @@ export default defineConfig([{
     plugins: {
         react,
         "@typescript-eslint": typescriptEslint,
-        import: fixupPluginRules(_import),
     },
 
     languageOptions: {
