@@ -3,30 +3,9 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { getAuth } from 'firebase-admin/auth'
-import {
-  cert,
-  getApps,
-  initializeApp,
-  ServiceAccount,
-} from 'firebase-admin/app'
-
-import serviceAccount from '../firebase.json' with { type: 'json' }
-import { getAppCheck } from 'firebase-admin/app-check'
-
-function ensureInitialized() {
-  // Initialize Firebase Admin if not already initialized
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(serviceAccount as ServiceAccount),
-      databaseURL: 'https://refitted-361ee.firebaseio.com',
-    })
-  }
-}
+import { adminAuth, adminAppCheck } from '../admin'
 
 export async function login(idToken: string, appCheckToken: string) {
-  ensureInitialized()
-
   // Validate appCheckToken before creating session
   const validationError = await validateAppCheck(appCheckToken)
   if (validationError) {
@@ -35,7 +14,7 @@ export async function login(idToken: string, appCheckToken: string) {
   }
 
   const expiresIn = 60 * 60 * 1000
-  const session = await getAuth().createSessionCookie(idToken, {
+  const session = await adminAuth().createSessionCookie(idToken, {
     expiresIn,
   })
 
@@ -49,29 +28,25 @@ export async function login(idToken: string, appCheckToken: string) {
 }
 
 export async function logout() {
-  ensureInitialized()
-
   console.log('Logout')
   const cookieStore = await cookies()
   const session = cookieStore.get('session')?.value ?? ''
   cookieStore.delete('session')
   try {
-    const decodedClaims = await getAuth().verifySessionCookie(session)
-    await getAuth().revokeRefreshTokens(decodedClaims.sub)
+    const decodedClaims = await adminAuth().verifySessionCookie(session)
+    await adminAuth().revokeRefreshTokens(decodedClaims.sub)
   } catch (error) {
     console.error('Error during logout token revocation', error)
   }
 }
 
 export async function serverLogout() {
-  ensureInitialized()
-
   console.log('Server Logout')
   const cookieStore = await cookies()
   const session = cookieStore.get('session')?.value ?? ''
   try {
-    const decodedClaims = await getAuth().verifySessionCookie(session)
-    await getAuth().revokeRefreshTokens(decodedClaims.sub)
+    const decodedClaims = await adminAuth().verifySessionCookie(session)
+    await adminAuth().revokeRefreshTokens(decodedClaims.sub)
   } catch (error) {
     console.error('Error during logout token revocation', error)
   }
@@ -83,7 +58,7 @@ async function validateAppCheck(
   appCheckToken: string
 ): Promise<string | undefined> {
   try {
-    await getAppCheck().verifyToken(appCheckToken)
+    await adminAppCheck().verifyToken(appCheckToken)
     console.debug('App check token verified')
   } catch (error) {
     console.error('Failed to verify appcheck token', error)
@@ -92,13 +67,11 @@ async function validateAppCheck(
 }
 
 export async function getAuthenticatedAuth() {
-  ensureInitialized()
-
   const cookieStore = await cookies()
   const session = cookieStore.get('session')?.value ?? ''
-  const decodedClaims = await getAuth().verifySessionCookie(session, true)
+  const decodedClaims = await adminAuth().verifySessionCookie(session, true)
   if (decodedClaims.admin === true) {
-    return getAuth()
+    return adminAuth()
   }
   return Promise.reject('User is not an admin')
 }

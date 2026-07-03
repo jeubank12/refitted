@@ -23,7 +23,8 @@
     "lodash": "^4.17.21",
     "next": "16.0.7",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
