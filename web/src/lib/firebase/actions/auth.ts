@@ -5,24 +5,39 @@ import { redirect } from 'next/navigation'
 
 import { adminAuth, adminAppCheck } from '../admin'
 
-export async function login(idToken: string, appCheckToken: string) {
+export async function login(
+  idToken: string,
+  appCheckToken: string
+): Promise<{ error?: string } | void> {
   // Validate appCheckToken before creating session
   const validationError = await validateAppCheck(appCheckToken)
   if (validationError) {
     console.error('Login failed', validationError)
-    return
+    return { error: 'app-check-failed' }
   }
 
-  const expiresIn = 60 * 60 * 1000
+  const decoded = await adminAuth().verifyIdToken(idToken)
+  if (decoded.admin !== true) {
+    console.warn('Login refused: not an admin', decoded.uid)
+    return { error: 'not-authorized' }
+  }
+  // Require a recent sign-in to mint a session (mitigates replay of an old stolen ID token)
+  if (Date.now() / 1000 - decoded.auth_time > 5 * 60) {
+    return { error: 'stale-auth' }
+  }
+
+  const SESSION_DURATION_MS = 5 * 24 * 60 * 60 * 1000 // 5 days (max allowed is 14)
   const session = await adminAuth().createSessionCookie(idToken, {
-    expiresIn,
+    expiresIn: SESSION_DURATION_MS,
   })
 
   const cookieStore = await cookies()
   cookieStore.set('session', session, {
     httpOnly: true,
     secure: true,
-    maxAge: expiresIn,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: SESSION_DURATION_MS / 1000,
   })
   redirect('/admin/users')
 }

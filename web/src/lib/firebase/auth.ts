@@ -40,7 +40,11 @@ export const useLogin = () => {
         const check = appCheck.current
         if (!check) return
         const result = await getToken(check)
-        return login(idToken, result.token)
+        const loginResult = await login(idToken, result.token)
+        if (loginResult?.error) {
+          await auth.signOut()
+          setError(loginResult.error)
+        }
       },
       error => setError(error.message)
     )

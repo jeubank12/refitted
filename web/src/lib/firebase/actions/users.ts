@@ -15,6 +15,10 @@ export async function listAllUsers(): Promise<
     return users
   } catch (error) {
     console.error('Error listing users:', error)
-    await serverLogout()
+    const code = (error as { code?: unknown })?.code
+    if (typeof code === 'string' && code.startsWith('auth/')) {
+      await serverLogout()
+    }
+    throw error
   }
 }
