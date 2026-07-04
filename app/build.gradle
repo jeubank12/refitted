@@ -1,13 +1,13 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias libs.plugins.application
     alias libs.plugins.dagger.hilt.android
-    alias libs.plugins.dependency.analysis
     alias libs.plugins.compose.compiler
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.jacoco
     alias libs.plugins.jetbrains.kotlin.android
-    alias libs.plugins.jetbrains.kotlin.kapt
     alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
@@ -15,11 +15,11 @@ plugins {
 android {
     defaultConfig {
         applicationId = "com.litus_animae.refitted"
-        minSdkVersion 26
-        compileSdk = 36
-        targetSdkVersion 36
-        versionCode = 3626000
-        versionName = "1.2.10-SNAPSHOT"
+        minSdk = 26
+        compileSdk = 37
+        targetSdk = 37
+        versionCode = 3726001
+        versionName = "1.2.12-SNAPSHOT"
         testInstrumentationRunner = "com.litus_animae.refitted.HiltTestRunner"
 
         javaCompileOptions {
@@ -44,7 +44,17 @@ android {
             resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             applicationIdSuffix ".debug"
             versionNameSuffix "-DEBUG"
-            testCoverageEnabled = true
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
+        }
+        minifiedDebug {
+            initWith buildTypes.debug
+            matchingFallbacks = ['debug']
+            applicationIdSuffix ".min_debug"
+            versionNameSuffix "-MINIFIED"
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     buildFeatures {
@@ -56,9 +66,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+            optIn.add("kotlin.RequiresOptIn")
+        }
     }
     namespace = 'com.litus_animae.refitted'
     
@@ -74,71 +86,53 @@ android {
 
     packaging {
         resources {
-            excludes += ['/META-INF/LICENSE.md', '/META-INF/LICENSE-notice.md']
+            it.excludes += ['/META-INF/LICENSE.md', '/META-INF/LICENSE-notice.md']
         }
     }
 }
 
 dependencies {
-    // Module dependencies
+    // Module dependencies (provide most transitive dependencies)
     implementation project(':ui')
     implementation project(':room')
     implementation project(':dynamo')
+    implementation project(':data')
+    implementation project(':util')
     implementation project(':identity')
 
+    // Core Android
     implementation libs.androidx.activity
-    implementation libs.androidx.annotation
     implementation libs.androidx.appcompat
     implementation libs.guava
     implementation libs.javax.inject
-    implementation libs.androidx.lifecycle.runtime.compose.android
 
-    testImplementation libs.androidx.core.runtime
+    // Hilt
+    implementation libs.dagger.hilt.android
+    ksp libs.dagger.hilt.android.compiler
+
+    // Room compiler still needed for :app's own usage (PagingSource in repositories)
+    ksp libs.androidx.room.compiler
+
+    // Paging (used directly in repositories)
+    implementation libs.androidx.paging.common
+    implementation libs.androidx.paging.runtime
+    implementation libs.androidx.room.runtime
+    implementation libs.androidx.annotation
     implementation libs.androidx.fragment
     implementation libs.androidx.recyclerview
 
-    // UI Tests
-    androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.bundles.compose.testing
-    androidTestImplementation platform(libs.junit)
-    androidTestImplementation libs.bundles.junit
-    androidTestImplementation libs.dagger.hilt.android.testing
-    kaptAndroidTest libs.dagger.hilt.android.compiler
-    androidTestImplementation libs.androidx.room.testing
-    testImplementation platform(libs.junit)
-    testImplementation libs.bundles.junit
-    testRuntimeOnly libs.bundles.junit.runtime
-    testImplementation libs.truth
-    androidTestImplementation libs.androidx.test.runner
-    androidTestImplementation libs.androidx.test.monitor
+    // Lifecycle (used directly in repositories and Activity)
+    implementation libs.androidx.lifecycle.common
+    implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.androidx.lifecycle.viewmodel.savedstate
+    implementation libs.androidx.lifecycle.runtime.compose.android
+    implementation libs.androidx.hilt.lifecycle.viewmodel.compose
 
-    testImplementation libs.mockk
-    testImplementation libs.turbine
-    testImplementation libs.kotlinx.coroutines.test
-
-    // Room compiler still needed for :app's own usage (DAOs in repositories)
-    ksp libs.androidx.room.compiler
-
-    implementation libs.bundles.hilt
-    implementation libs.dagger
-    kapt libs.dagger.compiler
-    kapt libs.dagger.hilt.android.compiler
-    ksp libs.androidx.hilt.compiler
-    kspAndroidTest libs.androidx.hilt.compiler
-
-    implementation libs.androidx.hilt.navigation.compose
-    implementation libs.androidx.navigation.compose
-    implementation libs.androidx.navigation.common
-    implementation libs.androidx.navigation.runtime
-
+    // Firebase (app-level services)
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.analytics
-    implementation libs.firebase.auth
-    implementation libs.firebase.config
     implementation libs.firebase.crashlytics
-
-    implementation libs.kotlinx.coroutines.core
-    implementation libs.kotlinx.coroutines.play.services
 
     // Compose (Activity uses MaterialTheme, CompositionLocalProvider)
     implementation platform(libs.androidx.compose.bom)
@@ -146,19 +140,33 @@ dependencies {
     implementation libs.androidx.compose.material
     implementation libs.androidx.compose.runtime
 
-    // ViewModels (used in Activity)
-    testImplementation libs.androidx.lifecycle.livedata.core
-    implementation libs.androidx.lifecycle.viewmodel
-    implementation libs.androidx.lifecycle.viewmodel.compose
-    implementation libs.androidx.lifecycle.viewmodel.savedstate
+    // Coroutines (used in repositories)
+    implementation libs.kotlinx.coroutines.core
 
-    // match androidx.compose-ui version with https://github.com/google/accompanist#compose-versions
-    implementation libs.accompanist.adaptive
-
-    implementation libs.androidx.credentials
-
-    // optional - needed for credentials support from play services, for devices running
-    // Android 13 and below.
+    // Credentials (runtime support)
     runtimeOnly libs.androidx.credentials.play.services.auth
-    implementation libs.googleid
+
+    // Unit Tests
+    testImplementation platform(libs.junit)
+    testImplementation libs.junit.jupiter.api
+    testRuntimeOnly libs.bundles.junit.runtime
+    testImplementation libs.mockk
+    testImplementation libs.mockk.dsl
+    testImplementation libs.truth
+    testImplementation libs.turbine
+    testImplementation libs.kotlinx.coroutines.test
+
+    // Android Instrumentation Tests
+    androidTestImplementation platform(libs.androidx.compose.bom)
+    androidTestRuntimeOnly libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.androidx.compose.ui.test
+    androidTestImplementation platform(libs.junit)
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.room.runtime
+    androidTestImplementation libs.junit.legacy
+    androidTestImplementation libs.dagger.hilt.android.testing
+    kspAndroidTest libs.dagger.hilt.android.compiler
 }

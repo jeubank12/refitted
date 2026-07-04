@@ -1,14 +1,14 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.ksp)
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.litus_animae.refitted.room"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -43,33 +43,29 @@ dependencies {
     api(project(":data"))
 
     // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
+    api(libs.javax.inject)
 
     // Kotlin
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
+
+    // Hilt
+    api(libs.dagger.hilt.android)
+    ksp(libs.dagger.hilt.android.compiler)
 
     // Room (exposed as api - :app repository implementations use these)
-    api(libs.bundles.room)
+    api(libs.androidx.room.common)
+    api(libs.androidx.room.runtime)
+    api(libs.androidx.room.paging)
     api(libs.androidx.sqlite)
     ksp(libs.androidx.room.compiler)
 
     // Paging (exposed as api - :app repository implementations use these)
-    api(libs.androidx.paging.runtime)
-
-    // Hilt
-    implementation(libs.bundles.hilt)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    api(libs.androidx.paging.common)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
-    testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.androidx.room.testing)
-    testImplementation(libs.androidx.core.runtime)
 }

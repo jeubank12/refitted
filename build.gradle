@@ -22,9 +22,25 @@ plugins {
     alias libs.plugins.google.services apply false
     alias libs.plugins.firebase.crashlytics apply false
     alias libs.plugins.jetbrains.kotlin.android apply false
-    alias libs.plugins.jetbrains.kotlin.kapt apply false
     alias libs.plugins.jetbrains.kotlin.parcelize apply false
     alias libs.plugins.ksp apply false
+}
+
+dependencyAnalysis {
+    issues {
+        all {
+            onAny {
+                severity('fail')
+            }
+            onUsedTransitiveDependencies {
+                severity('ignore')
+            }
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'com.autonomousapps.dependency-analysis'
 }
 
 task clean(type: Delete) {

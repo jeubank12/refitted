@@ -1,16 +1,17 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.jetbrains.kotlin.parcelize)
     alias(libs.plugins.ksp)
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.litus_animae.refitted.ui"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -56,30 +57,23 @@ android {
 dependencies {
     // Module dependencies
     api(project(":data"))
-    implementation(project(":util"))
-    implementation(project(":identity"))
+    api(project(":util"))
+    api(project(":identity"))
+
+    // Core dependencies
+    api(libs.javax.inject)
+
+    // Dependency Injection
+    implementation(libs.dagger.hilt.android)
+    ksp(libs.dagger.hilt.android.compiler)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     // Core Android
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.annotation)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.guava)
-    implementation(libs.javax.inject)
     implementation(libs.androidx.lifecycle.runtime.compose.android)
-    implementation(libs.androidx.fragment)
-    implementation(libs.androidx.recyclerview)
 
     // Paging (exposed as api - ViewModels expose Flow<PagingData<T>>)
     api(libs.androidx.paging.compose)
-    api(libs.androidx.paging.runtime)
-
-    // Hilt
-    implementation(libs.bundles.hilt)
-    implementation(libs.dagger)
-    kapt(libs.dagger.compiler)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.paging.common)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
@@ -92,41 +86,38 @@ dependencies {
     implementation(libs.firebase.config)  // For ConfigProvider.RemoteConfig type
 
     // Arrow
-    implementation(platform(libs.arrow.stack))
-    implementation(libs.arrow.core)
+    api(platform(libs.arrow.stack))
+    api(libs.arrow.core)
 
     // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
-    implementation(libs.bundles.compose.tooling)
+    api(libs.bundles.compose)
+    api(libs.bundles.compose.tooling)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.runtime.annotation)
+    implementation(libs.androidx.compose.ui.util)
 
     // Lifecycle
-    testImplementation(libs.androidx.lifecycle.livedata.core)
+    implementation(libs.androidx.lifecycle.common)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.savedstate)
+    api(libs.androidx.lifecycle.viewmodel.savedstate)
 
-    // Accompanist
-    implementation(libs.accompanist.adaptive)
-
-    // Credentials
+    // Credentials (exposed as api - used in public APIs)
     implementation(libs.androidx.credentials)
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Accompanist
+    implementation(libs.accompanist.adaptive)
+
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
     testRuntimeOnly(libs.bundles.junit.runtime)
-    testImplementation(libs.truth)
     testImplementation(libs.mockk)
-    testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.androidx.core.runtime)
 }

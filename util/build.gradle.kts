@@ -1,14 +1,13 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.litus_animae.refitted.util"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -34,20 +33,12 @@ android {
 }
 
 dependencies {
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
-
-    // Kotlin
-    implementation(libs.kotlinx.coroutines.core)
-
-    // Hilt
-    implementation(libs.bundles.hilt)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    // Coroutines runtime
+    runtimeOnly(libs.kotlinx.coroutines.android)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

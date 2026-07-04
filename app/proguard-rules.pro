@@ -21,7 +21,7 @@
 -renamesourcefileattribute SourceFile
 
 #Amazon
--keep class com.litus_animae.refitted.models.dynamo.*   { *; }
+-keep class com.litus_animae.refitted.dynamo.entities.** { *; }
 -keep class org.apache.commons.logging.**               { *; }
 -keep class com.amazonaws.services.sqs.QueueUrlHandler  { *; }
 -keep class com.amazonaws.javax.xml.transform.sax.*     { public *; }

@@ -46,7 +46,7 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AuthButton(
+internal fun AuthButton(
   modifier: Modifier = Modifier,
   handleAuthSuccess: (GetCredentialResponse) -> Unit,
   handleAuthFailure: (GetCredentialException) -> Unit,

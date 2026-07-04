@@ -1,14 +1,13 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.dagger.hilt.android)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
-    alias(libs.plugins.ksp)
 }
 
-android {
+extensions.configure<LibraryExtension> {
     namespace = "com.litus_animae.refitted.data"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -34,27 +33,16 @@ android {
 }
 
 dependencies {
-    // Module dependencies
-    api(project(":util"))
+    // Kotlin & Coroutines
+    api(libs.kotlinx.coroutines.core)
+    runtimeOnly(libs.kotlinx.coroutines.android)
 
-    // Core dependencies
-    implementation(libs.androidx.annotation)
-    implementation(libs.javax.inject)
-
-    // Kotlin
-    implementation(libs.kotlinx.coroutines.core)
-
-    // Paging
-    api(libs.androidx.paging.runtime)
-
-    // Hilt
-    implementation(libs.bundles.hilt)
-    kapt(libs.dagger.hilt.android.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    // Paging (used directly in repository interfaces)
+    implementation(libs.androidx.paging.common)
 
     // Testing
     testImplementation(platform(libs.junit))
-    testImplementation(libs.bundles.junit)
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)

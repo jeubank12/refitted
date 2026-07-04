@@ -3,13 +3,13 @@ package com.litus_animae.refitted.dynamo
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
-import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
-import com.litus_animae.refitted.identity.AuthProvider
-import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
+import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
+import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
 import com.litus_animae.refitted.dynamo.entities.DynamoGroupDefinition
 import com.litus_animae.refitted.dynamo.entities.DynamoWorkoutDay
 import com.litus_animae.refitted.dynamo.entities.DynamoWorkoutPlan
+import com.litus_animae.refitted.identity.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -18,15 +18,14 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import javax.inject.Named
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class DynamoWorkoutPlanNetworkService @Inject constructor(
   @ApplicationContext context: Context,
-  log: LogUtil,
-  authProvider: AuthProvider,
-) :
-  DynamoNetworkService(context, log, authProvider), WorkoutPlanNetworkService {
+  private val log: LogUtil,
+  private val authProvider: AuthProvider,
+) : WorkoutPlanNetworkService {
+  private val dynamo = DynamoNetworkService(context, log, authProvider)
 
   private fun querySpecificWorkoutPlans(
     db: DynamoDBMapper,
@@ -42,7 +41,7 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
 
   override suspend fun getWorkoutPlans(): List<WorkoutPlan> {
     return withContext(Dispatchers.IO) {
-      val db = getDb()
+      val db = dynamo.getDb()
 
       val currentUser = authProvider.auth().currentUser!!
       val idToken = currentUser.getIdToken(false).await()

@@ -1,0 +1,14 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/refitted.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md", "cdk*.json", "**/*.js", "**/*.d.ts",
+      "tsconfig.json", "package*.json", "node_modules", "dist", "cdk.out"
+    ]
+  },
+  "context": {
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true
+  }
+}

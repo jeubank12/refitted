@@ -2,9 +2,9 @@ name: Builds
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   pull_request:
-    branches: [master]
+    branches: [ master ]
 
 jobs:
   changes:
@@ -70,6 +70,21 @@ jobs:
           ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: "not-needed"
           ORG_GRADLE_PROJECT_Refitted_OpenIdSource: "not-needed"
         run: ./gradlew assembleRelease --warning-mode=fail
+
+      - name: Run buildHealth
+        env:
+          # ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: ${{ secrets.REFITTED_IDENTITYPOOLID }}
+          # ORG_GRADLE_PROJECT_Refitted_OpenIdSource: ${{ secrets.REFITTED_OPENIDSOURCE }}
+          ORG_GRADLE_PROJECT_Refitted_IdentityPoolId: 'not-needed'
+          ORG_GRADLE_PROJECT_Refitted_OpenIdSource: 'not-needed'
+        run: ./gradlew buildHealth
+
+      - name: Upload dependency analysis report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-analysis-report
+          path: build/reports/dependency-analysis/
 
   build-web:
     needs: changes

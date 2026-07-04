@@ -13,6 +13,7 @@ import com.litus_animae.refitted.room.RefittedRoom
 import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.util.LogUtil
+import com.litus_animae.refitted.util.TestLogUtil
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -40,7 +41,7 @@ class RoomCacheExerciseRepositoryTest {
   private val networkService: ExerciseSetNetworkService = mockk()
   private val roomDatabase: RefittedRoom = mockk()
   private val exerciseDao: ExerciseDao = mockk()
-  private val log: LogUtil = mockk(relaxed = true)
+  private val log: LogUtil = TestLogUtil
 
   // Test Data
   private val workoutName = "TestWorkout"

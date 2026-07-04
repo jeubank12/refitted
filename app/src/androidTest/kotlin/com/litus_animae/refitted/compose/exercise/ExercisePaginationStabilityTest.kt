@@ -9,9 +9,12 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.litus_animae.refitted.HiltTestActivity
 import com.litus_animae.refitted.data.TestDataBuilder
-import com.litus_animae.refitted.data.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.ui.compose.exercise.Exercise
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
@@ -30,6 +33,7 @@ import javax.inject.Inject
  * RoomCacheExerciseRepository.records -> ExerciseViewModel.records ->
  * ExerciseView.setRecords -> ExerciseSetView
  */
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @RunWith(AndroidJUnit4::class)
 @HiltAndroidTest
 class ExercisePaginationStabilityTest {

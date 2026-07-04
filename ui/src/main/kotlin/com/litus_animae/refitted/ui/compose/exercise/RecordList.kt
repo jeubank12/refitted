@@ -137,7 +137,7 @@ fun SetRecordList(
       val items = remember(records.itemSnapshotList) {
         records.itemSnapshotList.items.reversed()
       }
-      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble-exploded") {
+      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble-exploded") {
         val data = remember(items) {
           items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
         }
@@ -149,7 +149,7 @@ fun SetRecordList(
           data = data,
           inverseRelationship = true
         )
-      } else if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE]?.asString() == "bubble") {
+      } else if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble") {
         val data = remember(items) {
           items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
         }
