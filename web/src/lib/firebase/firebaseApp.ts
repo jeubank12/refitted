@@ -7,7 +7,6 @@ import { AppCheck, initializeAppCheck } from 'firebase/app-check'
 import { firebaseConfig, recaptchaProvider } from './firebaseConfig'
 
 declare global {
-  // eslint-disable-next-line no-var
   var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean
 }
 

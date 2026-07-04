@@ -1,7 +1,8 @@
 'use server'
 
-import type { UserRecord } from 'firebase-admin/auth'
 import { getAuthenticatedAuth, serverLogout } from './auth'
+
+import type { UserRecord } from 'firebase-admin/auth'
 
 export async function listAllUsers(): Promise<
   { users: UserRecord[] } | undefined

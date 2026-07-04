@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import {
   browserSessionPersistence,
   getAuth,
@@ -12,7 +14,6 @@ import { getToken } from 'firebase/app-check'
 
 import { app, useAppCheck } from './firebaseApp'
 import { login, logout } from 'src/lib/firebase/actions/auth'
-import { useRouter } from 'next/navigation'
 
 const provider = new GoogleAuthProvider()
 
@@ -48,7 +49,7 @@ export const useLogin = () => {
       },
       error => setError(error.message)
     )
-  }, [])
+  }, [appCheck])
   return { error, doLogin }
 }
 

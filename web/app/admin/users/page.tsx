@@ -1,19 +1,12 @@
-import { redirect } from 'next/navigation'
-
 import { listAllUsers } from 'src/lib/firebase/actions/users'
 import ListUsersTable from './ListUsersTable'
 
 /**
  * Users list page - displays all Firebase Auth users
  *
- * This server component demonstrates the error handling pattern for
- * authenticated operations in server components:
- * 1. Call server action (listAllUsers)
- * 2. Check if result has error field
- * 3. Redirect to login if tokens are invalid
- *
- * Note: Server components can't use client-side logout hooks,
- * so we redirect to /admin which will show the login page.
+ * listAllUsers() rethrows on failure (after revoking the session on auth
+ * errors), which surfaces Next's nearest error boundary rather than
+ * redirecting from here.
  */
 export default async function UsersList() {
   const data = await listAllUsers()

@@ -1,6 +1,7 @@
 'use client'
-import { useUserSession } from 'src/lib/firebase/auth'
 import { useEffect } from 'react'
+
+import { useUserSession } from 'src/lib/firebase/auth'
 
 export default function ClientLogout() {
   const { logout } = useUserSession()
