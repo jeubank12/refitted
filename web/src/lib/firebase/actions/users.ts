@@ -55,15 +55,18 @@ export async function deleteUsers(
   }
 
   // Never let an admin delete their own account from this table.
+  // Fail closed: if we can't positively resolve the caller's own uid, we can't
+  // guarantee they aren't in the delete set, so refuse rather than risk letting
+  // an admin delete their own account.
   const cookieStore = await cookies()
   const session = cookieStore.get('session')?.value
-  let selfUid: string | undefined
-  if (session) {
-    try {
-      selfUid = (await adminAuth().verifySessionCookie(session, true)).sub
-    } catch (error) {
-      console.error('Failed to resolve current admin uid during deleteUsers', error)
-    }
+  let selfUid: string
+  try {
+    if (!session) throw new Error('No session cookie')
+    selfUid = (await adminAuth().verifySessionCookie(session, true)).sub
+  } catch (error) {
+    console.error('Failed to resolve current admin uid during deleteUsers', error)
+    return { ok: false, error: 'not-authorized' }
   }
   const targets = uids.filter(uid => uid !== selfUid)
   if (!targets.length) {

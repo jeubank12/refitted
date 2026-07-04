@@ -4,6 +4,13 @@ import { adminAuth } from '../admin'
 import { getAuthenticatedAuth, serverLogout, validateAppCheck } from './auth'
 import { SetClaimResult } from 'src/lib/aws/types'
 
+// Claims an admin is allowed to set from this action. Deliberately excludes
+// sensitive claims like `admin`: the server action is a directly-invocable
+// endpoint, so it must constrain the claim name itself rather than trusting the
+// UI (which only ever sends `group`). Admin promotion is intentionally manual
+// for now — add `admin` here when that flow exists.
+const SETTABLE_CLAIMS = new Set(['group'])
+
 export async function setUserClaim(
   email: string,
   claimName: string,
@@ -14,6 +21,11 @@ export async function setUserClaim(
   if (validationError) {
     console.error('setUserClaim refused', validationError)
     return { ok: false, error: 'app-check-failed' }
+  }
+
+  if (!SETTABLE_CLAIMS.has(claimName)) {
+    console.warn('setUserClaim refused: claim not settable', claimName)
+    return { ok: false, error: `Claim "${claimName}" cannot be set here` }
   }
 
   try {
