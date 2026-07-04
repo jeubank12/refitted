@@ -30,7 +30,15 @@ but are still kept out of the repo per policy):
 - `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `NEXT_PUBLIC_DEV_TOOLS_ENABLED` — set to `true` to enable the Firebase
-  App Check debug token locally.
+  App Check debug token locally (already set in `.env.development`, which
+  `npm run dev` loads automatically). This makes the App Check SDK generate
+  a random debug token and print it to the browser console on first load
+  instead of doing a real reCAPTCHA v3 attestation — but a freshly generated
+  token isn't trusted by Firebase until you register it. If login/mutations
+  fail with a 403 from `exchangeToken`/`exchangeDebugToken`, look for a
+  `App Check debug token: <uuid>` line in the browser console and add it in
+  **Firebase Console → App Check → Apps → (this web app) → Manage debug
+  tokens**.
 
 Runtime, server-only secrets:
 

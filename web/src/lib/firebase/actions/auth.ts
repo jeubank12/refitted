@@ -8,7 +8,7 @@ import { adminAuth, adminAppCheck } from '../admin'
 export async function login(
   idToken: string,
   appCheckToken: string
-): Promise<{ error?: string } | void> {
+): Promise<{ error?: string }> {
   // Validate appCheckToken before creating session
   const validationError = await validateAppCheck(appCheckToken)
   if (validationError) {
@@ -39,14 +39,15 @@ export async function login(
     path: '/',
     maxAge: SESSION_DURATION_MS / 1000,
   })
-  redirect('/admin/users')
+  return {}
 }
 
 export async function logout() {
   console.log('Logout')
   const cookieStore = await cookies()
-  const session = cookieStore.get('session')?.value ?? ''
+  const session = cookieStore.get('session')?.value
   cookieStore.delete('session')
+  if (!session) return
   try {
     const decodedClaims = await adminAuth().verifySessionCookie(session)
     await adminAuth().revokeRefreshTokens(decodedClaims.sub)
@@ -58,12 +59,14 @@ export async function logout() {
 export async function serverLogout() {
   console.log('Server Logout')
   const cookieStore = await cookies()
-  const session = cookieStore.get('session')?.value ?? ''
-  try {
-    const decodedClaims = await adminAuth().verifySessionCookie(session)
-    await adminAuth().revokeRefreshTokens(decodedClaims.sub)
-  } catch (error) {
-    console.error('Error during logout token revocation', error)
+  const session = cookieStore.get('session')?.value
+  if (session) {
+    try {
+      const decodedClaims = await adminAuth().verifySessionCookie(session)
+      await adminAuth().revokeRefreshTokens(decodedClaims.sub)
+    } catch (error) {
+      console.error('Error during logout token revocation', error)
+    }
   }
   // server logout needs to tell the client to also logout
   redirect('/admin/logout')
@@ -83,10 +86,34 @@ export async function validateAppCheck(
 
 export async function getAuthenticatedAuth() {
   const cookieStore = await cookies()
-  const session = cookieStore.get('session')?.value ?? ''
+  const session = cookieStore.get('session')?.value
+  if (!session) {
+    return Promise.reject(
+      Object.assign(new Error('No session cookie'), { code: 'auth/no-session' })
+    )
+  }
   const decodedClaims = await adminAuth().verifySessionCookie(session, true)
   if (decodedClaims.admin === true) {
     return adminAuth()
   }
   return Promise.reject('User is not an admin')
+}
+
+// For display only (e.g. the "Logged in as" header) — reflects the real session's
+// validity, unlike client-side Firebase Auth state, which does not track this cookie
+// and can diverge from it (shorter-lived, cleared on browser close).
+export async function getSessionUser(): Promise<{
+  name?: string
+  email?: string
+} | null> {
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value
+  if (!session) return null
+  try {
+    const decoded = await adminAuth().verifySessionCookie(session, true)
+    if (decoded.admin !== true) return null
+    return { name: decoded.name, email: decoded.email }
+  } catch {
+    return null
+  }
 }
