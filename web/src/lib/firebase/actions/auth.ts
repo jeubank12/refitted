@@ -69,7 +69,7 @@ export async function serverLogout() {
   redirect('/admin/logout')
 }
 
-async function validateAppCheck(
+export async function validateAppCheck(
   appCheckToken: string
 ): Promise<string | undefined> {
   try {
