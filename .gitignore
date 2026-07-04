@@ -5,6 +5,10 @@
 # API keys
 **/google-services.json
 
+# Local infra/config not for the repo (source for REFITTED_GROUPS_B64) and working docs
+groups.json
+PLAN-web-security.md
+
 # Generated files
 bin/
 gen/
