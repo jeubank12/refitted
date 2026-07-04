@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.6",
     "@mui/material-nextjs": "^7.3.6",
+    "@mui/x-data-grid": "^9.8.0",
     "firebase": "^12.5.0",
     "firebase-admin": "^13.6.0",
     "lodash": "^4.17.21",

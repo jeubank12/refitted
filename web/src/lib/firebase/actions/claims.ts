@@ -29,7 +29,12 @@ export async function setUserClaim(
     if (!user.emailVerified) {
       return { ok: false, error: 'User email is not verified' }
     }
-    const claims = { ...user.customClaims, [claimName]: claimValue }
+    const claims = { ...user.customClaims }
+    if (claimValue) {
+      claims[claimName] = claimValue
+    } else {
+      delete claims[claimName]
+    }
     await adminAuth().setCustomUserClaims(user.uid, claims)
     return { ok: true, claims }
   } catch (error) {

@@ -1,6 +1,14 @@
 'use server'
 
-import { getAuthenticatedAuth, serverLogout } from './auth'
+import { cookies } from 'next/headers'
+
+import { adminAuth } from '../admin'
+import {
+  getAuthenticatedAuth,
+  serverLogout,
+  validateAppCheck,
+} from './auth'
+import { DeleteUsersResult } from 'src/lib/aws/types'
 
 import type { UserRecord } from 'firebase-admin/auth'
 
@@ -25,5 +33,53 @@ export async function listAllUsers(): Promise<
       console.error('Error listing users:', error)
     }
     throw error
+  }
+}
+
+export async function deleteUsers(
+  uids: string[],
+  appCheckToken: string
+): Promise<DeleteUsersResult> {
+  const validationError = await validateAppCheck(appCheckToken)
+  if (validationError) {
+    console.error('deleteUsers refused', validationError)
+    return { ok: false, error: 'app-check-failed' }
+  }
+
+  try {
+    await getAuthenticatedAuth()
+  } catch (error) {
+    console.error('Session invalid during deleteUsers', error)
+    await serverLogout()
+    return { ok: false, error: 'not-authorized' }
+  }
+
+  // Never let an admin delete their own account from this table.
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value
+  let selfUid: string | undefined
+  if (session) {
+    try {
+      selfUid = (await adminAuth().verifySessionCookie(session, true)).sub
+    } catch (error) {
+      console.error('Failed to resolve current admin uid during deleteUsers', error)
+    }
+  }
+  const targets = uids.filter(uid => uid !== selfUid)
+  if (!targets.length) {
+    return { ok: false, error: 'No deletable users in selection' }
+  }
+
+  try {
+    const result = await adminAuth().deleteUsers(targets)
+    return {
+      ok: true,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      errors: result.errors.map(e => e.error.message),
+    }
+  } catch (error) {
+    console.error('Error deleting users:', error)
+    return { ok: false, error: 'Failed to delete users' }
   }
 }
