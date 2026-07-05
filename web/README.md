@@ -121,8 +121,11 @@ distinguishes a clean rollback (`iam-failed-rolled-back`) from the rare
 case where the rollback write itself also fails
 (`iam-failed-rollback-failed` — needs manual reconciliation).
 
-**No UI calls these actions yet** (a follow-up). To validate them locally,
-see `npm run test:groups` below.
+`/admin/workouts` (`app/admin/workouts/`) is the UI for `updateGroupWorkouts` —
+it lists every plan (`listAllWorkoutPlans` in `src/lib/aws/dynamo.ts`) with a
+per-group checkbox reflecting DynamoDB state, calling the action on toggle.
+`setUserClaim` is driven by `/admin/users`. To validate the group action
+directly (bypassing the UI), see `npm run test:groups` below.
 
 ## Testing the group actions without UI
 

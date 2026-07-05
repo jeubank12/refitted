@@ -73,7 +73,8 @@ export class AuthStack extends cdk.Stack {
     });
     readOnlyPolicy.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
-    // Grants the admin Lambda permission to update the Paid1 policy versions.
+    // Grants permission to update the Paid1/Free/Anon policy versions - the web
+    // admin's updateGroupWorkouts server action edits all three.
     const iamEditGroupsPolicy = new iam.ManagedPolicy(this, 'IamEditGroups', {
       managedPolicyName: 'IAM-Refitted-EditGroups',
       statements: [new iam.PolicyStatement({
@@ -82,7 +83,11 @@ export class AuthStack extends cdk.Stack {
           'iam:GetPolicyVersion', 'iam:ListPolicyVersions',
           'iam:CreatePolicyVersion', 'iam:DeletePolicyVersion',
         ],
-        resources: [paid1Policy.managedPolicyArn],
+        resources: [
+          paid1Policy.managedPolicyArn,
+          freePolicy.managedPolicyArn,
+          anonPolicy.managedPolicyArn,
+        ],
       })],
     });
     iamEditGroupsPolicy.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);

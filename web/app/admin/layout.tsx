@@ -57,16 +57,21 @@ const darkTheme = createTheme({
 export default function AdminLayout({
   children,
   logout,
+  nav,
 }: {
   children: ReactNode
   logout: ReactNode
+  nav: ReactNode
 }) {
   return (
     <AppRouterCacheProvider>
       <ThemeProvider theme={darkTheme}>
         <CssBaseline />
         <div className={styles.container}>
-          <header>{logout}</header>
+          <header className={styles.header}>
+            {nav}
+            {logout}
+          </header>
 
           <main className={styles.main}>{children}</main>
         </div>

@@ -1,7 +1,8 @@
 'use server'
 
-import { getGroupConfig } from '../groups'
+import { getGroupConfig, getGroupsConfig } from '../groups'
 import {
+  listAllWorkoutPlans,
   readDynamoGroupWorkouts,
   updateDynamoGroupWorkouts,
   writeDynamoGroupWorkouts,
@@ -16,6 +17,60 @@ import {
 
 function sanitizeWorkouts(workouts: string[]): string[] {
   return [...new Set(workouts.map(workout => workout.trim()).filter(Boolean))]
+}
+
+/**
+ * Plan list + per-group Dynamo assignment state for the workout-plans admin
+ * page. Deliberately reads only Dynamo (not IAM) for display, matching the
+ * requirement that the UI show "just the dynamo state" - IAM is only ever
+ * touched by updateGroupWorkouts on write.
+ */
+export async function getWorkoutPlanAssignments(): Promise<{
+  plans: { name: string; description?: string }[]
+  groups: { name: string; id: string }[]
+  assignments: Record<string, string[]>
+}> {
+  try {
+    await getAuthenticatedAuth()
+  } catch (error) {
+    const code = (error as { code?: unknown })?.code
+    if (typeof code === 'string' && code.startsWith('auth/')) {
+      console.debug(
+        'Session invalid while listing workout plan assignments, logging out',
+        code
+      )
+      await serverLogout()
+    } else {
+      console.error('Error authenticating for workout plan assignments:', error)
+    }
+    throw error
+  }
+
+  const plans = await listAllWorkoutPlans()
+
+  // REFITTED_GROUPS_B64 may be unset in some environments (e.g. local dev) -
+  // degrade to "no groups" rather than crashing the whole page.
+  let groups: { name: string; id: string }[] = []
+  try {
+    groups = Object.entries(getGroupsConfig()).map(([name, config]) => ({
+      name,
+      id: config.id,
+    }))
+  } catch (error) {
+    console.warn(
+      'Groups config unavailable, plan assignment disabled',
+      error
+    )
+  }
+
+  const assignments: Record<string, string[]> = {}
+  await Promise.all(
+    groups.map(async group => {
+      assignments[group.name] = await readDynamoGroupWorkouts(group.id)
+    })
+  )
+
+  return { plans, groups, assignments }
 }
 
 export async function updateGroupWorkouts({
