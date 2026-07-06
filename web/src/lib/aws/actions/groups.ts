@@ -1,6 +1,6 @@
 'use server'
 
-import { getGroupConfig, getGroupsConfig } from '../groups'
+import { listAllGroups, resolveGroupPolicyArn } from '../groups'
 import {
   listAllWorkoutPlans,
   readDynamoGroupWorkouts,
@@ -48,14 +48,11 @@ export async function getWorkoutPlanAssignments(): Promise<{
 
   const plans = await listAllWorkoutPlans()
 
-  // REFITTED_GROUPS_B64 may be unset in some environments (e.g. local dev) -
-  // degrade to "no groups" rather than crashing the whole page.
+  // REFITTED_AWS_ACCOUNT_ID/REFITTED_ANDROID_POOL_ID may be unset in some environments
+  // (e.g. local dev) - degrade to "no groups" rather than crashing the whole page.
   let groups: { name: string; id: string }[] = []
   try {
-    groups = Object.entries(getGroupsConfig()).map(([name, config]) => ({
-      name,
-      id: config.id,
-    }))
+    groups = await listAllGroups()
   } catch (error) {
     console.warn(
       'Groups config unavailable, plan assignment disabled',
@@ -66,7 +63,7 @@ export async function getWorkoutPlanAssignments(): Promise<{
   const assignments: Record<string, string[]> = {}
   await Promise.all(
     groups.map(async group => {
-      assignments[group.name] = await readDynamoGroupWorkouts(group.id)
+      assignments[group.id] = await readDynamoGroupWorkouts(group.id)
     })
   )
 
@@ -98,9 +95,9 @@ export async function updateGroupWorkouts({
     return { status: 'unauthorized', error: 'Not authorized' }
   }
 
-  let groupConfig
+  let policyArn: string
   try {
-    groupConfig = getGroupConfig(group)
+    policyArn = await resolveGroupPolicyArn(group)
   } catch {
     return { status: 'unknown-group', error: `Unknown group: ${group}` }
   }
@@ -110,7 +107,7 @@ export async function updateGroupWorkouts({
 
   let snapshot: string[]
   try {
-    snapshot = await readDynamoGroupWorkouts(groupConfig.id)
+    snapshot = await readDynamoGroupWorkouts(group)
   } catch (error) {
     console.error('Failed to read current workout list', error)
     return { status: 'dynamo-failed', error: 'Failed to read current workout list' }
@@ -118,7 +115,7 @@ export async function updateGroupWorkouts({
 
   let dynamoResult: string[]
   try {
-    dynamoResult = await updateDynamoGroupWorkouts(groupConfig.id, add, remove)
+    dynamoResult = await updateDynamoGroupWorkouts(group, add, remove)
   } catch (error) {
     console.error('Dynamo update failed', error)
     return { status: 'dynamo-failed', error: 'Failed to update workout list' }
@@ -128,17 +125,12 @@ export async function updateGroupWorkouts({
   // re-PutItem, so it runs last and only Dynamo (the easy half) is ever
   // compensated if it fails.
   try {
-    const iamResult = await updateIamGroupPolicy(
-      groupConfig.id,
-      groupConfig.policyArn,
-      add,
-      remove
-    )
+    const iamResult = await updateIamGroupPolicy(group, policyArn, add, remove)
     return { status: 'ok', dynamo: dynamoResult, iam: iamResult }
   } catch (error) {
     console.error('IAM update failed, rolling back Dynamo', error)
     try {
-      await writeDynamoGroupWorkouts(groupConfig.id, snapshot)
+      await writeDynamoGroupWorkouts(group, snapshot)
       return {
         status: 'iam-failed-rolled-back',
         error: 'Failed to update access policy; workout list change was rolled back',

@@ -16,17 +16,14 @@ export class AuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AuthStackProps) {
     super(scope, id, props);
 
-    // Group UUID is kept out of source via cdk.context.json (gitignored).
-    // Set it locally or pass -c flags: cdk deploy -c paid1GroupId=xxx
-    //
-    // NOTE: the Paid1/Free/Anon DynamoDB policies' workout-program LeadingKeys are NOT
-    // managed here. They're live admin-mutable data — the admin Lambdas
-    // (RefittedUpdateIamGroup / RefittedUpdateDynamoGroup) rewrite those policy documents
-    // (as new IAM policy versions) whenever a program is added/removed. If CDK owned that
-    // content, every deploy would revert whatever the admin tools last wrote. So those three
-    // policies are referenced by ARN only below, never created/updated by this stack.
-    const paid1GroupId = this.node.tryGetContext('paid1GroupId') as string | undefined;
-
+    // NOTE: the Free/Anon DynamoDB policies' workout-program LeadingKeys, and every paid
+    // group's role/policy/role-mapping-rule, are NOT managed here. They're live admin-mutable
+    // data — the web admin app creates/edits them directly via IAM/Cognito APIs (see
+    // infra/paid-groups.md) whenever a program or paid group is added/removed. If CDK owned
+    // that content, every deploy would revert whatever the admin tools last wrote. So the
+    // Free/Anon policies are referenced by ARN only below, and paid groups don't exist in
+    // this stack at all — see the Identity Pool Role Attachments section for how the android
+    // pool's role-mapping config is (deliberately) no longer a CDK-managed resource.
     const oidcProviderArn = `arn:aws:iam::${this.account}:oidc-provider/${FIREBASE_OIDC_DOMAIN}`;
 
     // ===========================================================================
@@ -54,13 +51,11 @@ export class AuthStack extends cdk.Stack {
     const tableArn = props.table.tableArn;
     const reverseIndexArn = `${tableArn}/index/Reverse-index`;
 
-    // Paid1/Free/Anon policy content is owned by the admin Lambdas (see note above) —
+    // Free/Anon policy content is owned by the admin web app (see note above) —
     // reference by ARN only, never create/import as CDK-managed resources.
-    const paid1PolicyArn = `arn:aws:iam::${this.account}:policy/DynamoDb-Refitted.Dev01-Paid1`;
     const freePolicyArn = `arn:aws:iam::${this.account}:policy/DynamoDb-Refitted.Dev01-Free`;
     const anonPolicyArn = `arn:aws:iam::${this.account}:policy/DynamoDb-Refitted.Dev01-Anon`;
 
-    const paid1Policy = iam.ManagedPolicy.fromManagedPolicyArn(this, 'DynamoDbPaid1', paid1PolicyArn);
     const freePolicy = iam.ManagedPolicy.fromManagedPolicyArn(this, 'DynamoDbFree', freePolicyArn);
     const anonPolicy = iam.ManagedPolicy.fromManagedPolicyArn(this, 'DynamoDbAnon', anonPolicyArn);
 
@@ -73,22 +68,44 @@ export class AuthStack extends cdk.Stack {
     });
     readOnlyPolicy.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
-    // Grants permission to update the Paid1/Free/Anon policy versions - the web
-    // admin's updateGroupWorkouts server action edits all three.
+    // Ceiling for every android content role (Free, Auth/Anon, and every runtime-created
+    // paid-group role) - grants nothing itself, just caps what those roles' own policies
+    // can ever reach. See infra/paid-groups.md for why this matters for runtime-provisioned
+    // paid-group roles specifically.
+    const groupRoleBoundary = new iam.ManagedPolicy(this, 'GroupRoleBoundary', {
+      managedPolicyName: 'Refitted-GroupRoleBoundary',
+      statements: [new iam.PolicyStatement({
+        actions: ['dynamodb:BatchGetItem', 'dynamodb:GetItem', 'dynamodb:Query'],
+        resources: [tableArn, reverseIndexArn],
+      })],
+    });
+    groupRoleBoundary.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+    // Grants permission to update the Free/Anon policy versions, and every paid group's
+    // policy (name-prefixed, since paid-group policies are created at runtime rather than
+    // by this stack) - the web admin's updateGroupWorkouts server action edits these.
     const iamEditGroupsPolicy = new iam.ManagedPolicy(this, 'IamEditGroups', {
       managedPolicyName: 'IAM-Refitted-EditGroups',
-      statements: [new iam.PolicyStatement({
-        sid: 'VisualEditor0',
-        actions: [
-          'iam:GetPolicyVersion', 'iam:ListPolicyVersions',
-          'iam:CreatePolicyVersion', 'iam:DeletePolicyVersion',
-        ],
-        resources: [
-          paid1Policy.managedPolicyArn,
-          freePolicy.managedPolicyArn,
-          anonPolicy.managedPolicyArn,
-        ],
-      })],
+      statements: [
+        new iam.PolicyStatement({
+          sid: 'VisualEditor0',
+          actions: [
+            'iam:GetPolicyVersion', 'iam:ListPolicyVersions',
+            'iam:CreatePolicyVersion', 'iam:DeletePolicyVersion',
+          ],
+          resources: [`arn:aws:iam::${this.account}:policy/DynamoDb-Refitted.Dev01-*`],
+        }),
+        new iam.PolicyStatement({
+          sid: 'ResolvePaidGroupPolicy',
+          actions: ['iam:ListAttachedRolePolicies'],
+          resources: [`arn:aws:iam::${this.account}:role/Cognito_refitted_*`],
+        }),
+        new iam.PolicyStatement({
+          sid: 'ListPaidGroupRules',
+          actions: ['cognito-identity:GetIdentityPoolRoles'],
+          resources: [`arn:aws:cognito-identity:${this.region}:${this.account}:identitypool/${androidPool.ref}`],
+        }),
+      ],
     });
     iamEditGroupsPolicy.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
@@ -125,9 +142,11 @@ export class AuthStack extends cdk.Stack {
     // IAM Roles
     // ===========================================================================
 
-    // Unauth roles are AWS auto-generated at Identity Pool creation time; import by name.
+    // Unauth role is AWS auto-generated at Identity Pool creation time; import by name.
+    // (The android pool's unauthenticated role, Cognito_refitted_androidUnauth_Role, no
+    // longer needs a CDK reference - its pool's role-mapping config is admin-owned live
+    // data now; see infra/paid-groups.md.)
     const webUnauthRole = iam.Role.fromRoleName(this, 'WebUnauthRole', 'Cognito_refittedUnauth_Role');
-    const androidUnauthRole = iam.Role.fromRoleName(this, 'AndroidUnauthRole', 'Cognito_refitted_androidUnauth_Role');
 
     const webAuthRole = new iam.Role(this, 'WebAuthRole', {
       roleName: 'Cognito_refittedAuth_Role',
@@ -149,19 +168,10 @@ export class AuthStack extends cdk.Stack {
         },
         'ForAnyValue:StringLike': { 'cognito-identity.amazonaws.com:amr': 'authenticated' },
       }),
+      permissionsBoundary: groupRoleBoundary,
     });
     androidAuthRole.addManagedPolicy(anonPolicy);
     androidAuthRole.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
-
-    const androidPaid1Role = new iam.Role(this, 'AndroidPaid1Role', {
-      roleName: 'Cognito_refitted_androidPaid1_Role',
-      assumedBy: new iam.WebIdentityPrincipal('cognito-identity.amazonaws.com', {
-        StringEquals: { 'cognito-identity.amazonaws.com:aud': androidPool.ref },
-        'ForAnyValue:StringLike': { 'cognito-identity.amazonaws.com:amr': FIREBASE_OIDC_DOMAIN },
-      }),
-    });
-    androidPaid1Role.addManagedPolicy(paid1Policy);
-    androidPaid1Role.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
     const androidFreeRole = new iam.Role(this, 'AndroidFreeRole', {
       roleName: 'Cognito_refitted_androidFree_Role',
@@ -169,6 +179,7 @@ export class AuthStack extends cdk.Stack {
         StringEquals: { 'cognito-identity.amazonaws.com:aud': androidPool.ref },
         'ForAnyValue:StringLike': { 'cognito-identity.amazonaws.com:amr': FIREBASE_OIDC_DOMAIN },
       }),
+      permissionsBoundary: groupRoleBoundary,
     });
     androidFreeRole.addManagedPolicy(freePolicy);
     androidFreeRole.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
@@ -212,37 +223,15 @@ export class AuthStack extends cdk.Stack {
     });
     webPoolRoles.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
-    const androidRules: cognito.CfnIdentityPoolRoleAttachment.MappingRuleProperty[] = [];
-    if (paid1GroupId) {
-      androidRules.push({
-        claim: 'group',
-        matchType: 'Equals',
-        roleArn: androidPaid1Role.roleArn,
-        value: paid1GroupId,
-      });
-    }
-    androidRules.push({
-      claim: 'email',
-      matchType: 'Contains',
-      roleArn: androidFreeRole.roleArn,
-      value: '@',
-    });
-
-    const androidPoolRoles = new cognito.CfnIdentityPoolRoleAttachment(this, 'AndroidPoolRoles', {
-      identityPoolId: androidPool.ref,
-      roles: {
-        authenticated: androidAuthRole.roleArn,
-        unauthenticated: androidUnauthRole.roleArn,
-      },
-      roleMappings: {
-        firebase: {
-          type: 'Rules',
-          ambiguousRoleResolution: 'AuthenticatedRole',
-          identityProvider: oidcProviderArn,
-          rulesConfiguration: { rules: androidRules },
-        },
-      },
-    });
-    androidPoolRoles.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+    // The android pool's CfnIdentityPoolRoleAttachment is deliberately NOT a CDK-managed
+    // resource. It used to be (base auth/unauth roles + a static free-email rule + one
+    // Equals-<uuid> rule per paid group), but every paid group meant a CDK deploy to add
+    // its rule. The attachment previously created here (construct id "AndroidPoolRoles")
+    // was orphaned (RETAIN) rather than destroyed in the deploy that removed this code, so
+    // the live rules/roles it created are untouched. The web admin app now owns this
+    // resource's live state directly (GetIdentityPoolRoles / SetIdentityPoolRoles) - see
+    // infra/paid-groups.md for the current rule shape and how a new paid group's role,
+    // policy, and rule get created. Re-adding a CfnIdentityPoolRoleAttachment for this pool
+    // here would clobber whatever the admin app has since written.
   }
 }

@@ -187,6 +187,12 @@ export default function UsersList({
           const { row } = params
           const groupId = (row.customClaims?.group as string | undefined) ?? ''
           const disabled = !row.emailVerified || assigningUid === row.uid
+          // A user's current group claim is often Free/Anon (automatic fallbacks, never
+          // assignable here - see FREE_GROUP_ID/ANON_GROUP_ID in src/lib/aws/groups.ts) or,
+          // rarer, a paid group id that's drifted out of the assignable list. MUI's Select
+          // has no text fallback for a value with no matching MenuItem - it just renders
+          // blank - so inject one for the current value if it isn't otherwise selectable.
+          const isAssignable = groupId === '' || groups.some(g => g.id === groupId)
           return (
             <FormControl size="small" fullWidth disabled={disabled}>
               <Select
@@ -197,6 +203,11 @@ export default function UsersList({
                 <MenuItem value="">
                   <em>None</em>
                 </MenuItem>
+                {!isAssignable && (
+                  <MenuItem value={groupId} disabled>
+                    {groupNamesById[groupId] ?? groupId} (unassignable here)
+                  </MenuItem>
+                )}
                 {groups.map(group => (
                   <MenuItem key={group.id} value={group.id}>
                     {group.name}

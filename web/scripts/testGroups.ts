@@ -1,4 +1,4 @@
-import { getGroupConfig, getGroupNames } from '../src/lib/aws/groups'
+import { listAllGroups, resolveGroupPolicyArn } from '../src/lib/aws/groups'
 import { readDynamoGroupWorkouts, updateDynamoGroupWorkouts } from '../src/lib/aws/dynamo'
 import { updateIamGroupPolicy } from '../src/lib/aws/iam'
 
@@ -19,19 +19,28 @@ function parseArgs(argv: string[]) {
 async function main() {
   const { group, apply, add, remove } = parseArgs(process.argv.slice(2))
 
+  const groups = await listAllGroups()
+
   if (!group) {
     console.error(
-      'Usage: npm run test:groups -- <GroupName> [--apply] [--add A,B] [--remove C,D]'
+      'Usage: npm run test:groups -- <GroupNameOrId> [--apply] [--add A,B] [--remove C,D]'
     )
-    console.error(`Configured groups: ${getGroupNames().join(', ')}`)
+    console.error(`Configured groups: ${groups.map(g => `${g.name} (${g.id})`).join(', ')}`)
     process.exit(1)
   }
 
-  const config = getGroupConfig(group)
-  console.log(`Group "${group}" -> id=${config.id} policyArn=${config.policyArn}`)
+  const found = groups.find(g => g.name === group || g.id === group)
+  if (!found) {
+    console.error(`Unknown group: ${group}`)
+    console.error(`Configured groups: ${groups.map(g => `${g.name} (${g.id})`).join(', ')}`)
+    process.exit(1)
+  }
+
+  const policyArn = await resolveGroupPolicyArn(found.id)
+  console.log(`Group "${found.name}" -> id=${found.id} policyArn=${policyArn}`)
 
   console.log('Reading current DynamoDB workout list...')
-  const current = await readDynamoGroupWorkouts(config.id)
+  const current = await readDynamoGroupWorkouts(found.id)
   console.log('Current workouts:', current)
 
   if (!apply) {
@@ -51,16 +60,11 @@ async function main() {
   console.log(`Removing: ${remove.join(', ') || '(none)'}`)
 
   console.log('\nUpdating DynamoDB...')
-  const dynamoResult = await updateDynamoGroupWorkouts(config.id, add, remove)
+  const dynamoResult = await updateDynamoGroupWorkouts(found.id, add, remove)
   console.log('DynamoDB workouts now:', dynamoResult)
 
   console.log('\nUpdating IAM policy...')
-  const iamResult = await updateIamGroupPolicy(
-    config.id,
-    config.policyArn,
-    add,
-    remove
-  )
+  const iamResult = await updateIamGroupPolicy(found.id, policyArn, add, remove)
   console.log('IAM policy workouts now:', iamResult)
 
   console.log('\nDone.')

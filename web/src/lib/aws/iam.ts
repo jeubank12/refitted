@@ -3,6 +3,7 @@ import {
   DeletePolicyVersionCommand,
   GetPolicyVersionCommand,
   IAMClient,
+  ListAttachedRolePoliciesCommand,
   ListPolicyVersionsCommand,
   PolicyVersion,
 } from '@aws-sdk/client-iam'
@@ -31,6 +32,26 @@ function iamClient() {
 
 function versionNumber(versionId?: string): number {
   return parseInt((versionId ?? '').slice(1), 10)
+}
+
+// Paid groups have no CDK-managed policy reference (see infra/paid-groups.md) - each
+// group's role is discovered from the live Cognito role-mapping rules
+// (listGroupRoleRules), and from there this resolves which DynamoDb-Refitted.Dev01-*
+// policy is attached to that role.
+export async function getAttachedGroupPolicyArn(roleArn: string): Promise<string> {
+  const roleName = roleArn.split('/').pop()
+  if (!roleName) throw new Error(`Malformed role ARN: ${roleArn}`)
+
+  const { AttachedPolicies } = await iamClient().send(
+    new ListAttachedRolePoliciesCommand({ RoleName: roleName })
+  )
+  const policy = (AttachedPolicies ?? []).find(p =>
+    p.PolicyName?.startsWith('DynamoDb-Refitted.Dev01-')
+  )
+  if (!policy?.PolicyArn) {
+    throw new Error(`No DynamoDb-Refitted.Dev01-* policy attached to role ${roleName}`)
+  }
+  return policy.PolicyArn
 }
 
 export async function updateIamGroupPolicy(

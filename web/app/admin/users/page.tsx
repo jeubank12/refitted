@@ -1,5 +1,5 @@
 import { listAllUsers } from 'src/lib/firebase/actions/users'
-import { getGroupsConfig } from 'src/lib/aws/groups'
+import { listAllGroups, listAssignableGroups } from 'src/lib/aws/groups'
 import ListUsersTable from './ListUsersTable'
 
 /**
@@ -14,18 +14,20 @@ export default async function UsersList() {
 
   if (!data?.users.length) return <div>empty</div>
 
-  // REFITTED_GROUPS_B64 may be unset in some environments (e.g. local dev) -
-  // degrade to "no groups" rather than crashing the whole page.
+  // REFITTED_AWS_ACCOUNT_ID/REFITTED_ANDROID_POOL_ID may be unset in some environments
+  // (e.g. local dev) - degrade to "no groups" rather than crashing the whole page.
+  // `groups` (assignable = paid only) drives the dropdown options; `groupNamesById`
+  // (static + paid) resolves display names for any claim value, including Free/Anon
+  // which are never assignable but can still be a user's current group.
   let groups: { name: string; id: string }[] = []
+  let groupNamesById: Record<string, string> = {}
   try {
-    groups = Object.entries(getGroupsConfig()).map(([name, config]) => ({
-      name,
-      id: config.id,
-    }))
+    const [assignable, all] = await Promise.all([listAssignableGroups(), listAllGroups()])
+    groups = assignable
+    groupNamesById = Object.fromEntries(all.map(g => [g.id, g.name]))
   } catch (error) {
     console.warn('Groups config unavailable, group assignment disabled', error)
   }
-  const groupNamesById = Object.fromEntries(groups.map(g => [g.id, g.name]))
 
   // Serialize UserRecord objects to plain objects for client component
   // Firebase UserRecord has toJSON methods which can't be passed to client components

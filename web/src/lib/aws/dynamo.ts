@@ -53,6 +53,35 @@ export async function listAllWorkoutPlans(): Promise<WorkoutPlanSummary[]> {
   return plans
 }
 
+// Every Groups row (free/anon/paid) lives under the partition Disc="Groups", queryable
+// via Reverse-index the same way listAllWorkoutPlans queries Id="Plan". Only rows with a
+// Name attribute are returned - callers fall back to the raw id for paid groups that
+// don't have one set (e.g. not yet backfilled).
+export async function listGroupNames(): Promise<Record<string, string>> {
+  const names: Record<string, string> = {}
+  let exclusiveStartKey: Record<string, AttributeValue> | undefined
+
+  do {
+    const { Items, LastEvaluatedKey } = await dynamoClient().send(
+      new QueryCommand({
+        TableName: tableName,
+        IndexName: 'Reverse-index',
+        KeyConditionExpression: 'Disc = :groups',
+        ExpressionAttributeValues: { ':groups': { S: 'Groups' } },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    )
+    for (const item of Items ?? []) {
+      const id = item.Id?.S
+      const name = item.Name?.S
+      if (id && name) names[id] = name
+    }
+    exclusiveStartKey = LastEvaluatedKey
+  } while (exclusiveStartKey)
+
+  return names
+}
+
 export async function readDynamoGroupWorkouts(
   groupId: string
 ): Promise<string[]> {

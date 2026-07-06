@@ -48,19 +48,24 @@ export default function WorkoutPlansTable({
   const assignmentSets = useMemo(
     () =>
       Object.fromEntries(
-        groups.map(group => [group.name, new Set(assignments[group.name] ?? [])])
+        groups.map(group => [group.id, new Set(assignments[group.id] ?? [])])
       ),
     [groups, assignments]
   )
 
-  const handleToggle = (planName: string, groupName: string, assign: boolean) => {
-    const key = `${planName}::${groupName}`
+  const handleToggle = (
+    planName: string,
+    groupId: string,
+    groupName: string,
+    assign: boolean
+  ) => {
+    const key = `${planName}::${groupId}`
     setPendingKey(key)
     startTransition(async () => {
       try {
         const token = await getAppCheckToken()
         const result = await updateGroupWorkouts({
-          group: groupName,
+          group: groupId,
           addWorkouts: assign ? [planName] : [],
           removeWorkouts: assign ? [] : [planName],
           appCheckToken: token,
@@ -99,20 +104,22 @@ export default function WorkoutPlansTable({
       },
       ...groups.map(
         (group): GridColDef<Row> => ({
-          field: group.name,
+          field: group.id,
           headerName: group.name,
           width: 130,
           sortable: false,
           filterable: false,
           renderCell: params => {
-            const key = `${params.row.name}::${group.name}`
-            const checked = assignmentSets[group.name]?.has(params.row.name) ?? false
+            const key = `${params.row.name}::${group.id}`
+            const checked = assignmentSets[group.id]?.has(params.row.name) ?? false
             const disabled = pendingKey === key
             return (
               <Checkbox
                 checked={checked}
                 disabled={disabled}
-                onChange={e => handleToggle(params.row.name, group.name, e.target.checked)}
+                onChange={e =>
+                  handleToggle(params.row.name, group.id, group.name, e.target.checked)
+                }
               />
             )
           },
