@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "dotenv -e %USERPROFILE%/.config/refitted/.env.local -- next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -34,6 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^8.48.1",
     "@typescript-eslint/parser": "^8.48.1",
     "baseline-browser-mapping": "^2.10.42",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "eslint-config-prettier": "^9.1.0",
