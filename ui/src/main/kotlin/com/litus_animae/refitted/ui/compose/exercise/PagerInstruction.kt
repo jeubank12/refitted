@@ -1,12 +1,10 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,29 +26,25 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
+import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
@@ -59,6 +53,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.sign
 
@@ -69,7 +64,6 @@ private const val maxTranslation = 15f
 /** Safe wrapped access — returns 0 if the list is empty (guards against divide-by-zero during initial composition). */
 private fun List<Float>.wrapped(index: Int) = if (isEmpty()) 0f else get(index % size)
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, FlowPreview::class)
 @Composable
 fun PagerExerciseInstructions(
@@ -80,7 +74,7 @@ fun PagerExerciseInstructions(
    * Records keyed by exercise-set ID. Each card looks up its own [numCompleted] so all
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
    */
-  setRecords: Map<String, com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord> = emptyMap(),
+  setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
 ) {
   val pageRotations = remember(instructions.size) {
     val rotation = maxRotation - minRotation
@@ -111,128 +105,111 @@ fun PagerExerciseInstructions(
   val scope = rememberCoroutineScope()
 
   Column(Modifier.padding(top = 8.dp)) {
-    HorizontalPager(
-      pagerState,
-      Modifier.weight(5f, fill = true),
-      beyondViewportPageCount = 1,
-      contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-    ) { page ->
-
-      val offset by remember { derivedStateOf { pagerState.currentPageOffsetFraction } }
-      val rotation = remember(page) { pageRotations.wrapped(page) }
-      val direction = (page - pagerState.currentPage).sign
-      val magnitude = (page - pagerState.currentPage).absoluteValue
-      BoxWithConstraints(
+    Box(
+      Modifier
+        .weight(5f, fill = true)
+        .fillMaxWidth()
+    ) {
+      // Deck layer: every card is composed exactly once and pinned at its jittered rest
+      // position, so all cards are already rendered before a swipe starts. A card is
+      // hidden here only while the pager layer above is animating it.
+      Box(
         Modifier
-          .zIndex(
-            if (magnitude == 0) 0f
-            else if (direction > 0) -2f
-            else -3f
-          )
-          .graphicsLayer {
-            val directionFromCenter = (direction - offset).sign
-            translationX = lerp(0f, directionFromCenter * 90f, offset.absoluteValue)
-          }
+          .fillMaxSize()
+          .padding(horizontal = 16.dp, vertical = 8.dp)
       ) {
-        val widthInPx = with(LocalDensity.current) { maxWidth.toPx() }
-        Box(
-          Modifier
-            .graphicsLayer {
-              if (magnitude == 1) {
-                translationX = if (offset == 0f) {
-                  -direction * widthInPx
-                } else if (offset.sign.toInt() == direction) {
-                  lerp(-direction * widthInPx, 0f, offset.absoluteValue * 2)
-                } else {
-                  -direction * widthInPx
+        val currentPage = pagerState.currentPage
+        instructions.forEachIndexed { idx, instruction ->
+          key(idx) {
+            Card(
+              Modifier
+                .fillMaxSize()
+                // Upcoming cards stack above previously completed ones
+                .zIndex(
+                  if (idx >= currentPage) (currentPage - idx).toFloat()
+                  else (idx - currentPage - instructions.size).toFloat()
+                )
+                .graphicsLayer {
+                  val scroll = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                  val distance = idx - scroll
+                  val settleFraction = ceil(scroll) - scroll
+                  val spread = size.width + 2 * 16.dp.toPx()
+                  if (distance > -1f && distance <= -0.5f) {
+                    // Far half of this card's trip to or from the bottom of the deck.
+                    // Rendered here, not in the pager layer, so it slides underneath
+                    // the deck like a physical card being tucked under or pulled out.
+                    alpha = 1f
+                    val absDistance = distance.absoluteValue
+                    val deckFraction = 2f * absDistance - 1f
+                    translationX = -spread * min(absDistance, 1f - absDistance) +
+                      xTransforms.wrapped(idx) * deckFraction
+                    translationY = yTransforms.wrapped(idx) * deckFraction
+                    rotationZ = pageRotations.wrapped(idx) * deckFraction
+                  } else {
+                    alpha = if (distance.absoluteValue < 1f) 0f else 1f
+                    // The whole deck slides under the incoming top card like a physical
+                    // deck: it rides the same swing as the positive-side transition
+                    // card, returning to centre as the swipe settles.
+                    translationX = xTransforms.wrapped(idx) +
+                      spread * min(settleFraction, 1f - settleFraction)
+                    translationY = yTransforms.wrapped(idx)
+                    rotationZ = pageRotations.wrapped(idx)
+                  }
                 }
+            ) {
+              CardContent(instruction, alternateIndex, setRecords)
+            }
+          }
+        }
+      }
+
+      HorizontalPager(
+        pagerState,
+        Modifier.fillMaxSize(),
+        beyondViewportPageCount = 1,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+      ) { page ->
+        val pagesFromCurrent = page - pagerState.currentPage
+        Card(
+          Modifier
+            .fillMaxSize()
+            // The card leaving the top of the deck stays above the one being revealed or
+            // pulled out; the swap happens at the halfway flip, where both cards are
+            // clear of each other
+            .zIndex(
+              if (pagesFromCurrent == 0) 0f
+              else if (pagesFromCurrent > 0) -2f
+              else -3f
+            )
+            .graphicsLayer {
+              // Continuous distance of this page from front-and-centre, in pages.
+              // Derived only from draw-time state so nothing jumps when currentPage
+              // flips at the halfway threshold.
+              val distance =
+                (page - pagerState.currentPage) - pagerState.currentPageOffsetFraction
+              val absDistance = distance.absoluteValue
+              if (absDistance >= 1f || distance <= -0.5f) {
+                // At rest in the deck, or on the far half of a trip to or from the
+                // bottom of the deck — the deck layer underneath renders this card
+                alpha = 0f
+              } else {
+                alpha = 1f
+                // Swing out to the side and back, cancelling the pager's own slot
+                // offset. At the halfway point the two moving cards clear each other by
+                // the content padding on both sides, keeping the z-order swap invisible.
+                val spread = size.width + 2 * 16.dp.toPx()
+                translationX =
+                  distance.sign * spread * min(absDistance, 1f - absDistance) -
+                    distance * size.width
+                // Blend the deck jitter in as the card settles toward its rest position
+                val deckFraction = (2f * absDistance - 1f).coerceAtLeast(0f)
+                rotationZ = pageRotations.wrapped(page) * deckFraction
+                translationX += xTransforms.wrapped(page) * deckFraction
+                translationY = yTransforms.wrapped(page) * deckFraction
               }
             }
         ) {
-          if ((direction > 0 && magnitude == 1) || page == instructions.size - 1) {
-            val endPage = if (offset < 0f) pagerState.currentPage - 1 else pagerState.currentPage
-            (0.rangeUntil(endPage)).map { idx ->
-              Card(
-                Modifier
-                  .zIndex(-(instructions.size) - idx.toFloat())
-                  .fillMaxSize()
-                  .graphicsLayer {
-                    translationX = xTransforms.wrapped(idx)
-                    translationY = yTransforms.wrapped(idx)
-                    rotationZ = pageRotations.wrapped(idx)
-                  },
-              ) {
-                val instruction = instructions.getOrNull(idx)
-                val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
-                val exerciseSet by exerciseSetFlow
-                  ?.collectAsStateWithLifecycle(initialValue = null)
-                  ?: remember { mutableStateOf<ExerciseSet?>(null) }
-                ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
-              }
-            }
-            ((page + 1).rangeUntil(instructions.size)).map { idx ->
-              Card(
-                Modifier
-                  .zIndex(idx * -1f)
-                  .fillMaxSize()
-                  .graphicsLayer {
-                    translationX = xTransforms.wrapped(idx)
-                    translationY = yTransforms.wrapped(idx)
-                    rotationZ = pageRotations.wrapped(idx)
-                  },
-              ) {
-                val instruction = instructions.getOrNull(idx)
-                val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
-                val exerciseSet by exerciseSetFlow
-                  ?.collectAsStateWithLifecycle(initialValue = null)
-                  ?: remember { mutableStateOf<ExerciseSet?>(null) }
-                ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
-              }
-            }
-          }
-          Card(
-            Modifier
-              .graphicsLayer {
-                if (magnitude == 1) {
-                  if (offset == 0f) {
-                    rotationZ = rotation
-                    translationX = xTransforms.wrapped(page)
-                    translationY = yTransforms.wrapped(page)
-                  } else if (offset.sign.toInt() == direction) {
-                    rotationZ = lerp(rotation, 0f, offset.absoluteValue * 2)
-                    translationX =
-                      lerp(xTransforms.wrapped(page), 0f, offset.absoluteValue * 2)
-                    translationY =
-                      lerp(yTransforms.wrapped(page), 0f, offset.absoluteValue * 2)
-                  } else if (direction < 0) {
-                    rotationZ = 0f
-                    scaleX = 0.9f
-                    scaleY = 0.9f
-                  } else {
-                    rotationZ = rotation
-                  }
-                } else if (magnitude != 0) {
-                  rotationZ = rotation
-                  translationX = xTransforms.wrapped(page)
-                  translationY = yTransforms.wrapped(page)
-                }
-              },
-          ) {
-            CompositionLocalProvider(
-              LocalOverscrollFactory provides null
-            ) {
-              val instruction = instructions.getOrNull(page)
-              val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
-              val exerciseSet by exerciseSetFlow
-                ?.collectAsStateWithLifecycle(initialValue = null)
-                ?: remember { mutableStateOf<ExerciseSet?>(null) }
-              // Each card self-serves its own progress from the records map — no reflow on swipe
-              ExerciseInstructions(
-                exerciseSet,
-                numCompleted = setRecords[exerciseSet?.id]?.numCompleted ?: 0
-              )
-            }
-          }
+          CardContent(instructions.getOrNull(page), alternateIndex, setRecords)
         }
       }
     }
@@ -285,6 +262,25 @@ fun PagerExerciseInstructions(
       ?: remember { mutableStateOf<ExerciseSet?>(null) }
 
     ExerciseTimer(timeLimitMilliseconds = exerciseSet?.timeLimitMilliseconds)
+  }
+}
+
+@OptIn(FlowPreview::class)
+@Composable
+private fun CardContent(
+  instruction: ExerciseViewModel.ExerciseInstruction?,
+  alternateIndex: Int?,
+  setRecords: Map<String, ExerciseSetWithRecord>,
+) {
+  CompositionLocalProvider(
+    LocalOverscrollFactory provides null
+  ) {
+    val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+    val exerciseSet by exerciseSetFlow
+      ?.collectAsStateWithLifecycle(initialValue = null)
+      ?: remember { mutableStateOf<ExerciseSet?>(null) }
+    // Each card self-serves its own progress from the records map — no reflow on swipe
+    ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
   }
 }
 

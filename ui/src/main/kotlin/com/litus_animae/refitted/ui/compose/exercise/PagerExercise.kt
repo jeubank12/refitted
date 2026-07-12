@@ -3,6 +3,7 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,7 +64,14 @@ fun PagerExerciseView(
 
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val pagerState = rememberPagerState(pageCount = { instructions.size })
-  val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
+  // While a finger is down the index holds at the settled page — releasing is what
+  // commits the change. Once released (fling included), targetPage knows the
+  // destination immediately, so the bottom half doesn't wait out the coast animation.
+  val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+  val displayedPage by remember(pagerState) {
+    derivedStateOf { if (isDragged) pagerState.settledPage else pagerState.targetPage }
+  }
+  val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(displayedPage) } }
   val exerciseSetFlow = remember(instruction, workoutPlan?.globalAlternate) {
     instruction?.set(workoutPlan?.globalAlternate)
   }
@@ -104,6 +112,7 @@ fun PagerExerciseView(
         instructions = instructions,
         pagerState = pagerState,
         activeSetWithRecord = currentSetRecord,
+        displayedPage = displayedPage,
         setRecords = setRecords,
         maxRestSeconds = maxRestSeconds,
         timerStateByExerciseId = model.timerStateByExerciseId,
@@ -136,6 +145,8 @@ fun PagerDetailView(
   instructions: List<ExerciseViewModel.ExerciseInstruction>,
   pagerState: PagerState,
   activeSetWithRecord: ExerciseSetWithRecord?,
+  /** The page the detail pane reflects — commits on release rather than tracking the drag. */
+  displayedPage: Int = pagerState.settledPage,
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   maxRestSeconds: Int = 0,
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
@@ -182,7 +193,7 @@ fun PagerDetailView(
             .fillMaxSize()
             .padding(start=16.dp, end = 16.dp, bottom = 16.dp),
           setWithRecord = activeSetWithRecord,
-          currentIndex = pagerState.settledPage,
+          currentIndex = displayedPage,
           maxIndex = instructions.size - 1,
           updateIndex = { newIndex, record ->
             activeSetWithRecord.saveRecordInState(record)
