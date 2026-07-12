@@ -68,7 +68,10 @@ fun ExerciseView(
   val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
-  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
+  val exerciseSetFlow = remember(instruction, workoutPlan?.globalAlternate) {
+    instruction?.set(workoutPlan?.globalAlternate)
+  }
+  val exerciseSet by exerciseSetFlow
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()

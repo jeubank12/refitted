@@ -64,7 +64,10 @@ fun PagerExerciseView(
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val pagerState = rememberPagerState(pageCount = { instructions.size })
   val instruction by remember(pagerState) { derivedStateOf { instructions.getOrNull(pagerState.settledPage) } }
-  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
+  val exerciseSetFlow = remember(instruction, workoutPlan?.globalAlternate) {
+    instruction?.set(workoutPlan?.globalAlternate)
+  }
+  val exerciseSet by exerciseSetFlow
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()

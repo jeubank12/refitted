@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
-import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
@@ -33,17 +32,27 @@ class ExerciseViewModel @Inject constructor(
 ) : ViewModel() {
   var exercisesError: String? by mutableStateOf(null)
     private set
+  // Shared so per-instruction flows and the UI collect one repo subscription between them —
+  // a fresh collector replays the cached list instead of triggering a records reload.
+  val records = exerciseRepo.records
+    .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
+
+  // Instructions are rebuilt only when the exercise list itself changes; record updates flow
+  // through each instruction's initialSetIndex instead of recreating instruction state.
+  // stateIn shares one instance across all collectors (pager cards, timer, menu).
   val exercises =
     exerciseRepo.exercises
-      .combine(exerciseRepo.records) { sets, records ->
-        val recordsByPrimaryStep = records.groupBy { it.targetSet.primaryStep }
+      .distinctUntilChanged()
+      .map { sets ->
         log.i(TAG, "Received new set of exercises: $sets")
         val instructions = sets.groupBy { it.primaryStep }
           .map { it.value.toNonEmptyListOrNull() }
           .filterNotNull()
           .maybeZipWithNext { thisSets, nextSets ->
-            val mostRecentAlternateStep =
-              getLastCompletedAlternateIndex(thisSets, recordsByPrimaryStep)
+            // stateIn so all cards observing this instruction share one records pipeline; a
+            // resubscribing card gets the cached index immediately with no repo round-trip
+            val mostRecentAlternateStep = getLastCompletedAlternateIndex(thisSets)
+              .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), -1)
 
             if (thisSets.head.isSuperSet) {
               val nextSet = nextSets?.head
@@ -66,16 +75,16 @@ class ExerciseViewModel @Inject constructor(
         log.i(TAG, "Processed set of exercises to: $instructions")
         instructions
       }
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  private fun getLastCompletedAlternateIndex(
-    thisSets: NonEmptyList<ExerciseSet>,
-    recordsByPrimaryStep: Map<String, List<ExerciseRecord>>
-  ): Flow<Int> {
-    log.v(TAG, "Sets $thisSets has records ${recordsByPrimaryStep[thisSets.head.primaryStep]}")
-    val mostRecentRecordStep = flowOf(recordsByPrimaryStep[thisSets.head.primaryStep])
+  private fun getLastCompletedAlternateIndex(thisSets: NonEmptyList<ExerciseSet>): Flow<Int> {
+    val primaryStep = thisSets.head.primaryStep
+    return records
       .onStart { emit(emptyList()) }
+      .map { records -> records.filter { it.targetSet.primaryStep == primaryStep } }
+      .distinctUntilChanged()
       .flatMapLatest { instructionRecords ->
-        val storedRecords = instructionRecords.orEmpty().map {
+        val storedRecords = instructionRecords.map {
           it.latestRecord
             .filter { record -> record.stored }
             .take(1)
@@ -91,13 +100,13 @@ class ExerciseViewModel @Inject constructor(
       }.map { lrs ->
         val latestRecordStep = lrs.maxByOrNull { it.completed }?.targetSet?.step
         val latestIndex = thisSets.indexOfFirst { it.step == latestRecordStep }
-        log.v(TAG, "Seeing if $latestRecordStep is a step in sets $thisSets")
+        log.v(
+          TAG,
+          "Last completed alternate for step $primaryStep: ${latestRecordStep ?: "none"} (index $latestIndex)"
+        )
         latestIndex
       }
-    return mostRecentRecordStep
   }
-
-  val records = exerciseRepo.records
 
   // Per-exercise timer sticky state — survives pager swipes and rotation
   data class TimerState(
@@ -147,13 +156,14 @@ class ExerciseViewModel @Inject constructor(
     fun activeIndex(overrideIndex: Int? = null): Flow<Int> {
       return _activeIndex
         .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
-          Log.d(
-            TAG,
-            "Checking ${sets.head.primaryStep} active index: override $overrideIndex, mutable $idx, lastCompleted $lastCompletedIdx"
-          )
           val currentIndex =
             overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
             else idx
+          Log.v(
+            TAG,
+            "Resolved alternate for step ${sets.head.primaryStep} to index $currentIndex " +
+              "(planOverride=$overrideIndex, userSelected=$idx, lastCompleted=$lastCompletedIdx)"
+          )
           _viewedIndex.value = currentIndex
           currentIndex
         }.distinctUntilChanged()

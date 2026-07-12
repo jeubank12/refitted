@@ -163,7 +163,8 @@ fun PagerExerciseInstructions(
                   },
               ) {
                 val instruction = instructions.getOrNull(idx)
-                val exerciseSet by instruction?.set(alternateIndex)
+                val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+                val exerciseSet by exerciseSetFlow
                   ?.collectAsStateWithLifecycle(initialValue = null)
                   ?: remember { mutableStateOf<ExerciseSet?>(null) }
                 ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
@@ -181,7 +182,8 @@ fun PagerExerciseInstructions(
                   },
               ) {
                 val instruction = instructions.getOrNull(idx)
-                val exerciseSet by instruction?.set(alternateIndex)
+                val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+                val exerciseSet by exerciseSetFlow
                   ?.collectAsStateWithLifecycle(initialValue = null)
                   ?: remember { mutableStateOf<ExerciseSet?>(null) }
                 ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
@@ -220,7 +222,8 @@ fun PagerExerciseInstructions(
               LocalOverscrollFactory provides null
             ) {
               val instruction = instructions.getOrNull(page)
-              val exerciseSet by instruction?.set(alternateIndex)
+              val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+              val exerciseSet by exerciseSetFlow
                 ?.collectAsStateWithLifecycle(initialValue = null)
                 ?: remember { mutableStateOf<ExerciseSet?>(null) }
               // Each card self-serves its own progress from the records map — no reflow on swipe
@@ -276,7 +279,8 @@ fun PagerExerciseInstructions(
     }
 
     val instruction = instructions.getOrNull(pagerState.currentPage)
-    val exerciseSet by instruction?.set(alternateIndex)
+    val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+    val exerciseSet by exerciseSetFlow
       ?.collectAsStateWithLifecycle(initialValue = null)
       ?: remember { mutableStateOf<ExerciseSet?>(null) }
 
