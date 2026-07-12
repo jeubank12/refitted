@@ -16,14 +16,14 @@ extensions.configure<LibraryExtension> {
 
   buildTypes {
     release {
-      val Refitted_IdentityPoolId: String by rootProject.extra
-      val Refitted_OpenIdSource: String by rootProject.extra
+      val Refitted_IdentityPoolId: String = rootProject.extra["Refitted_IdentityPoolId"] as String
+      val Refitted_OpenIdSource: String = rootProject.extra["Refitted_OpenIdSource"] as String
       resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
       resValue("string", "firebase_id_source", Refitted_OpenIdSource)
     }
     debug {
-      val Refitted_IdentityPoolId: String by rootProject.extra
-      val Refitted_OpenIdSource: String by rootProject.extra
+      val Refitted_IdentityPoolId: String = rootProject.extra["Refitted_IdentityPoolId"] as String
+      val Refitted_OpenIdSource: String = rootProject.extra["Refitted_OpenIdSource"] as String
       resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
       resValue("string", "firebase_id_source", Refitted_OpenIdSource)
     }
