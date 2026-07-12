@@ -1,0 +1,225 @@
+{
+  "workout": "Concurrent Strength v1",
+  "description": "Machine-based push/pull/lower split for a half-marathon build. Week 1 is calibration: last 1-2 reps honestly hard but clean (~2 RIR), hamstring stays on ladder rung 1. Run the 30-sec hamstring gate (GREEN/AMBER/RED) before Mon and Fri lower work.",
+  "globalAlternateLabels": [],
+  "days": [
+    {
+      "day": 1,
+      "sets": [
+        {
+          "step": "1",
+          "exercise": "Glutes_Glute Kickback",
+          "exerciseDescription": "Cable or plate-loaded kickback machine. Direct glute-max isolation matching the hip-extension pattern of the stride.",
+          "sets": 3,
+          "reps": 12,
+          "rest": 90,
+          "note": "~2 RIR. Squeeze at full hip extension; control the return. Heaviest lower day — run the hamstring gate first."
+        },
+        {
+          "step": "2",
+          "exercise": "Glutes_Leg Press (Feet High)",
+          "exerciseDescription": "Leg press with feet high on the platform — shifts emphasis to glutes/hamstrings. Full but pain-free range of motion.",
+          "sets": 3,
+          "reps": 10,
+          "repsRange": 2,
+          "rest": 120,
+          "note": "Lower-comfortable load. If the daily gate is AMBER, drop to bodyweight/very light."
+        },
+        {
+          "step": "3",
+          "exercise": "Glutes_Hip Abduction",
+          "exerciseDescription": "Abduction machine. Glute-med/min — controls the knee collapse that drives runner knee pain.",
+          "sets": 3,
+          "reps": 15,
+          "rest": 90,
+          "note": "Moderate load. Pause 1 sec at the open position."
+        },
+        {
+          "step": "4",
+          "exercise": "Hamstrings_Isometric Leg Curl Hold (Rung 1)",
+          "exerciseDescription": "Leg-curl machine: hold partial knee flexion at mid-range. Isometric — no lowering rep. Rung 1 of the hamstring ladder; advance only after 2 flare-free weeks and on a GREEN day.",
+          "sets": 4,
+          "reps": 20,
+          "repsRange": 10,
+          "repsUnit": "seconds",
+          "rest": 90,
+          "note": "Light. Stop if any twinge. RED day: skip all direct lower work, train upper body instead."
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "sets": [
+        {
+          "step": "1",
+          "exercise": "Shoulders_Machine Shoulder Press",
+          "exerciseDescription": "Machine or cable press. Overall delt mass, front/mid heads.",
+          "sets": 3,
+          "reps": 10,
+          "repsRange": 2,
+          "rest": 120,
+          "note": "~2 RIR. Priority lift — lead with it while fresh. 1-2 light ramp-up sets double as the warm-up."
+        },
+        {
+          "step": "2",
+          "exercise": "Shoulders_Cable Lateral Raise",
+          "exerciseDescription": "Single-arm at the cable tower. Mid-delt — the width driver; cables keep tension through the range.",
+          "sets": 3,
+          "reps": 12,
+          "repsRange": 3,
+          "rest": 90,
+          "note": "Lighter. Lead with the elbow, no swinging."
+        },
+        {
+          "step": "3",
+          "exercise": "Shoulders_Reverse Pec-Deck",
+          "exerciseDescription": "Reverse pec-deck or cable rear-delt fly. Posture and the often-undertrained rear head.",
+          "sets": 3,
+          "reps": 15,
+          "rest": 90,
+          "note": "Lighter."
+        },
+        {
+          "step": "4",
+          "exercise": "Chest_Machine Chest Press",
+          "exerciseDescription": "Machine or cable horizontal press. Balances the pulling volume; triceps assist.",
+          "sets": 2,
+          "reps": 10,
+          "repsRange": 2,
+          "rest": 90,
+          "note": "Moderate. Balance layer — one movement is enough."
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "sets": [
+        {
+          "step": "1",
+          "exercise": "Core_Plank",
+          "exerciseDescription": "Standard front plank.",
+          "sets": 2,
+          "reps": 30,
+          "repsRange": 15,
+          "repsUnit": "seconds",
+          "rest": 60,
+          "note": "Quality run owns this day — optional 5-min core only if time and energy remain. Skip without guilt."
+        },
+        {
+          "step": "2",
+          "exercise": "Core_Pallof Press",
+          "exerciseDescription": "Cable anti-rotation press, half-kneeling or standing.",
+          "sets": 2,
+          "reps": 10,
+          "rest": 60,
+          "note": "10 per side. Optional."
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "sets": [
+        {
+          "step": "1",
+          "exercise": "Back_Lat Pulldown",
+          "exerciseDescription": "Pulldown machine; vary grip width. Wide grip emphasizes the taper.",
+          "sets": 3,
+          "reps": 10,
+          "repsRange": 2,
+          "rest": 120,
+          "note": "~2 RIR. Priority lift; wide-ish grip for width. Ramp-up sets double as the warm-up."
+        },
+        {
+          "step": "2",
+          "exercise": "Back_Seated Cable Row",
+          "exerciseDescription": "Cable or machine row. Mid-back thickness, rhomboids/traps.",
+          "sets": 3,
+          "reps": 10,
+          "repsRange": 2,
+          "rest": 90,
+          "note": "~2 RIR. Squeeze the shoulder blades."
+        },
+        {
+          "step": "3",
+          "exercise": "Back_Straight-Arm Pulldown",
+          "exerciseDescription": "High cable with bar or rope. Lat isolation without biceps fatigue.",
+          "sets": 2,
+          "reps": 12,
+          "repsRange": 3,
+          "rest": 90,
+          "note": "Lighter."
+        },
+        {
+          "step": "4",
+          "exercise": "Biceps_Cable Curl",
+          "exerciseDescription": "Cable or dumbbell curl. Top-up beyond what rows already provide.",
+          "sets": 2,
+          "reps": 12,
+          "rest": 60,
+          "note": "Moderate. Finisher."
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "sets": [
+        {
+          "step": "1.a",
+          "exercise": "Glutes_Glute Kickback",
+          "sets": 2,
+          "reps": 15,
+          "rest": 60,
+          "note": "Light — pump. Activation, not fatigue; kept light ahead of the Saturday long run."
+        },
+        {
+          "step": "1.b",
+          "exercise": "Glutes_Glute Bridge",
+          "exerciseDescription": "Bodyweight or light-loaded bridge. Hip-extension pattern without machine setup.",
+          "sets": 2,
+          "reps": 15,
+          "rest": 60,
+          "note": "Light — pump. Alternate to the kickback; pick either."
+        },
+        {
+          "step": "2",
+          "exercise": "Glutes_Hip Abduction",
+          "sets": 2,
+          "reps": 15,
+          "rest": 60,
+          "note": "Light. Keep it easy on the legs."
+        },
+        {
+          "step": "3",
+          "exercise": "Hamstrings_Isometric Leg Curl Hold (Rung 1)",
+          "sets": 3,
+          "reps": 20,
+          "repsRange": 10,
+          "repsUnit": "seconds",
+          "rest": 90,
+          "note": "Light. Same isometric as Monday; gate-dependent. If short on time keep this over everything below."
+        },
+        {
+          "step": "4",
+          "exercise": "Calves_Seated Calf Raise",
+          "exerciseDescription": "Seated calf machine. The real lower-leg gap; supports the run build.",
+          "sets": 3,
+          "reps": 12,
+          "repsRange": 3,
+          "rest": 60,
+          "note": "Moderate."
+        },
+        {
+          "step": "5",
+          "exercise": "Triceps_Cable Pushdown",
+          "exerciseDescription": "Cable with rope or bar. Top-up beyond what pressing already provides.",
+          "sets": 2,
+          "reps": 12,
+          "rest": 60,
+          "note": "Moderate. Optional finisher — drop first if short on time."
+        }
+      ]
+    },
+    { "day": 6, "restDay": true },
+    { "day": 7, "restDay": true }
+  ]
+}
