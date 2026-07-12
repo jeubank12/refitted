@@ -110,7 +110,7 @@ fun PagerExerciseInstructions(
 
   val scope = rememberCoroutineScope()
 
-  Column {
+  Column(Modifier.padding(top = 8.dp)) {
     HorizontalPager(
       pagerState,
       Modifier.weight(5f, fill = true),
@@ -238,7 +238,7 @@ fun PagerExerciseInstructions(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp),
+        .padding(horizontal = 16.dp),
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {

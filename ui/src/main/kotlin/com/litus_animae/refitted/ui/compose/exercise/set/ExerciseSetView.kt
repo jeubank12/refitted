@@ -130,10 +130,10 @@ fun ColumnScope.ExerciseSetView(
     Column(
       Modifier
         .weight(1f)
-        .padding(end = 8.dp)
+        .padding(end = 8.dp, bottom = 8.dp)
     ) {
       // Weight card: wraps its content so it stays compact
-      Card(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+      Card(Modifier.fillMaxWidth().weight(1f).padding(bottom = 8.dp)) {
         WeightDisplay(onStartEditWeight, weight, saveWeight)
       }
       // RepsDisplay provides its own Card(fillMaxSize) — just give it the right constraints
@@ -281,7 +281,8 @@ private fun PreviewExerciseSetDetails() {
         maxIndex = 5,
         updateIndex = { newIndex, _ -> currentIndex = newIndex },
         onSave = { numCompleted += 1 },
-        onStartEditWeight = {}
+        onStartEditWeight = {},
+        showNavigationButtons = false
       )
     }
   }
