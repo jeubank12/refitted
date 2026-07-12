@@ -28,6 +28,11 @@ android {
             }
         }
     }
+
+    buildFeatures {
+        resValues = true
+    }
+
     buildTypes {
         release {
             minifyEnabled = true

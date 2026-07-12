@@ -14,6 +14,10 @@ extensions.configure<LibraryExtension> {
     minSdk = 26
   }
 
+  buildFeatures {
+    resValues = true
+  }
+
   buildTypes {
     release {
       val Refitted_IdentityPoolId: String = rootProject.extra["Refitted_IdentityPoolId"] as String
