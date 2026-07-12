@@ -1,34 +1,145 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Refitted's admin web app: a Next.js App Router site using React server
+components/actions for admin user management, backed by Firebase Auth
+(session cookies) and Firebase App Check.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000/admin](http://localhost:3000/admin) with your browser.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Local configuration
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+No config values are committed to this repo — public or not. Create
+`.env.local` (gitignored) with the following:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+Build-time, inlined into client code by Next.js (`NEXT_PUBLIC_*` vars are
+public identifiers — Firebase web config and the reCAPTCHA v3 site key —
+but are still kept out of the repo per policy):
 
-## Learn More
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_DATABASE_URL`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
+- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+- `NEXT_PUBLIC_DEV_TOOLS_ENABLED` — set to `true` to enable the Firebase
+  App Check debug token locally (already set in `.env.development`, which
+  `npm run dev` loads automatically). This makes the App Check SDK generate
+  a random debug token and print it to the browser console on first load
+  instead of doing a real reCAPTCHA v3 attestation — but a freshly generated
+  token isn't trusted by Firebase until you register it. If login/mutations
+  fail with a 403 from `exchangeToken`/`exchangeDebugToken`, look for a
+  `App Check debug token: <uuid>` line in the browser console and add it in
+  **Firebase Console → App Check → Apps → (this web app) → Manage debug
+  tokens**.
 
-To learn more about Next.js, take a look at the following resources:
+Runtime, server-only secrets:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `FIREBASE_SERVICE_ACCOUNT_B64` — base64 of the Firebase Admin SDK
+  service account JSON (`base64 -w0 firebase.json`). Read lazily in
+  `src/lib/firebase/admin.ts`, so `npm run build` succeeds without it set.
+- `REFITTED_AWS_ACCOUNT_ID` — the AWS account id, used to build the
+  Free/Anon policy ARNs (`src/lib/aws/groups.ts`). Paid groups have no
+  static config at all: they're discovered at runtime from the android
+  Cognito identity pool's live role-mapping rules and from Dynamo `Groups`
+  rows — see `infra/paid-groups.md` for the full architecture.
+- `REFITTED_ANDROID_POOL_ID` — the android Cognito identity pool id,
+  needed to call `GetIdentityPoolRoles` when enumerating paid groups
+  (`src/lib/aws/cognito.ts`). Not a secret (same id embedded in the
+  Android APK as `cognito_identity_pool_id`), but still kept out of the
+  repo per policy.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Ask a maintainer for the real values. In CI, each of these is set from a
+same-named GitHub secret (see `.github/workflows/build.yml`).
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Server components and server actions run in trusted server code (deployed
+as a Lambda container via Lambda Web Adapter, built by CDK from another
+branch). The browser never talks to AWS directly. `proxy.ts` runs on the
+Node.js runtime and verifies the session cookie with `firebase-admin` for
+routing; every server action independently re-verifies the session via
+`getAuthenticatedAuth()` as defense in depth.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Admin execution security
+
+Two server actions perform privileged operations that used to be separate
+AWS Lambdas invoked from the browser (`admin/`, now removed — see git
+history for the originals):
+
+- `setUserClaim` (`src/lib/firebase/actions/claims.ts`) — sets a custom
+  claim (typically `group`) on a Firebase user.
+- `updateGroupWorkouts` (`src/lib/aws/actions/groups.ts`) — updates the
+  DynamoDB workout list for a group (`src/lib/aws/dynamo.ts`) and the IAM
+  policy that enforces it (`src/lib/aws/iam.ts`).
+
+**Authorization chain**, in order, for every call to either action:
+1. `proxy.ts` — routing/UX check that a session cookie exists before the
+   request ever reaches a page or action (not itself a security boundary).
+2. **App Check validation** (`validateAppCheck`, mutations only) — the
+   caller must present a fresh reCAPTCHA v3 attestation token proving the
+   request originates from the real app in a real browser. This is what
+   stops a stolen httpOnly session cookie from being replayed via
+   curl/script: the attacker would also need to drive the actual app UI to
+   mint a token. Read-only `listAllUsers` does not require this.
+3. `getAuthenticatedAuth()` — verifies the session cookie
+   (`verifySessionCookie` with `checkRevoked: true`) and requires the
+   `admin` custom claim.
+4. The operation itself.
+
+**The browser never holds AWS credentials.** All `@aws-sdk/*` calls run in
+server-only code, authenticating with the process's ambient credentials
+(a dev AWS profile locally; a locked-down execution role on the deployed
+Lambda container). This mirrors how the original lambdas worked — the
+Cognito role the admin's browser held only ever granted
+`lambda:InvokeFunction`, never direct IAM/DynamoDB write; the elevated
+permissions lived on the lambda's own execution role.
+
+**Least-privilege runtime policy** (see `infra/lib/auth-stack.ts` for the
+`IAM-Refitted-EditGroups` policy this maps to):
+- `iam:GetPolicyVersion`, `iam:ListPolicyVersions`, `iam:CreatePolicyVersion`,
+  `iam:DeletePolicyVersion` — scoped to `DynamoDb-Refitted.Dev01-*` (Free,
+  Anon, and every paid group's policy).
+- `iam:ListAttachedRolePolicies` — scoped to `Cognito_refitted_*` roles,
+  used to resolve which policy is attached to a paid group's role.
+- `cognito-identity:GetIdentityPoolRoles` — scoped to the android identity
+  pool, used to enumerate paid groups from live role-mapping rules.
+- `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:Query` — scoped to the
+  `refitted.dev01` table (including `Reverse-index`) only.
+
+**`updateGroupWorkouts` failure handling** is sequential with a
+compensating rollback, not independent halves: DynamoDB is updated first
+(the easy-to-reverse half); if that fails, IAM is never touched. If the
+IAM update then fails, DynamoDB is rolled back to its pre-update snapshot.
+IAM policy-version history is far harder to undo than a DynamoDB
+`PutItem`, so it always runs last and is the only half that's ever left
+in its new state on partial failure. The result's `status` field
+distinguishes a clean rollback (`iam-failed-rolled-back`) from the rare
+case where the rollback write itself also fails
+(`iam-failed-rollback-failed` — needs manual reconciliation).
+
+`/admin/workouts` (`app/admin/workouts/`) is the UI for `updateGroupWorkouts` —
+it lists every plan (`listAllWorkoutPlans` in `src/lib/aws/dynamo.ts`) with a
+per-group checkbox reflecting DynamoDB state, calling the action on toggle.
+`setUserClaim` is driven by `/admin/users`. To validate the group action
+directly (bypassing the UI), see `npm run test:groups` below.
+
+## Testing the group actions without UI
+
+```bash
+npm run test:groups -- <GroupNameOrId>            # dry run: reads current state only
+npm run test:groups -- <GroupNameOrId> --apply --add Foo --remove Bar
+```
+
+Requires `REFITTED_AWS_ACCOUNT_ID`, `REFITTED_ANDROID_POOL_ID`, and AWS
+credentials (a dev profile) in your environment. `--apply` mutates real
+DynamoDB rows and real IAM policy versions (IAM keeps a maximum of 5
+versions per policy) — do not run it against a group whose current state
+you haven't already inspected with a dry run.

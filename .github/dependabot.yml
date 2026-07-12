@@ -120,6 +120,9 @@ updates:
     emotion:
       patterns:
       - "@emotion*"
+    mui:
+      patterns:
+      - "@mui/*"
     base:
       patterns:
       - "typescript"
