@@ -15,7 +15,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -43,8 +42,8 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
     return withContext(Dispatchers.IO) {
       val db = dynamo.getDb()
 
+      val idToken = authProvider.getIdToken() ?: error("No authenticated user")
       val currentUser = authProvider.auth().currentUser!!
-      val idToken = currentUser.getIdToken(false).await()
       val group = idToken.claims["group"]?.toString()
         ?: if (currentUser.isAnonymous) "anon" else "free"
 

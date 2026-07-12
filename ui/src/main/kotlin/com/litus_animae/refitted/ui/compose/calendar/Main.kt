@@ -182,6 +182,14 @@ fun Calendar(
             duration = SnackbarDuration.Indefinite
           )
       }
+      val userError = userModel.userError
+      LaunchedEffect(userError) {
+        if (userError != null)
+          scaffoldState.snackbarHostState.showSnackbar(
+            userError,
+            duration = SnackbarDuration.Indefinite
+          )
+      }
       val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
       WorkoutPlanMenu(
         Modifier.weight(1f),
