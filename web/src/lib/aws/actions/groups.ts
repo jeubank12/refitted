@@ -1,7 +1,8 @@
 'use server'
 
-import { getGroupConfig } from '../groups'
+import { listAllGroups, resolveGroupPolicyArn } from '../groups'
 import {
+  listAllWorkoutPlans,
   readDynamoGroupWorkouts,
   updateDynamoGroupWorkouts,
   writeDynamoGroupWorkouts,
@@ -16,6 +17,57 @@ import {
 
 function sanitizeWorkouts(workouts: string[]): string[] {
   return [...new Set(workouts.map(workout => workout.trim()).filter(Boolean))]
+}
+
+/**
+ * Plan list + per-group Dynamo assignment state for the workout-plans admin
+ * page. Deliberately reads only Dynamo (not IAM) for display, matching the
+ * requirement that the UI show "just the dynamo state" - IAM is only ever
+ * touched by updateGroupWorkouts on write.
+ */
+export async function getWorkoutPlanAssignments(): Promise<{
+  plans: { name: string; description?: string }[]
+  groups: { name: string; id: string }[]
+  assignments: Record<string, string[]>
+}> {
+  try {
+    await getAuthenticatedAuth()
+  } catch (error) {
+    const code = (error as { code?: unknown })?.code
+    if (typeof code === 'string' && code.startsWith('auth/')) {
+      console.debug(
+        'Session invalid while listing workout plan assignments, logging out',
+        code
+      )
+      await serverLogout()
+    } else {
+      console.error('Error authenticating for workout plan assignments:', error)
+    }
+    throw error
+  }
+
+  const plans = await listAllWorkoutPlans()
+
+  // REFITTED_AWS_ACCOUNT_ID/REFITTED_ANDROID_POOL_ID may be unset in some environments
+  // (e.g. local dev) - degrade to "no groups" rather than crashing the whole page.
+  let groups: { name: string; id: string }[] = []
+  try {
+    groups = await listAllGroups()
+  } catch (error) {
+    console.warn(
+      'Groups config unavailable, plan assignment disabled',
+      error
+    )
+  }
+
+  const assignments: Record<string, string[]> = {}
+  await Promise.all(
+    groups.map(async group => {
+      assignments[group.id] = await readDynamoGroupWorkouts(group.id)
+    })
+  )
+
+  return { plans, groups, assignments }
 }
 
 export async function updateGroupWorkouts({
@@ -43,9 +95,9 @@ export async function updateGroupWorkouts({
     return { status: 'unauthorized', error: 'Not authorized' }
   }
 
-  let groupConfig
+  let policyArn: string
   try {
-    groupConfig = getGroupConfig(group)
+    policyArn = await resolveGroupPolicyArn(group)
   } catch {
     return { status: 'unknown-group', error: `Unknown group: ${group}` }
   }
@@ -55,7 +107,7 @@ export async function updateGroupWorkouts({
 
   let snapshot: string[]
   try {
-    snapshot = await readDynamoGroupWorkouts(groupConfig.id)
+    snapshot = await readDynamoGroupWorkouts(group)
   } catch (error) {
     console.error('Failed to read current workout list', error)
     return { status: 'dynamo-failed', error: 'Failed to read current workout list' }
@@ -63,7 +115,7 @@ export async function updateGroupWorkouts({
 
   let dynamoResult: string[]
   try {
-    dynamoResult = await updateDynamoGroupWorkouts(groupConfig.id, add, remove)
+    dynamoResult = await updateDynamoGroupWorkouts(group, add, remove)
   } catch (error) {
     console.error('Dynamo update failed', error)
     return { status: 'dynamo-failed', error: 'Failed to update workout list' }
@@ -73,17 +125,12 @@ export async function updateGroupWorkouts({
   // re-PutItem, so it runs last and only Dynamo (the easy half) is ever
   // compensated if it fails.
   try {
-    const iamResult = await updateIamGroupPolicy(
-      groupConfig.id,
-      groupConfig.policyArn,
-      add,
-      remove
-    )
+    const iamResult = await updateIamGroupPolicy(group, policyArn, add, remove)
     return { status: 'ok', dynamo: dynamoResult, iam: iamResult }
   } catch (error) {
     console.error('IAM update failed, rolling back Dynamo', error)
     try {
-      await writeDynamoGroupWorkouts(groupConfig.id, snapshot)
+      await writeDynamoGroupWorkouts(group, snapshot)
       return {
         status: 'iam-failed-rolled-back',
         error: 'Failed to update access policy; workout list change was rolled back',

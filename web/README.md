@@ -45,14 +45,16 @@ Runtime, server-only secrets:
 - `FIREBASE_SERVICE_ACCOUNT_B64` — base64 of the Firebase Admin SDK
   service account JSON (`base64 -w0 firebase.json`). Read lazily in
   `src/lib/firebase/admin.ts`, so `npm run build` succeeds without it set.
-- `REFITTED_GROUPS_B64` — base64 of a JSON object mapping each workout
-  access group to its DynamoDB/IAM identifiers:
-  ```json
-  { "Paid1": { "id": "<group-uuid>", "policyArn": "arn:aws:iam::<acct>:policy/DynamoDb-Refitted.Dev01-Paid1" } }
-  ```
-  Read lazily in `src/lib/aws/groups.ts`. These are the user's IP + infra
-  identifiers, never committed. Used only by `updateGroupWorkouts` (see
-  below) and the local `test:groups` script.
+- `REFITTED_AWS_ACCOUNT_ID` — the AWS account id, used to build the
+  Free/Anon policy ARNs (`src/lib/aws/groups.ts`). Paid groups have no
+  static config at all: they're discovered at runtime from the android
+  Cognito identity pool's live role-mapping rules and from Dynamo `Groups`
+  rows — see `infra/paid-groups.md` for the full architecture.
+- `REFITTED_ANDROID_POOL_ID` — the android Cognito identity pool id,
+  needed to call `GetIdentityPoolRoles` when enumerating paid groups
+  (`src/lib/aws/cognito.ts`). Not a secret (same id embedded in the
+  Android APK as `cognito_identity_pool_id`), but still kept out of the
+  repo per policy.
 
 Ask a maintainer for the real values. In CI, each of these is set from a
 same-named GitHub secret (see `.github/workflows/build.yml`).
@@ -100,15 +102,17 @@ Cognito role the admin's browser held only ever granted
 `lambda:InvokeFunction`, never direct IAM/DynamoDB write; the elevated
 permissions lived on the lambda's own execution role.
 
-**Least-privilege runtime policy** (for the CDK role provisioning the
-deployed execution role — not yet implemented, see `infra/lib/auth-stack.ts`
-for the existing `IAM-Refitted-EditGroups` policy and table ARN this
-should be scoped to):
+**Least-privilege runtime policy** (see `infra/lib/auth-stack.ts` for the
+`IAM-Refitted-EditGroups` policy this maps to):
 - `iam:GetPolicyVersion`, `iam:ListPolicyVersions`, `iam:CreatePolicyVersion`,
-  `iam:DeletePolicyVersion` — scoped to the group policy ARNs only
-  (`DynamoDb-Refitted.Dev01-{Paid1,Free,Anon}`).
-- `dynamodb:GetItem`, `dynamodb:PutItem` — scoped to the `refitted.dev01`
-  table only.
+  `iam:DeletePolicyVersion` — scoped to `DynamoDb-Refitted.Dev01-*` (Free,
+  Anon, and every paid group's policy).
+- `iam:ListAttachedRolePolicies` — scoped to `Cognito_refitted_*` roles,
+  used to resolve which policy is attached to a paid group's role.
+- `cognito-identity:GetIdentityPoolRoles` — scoped to the android identity
+  pool, used to enumerate paid groups from live role-mapping rules.
+- `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:Query` — scoped to the
+  `refitted.dev01` table (including `Reverse-index`) only.
 
 **`updateGroupWorkouts` failure handling** is sequential with a
 compensating rollback, not independent halves: DynamoDB is updated first
@@ -121,18 +125,21 @@ distinguishes a clean rollback (`iam-failed-rolled-back`) from the rare
 case where the rollback write itself also fails
 (`iam-failed-rollback-failed` — needs manual reconciliation).
 
-**No UI calls these actions yet** (a follow-up). To validate them locally,
-see `npm run test:groups` below.
+`/admin/workouts` (`app/admin/workouts/`) is the UI for `updateGroupWorkouts` —
+it lists every plan (`listAllWorkoutPlans` in `src/lib/aws/dynamo.ts`) with a
+per-group checkbox reflecting DynamoDB state, calling the action on toggle.
+`setUserClaim` is driven by `/admin/users`. To validate the group action
+directly (bypassing the UI), see `npm run test:groups` below.
 
 ## Testing the group actions without UI
 
 ```bash
-npm run test:groups -- <GroupName>            # dry run: reads current state only
-npm run test:groups -- <GroupName> --apply --add Foo --remove Bar
+npm run test:groups -- <GroupNameOrId>            # dry run: reads current state only
+npm run test:groups -- <GroupNameOrId> --apply --add Foo --remove Bar
 ```
 
-Requires `REFITTED_GROUPS_B64` and AWS credentials (a dev profile) in your
-environment. `--apply` mutates real DynamoDB rows and real IAM policy
-versions (IAM keeps a maximum of 5 versions per policy) — do not run it
-against a group whose current state you haven't already inspected with a
-dry run.
+Requires `REFITTED_AWS_ACCOUNT_ID`, `REFITTED_ANDROID_POOL_ID`, and AWS
+credentials (a dev profile) in your environment. `--apply` mutates real
+DynamoDB rows and real IAM policy versions (IAM keeps a maximum of 5
+versions per policy) — do not run it against a group whose current state
+you haven't already inspected with a dry run.
