@@ -107,8 +107,10 @@ export default function WorkoutPlansTable({
           field: group.id,
           headerName: group.name,
           width: 130,
-          sortable: false,
+          type: 'boolean',
           filterable: false,
+          sortingOrder: ['desc', 'asc', null],
+          valueGetter: (_value, row) => assignmentSets[group.id]?.has(row.name) ?? false,
           renderCell: params => {
             const key = `${params.row.name}::${group.id}`
             const checked = assignmentSets[group.id]?.has(params.row.name) ?? false
