@@ -2,7 +2,6 @@ import com.android.build.api.dsl.LibraryExtension
 
 plugins {
   id("com.android.library")
-  alias(libs.plugins.jetbrains.kotlin.android)
   alias(libs.plugins.ksp)
 }
 

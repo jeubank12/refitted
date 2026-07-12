@@ -7,7 +7,6 @@ plugins {
     alias libs.plugins.google.services
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.jacoco
-    alias libs.plugins.jetbrains.kotlin.android
     alias libs.plugins.jetbrains.kotlin.parcelize
     alias libs.plugins.ksp
 }
@@ -53,13 +52,15 @@ android {
             enableAndroidTestCoverage = true
         }
         minifiedDebug {
-            initWith buildTypes.debug
-            matchingFallbacks = ['debug']
+            signingConfig = signingConfigs.debug
+            resValue 'string', "cognito_identity_pool_id", Refitted_IdentityPoolId
+            resValue 'string', "firebase_id_source", Refitted_OpenIdSource
             applicationIdSuffix ".min_debug"
             versionNameSuffix "-MINIFIED"
             minifyEnabled = true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            debuggable = false
         }
     }
     buildFeatures {
