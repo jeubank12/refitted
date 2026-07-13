@@ -96,7 +96,8 @@ dependencies {
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     api(libs.bundles.compose)
-    api(libs.bundles.compose.tooling)
+    api(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.compose.ui.util)
