@@ -146,12 +146,6 @@ compose = [
     "androidx-compose-animation-core",
 ]
 
-# Compose - Development tooling (debug builds)
-compose-tooling = [
-    "androidx-compose-ui-tooling",
-    "androidx-compose-ui-tooling-preview",
-]
-
 # JUnit - Test runtime engines
 junit-runtime = [
     "junit-jupiter-engine",
