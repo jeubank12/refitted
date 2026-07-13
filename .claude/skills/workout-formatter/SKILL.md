@@ -131,8 +131,3 @@ without explicit confirmation.
 
 - **Scraper mode**: given a URL to an online program, fetch → extract the schedule →
   same pipeline from Step 2. The plan-spec JSON stays the contract.
-- **Build mode**: an in-app flow where a user assembles a free-form workout and tracks
-  sets as they go. The current model can fake it today: emit a 1-day plan (or one day
-  per session) into a personal group and extend it as sessions happen — but a real
-  build mode needs app work (user-owned plans, an append-a-set UI). Treat requests for
-  this as app feature design, not a formatting task.
