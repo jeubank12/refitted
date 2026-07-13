@@ -20,6 +20,7 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -188,10 +189,11 @@ fun PagerDetailView(
       if (activeSetWithRecord == null) {
         Box(Modifier.fillMaxSize())
       } else {
+        val orientation = LocalConfiguration.current.orientation
         ExerciseSetView(
           modifier = Modifier
             .fillMaxSize()
-            .padding(start=16.dp, end = 16.dp, bottom = 16.dp),
+            .padding(top= if(orientation == Configuration.ORIENTATION_LANDSCAPE) 16.dp else 0.dp, start=16.dp, end = 16.dp, bottom = 16.dp),
           setWithRecord = activeSetWithRecord,
           currentIndex = displayedPage,
           maxIndex = instructions.size - 1,
@@ -225,8 +227,8 @@ fun PagerDetailView(
   )
 }
 
-@Preview(showBackground = true)
-@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
+@Preview(showBackground = true, apiLevel = 36)
+@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape", apiLevel = 36)
 @Composable
 private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
   MaterialTheme(Theme.darkColors) {

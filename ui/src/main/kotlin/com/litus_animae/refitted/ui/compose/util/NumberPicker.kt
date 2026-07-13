@@ -1,11 +1,9 @@
 package com.litus_animae.refitted.ui.compose.util
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraintsScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerDefaults
@@ -36,11 +34,12 @@ import arrow.core.getOrElse
 // TODO this would go great with some unit tests
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-fun BoxWithConstraintsScope.NumberPicker(
+fun NumberPicker(
   pageCount: Int,
   initialPage: Int,
   pageWidth: Dp,
   typography: TextStyle,
+  modifier: Modifier = Modifier,
   pagerSnapDistance: Option<PagerSnapDistance> = None,
   onNumberSettled: (Int) -> Unit
 ) {
@@ -70,10 +69,10 @@ fun BoxWithConstraintsScope.NumberPicker(
 
   HorizontalPager(
     pagerState,
-    Modifier.width(maxWidth),
-    contentPadding = PaddingValues(horizontal = (maxWidth - pageWidth) / 2),
+    modifier,
     pageSize = PageSize.Fixed(pageWidth),
-    flingBehavior = flingBehavior
+    flingBehavior = flingBehavior,
+    snapPosition = SnapPosition.Center
   ) {
     val pageOffset = (
       (pagerState.currentPage - it) + pagerState
@@ -81,7 +80,7 @@ fun BoxWithConstraintsScope.NumberPicker(
       )
     Box(
       Modifier
-        .fillMaxSize()
+        .fillMaxWidth()
         .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
         .drawWithContent {
           drawContent()

@@ -1,17 +1,16 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,12 +23,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
+import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayMinHeight
 import com.litus_animae.refitted.ui.compose.exercise.WeightDisplay
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
@@ -127,23 +129,34 @@ fun ColumnScope.ExerciseSetView(
 
   // Controls row: left = Weight + Reps | right = CircularRestTimer
   Row(Modifier.weight(3f)) {
-    Column(
-      Modifier
+    // Split the height evenly between the two cards, except the reps card may
+    // not shrink below its own minimum (the 170.dp inside RepsDisplay) —
+    // when space is tight the weight card absorbs the difference
+    Layout(
+      content = {
+        Card(Modifier.fillMaxWidth()) {
+          WeightDisplay(onStartEditWeight, weight, saveWeight)
+        }
+        Card(Modifier.fillMaxWidth()) {
+          RepsDisplay(setWithRecord, reps)
+        }
+      },
+      modifier = Modifier
         .weight(1f)
+        .fillMaxHeight()
         .padding(end = 8.dp, bottom = 8.dp)
-    ) {
-      // Weight card: wraps its content so it stays compact
-      Card(Modifier.fillMaxWidth().weight(1f).padding(bottom = 8.dp)) {
-        WeightDisplay(onStartEditWeight, weight, saveWeight)
-      }
-      // RepsDisplay provides its own Card(fillMaxSize) — just give it the right constraints
-      Box(
-        Modifier
-          .fillMaxWidth()
-          .weight(1f)
-          .padding(top = 8.dp)
-      ) {
-        RepsDisplay(setWithRecord, reps)
+    ) { measurables, constraints ->
+      val spacing = 8.dp.roundToPx()
+      val width = constraints.maxWidth
+      val available = (constraints.maxHeight - spacing).coerceAtLeast(0)
+      val (weightCard, repsCard) = measurables
+      val repsHeight = maxOf(available / 2, RepsDisplayMinHeight.roundToPx())
+        .coerceAtMost(available)
+      val weightPlaceable = weightCard.measure(Constraints.fixed(width, available - repsHeight))
+      val repsPlaceable = repsCard.measure(Constraints.fixed(width, repsHeight))
+      layout(width, constraints.maxHeight) {
+        weightPlaceable.place(0, 0)
+        repsPlaceable.place(0, weightPlaceable.height + spacing)
       }
     }
     Column(
@@ -247,7 +260,7 @@ fun ColumnScope.ExerciseSetView(
 
 @OptIn(FlowPreview::class)
 @Composable
-@Preview(heightDp = 400)
+@Preview(heightDp = 400, apiLevel = 36)
 private fun PreviewExerciseSetDetails() {
   var numCompleted by remember { mutableIntStateOf(0) }
   var currentIndex by remember { mutableIntStateOf(5) }
