@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -142,20 +143,28 @@ fun CircularRestTimer(
     if (isRunning) frozenRunningFraction = runningFraction
   }
 
+  // Tracked outside the animation LaunchedEffect (which only runs after composition
+  // commits) so the very first frame after a run stops already seeds the Animatable at
+  // frozenRunningFraction below — otherwise that frame briefly draws the old, pre-run
+  // idleSweepFraction value (the idle fill) before the effect has a chance to snap it down,
+  // flashing the full ring for an instant ahead of the intended ease-back animation.
+  val previousIsRunning = remember { mutableStateOf(isRunning) }
+  val justStopped = previousIsRunning.value && !isRunning
+  SideEffect { previousIsRunning.value = isRunning }
+
   val idleFraction = restSeconds.toFloat() / safeMax
-  val idleSweepFraction = remember { Animatable(idleFraction) }
-  var wasRunning by remember { mutableStateOf(isRunning) }
+  val idleSweepFraction = remember(isRunning) {
+    Animatable(if (isRunning || !justStopped) idleFraction else frozenRunningFraction)
+  }
 
   LaunchedEffect(isRunning, idleFraction) {
     if (!isRunning) {
-      if (wasRunning) {
-        idleSweepFraction.snapTo(frozenRunningFraction)
+      if (justStopped) {
         idleSweepFraction.animateTo(idleFraction, tween(500, easing = FastOutSlowInEasing))
       } else {
         idleSweepFraction.snapTo(idleFraction)
       }
     }
-    wasRunning = isRunning
   }
 
   val primaryColor = MaterialTheme.colors.primary
