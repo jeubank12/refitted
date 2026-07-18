@@ -1,5 +1,13 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
@@ -31,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,8 +130,9 @@ fun PagerExerciseInstructions(
         val currentPage = pagerState.currentPage
         instructions.forEachIndexed { idx, instruction ->
           key(idx) {
-            Card(
-              Modifier
+            CardContent(
+              instruction, alternateIndex, setRecords,
+              modifier = Modifier
                 .fillMaxSize()
                 // Upcoming cards stack above previously completed ones
                 .zIndex(
@@ -156,9 +166,7 @@ fun PagerExerciseInstructions(
                     rotationZ = pageRotations.wrapped(idx)
                   }
                 }
-            ) {
-              CardContent(instruction, alternateIndex, setRecords)
-            }
+            )
           }
         }
       }
@@ -170,8 +178,9 @@ fun PagerExerciseInstructions(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
       ) { page ->
         val pagesFromCurrent = page - pagerState.currentPage
-        Card(
-          Modifier
+        CardContent(
+          instructions.getOrNull(page), alternateIndex, setRecords,
+          modifier = Modifier
             .fillMaxSize()
             // The card leaving the top of the deck stays above the one being revealed or
             // pulled out; the swap happens at the halfway flip, where both cards are
@@ -208,9 +217,7 @@ fun PagerExerciseInstructions(
                 translationY = yTransforms.wrapped(page) * deckFraction
               }
             }
-        ) {
-          CardContent(instructions.getOrNull(page), alternateIndex, setRecords)
-        }
+        )
       }
     }
 
@@ -271,16 +278,52 @@ private fun CardContent(
   instruction: ExerciseViewModel.ExerciseInstruction?,
   alternateIndex: Int?,
   setRecords: Map<String, ExerciseSetWithRecord>,
+  modifier: Modifier = Modifier,
 ) {
-  CompositionLocalProvider(
-    LocalOverscrollFactory provides null
-  ) {
-    val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
-    val exerciseSet by exerciseSetFlow
-      ?.collectAsStateWithLifecycle(initialValue = null)
-      ?: remember { mutableStateOf(null) }
-    // Each card self-serves its own progress from the records map — no reflow on swipe
-    ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
+  val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+  val exerciseSet by exerciseSetFlow
+    ?.collectAsStateWithLifecycle(initialValue = null)
+    ?: remember { mutableStateOf(null) }
+  // The very first exercise set to land in this card slot should just appear — only a genuine
+  // alternate switch (a real set replacing another real set) gets the swap motion below.
+  val previousSetId = remember { mutableStateOf<String?>(null) }
+  val isAlternateSwap = previousSetId.value != null
+  SideEffect { previousSetId.value = exerciseSet?.id }
+
+  // An alternate switch swaps the exercise shown in this same card slot — animate the whole
+  // card (surface and content together) all the way off toward the upper right and pull the
+  // new one in from the same corner, so it reads as a distinct gesture from the deck's
+  // left-right page swipe rather than an abrupt content pop.
+  AnimatedContent(
+    targetState = exerciseSet,
+    contentKey = { it?.id },
+    transitionSpec = {
+      EnterTransition.None togetherWith ExitTransition.None
+    },
+    label = "alternateSwap"
+  ) { targetSet ->
+    val swapProgress by transition.animateFloat(
+      label = "alternateSwapProgress",
+      transitionSpec = { tween(3800, easing = FastOutSlowInEasing) }
+    ) { state ->
+      if (!isAlternateSwap || state == EnterExitState.Visible) 0f else 1f
+    }
+    Card(
+      modifier.graphicsLayer {
+        // Clear the card's own full bounds plus a margin, so it's completely offscreen at the
+        // extremes rather than just peeking out from behind the corner.
+        translationX = swapProgress * (size.width + 32.dp.toPx())
+        translationY = -swapProgress * (size.height + 32.dp.toPx())
+        rotationZ = swapProgress * 18f
+      }
+    ) {
+      CompositionLocalProvider(
+        LocalOverscrollFactory provides null
+      ) {
+        // Each card self-serves its own progress from the records map — no reflow on swipe
+        ExerciseInstructions(targetSet, setRecords[targetSet?.id]?.numCompleted ?: 0)
+      }
+    }
   }
 }
 
