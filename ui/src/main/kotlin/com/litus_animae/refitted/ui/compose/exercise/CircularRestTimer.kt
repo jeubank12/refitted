@@ -177,22 +177,24 @@ fun CircularRestTimer(
               style = MaterialTheme.typography.h4,
               color = if (isAlmostDone) amberColor else MaterialTheme.colors.onSurface
             )
-            Text("rest", style = MaterialTheme.typography.caption)
-            if (nextRestSeconds != null) {
-              Text(
-                "next: ${nextRestSeconds}s",
-                style = MaterialTheme.typography.overline,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-              )
-            }
           } else {
             Text(
               "${restSeconds}s",
               style = MaterialTheme.typography.h4,
               color = primaryColor
             )
-            Text("rest", style = MaterialTheme.typography.caption)
           }
+          Text("rest", style = MaterialTheme.typography.caption)
+          // Always emitted, idle or running (not conditionally included) so this line's
+          // height is reserved at all times — otherwise the centre column shifts both
+          // when a rest starts/stops and as nextRestSeconds appears/disappears mid-rest.
+          Text(
+            text = nextRestSeconds?.let { "next: ${it}s" } ?: "",
+            style = MaterialTheme.typography.overline,
+            color = MaterialTheme.colors.onSurface.copy(
+              alpha = if (isRunning && nextRestSeconds != null) 0.6f else 0f
+            )
+          )
         }
       }
     }
