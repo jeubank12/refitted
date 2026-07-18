@@ -205,15 +205,15 @@ fun CircularRestTimer(
         verticalAlignment = Alignment.CenterVertically
       ) {
         IconButton(
-          onClick = { onAdjust((restSeconds - 5).coerceAtLeast(0)) },
+          onClick = { onAdjust((restSeconds - 5).coerceIn(0, maxRestSeconds)) },
           enabled = !isRunning && restSeconds > 0
         ) {
           Icon(Icons.Default.Remove, contentDescription = "decrease rest")
         }
         Text("${restSeconds}s", style = MaterialTheme.typography.body2)
         IconButton(
-          onClick = { onAdjust(restSeconds + 5) },
-          enabled = !isRunning
+          onClick = { onAdjust((restSeconds + 5).coerceIn(0, maxRestSeconds)) },
+          enabled = !isRunning && restSeconds < maxRestSeconds
         ) {
           Icon(Icons.Default.Add, contentDescription = "increase rest")
         }
