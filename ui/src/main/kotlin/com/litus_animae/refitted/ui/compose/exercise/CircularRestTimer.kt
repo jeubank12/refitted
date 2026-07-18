@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -22,18 +24,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.litus_animae.refitted.ui.compose.util.Theme
 import java.time.Instant
+import kotlin.math.ceil
 import kotlin.math.min
 
 /**
@@ -66,7 +75,7 @@ fun CircularRestTimer(
 
   // Recreate the animatable whenever a new timer starts (startedAt changes).
   // When already running on first composition, seek to the elapsed position immediately.
-  val elapsedMillis = remember(startedAt) {
+  val elapsedMillisAnimatable = remember(startedAt) {
     Animatable(
       if (isRunning)
         min(
@@ -82,14 +91,18 @@ fun CircularRestTimer(
       isRunning = isRunning,
       durationMillis = durationMillis,
       start = startedAt,
-      elapsedMillis = elapsedMillis,
+      elapsedMillisAnimatable = elapsedMillisAnimatable,
       onFinish = onFinish
     )
   }
 
-  val remainingSeconds by remember {
+  // Keyed on the animatable itself (not just startedAt) so this is rebuilt against the
+  // current run's animatable — otherwise it keeps observing the first run's object forever.
+  // Ceiling, not floor/truncation: at t=0 the remainder is a hair under durationMillis,
+  // and truncating would show e.g. "9s" instead of "10s" for the first instant of a run.
+  val remainingSeconds by remember(elapsedMillisAnimatable) {
     derivedStateOf {
-      ((durationMillis - elapsedMillis.value) / 1000f).toInt().coerceAtLeast(0)
+      ceil((durationMillis - elapsedMillisAnimatable.value) / 1000f).toInt().coerceAtLeast(0)
     }
   }
   val isAlmostDone = isRunning && remainingSeconds <= 10
@@ -133,7 +146,7 @@ fun CircularRestTimer(
           // Idle: arc shows how much rest is set vs the day's max.
           // Running: arc depletes clockwise back toward 12 o'clock.
           val sweep = if (isRunning) {
-            val remaining = (durationMillis - elapsedMillis.value).coerceAtLeast(0f)
+            val remaining = (durationMillis - elapsedMillisAnimatable.value).coerceAtLeast(0f)
             -360f * (remaining / durationMillis)  // negative = counter-clockwise
           } else {
             -360f * (restSeconds.toFloat() / safeMax)  // negative = counter-clockwise
@@ -197,6 +210,66 @@ fun CircularRestTimer(
         Text("${restSeconds}s", style = MaterialTheme.typography.body2)
         IconButton(onClick = { onAdjust(restSeconds + 5) }) {
           Icon(Icons.Default.Add, contentDescription = "increase rest")
+        }
+      }
+    }
+  }
+}
+
+private class IdleFillRatioProvider : PreviewParameterProvider<Int> {
+  // restSeconds against a fixed 90s maxRestSeconds, to see the idle ring at
+  // a few different fill proportions
+  override val values: Sequence<Int> = sequenceOf(0, 20, 45, 90)
+}
+
+@Composable
+@Preview(widthDp = 220, heightDp = 260, apiLevel = 36)
+fun PreviewCircularRestTimerIdle(
+  @PreviewParameter(IdleFillRatioProvider::class) restSeconds: Int
+) {
+  MaterialTheme(Theme.lightColors) {
+    Card(Modifier.fillMaxSize()) {
+      CircularRestTimer(
+        restSeconds = restSeconds,
+        maxRestSeconds = 90,
+        isRunning = false,
+        startedAt = Instant.now(),
+        nextRestSeconds = 60,
+        onAdjust = {}
+      )
+    }
+  }
+}
+
+/**
+ * Interactive preview: start/stop the rest, nudge the duration, and watch the arc
+ * deplete in real time — a local stand-in for the exercise screen while developing.
+ */
+@Composable
+@Preview(widthDp = 220, heightDp = 300, apiLevel = 36)
+fun PreviewCircularRestTimerInteractive() {
+  var running by remember { mutableStateOf(false) }
+  var restSeconds by remember { mutableIntStateOf(30) }
+  val startedAt = remember(running) { Instant.now() }
+
+  MaterialTheme(Theme.lightColors) {
+    Card(Modifier.fillMaxSize()) {
+      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(220.dp)) {
+          CircularRestTimer(
+            restSeconds = restSeconds,
+            maxRestSeconds = 90,
+            isRunning = running,
+            startedAt = startedAt,
+            nextRestSeconds = 60,
+            onAdjust = { restSeconds = it },
+            onFinish = { running = false }
+          )
+        }
+        Row {
+          Button(onClick = { running = !running }) {
+            Text(if (running) "stop" else "start")
+          }
         }
       }
     }
