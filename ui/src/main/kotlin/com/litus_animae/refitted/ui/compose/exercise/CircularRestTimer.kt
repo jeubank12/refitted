@@ -203,12 +203,15 @@ fun CircularRestTimer(
       ) {
         IconButton(
           onClick = { onAdjust((restSeconds - 5).coerceAtLeast(0)) },
-          enabled = restSeconds > 0
+          enabled = !isRunning && restSeconds > 0
         ) {
           Icon(Icons.Default.Remove, contentDescription = "decrease rest")
         }
         Text("${restSeconds}s", style = MaterialTheme.typography.body2)
-        IconButton(onClick = { onAdjust(restSeconds + 5) }) {
+        IconButton(
+          onClick = { onAdjust(restSeconds + 5) },
+          enabled = !isRunning
+        ) {
           Icon(Icons.Default.Add, contentDescription = "increase rest")
         }
       }
