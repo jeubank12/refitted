@@ -44,7 +44,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -78,7 +77,7 @@ fun PagerExerciseView(
   }
   val exerciseSet by exerciseSetFlow
     ?.collectAsState(initial = null, Dispatchers.IO)
-    ?: remember { mutableStateOf<ExerciseSet?>(null) }
+    ?: remember { mutableStateOf(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
   val maxRestSeconds by model.maxRestSeconds.collectAsState(initial = 0)
 
@@ -169,7 +168,7 @@ fun PagerDetailView(
   // Ring shows the running timer's rest duration; +/- controls apply to the settled exercise
   val ringRestSeconds = when {
     activeRunningTimerState != null -> activeRunningTimerState.restSeconds
-    exerciseSetId != null -> restOverrideByExerciseId[exerciseSetId] ?: activeSetWithRecord?.exerciseSet?.rest ?: 0
+    exerciseSetId != null -> restOverrideByExerciseId[exerciseSetId] ?: activeSetWithRecord.exerciseSet.rest
     else -> 0
   }
 
@@ -184,7 +183,7 @@ fun PagerDetailView(
   val nextRestSeconds = when {
     activeSetWithRecord?.exerciseIncomplete == false -> null
     isViewingDifferentExerciseThanRunning ->
-      exerciseSetId?.let { restOverrideByExerciseId[it] ?: activeSetWithRecord?.exerciseSet?.rest }
+      exerciseSetId?.let { restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest }
     displayedExerciseHasRecordToday -> ringRestSeconds
     else -> null
   }
@@ -220,13 +219,13 @@ fun PagerDetailView(
           onSave = onSave,
           onStartEditWeight = onStartEditWeight,
           showNavigationButtons = false,
-          // Always pass the active running timer (may be a different exercise)
+          // Always pass the active running timer (it may be from a different exercise)
           externalTimerState = activeRunningTimerState,
           onTimerToggle = exerciseSetId?.let {
             {
               if (anyTimerRunning) {
                 // Stop whichever timer is running (could be any exercise)
-                onTimerToggle(activeRunningEntry!!.key, false, 0)
+                onTimerToggle(activeRunningEntry.key, false, 0)
               } else {
                 // Start a timer for the settled exercise
                 val restSecs = restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest

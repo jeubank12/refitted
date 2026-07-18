@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -51,7 +52,6 @@ import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.min
@@ -71,14 +71,14 @@ fun PagerExerciseInstructions(
   pagerState: PagerState,
   alternateIndex: Int?,
   /**
-   * Records keyed by exercise-set ID. Each card looks up its own [numCompleted] so all
+   * Records keyed by exercise-set ID. Each card looks up its own numCompleted so all
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
    */
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
 ) {
   val pageRotations = remember(instructions.size) {
     val rotation = maxRotation - minRotation
-    0.rangeUntil(instructions.size)
+    instructions.indices
       .map { _ ->
         val r = (minRotation + Math.random().toFloat() * rotation)
         if (Math.random() < 0.5) -r else r
@@ -86,7 +86,7 @@ fun PagerExerciseInstructions(
       .toList()
   }
   val xTransforms = remember(instructions.size) {
-    0.rangeUntil(instructions.size)
+    instructions.indices
       .map { _ ->
         val t = Math.random().toFloat() * maxTranslation
         if (Math.random() < 0.5) -t else t
@@ -94,7 +94,7 @@ fun PagerExerciseInstructions(
       .toList()
   }
   val yTransforms = remember(instructions.size) {
-    0.rangeUntil(instructions.size)
+    instructions.indices
       .map { _ ->
         val t = Math.random().toFloat() * maxTranslation
         if (Math.random() < 0.5) -t else t
@@ -149,7 +149,7 @@ fun PagerExerciseInstructions(
                     alpha = if (distance.absoluteValue < 1f) 0f else 1f
                     // The whole deck slides under the incoming top card like a physical
                     // deck: it rides the same swing as the positive-side transition
-                    // card, returning to centre as the swipe settles.
+                    // card, returning to center as the swipe settles.
                     translationX = xTransforms.wrapped(idx) +
                       spread * min(settleFraction, 1f - settleFraction)
                     translationY = yTransforms.wrapped(idx)
@@ -182,7 +182,7 @@ fun PagerExerciseInstructions(
               else -3f
             )
             .graphicsLayer {
-              // Continuous distance of this page from front-and-centre, in pages.
+              // Continuous distance of this page from front-and-center, in pages.
               // Derived only from draw-time state so nothing jumps when currentPage
               // flips at the halfway threshold.
               val distance =
@@ -259,7 +259,7 @@ fun PagerExerciseInstructions(
     val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
     val exerciseSet by exerciseSetFlow
       ?.collectAsStateWithLifecycle(initialValue = null)
-      ?: remember { mutableStateOf<ExerciseSet?>(null) }
+      ?: remember { mutableStateOf(null) }
 
     ExerciseTimer(timeLimitMilliseconds = exerciseSet?.timeLimitMilliseconds)
   }
@@ -278,7 +278,7 @@ private fun CardContent(
     val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
     val exerciseSet by exerciseSetFlow
       ?.collectAsStateWithLifecycle(initialValue = null)
-      ?: remember { mutableStateOf<ExerciseSet?>(null) }
+      ?: remember { mutableStateOf(null) }
     // Each card self-serves its own progress from the records map — no reflow on swipe
     ExerciseInstructions(exerciseSet, setRecords[exerciseSet?.id]?.numCompleted ?: 0)
   }
@@ -313,6 +313,18 @@ private fun ExerciseInstructions(
   /** Defaults to 0 so the progress line always occupies space from first paint — no layout jump. */
   numCompleted: Int = 0,
 ) {
+  val cardColor = MaterialTheme.colors.surface
+  // The band anchored above the pinned counter, bottom to top: solidHeight is fully
+  // opaque card background (guarantees the counter never sits on visible text, since a
+  // linear fade alone only reaches full opacity at its very last pixel), then fadeHeight
+  // transitions back to transparent, then transparentHeight passes content through as-is.
+  val transparentHeight = 20.dp
+  val fadeHeight = 64.dp
+  val solidHeight = 20.dp
+  val totalHeight = transparentHeight + fadeHeight + solidHeight
+  val fadeStartFraction = transparentHeight / totalHeight
+  val fadeEndFraction = (transparentHeight + fadeHeight) / totalHeight
+
   Box(Modifier.fillMaxSize()) {
     LazyColumn(
       Modifier
@@ -350,6 +362,24 @@ private fun ExerciseInstructions(
         Text(exerciseSet?.note ?: "")
       }
     }
+
+    // Fades scrolling text into the card background before it reaches the pinned set
+    // counter below, so the counter always sits on a clean backdrop regardless of
+    // where the content is scrolled to.
+    Box(
+      Modifier
+        .align(Alignment.BottomCenter)
+        .fillMaxWidth()
+        .height(totalHeight)
+        .background(
+          Brush.verticalGradient(
+            0f to cardColor.copy(alpha = 0f),
+            fadeStartFraction to cardColor.copy(alpha = 0f),
+            fadeEndFraction to cardColor,
+            1f to cardColor
+          )
+        )
+    )
 
     // Set progress pinned to the bottom of the card — always occupies space, no layout jump
     if (exerciseSet != null && exerciseSet.sets > 0) {
