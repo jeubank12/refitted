@@ -1,6 +1,8 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,9 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +45,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.litus_animae.refitted.ui.compose.util.Theme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.math.min
@@ -57,6 +63,9 @@ import kotlin.math.min
  * user can see what's coming next — the caller decides when passing it is meaningful
  * (e.g. suppressing it once an exercise has no sets left), this composable just renders
  * whatever it's given.
+ *
+ * **Finishing**: on natural completion the ring blinks green twice while holding 0s,
+ * then [onFinish] fires and the arc eases back up to the idle fill instead of snapping.
  *
  * Reuses [animateTimer] from `Timer.kt` so animation behaviour is consistent with the
  * existing horizontal bar timer.
@@ -88,13 +97,26 @@ fun CircularRestTimer(
     )
   }
 
+  val finishFlashScope = rememberCoroutineScope()
+  var isFinishFlashing by remember { mutableStateOf(false) }
+
   LaunchedEffect(startedAt, isRunning) {
     animateTimer(
       isRunning = isRunning,
       durationMillis = durationMillis,
       start = startedAt,
       elapsedMillisAnimatable = elapsedMillisAnimatable,
-      onFinish = onFinish
+      onFinish = {
+        finishFlashScope.launch {
+          repeat(2) {
+            isFinishFlashing = true
+            delay(150)
+            isFinishFlashing = false
+            delay(150)
+          }
+          onFinish()
+        }
+      }
     )
   }
 
@@ -109,8 +131,36 @@ fun CircularRestTimer(
   }
   val isAlmostDone = isRunning && remainingSeconds <= 10
 
+  val runningFraction by remember(elapsedMillisAnimatable) {
+    derivedStateOf {
+      val remainingMillis = (durationMillis - elapsedMillisAnimatable.value).coerceAtLeast(0f)
+      remainingMillis / (safeMax * 1000f)
+    }
+  }
+  var frozenRunningFraction by remember { mutableFloatStateOf(runningFraction) }
+  LaunchedEffect(isRunning, runningFraction) {
+    if (isRunning) frozenRunningFraction = runningFraction
+  }
+
+  val idleFraction = restSeconds.toFloat() / safeMax
+  val idleSweepFraction = remember { Animatable(idleFraction) }
+  var wasRunning by remember { mutableStateOf(isRunning) }
+
+  LaunchedEffect(isRunning, idleFraction) {
+    if (!isRunning) {
+      if (wasRunning) {
+        idleSweepFraction.snapTo(frozenRunningFraction)
+        idleSweepFraction.animateTo(idleFraction, tween(500, easing = FastOutSlowInEasing))
+      } else {
+        idleSweepFraction.snapTo(idleFraction)
+      }
+    }
+    wasRunning = isRunning
+  }
+
   val primaryColor = MaterialTheme.colors.primary
   val amberColor = Theme.timerAmber
+  val successColor = Theme.timerSuccess
   val trackColor = Theme.timerTrack
 
   Column(
@@ -144,21 +194,19 @@ fun CircularRestTimer(
             style = stroke
           )
 
-          // Content arc — counter-clockwise from 12 o'clock (egg-timer style).
-          // Both branches scale against safeMax (not durationMillis) so the running arc
-          // starts exactly where the idle arc left off and depletes continuously to empty,
-          // instead of jumping to a full circle the instant the timer starts.
-          // Idle: arc shows how much rest is set vs the day's max.
-          // Running: arc depletes clockwise back toward 12 o'clock.
-          val sweep = if (isRunning) {
-            val remainingMillis = (durationMillis - elapsedMillisAnimatable.value).coerceAtLeast(0f)
-            -360f * (remainingMillis / (safeMax * 1000f))  // negative = counter-clockwise
-          } else {
-            -360f * (restSeconds.toFloat() / safeMax)  // negative = counter-clockwise
+          // negative sweep = counter-clockwise, egg-timer style
+          val sweep = when {
+            isFinishFlashing -> -360f
+            isRunning -> -360f * runningFraction
+            else -> -360f * idleSweepFraction.value
           }
           if (sweep != 0f) {
             drawArc(
-              color = if (isAlmostDone) amberColor else primaryColor,
+              color = when {
+                isFinishFlashing -> successColor
+                isAlmostDone -> amberColor
+                else -> primaryColor
+              },
               startAngle = -90f,
               sweepAngle = sweep,
               useCenter = false,
@@ -175,7 +223,11 @@ fun CircularRestTimer(
             Text(
               "${remainingSeconds}s",
               style = MaterialTheme.typography.h4,
-              color = if (isAlmostDone) amberColor else MaterialTheme.colors.onSurface
+              color = when {
+                isFinishFlashing -> successColor
+                isAlmostDone -> amberColor
+                else -> MaterialTheme.colors.onSurface
+              }
             )
           } else {
             Text(
