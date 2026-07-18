@@ -383,8 +383,9 @@ private fun ExerciseInstructions(
 
     // Set progress pinned to the bottom of the card — always occupies space, no layout jump
     if (exerciseSet != null && exerciseSet.sets > 0) {
+      val allSetsComplete = numCompleted >= exerciseSet.sets
       Text(
-        text = "Set ${numCompleted + 1} of ${exerciseSet.sets}",
+        text = if (allSetsComplete) "All sets complete" else "Set ${numCompleted + 1} of ${exerciseSet.sets}",
         style = MaterialTheme.typography.caption,
         color = MaterialTheme.colors.primary,
         modifier = Modifier

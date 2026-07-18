@@ -65,10 +65,26 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
         initial = 0,
         Dispatchers.IO
       )
+      // setsCompleted (Room-backed) and rememberedSetRecords (reset from todayRecords whenever
+      // that flow re-emits) can each transiently dip below the true count while a just-saved
+      // record's write round-trips through Room's invalidation — e.g. an intermediate,
+      // not-yet-caught-up emission. numCompletedHighWaterMark remembers the max seen for this
+      // exercise so a momentary dip in either source can't un-disable the complete button or
+      // revert the "all sets complete" text. The ratcheted value used below is a pure local
+      // calculation (so it applies within this same composition, no lag); SideEffect only
+      // persists it as next pass's floor, keeping the composable body itself side-effect-free.
+      val numCompletedHighWaterMark = remember(currentSet.id) { mutableIntStateOf(0) }
+      val rawNumCompleted = maxOf(setsCompleted, rememberedSetRecords.size)
+      val effectiveNumCompleted = maxOf(rawNumCompleted, numCompletedHighWaterMark.intValue)
+      SideEffect {
+        if (effectiveNumCompleted > numCompletedHighWaterMark.intValue) {
+          numCompletedHighWaterMark.intValue = effectiveNumCompleted
+        }
+      }
       val exerciseSetWithRecord = ExerciseSetWithRecord(
         currentSet,
         currentRecord,
-        setsCompleted,
+        effectiveNumCompleted,
         rememberedSetRecords,
         currentSetRecord.allSets
       )
