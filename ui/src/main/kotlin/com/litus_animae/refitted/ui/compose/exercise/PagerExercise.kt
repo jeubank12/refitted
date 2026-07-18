@@ -113,6 +113,7 @@ fun PagerExerciseView(
         pagerState = pagerState,
         activeSetWithRecord = currentSetRecord,
         displayedPage = displayedPage,
+        globalAlternate = workoutPlan?.globalAlternate,
         setRecords = setRecords,
         maxRestSeconds = maxRestSeconds,
         timerStateByExerciseId = model.timerStateByExerciseId,
@@ -147,6 +148,8 @@ fun PagerDetailView(
   activeSetWithRecord: ExerciseSetWithRecord?,
   /** The page the detail pane reflects — commits on release rather than tracking the drag. */
   displayedPage: Int = pagerState.settledPage,
+  /** Plan-wide alternate override for instructions with shared global alternate labels. */
+  globalAlternate: Int? = null,
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   maxRestSeconds: Int = 0,
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
@@ -196,7 +199,7 @@ fun PagerDetailView(
       PagerExerciseInstructions(
         instructions = instructions,
         pagerState = pagerState,
-        alternateIndex = 0,
+        alternateIndex = globalAlternate,
         setRecords = setRecords
       )
     },
