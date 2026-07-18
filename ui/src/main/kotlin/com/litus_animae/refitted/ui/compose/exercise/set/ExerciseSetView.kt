@@ -64,6 +64,7 @@ fun ExerciseSetView(
   maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
+  nextRestSeconds: Int? = null,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -79,6 +80,7 @@ fun ExerciseSetView(
       maxRestSeconds = maxRestSeconds,
       restOverride = restOverride,
       onRestOverrideChange = onRestOverrideChange,
+      nextRestSeconds = nextRestSeconds,
     )
   }
 }
@@ -98,6 +100,7 @@ fun ColumnScope.ExerciseSetView(
   maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
+  nextRestSeconds: Int? = null,
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
@@ -169,6 +172,7 @@ fun ColumnScope.ExerciseSetView(
         maxRestSeconds = maxRestSeconds,
         isRunning = isTimerRunning,
         startedAt = effectiveTimerStart,
+        nextRestSeconds = nextRestSeconds,
         onAdjust = onRestOverrideChange,
         onFinish = {
           if (onTimerToggle != null) {

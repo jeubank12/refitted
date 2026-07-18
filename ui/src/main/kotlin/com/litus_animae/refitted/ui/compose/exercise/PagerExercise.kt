@@ -173,6 +173,22 @@ fun PagerDetailView(
     else -> 0
   }
 
+  // "Next" preview — only meaningful while resting, and only for an exercise that still
+  // has sets left (no point previewing a rest for an exercise you won't do again today).
+  // Same exercise as the one resting: preview is that timer's own duration (sticky —
+  // the next set of the same exercise rests the same length). Different exercise (swiped
+  // ahead while another rests): preview is the displayed exercise's own rest instead.
+  val isViewingDifferentExerciseThanRunning =
+    activeRunningEntry != null && activeRunningEntry.key != exerciseSetId
+  val displayedExerciseHasRecordToday = (activeSetWithRecord?.numCompleted ?: 0) > 0
+  val nextRestSeconds = when {
+    activeSetWithRecord?.exerciseIncomplete == false -> null
+    isViewingDifferentExerciseThanRunning ->
+      exerciseSetId?.let { restOverrideByExerciseId[it] ?: activeSetWithRecord?.exerciseSet?.rest }
+    displayedExerciseHasRecordToday -> ringRestSeconds
+    else -> null
+  }
+
   AdaptiveExercisePanes(
     modifier = Modifier.fillMaxSize(),
     splitRatio = 0.45f,
@@ -220,7 +236,8 @@ fun PagerDetailView(
           },
           maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
           restOverride = ringRestSeconds,
-          onRestOverrideChange = null   // rest adjustment not exposed in pager path for now
+          onRestOverrideChange = null,   // rest adjustment not exposed in pager path for now
+          nextRestSeconds = nextRestSeconds
         )
       }
     }

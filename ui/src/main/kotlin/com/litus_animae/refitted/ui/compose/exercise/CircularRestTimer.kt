@@ -53,8 +53,10 @@ import kotlin.math.min
  * in the same workout day. A +/- control lets the user override the rest duration.
  *
  * **Running** (resting): arc depletes clockwise; centre shows remaining seconds; goes
- * amber under 10 s. If [nextRestSeconds] is provided a secondary note is shown so the
- * user can see what the next exercise's rest will be (especially useful for supersets).
+ * amber under 10 s. If [nextRestSeconds] is non-null a secondary note is shown so the
+ * user can see what's coming next — the caller decides when passing it is meaningful
+ * (e.g. suppressing it once an exercise has no sets left), this composable just renders
+ * whatever it's given.
  *
  * Reuses [animateTimer] from `Timer.kt` so animation behaviour is consistent with the
  * existing horizontal bar timer.
@@ -176,6 +178,13 @@ fun CircularRestTimer(
               color = if (isAlmostDone) amberColor else MaterialTheme.colors.onSurface
             )
             Text("rest", style = MaterialTheme.typography.caption)
+            if (nextRestSeconds != null) {
+              Text(
+                "next: ${nextRestSeconds}s",
+                style = MaterialTheme.typography.overline,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+              )
+            }
           } else {
             Text(
               "${restSeconds}s",
@@ -183,13 +192,6 @@ fun CircularRestTimer(
               color = primaryColor
             )
             Text("rest", style = MaterialTheme.typography.caption)
-            if (nextRestSeconds != null && nextRestSeconds != restSeconds) {
-              Text(
-                "next: ${nextRestSeconds}s",
-                style = MaterialTheme.typography.overline,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-              )
-            }
           }
         }
       }
@@ -240,7 +242,6 @@ fun PreviewCircularRestTimerIdle(
         maxRestSeconds = 90,
         isRunning = false,
         startedAt = Instant.now(),
-        nextRestSeconds = 60,
         onAdjust = {}
       )
     }
