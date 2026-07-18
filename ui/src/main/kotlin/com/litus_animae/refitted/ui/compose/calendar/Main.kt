@@ -4,10 +4,14 @@ import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.AppBarDefaults
@@ -83,7 +87,9 @@ fun Calendar(
   }
 
   Scaffold(
-    contentWindowInsets = WindowInsets.navigationBars,
+    // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
+    // landscape.
+    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     modifier,
     scaffoldState = scaffoldState,
     topBar = {
@@ -93,7 +99,9 @@ fun Calendar(
           if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan!!.workout)
           else Text(appName)
         },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets,
+        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+        ),
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
           IconButton(
@@ -202,7 +210,7 @@ fun Calendar(
       }
       Row(
         Modifier
-          .windowInsetsPadding(WindowInsets.navigationBars)
+          .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
           .padding(start = 10.dp, end = 10.dp, top = 10.dp)
       ) {
         val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)

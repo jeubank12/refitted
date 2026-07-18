@@ -4,8 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
 import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
@@ -72,11 +76,15 @@ fun Exercise(
     mutableStateOf(emptyFlow<PagingData<SetRecord>>())
   }
   Scaffold(
-    contentWindowInsets = WindowInsets.navigationBars,
+    // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
+    // landscape — the two-pane exercise layout then splits content right up against it.
+    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     topBar = {
       TopAppBar(
         title = { Text("$title: $workoutId $dayWord $day") },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets,
+        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+        ),
         backgroundColor = MaterialTheme.colors.primary,
         actions = {
           contextMenu()
