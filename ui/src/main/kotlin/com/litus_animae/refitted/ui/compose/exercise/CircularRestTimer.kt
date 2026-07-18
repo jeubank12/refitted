@@ -143,11 +143,14 @@ fun CircularRestTimer(
           )
 
           // Content arc — counter-clockwise from 12 o'clock (egg-timer style).
+          // Both branches scale against safeMax (not durationMillis) so the running arc
+          // starts exactly where the idle arc left off and depletes continuously to empty,
+          // instead of jumping to a full circle the instant the timer starts.
           // Idle: arc shows how much rest is set vs the day's max.
           // Running: arc depletes clockwise back toward 12 o'clock.
           val sweep = if (isRunning) {
-            val remaining = (durationMillis - elapsedMillisAnimatable.value).coerceAtLeast(0f)
-            -360f * (remaining / durationMillis)  // negative = counter-clockwise
+            val remainingMillis = (durationMillis - elapsedMillisAnimatable.value).coerceAtLeast(0f)
+            -360f * (remainingMillis / (safeMax * 1000f))  // negative = counter-clockwise
           } else {
             -360f * (restSeconds.toFloat() / safeMax)  // negative = counter-clockwise
           }
