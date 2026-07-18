@@ -37,20 +37,28 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
@@ -132,6 +140,9 @@ fun PagerExerciseInstructions(
           key(idx) {
             CardContent(
               instruction, alternateIndex, setRecords,
+              // The deck's own copy of a card is never the authoritative, focused render (the
+              // pager owns that for the settled page) — never worth animating a swap here.
+              isActivePage = false,
               modifier = Modifier
                 .fillMaxSize()
                 // Upcoming cards stack above previously completed ones
@@ -180,6 +191,10 @@ fun PagerExerciseInstructions(
         val pagesFromCurrent = page - pagerState.currentPage
         CardContent(
           instructions.getOrNull(page), alternateIndex, setRecords,
+          // Only the settled, front-and-center page should ever escape into the unclipped
+          // popup — anything mid-swipe or off to the side would just be a phantom animation
+          // bleeding through on top of whatever the user is actually looking at.
+          isActivePage = pagesFromCurrent == 0,
           modifier = Modifier
             .fillMaxSize()
             // The card leaving the top of the deck stays above the one being revealed or
@@ -278,17 +293,27 @@ private fun CardContent(
   instruction: ExerciseViewModel.ExerciseInstruction?,
   alternateIndex: Int?,
   setRecords: Map<String, ExerciseSetWithRecord>,
+  isActivePage: Boolean,
   modifier: Modifier = Modifier,
 ) {
   val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
   val exerciseSet by exerciseSetFlow
     ?.collectAsStateWithLifecycle(initialValue = null)
     ?: remember { mutableStateOf(null) }
+
+  // This card's slot may sit inside HorizontalPager, which clips page content to its own
+  // bounds — so a card mid-swap can't just translate past that edge, it gets torn off at a
+  // straight line instead of sliding cleanly offscreen. Captured here so the popup below can
+  // size/position an unclipped copy to match exactly.
+  var cardSize by remember { mutableStateOf(IntSize.Zero) }
+
   // The very first exercise set to land in this card slot should just appear — only a genuine
-  // alternate switch (a real set replacing another real set) gets the swap motion below.
-  val previousSetId = remember { mutableStateOf<String?>(null) }
-  val isAlternateSwap = previousSetId.value != null
-  SideEffect { previousSetId.value = exerciseSet?.id }
+  // alternate switch (a real set replacing another real set) gets the swap motion below. Set
+  // from transitionSpec (which runs once per actual content-key change, using AnimatedContent's
+  // own initialState) rather than tracked by hand — a hand-rolled "previous value" var read at
+  // the top of this function gets re-evaluated on every unrelated recomposition mid-transition
+  // (setRecords updates constantly), which can flip it after the fact.
+  var isAlternateSwap by remember { mutableStateOf(false) }
 
   // An alternate switch swaps the exercise shown in this same card slot — animate the whole
   // card (surface and content together) all the way off toward the upper right and pull the
@@ -298,30 +323,74 @@ private fun CardContent(
     targetState = exerciseSet,
     contentKey = { it?.id },
     transitionSpec = {
+      isAlternateSwap = initialState != null
       EnterTransition.None togetherWith ExitTransition.None
     },
     label = "alternateSwap"
   ) { targetSet ->
     val swapProgress by transition.animateFloat(
       label = "alternateSwapProgress",
-      transitionSpec = { tween(3800, easing = FastOutSlowInEasing) }
+      transitionSpec = { tween(380, easing = FastOutSlowInEasing) }
     ) { state ->
-      if (!isAlternateSwap || state == EnterExitState.Visible) 0f else 1f
+      if (!isActivePage || !isAlternateSwap || state == EnterExitState.Visible) 0f else 1f
     }
-    Card(
-      modifier.graphicsLayer {
-        // Clear the card's own full bounds plus a margin, so it's completely offscreen at the
-        // extremes rather than just peeking out from behind the corner.
-        translationX = swapProgress * (size.width + 32.dp.toPx())
-        translationY = -swapProgress * (size.height + 32.dp.toPx())
-        rotationZ = swapProgress * 18f
+    val isSwapping = isActivePage && isAlternateSwap && transition.isRunning
+
+    // Popup visibility is staggered a frame behind the inline card's own hide/unhide so
+    // there's always an overlap, never a gap: the popup mounts before the inline card hides,
+    // and the inline card unhides before the popup tears down.
+    var popupVisible by remember { mutableStateOf(false) }
+    var inlineHidden by remember { mutableStateOf(false) }
+    LaunchedEffect(isSwapping) {
+      if (isSwapping) {
+        popupVisible = true
+        withFrameNanos {}
+        inlineHidden = true
+      } else {
+        inlineHidden = false
+        withFrameNanos {}
+        popupVisible = false
       }
-    ) {
-      CompositionLocalProvider(
-        LocalOverscrollFactory provides null
+    }
+
+    @Composable
+    fun SwapCard(cardModifier: Modifier) {
+      Card(
+        cardModifier.graphicsLayer {
+          // Clear the card's own full bounds plus a margin, so it's completely offscreen at
+          // the extremes rather than just peeking out from behind the corner.
+          translationX = swapProgress * (size.width + 32.dp.toPx())
+          translationY = -swapProgress * (size.height + 32.dp.toPx())
+          rotationZ = swapProgress * 18f
+        }
       ) {
-        // Each card self-serves its own progress from the records map — no reflow on swipe
-        ExerciseInstructions(targetSet, setRecords[targetSet?.id]?.numCompleted ?: 0)
+        CompositionLocalProvider(
+          LocalOverscrollFactory provides null
+        ) {
+          // Each card self-serves its own progress from the records map — no reflow on swipe
+          ExerciseInstructions(targetSet, setRecords[targetSet?.id]?.numCompleted ?: 0)
+        }
+      }
+    }
+
+    Box(modifier.onSizeChanged { cardSize = it }) {
+      // Hidden (not removed — the pager still needs this slot's layout/gesture area) while
+      // the unclipped popup copy below is doing the actual swap motion.
+      SwapCard(Modifier.fillMaxSize().alpha(if (inlineHidden) 0f else 1f))
+    }
+
+    if (popupVisible && cardSize != IntSize.Zero) {
+      Popup(
+        alignment = Alignment.TopStart,
+        properties = PopupProperties(focusable = false, clippingEnabled = false)
+      ) {
+        val density = LocalDensity.current
+        SwapCard(
+          Modifier.size(
+            with(density) { cardSize.width.toDp() },
+            with(density) { cardSize.height.toDp() }
+          )
+        )
       }
     }
   }
