@@ -321,6 +321,7 @@ private fun CardContent(
   // left-right page swipe rather than an abrupt content pop.
   AnimatedContent(
     targetState = exerciseSet,
+    modifier = modifier,
     contentKey = { it?.id },
     transitionSpec = {
       isAlternateSwap = initialState != null
@@ -373,7 +374,7 @@ private fun CardContent(
       }
     }
 
-    Box(modifier.onSizeChanged { cardSize = it }) {
+    Box(Modifier.fillMaxSize().onSizeChanged { cardSize = it }) {
       // Hidden (not removed — the pager still needs this slot's layout/gesture area) while
       // the unclipped popup copy below is doing the actual swap motion.
       SwapCard(Modifier.fillMaxSize().alpha(if (inlineHidden) 0f else 1f))
