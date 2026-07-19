@@ -31,7 +31,7 @@ fun CompleteExerciseSetButton(
     modifier.fillMaxWidth(),
     enabled = exerciseIncomplete
   ) {
-    val cancelRestPhrase = stringResource(id = R.string.cancel_rest)
+    val cancelRestPhrase = String.format(stringResource(id = R.string.cancel_rest), numCompleted + 1)
     val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
     val toCompletionSetPhrase = optionWhen(sets < 0) {
       if (repsCompleted < 0)
@@ -60,10 +60,11 @@ fun CompleteExerciseSetButton(
             numCompleted + 1
           )
       }
-    val setText =
-      if (exerciseIncomplete) completeSetPhrase
-      else exerciseCompletePhrase
-    val buttonText = if (isTimerRunning) cancelRestPhrase else setText
+    val buttonText = when {
+      !exerciseIncomplete -> exerciseCompletePhrase
+      isTimerRunning -> cancelRestPhrase
+      else -> completeSetPhrase
+    }
     Text(buttonText, style = MaterialTheme.typography.h5)
   }
 }

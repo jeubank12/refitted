@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -66,7 +68,10 @@ fun ExerciseView(
   val (index, setIndex) = rememberSaveable { mutableIntStateOf(0) }
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val instruction by remember(index) { derivedStateOf { instructions.getOrNull(index) } }
-  val exerciseSet by instruction?.set(workoutPlan?.globalAlternate)
+  val exerciseSetFlow = remember(instruction, workoutPlan?.globalAlternate) {
+    instruction?.set(workoutPlan?.globalAlternate)
+  }
+  val exerciseSet by exerciseSetFlow
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf<ExerciseSet?>(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
@@ -133,32 +138,6 @@ fun ExerciseView(
   }
 }
 
-@Preview(showBackground = true)
-@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
-@Composable
-fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(Theme.darkColors) {
-    val records = remember { mutableStateListOf<Record>() }
-    val currentRecord =
-      remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
-    Column {
-      DetailView(
-        index = 0,
-        maxIndex = 2,
-        setWithRecord = ExerciseSetWithRecord(
-          exerciseSet,
-          currentRecord,
-          numCompleted = 1,
-          setRecords = records,
-          allSets = emptyFlow()
-        ),
-        updateIndex = { _, _ -> },
-        onSave = { },
-        onStartEditWeight = {})
-    }
-  }
-}
-
 @Composable
 fun DetailView(
   index: Int,
@@ -200,4 +179,30 @@ fun DetailView(
     strategy = strategy,
     displayFeatures = displayFeatures
   )
+}
+
+@Preview(showBackground = true)
+@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
+@Composable
+private fun PreviewDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
+  MaterialTheme(Theme.darkColors) {
+    val records = remember { mutableStateListOf<Record>() }
+    val currentRecord =
+      remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
+    Column {
+      DetailView(
+        index = 0,
+        maxIndex = 2,
+        setWithRecord = ExerciseSetWithRecord(
+          exerciseSet,
+          currentRecord,
+          numCompleted = 1,
+          setRecords = records,
+          allSets = emptyFlow()
+        ),
+        updateIndex = { _, _ -> },
+        onSave = { },
+        onStartEditWeight = {})
+    }
+  }
 }

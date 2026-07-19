@@ -12,7 +12,6 @@ import com.litus_animae.refitted.identity.AuthProvider
 import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.tasks.await
 import java.time.Duration
 import java.time.Instant
 
@@ -37,8 +36,7 @@ internal class DynamoNetworkService(
   // TODO this needs to be called again when the user changes...
   suspend fun getDb(): DynamoDBMapper {
     log.d(TAG, "getting Dynamo db")
-    val currentUser = authProvider.auth().currentUser!!
-    val idToken = currentUser.getIdToken(false).await()
+    val idToken = authProvider.getIdToken() ?: error("No authenticated user")
     val logins = mapOf(Pair(openIdSource, idToken.token))
     credentialsProvider.logins = logins
     val start = Instant.now()

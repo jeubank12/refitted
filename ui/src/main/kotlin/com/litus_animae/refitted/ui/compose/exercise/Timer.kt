@@ -37,7 +37,7 @@ fun Timer(
   animateTimer: Boolean = true,
   onFinish: () -> Unit = {}
 ) {
-  val elapsedMillis = remember {
+  val elapsedMillisAnimatable = remember {
     Animatable(
       if (isRunning)
         min(
@@ -49,7 +49,7 @@ fun Timer(
   }
 
   LaunchedEffect(start, isRunning) {
-    animateTimer(isRunning, durationMillis, start, elapsedMillis, onFinish = onFinish)
+    animateTimer(isRunning, durationMillis, start, elapsedMillisAnimatable, onFinish = onFinish)
   }
 
   if (animateTimer) {
@@ -58,10 +58,10 @@ fun Timer(
         DrawTimer(
           Modifier.fillMaxWidth(),
           durationMillis,
-          { elapsedMillis.value.toInt() },
+          { elapsedMillisAnimatable.value.toInt() },
           countDown
         )
-        val elapsed by remember { derivedStateOf { elapsedMillis.value.toInt() }}
+        val elapsed by remember { derivedStateOf { elapsedMillisAnimatable.value.toInt() }}
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
           Text("el: $elapsed")
           Text("r: $isRunning")
@@ -69,7 +69,7 @@ fun Timer(
         }
       }
     } else {
-      DrawTimer(Modifier.fillMaxWidth(), durationMillis, { elapsedMillis.value.toInt() }, countDown)
+      DrawTimer(Modifier.fillMaxWidth(), durationMillis, { elapsedMillisAnimatable.value.toInt() }, countDown)
     }
   }
 }
@@ -78,7 +78,7 @@ suspend fun animateTimer(
   isRunning: Boolean,
   durationMillis: Int,
   start: Instant,
-  elapsedMillis: Animatable<Float, AnimationVector1D>,
+  elapsedMillisAnimatable: Animatable<Float, AnimationVector1D>,
   catchupDurationMillis: Int = 100,
   whilePausedAnimationSpec: AnimationSpec<Float> = tween(500),
   pausedTarget: Int = 0,
@@ -90,7 +90,7 @@ suspend fun animateTimer(
       min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
     while (alreadyElapsedMillis < durationMillis) {
       if (alreadyElapsedMillis < durationMillis - catchupDurationMillis) {
-        elapsedMillis.animateTo(
+        elapsedMillisAnimatable.animateTo(
           alreadyElapsedMillis + catchupDurationMillis.toFloat(),
           tween(100, easing = LinearEasing)
         )
@@ -99,7 +99,7 @@ suspend fun animateTimer(
         min(durationMillis, (Instant.now().toEpochMilli() - start.toEpochMilli()).toInt())
       val targetToAnimate = min(target, alreadyElapsedMillis + 500L)
       val animationMillis = max(0, targetToAnimate - alreadyElapsedMillis).toInt()
-      elapsedMillis.animateTo(
+      elapsedMillisAnimatable.animateTo(
         targetToAnimate.toFloat(),
         tween(animationMillis, easing = LinearEasing)
       )
@@ -108,7 +108,7 @@ suspend fun animateTimer(
     }
     onFinish()
   } else {
-    elapsedMillis.animateTo(pausedTarget.toFloat(), whilePausedAnimationSpec)
+    elapsedMillisAnimatable.animateTo(pausedTarget.toFloat(), whilePausedAnimationSpec)
   }
 }
 

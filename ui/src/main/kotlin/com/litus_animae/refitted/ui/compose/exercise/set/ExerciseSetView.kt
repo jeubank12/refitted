@@ -4,13 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,22 +23,32 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
-import com.litus_animae.refitted.ui.compose.exercise.SetsDisplay
+import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayMinHeight
 import com.litus_animae.refitted.ui.compose.exercise.WeightDisplay
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.Repetitions
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.data.models.Record
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
 
+/**
+ * Wrapper overload that puts [ExerciseSetView] in its own [Column].
+ * Used by the legacy [ExerciseView] path.
+ */
+@OptIn(FlowPreview::class)
 @Composable
 fun ExerciseSetView(
   setWithRecord: ExerciseSetWithRecord,
@@ -48,6 +58,13 @@ fun ExerciseSetView(
   onSave: (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   modifier: Modifier = Modifier,
+  showNavigationButtons: Boolean = true,
+  externalTimerState: ExerciseViewModel.TimerState? = null,
+  onTimerToggle: (() -> Unit)? = null,
+  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
+  restOverride: Int? = null,
+  onRestOverrideChange: ((Int) -> Unit)? = null,
+  nextRestSeconds: Int? = null,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -56,11 +73,19 @@ fun ExerciseSetView(
       maxIndex = maxIndex,
       updateIndex = updateIndex,
       onSave = onSave,
-      onStartEditWeight = onStartEditWeight
+      onStartEditWeight = onStartEditWeight,
+      showNavigationButtons = showNavigationButtons,
+      externalTimerState = externalTimerState,
+      onTimerToggle = onTimerToggle,
+      maxRestSeconds = maxRestSeconds,
+      restOverride = restOverride,
+      onRestOverrideChange = onRestOverrideChange,
+      nextRestSeconds = nextRestSeconds,
     )
   }
 }
 
+@OptIn(FlowPreview::class)
 @Composable
 fun ColumnScope.ExerciseSetView(
   setWithRecord: ExerciseSetWithRecord,
@@ -68,7 +93,14 @@ fun ColumnScope.ExerciseSetView(
   maxIndex: Int,
   updateIndex: (Int, Record) -> Unit,
   onSave: (Record) -> Unit,
-  onStartEditWeight: (Weight) -> Unit
+  onStartEditWeight: (Weight) -> Unit,
+  showNavigationButtons: Boolean = true,
+  externalTimerState: ExerciseViewModel.TimerState? = null,
+  onTimerToggle: (() -> Unit)? = null,
+  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
+  restOverride: Int? = null,
+  onRestOverrideChange: ((Int) -> Unit)? = null,
+  nextRestSeconds: Int? = null,
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
@@ -80,6 +112,7 @@ fun ColumnScope.ExerciseSetView(
     inputs = arrayOf(exerciseSet, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
 
+  // Local timer state used as fallback for the legacy ExerciseView path
   val timerRunning = rememberSaveable { mutableStateOf(false) }
   val timerDuration = rememberSaveable { mutableIntStateOf(exerciseSet.rest * 1000) }
   LaunchedEffect(timerRunning.value, exerciseSet) {
@@ -89,29 +122,44 @@ fun ColumnScope.ExerciseSetView(
   }
   val timerStart = rememberSaveable { mutableStateOf(Instant.now()) }
 
+  // Effective timer state — use external (ViewModel-held, sticky) when provided
+  val isTimerRunning = externalTimerState?.isRunning ?: timerRunning.value
+  val effectiveTimerStart = externalTimerState?.startedAt ?: timerStart.value
+  val effectiveRestSeconds = restOverride ?: exerciseSet.rest
+
   val saveWeight by weight.value
   val saveReps by reps.value
 
+  // Controls row: left = Weight + Reps | right = CircularRestTimer
   Row(Modifier.weight(3f)) {
-    Column(
-      Modifier
+    // Split the height evenly between the two cards, except the reps card may
+    // not shrink below its own minimum (the 170.dp inside RepsDisplay) —
+    // when space is tight the weight card absorbs the difference
+    Layout(
+      content = {
+        Card(Modifier.fillMaxWidth()) {
+          WeightDisplay(onStartEditWeight, weight, saveWeight)
+        }
+        Card(Modifier.fillMaxWidth()) {
+          RepsDisplay(setWithRecord, reps)
+        }
+      },
+      modifier = Modifier
         .weight(1f)
-        .padding(end = 8.dp)
-    ) {
-      Card(
-        Modifier
-          .padding(bottom = 8.dp)
-          .weight(1f)
-      ) {
-        WeightDisplay(onStartEditWeight, weight, saveWeight)
-      }
-      Card(
-        Modifier
-          .fillMaxWidth()
-          .padding(top = 8.dp)
-          .weight(1f)
-      ) {
-        SetsDisplay(exerciseSet, numCompleted, record)
+        .fillMaxHeight()
+        .padding(end = 8.dp, bottom = 8.dp)
+    ) { measurables, constraints ->
+      val spacing = 8.dp.roundToPx()
+      val width = constraints.maxWidth
+      val available = (constraints.maxHeight - spacing).coerceAtLeast(0)
+      val (weightCard, repsCard) = measurables
+      val repsHeight = maxOf(available / 2, RepsDisplayMinHeight.roundToPx())
+        .coerceAtMost(available)
+      val weightPlaceable = weightCard.measure(Constraints.fixed(width, available - repsHeight))
+      val repsPlaceable = repsCard.measure(Constraints.fixed(width, repsHeight))
+      layout(width, constraints.maxHeight) {
+        weightPlaceable.place(0, 0)
+        repsPlaceable.place(0, weightPlaceable.height + spacing)
       }
     }
     Column(
@@ -119,56 +167,73 @@ fun ColumnScope.ExerciseSetView(
         .weight(1f)
         .padding(start = 8.dp)
     ) {
-      RepsDisplay(setWithRecord, reps)
+      CircularRestTimer(
+        restSeconds = effectiveRestSeconds,
+        maxRestSeconds = maxRestSeconds,
+        isRunning = isTimerRunning,
+        startedAt = effectiveTimerStart,
+        nextRestSeconds = nextRestSeconds,
+        onAdjust = onRestOverrideChange,
+        onFinish = {
+          if (onTimerToggle != null) {
+            onTimerToggle()
+          } else {
+            timerRunning.value = false
+            timerDuration.intValue = exerciseSet.rest * 1000
+          }
+        }
+      )
     }
   }
-  val isTimerRunning by timerRunning
-  Row(
-    Modifier.height(80.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.SpaceBetween
-  ) {
-    val moveLeftEnabled = currentIndex > 0
-    Button(
-      onClick = {
-        updateIndex(
-          currentIndex - 1,
-          record.copy(weight = saveWeight, reps = saveReps)
-        )
-      },
-      enabled = moveLeftEnabled
-    ) {
-      val text = stringResource(id = R.string.move_left)
-      Text(text)
-    }
 
-    RestTimer(
-      Modifier
-        .padding(horizontal = 15.dp)
-        .weight(3f),
-      isTimerRunning,
-      timerDuration.intValue,
-      timerStart.value,
-      timerRunning,
-      exerciseSet
+  // Navigation row — kept for the legacy ExerciseView path, hidden in pager path
+  if (showNavigationButtons) {
+    Row(
+      Modifier.height(80.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween
     ) {
-      timerRunning.value = false
-      timerDuration.intValue = exerciseSet.rest * 1000
-    }
+      val moveLeftEnabled = currentIndex > 0
+      Button(
+        onClick = {
+          updateIndex(
+            currentIndex - 1,
+            record.copy(weight = saveWeight, reps = saveReps)
+          )
+        },
+        enabled = moveLeftEnabled
+      ) {
+        val text = stringResource(id = R.string.move_left)
+        Text(text)
+      }
 
+      RestTimer(
+        Modifier
+          .padding(horizontal = 15.dp)
+          .weight(3f),
+        isTimerRunning,
+        timerDuration.intValue,
+        timerStart.value,
+        timerRunning,
+        exerciseSet
+      ) {
+        timerRunning.value = false
+        timerDuration.intValue = exerciseSet.rest * 1000
+      }
 
-    val moveRightEnabled = currentIndex < maxIndex
-    Button(
-      onClick = {
-        updateIndex(
-          currentIndex + 1,
-          record.copy(weight = saveWeight, reps = saveReps)
-        )
-      },
-      enabled = moveRightEnabled
-    ) {
-      val text = stringResource(id = R.string.move_right)
-      Text(text)
+      val moveRightEnabled = currentIndex < maxIndex
+      Button(
+        onClick = {
+          updateIndex(
+            currentIndex + 1,
+            record.copy(weight = saveWeight, reps = saveReps)
+          )
+        },
+        enabled = moveRightEnabled
+      ) {
+        val text = stringResource(id = R.string.move_right)
+        Text(text)
+      }
     }
   }
 
@@ -178,9 +243,13 @@ fun ColumnScope.ExerciseSetView(
       if (!isTimerRunning) {
         onSave(record.copy(weight = saveWeight, reps = saveReps))
       }
-      if (exerciseSet.rest > 0 || isTimerRunning) {
-        timerRunning.value = !isTimerRunning
-        timerStart.value = Instant.now()
+      if (effectiveRestSeconds > 0 || isTimerRunning) {
+        if (onTimerToggle != null) {
+          onTimerToggle()
+        } else {
+          timerRunning.value = !isTimerRunning
+          timerStart.value = Instant.now()
+        }
       }
     },
     setWithRecord.exerciseIncomplete,
@@ -193,8 +262,9 @@ fun ColumnScope.ExerciseSetView(
   )
 }
 
+@OptIn(FlowPreview::class)
 @Composable
-@Preview(heightDp = 400)
+@Preview(heightDp = 400, apiLevel = 36)
 private fun PreviewExerciseSetDetails() {
   var numCompleted by remember { mutableIntStateOf(0) }
   var currentIndex by remember { mutableIntStateOf(5) }
@@ -210,7 +280,7 @@ private fun PreviewExerciseSetDetails() {
         )
       )
     }
-  MaterialTheme(Theme.lightColors) {
+  androidx.compose.material.MaterialTheme(Theme.lightColors) {
     Column(
       Modifier
         .padding(16.dp)
@@ -228,7 +298,8 @@ private fun PreviewExerciseSetDetails() {
         maxIndex = 5,
         updateIndex = { newIndex, _ -> currentIndex = newIndex },
         onSave = { numCompleted += 1 },
-        onStartEditWeight = {}
+        onStartEditWeight = {},
+        showNavigationButtons = false
       )
     }
   }

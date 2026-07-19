@@ -50,8 +50,16 @@ class UserViewModel @Inject constructor(
 
   val userIsAdmin: Flow<Boolean> =
     authProvider.currentUser
-      .map { it?.getIdToken(false)?.await() }
+      .map { if (it == null) null else authProvider.getIdToken() }
       .map { it?.claims?.get("admin")?.toString() == "true" }
+
+  init {
+    viewModelScope.launch {
+      authProvider.deletedAccountEvents.collect {
+        userError = "Your account is no longer available. You have been signed out."
+      }
+    }
+  }
 
   fun handleSignOut() {
     viewModelScope.launch {

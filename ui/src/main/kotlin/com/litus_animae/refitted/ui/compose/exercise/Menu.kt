@@ -33,7 +33,10 @@ fun RowScope.ExerciseContextMenu(
         title = { Text("Alternate Exercises") },
         text = { Text("Select from alternate exercises") },
         buttons = {
-          val activeIndex by instruction.activeIndex(workoutPlan?.globalAlternate).collectAsState(0)
+          val activeIndexFlow = remember(instruction, workoutPlan?.globalAlternate) {
+            instruction.activeIndex(workoutPlan?.globalAlternate)
+          }
+          val activeIndex by activeIndexFlow.collectAsState(0)
           LazyColumn(Modifier.padding(bottom = 10.dp))
           {
             itemsIndexed(instruction.sets) { index, set ->

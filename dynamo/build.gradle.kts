@@ -2,7 +2,6 @@ import com.android.build.api.dsl.LibraryExtension
 
 plugins {
   id("com.android.library")
-  alias(libs.plugins.jetbrains.kotlin.android)
   alias(libs.plugins.ksp)
 }
 
@@ -14,16 +13,20 @@ extensions.configure<LibraryExtension> {
     minSdk = 26
   }
 
+  buildFeatures {
+    resValues = true
+  }
+
   buildTypes {
     release {
-      val Refitted_IdentityPoolId: String by rootProject.extra
-      val Refitted_OpenIdSource: String by rootProject.extra
+      val Refitted_IdentityPoolId: String = rootProject.extra["Refitted_IdentityPoolId"] as String
+      val Refitted_OpenIdSource: String = rootProject.extra["Refitted_OpenIdSource"] as String
       resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
       resValue("string", "firebase_id_source", Refitted_OpenIdSource)
     }
     debug {
-      val Refitted_IdentityPoolId: String by rootProject.extra
-      val Refitted_OpenIdSource: String by rootProject.extra
+      val Refitted_IdentityPoolId: String = rootProject.extra["Refitted_IdentityPoolId"] as String
+      val Refitted_OpenIdSource: String = rootProject.extra["Refitted_OpenIdSource"] as String
       resValue("string", "cognito_identity_pool_id", Refitted_IdentityPoolId)
       resValue("string", "firebase_id_source", Refitted_OpenIdSource)
     }
@@ -59,7 +62,6 @@ dependencies {
 
   // Kotlin
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.kotlinx.coroutines.play.services)
 
   // Hilt
   api(libs.dagger.hilt.android)

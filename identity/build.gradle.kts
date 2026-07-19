@@ -2,7 +2,6 @@ import com.android.build.api.dsl.LibraryExtension
 
 plugins {
     id("com.android.library")
-    alias(libs.plugins.jetbrains.kotlin.android)
 }
 
 extensions.configure<LibraryExtension> {
@@ -39,6 +38,6 @@ dependencies {
 
     // Firebase
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    api(libs.firebase.auth)
     implementation(libs.firebase.config)
 }
