@@ -2,15 +2,8 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**v1.2.12</item>
-        <item>TODO</item>
-        <item>**v1.2.7–1.2.11</item>
-        <item>Periodic Maintenance</item>
-        <item>**v1.2.4-v1.2.6</item>
-        <item>Add a chart of set weight history</item>
-        <item>Smoother rest timer</item>
-        <item>Known Issues:</item>
-        <item>  if the first exercise is an alternate and you already completed one exercise for the day, then navigating back to that workout will cause a flicker event. Click \'Alternate\' to escape it</item>
+        <item>**v1.3.0</item>
+        <item>Updated Exercise UI</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
