@@ -99,7 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Use Node.js 20.15
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20.15
           cache: "npm"
@@ -133,7 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Use Node.js 20.15
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20.15
           cache: "npm"
