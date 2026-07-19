@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.LocalAbsoluteElevation
+import androidx.compose.material.LocalElevationOverlay
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -426,7 +428,8 @@ private fun ExerciseInstructions(
   /** Defaults to 0 so the progress line always occupies space from first paint — no layout jump. */
   numCompleted: Int = 0,
 ) {
-  val cardColor = MaterialTheme.colors.surface
+  val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
+    ?: MaterialTheme.colors.surface
   // The band anchored above the pinned counter, bottom to top: solidHeight is fully
   // opaque card background (guarantees the counter never sits on visible text, since a
   // linear fade alone only reaches full opacity at its very last pixel), then fadeHeight

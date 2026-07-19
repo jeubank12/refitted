@@ -82,6 +82,16 @@ npm run lint
 ./gradlew installDebugAndroidTest
 ```
 
+### Manual Device Testing (adb)
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.litus_animae.refitted.debug/com.litus_animae.refitted.RefittedComposeActivity
+
+# In Git Bash, prefix adb calls that take an absolute device path (e.g. /sdcard/...)
+# with MSYS_NO_PATHCONV=1, or the path gets mangled into a Windows path
+MSYS_NO_PATHCONV=1 adb pull /sdcard/file.mp4 .
+```
+
 ### Code Quality
 ```bash
 # Run lint checks
@@ -319,4 +329,5 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Avoid fully qualified class names in code. Prefer file imports and use renames in the import syntax
 - Keep modules focused: domain logic in `:data`, persistence in `:room`, UI in `:ui`, etc.
 - Repository implementations in `:app` bridge multiple data sources (Room + DynamoDB)
-- prefer succinct commit messages that explain the changes that are not otherwise obvious from the code diff
+- Prefer succinct commit messages over long ones — a short message that explains what's not obvious from the diff beats a detailed one
+- Do not add comments explaining what code does when the code is self-explanatory. Only comment non-obvious *why* (a hidden constraint, a workaround, a subtle invariant) — never restate the *what*. Prefer putting that *why* in the commit message over a code comment when it's about the change itself rather than a lasting property of the code
