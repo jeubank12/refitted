@@ -7,6 +7,14 @@ buildscript {
             downloadSources = true
         }
     }
+    dependencies {
+        // DAGP bundles kotlin-metadata-jvm 2.2.20, which can't parse the metadata format
+        // emitted by Kotlin 2.4.x compilers. Force a newer one onto its classpath until
+        // https://github.com/autonomousapps/dependency-analysis-gradle-plugin/issues/1661 is fixed.
+        // Keep in sync with the `kotlin` version in gradle/libs.versions.toml.
+        // Remove once fixed upstream: https://github.com/jeubank12/refitted/issues/1867
+        classpath "org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.10"
+    }
 }
 
 // disabled due to: https://github.com/nebula-plugins/gradle-lint-plugin/issues/342
