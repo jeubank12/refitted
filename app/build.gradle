@@ -61,6 +61,10 @@ android {
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             debuggable = false
+            // Library modules (:ui, :room, :dynamo, :data, :util, :identity) only declare
+            // debug/release build types; fall back to their debug variant since there's no
+            // matching minifiedDebug variant to resolve against.
+            matchingFallbacks = ['debug']
         }
     }
     buildFeatures {

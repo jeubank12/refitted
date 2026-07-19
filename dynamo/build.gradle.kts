@@ -62,7 +62,6 @@ dependencies {
 
   // Kotlin
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.kotlinx.coroutines.play.services)
 
   // Hilt
   api(libs.dagger.hilt.android)
