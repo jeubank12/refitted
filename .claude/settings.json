@@ -7,7 +7,6 @@
       "Bash(./gradlew :app:assembleDebugAndroidTest:*)",
       "Bash(./gradlew projects:*)",
       "Bash(./gradlew:*)",
-      "Bash(find:*)",
       "Bash(git ls-tree *)",
       "Bash(npx tsc *)",
       "Bash(xargs cat:*)"
