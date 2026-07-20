@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
+import android.app.DatePickerDialog
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -39,6 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CustomCredential
@@ -56,6 +58,7 @@ import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Composable
@@ -275,10 +278,29 @@ fun Calendar(
         Text("Open the menu to pick a workout")
       }
     } else {
+      val aligned = selectedWorkoutPlan!!.workoutStartDate.toEpochMilli() != 0L
+      var showStartDatePicker by remember { mutableStateOf(false) }
+      if (showStartDatePicker) {
+        val context = LocalContext.current
+        LaunchedEffect(Unit) {
+          val today = LocalDate.now()
+          DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+              workoutModel.setStartDate(selectedWorkoutPlan!!, LocalDate.of(year, month + 1, dayOfMonth))
+              showStartDatePicker = false
+            },
+            today.year, today.monthValue - 1, today.dayOfMonth
+          ).apply {
+            setOnCancelListener { showStartDatePicker = false }
+          }.show()
+        }
+      }
       WorkoutCalendar(
         selectedWorkoutPlan!!,
         completedDays,
-        contentPadding = contentPadding
+        contentPadding = contentPadding,
+        onPickStartDate = if (!aligned) ({ showStartDatePicker = true }) else null
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
