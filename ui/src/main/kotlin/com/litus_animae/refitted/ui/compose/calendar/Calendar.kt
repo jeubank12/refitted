@@ -1,6 +1,9 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -73,7 +77,7 @@ fun PreviewCalendarUnaligned() {
       WorkoutPlan("test", 110, 1),
       emptyMap(),
       contentPadding = PaddingValues(0.dp),
-      onPickStartDate = {}
+      onSaveStartDate = {}
     ) {}
   }
 }
@@ -83,7 +87,7 @@ fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
   contentPadding: PaddingValues,
-  onPickStartDate: (() -> Unit)? = null,
+  onSaveStartDate: (LocalDate) -> Unit = {},
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -94,7 +98,12 @@ fun WorkoutCalendar(
   // Epoch is the WorkoutPlan default and marks a plan as unaligned - see
   // WorkoutViewModel.alignToDayIfUnaligned/setStartDate.
   val aligned = plan.workoutStartDate.toEpochMilli() != 0L
-  val anchorDate = if (aligned) plan.workoutStartDate.atZone(zone).toLocalDate() else today
+
+  // Tentative start day while unaligned - the calendar itself is the picker here; only
+  // Save (via onSaveStartDate) persists it as plan.workoutStartDate.
+  var pickedEpochDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
+  val pickedDate = LocalDate.ofEpochDay(pickedEpochDay)
+  val anchorDate = if (aligned) plan.workoutStartDate.atZone(zone).toLocalDate() else pickedDate
 
   var displayedMonthKey by rememberSaveable {
     mutableIntStateOf(today.year * 12 + (today.monthValue - 1))
@@ -119,8 +128,14 @@ fun WorkoutCalendar(
       .padding(contentPadding)
       .padding(10.dp, 10.dp)
   ) {
-    if (onPickStartDate != null) {
-      item { StartDatePrompt(onPickStartDate) }
+    item {
+      AnimatedVisibility(visible = !aligned, exit = shrinkVertically() + fadeOut()) {
+        StartDatePickerBanner(
+          pickedDate,
+          onSave = { onSaveStartDate(pickedDate) },
+          modifier = Modifier.padding(bottom = 12.dp)
+        )
+      }
     }
     item {
       MonthNavRow(
@@ -136,35 +151,51 @@ fun WorkoutCalendar(
       Row(Modifier.fillMaxWidth()) {
         week.forEach { cellDate ->
           val workoutDay = ChronoUnit.DAYS.between(anchorDate, cellDate).toInt() + 1
-          val inRange = YearMonth.from(cellDate) == displayedMonth && workoutDay in 1..plan.totalDays
+          val inDisplayedMonth = YearMonth.from(cellDate) == displayedMonth
+          val inRange = inDisplayedMonth && workoutDay in 1..plan.totalDays
+          val isRestDay = inRange && plan.restDays.contains(workoutDay)
+          val hidden = isRestDay && hideRestDays
+          val onClick: (() -> Unit)? = when {
+            !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
+            aligned && inRange && !hidden -> ({ navigateToDay(workoutDay) })
+            else -> null
+          }
+          val label = when {
+            !aligned && inDisplayedMonth ->
+              "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
+            isRestDay -> "Rest day $workoutDay"
+            inRange -> "Day $workoutDay"
+            else -> null
+          }
           Box(
             Modifier
               .weight(1f)
               .height(52.dp)
               .padding(3.dp)
+              .let { base ->
+                if (onClick != null) base.clickable(onClickLabel = label, onClick = onClick)
+                else base
+              }
           ) {
             if (!inRange) {
               OutOfRangeDayCell(cellDate.dayOfMonth)
+            } else if (hidden) {
+              Box(Modifier.fillMaxSize())
             } else {
-              val isRestDay = plan.restDays.contains(workoutDay)
-              if (isRestDay && hideRestDays) {
-                Box(Modifier.fillMaxSize())
-              } else {
-                CalendarDayCell(
-                  cellDate.dayOfMonth,
-                  workoutDay,
-                  DayProperties(
-                    isCompletedDay = aligned && isDayComplete(
-                      workoutDay,
-                      completedDays,
-                      plan.workoutStartDate
-                    ),
-                    isLastViewedDay = workoutDay == plan.lastViewedDay,
-                    isRestDay = isRestDay
+              CalendarDayCell(
+                cellDate.dayOfMonth,
+                workoutDay,
+                DayProperties(
+                  isCompletedDay = aligned && isDayComplete(
+                    workoutDay,
+                    completedDays,
+                    plan.workoutStartDate
                   ),
-                  onClick = { navigateToDay(workoutDay) }
-                )
-              }
+                  isLastViewedDay = aligned && workoutDay == plan.lastViewedDay,
+                  isRestDay = isRestDay
+                ),
+                selected = !aligned && cellDate == pickedDate
+              )
             }
           }
         }
@@ -174,11 +205,13 @@ fun WorkoutCalendar(
 }
 
 @Composable
-private fun StartDatePrompt(onPickStartDate: () -> Unit) {
+private fun StartDatePickerBanner(
+  pickedDate: LocalDate,
+  onSave: () -> Unit,
+  modifier: Modifier = Modifier
+) {
   Surface(
-    Modifier
-      .fillMaxWidth()
-      .padding(bottom = 12.dp),
+    modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
     color = MaterialTheme.colors.primary,
     contentColor = MaterialTheme.colors.onPrimary,
@@ -186,11 +219,18 @@ private fun StartDatePrompt(onPickStartDate: () -> Unit) {
   ) {
     Column(Modifier.padding(14.dp)) {
       // TODO localize
-      Text("Pick the day you'll start this program", fontSize = 13.sp)
-      Spacer(Modifier.height(8.dp))
-      Button(onClick = onPickStartDate, modifier = Modifier.fillMaxWidth()) {
+      Text("Tap a day to choose your start", fontSize = 13.sp)
+      Spacer(Modifier.height(4.dp))
+      Text(
         // TODO localize
-        Text("Set start date")
+        "Start: ${pickedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))}",
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold
+      )
+      Spacer(Modifier.height(8.dp))
+      Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+        // TODO localize
+        Text("Save")
       }
     }
   }
@@ -358,7 +398,7 @@ fun PreviewCalendarDayButton(
   @PreviewParameter(DayPropertiesPreviewParameterProvider::class) properties: DayProperties
 ) {
   MaterialTheme(colors = Theme.darkColors) {
-    CalendarDayCell(1, 1, properties) { }
+    CalendarDayCell(1, 1, properties)
   }
 }
 
@@ -378,23 +418,23 @@ private fun CalendarDayCell(
   dayOfMonth: Int,
   workoutDay: Int,
   properties: DayProperties,
-  onClick: () -> Unit
+  selected: Boolean = false
 ) {
+  // Last-viewed (aligned) and selected-as-start (unaligned) are mutually exclusive - one
+  // outline style covers "this is the reference day" in either mode.
+  val highlighted = properties.isLastViewedDay || selected
   val backgroundColor = when {
-    properties.isLastViewedDay -> MaterialTheme.colors.background
+    highlighted -> MaterialTheme.colors.background
     properties.isCompletedDay -> MaterialTheme.colors.secondary
     else -> MaterialTheme.colors.primary
   }
   val contentColor = contentColorFor(backgroundColor)
-  val border = if (properties.isLastViewedDay)
-    BorderStroke(3.dp, MaterialTheme.colors.primaryVariant) else null
-  val label = if (properties.isRestDay) "Rest day $workoutDay" else "Day $workoutDay"
+  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colors.primaryVariant) else null
 
   Surface(
     modifier = Modifier
       .fillMaxSize()
-      .alpha(if (properties.isRestDay) 0.45f else 1f)
-      .clickable(onClickLabel = label, onClick = onClick),
+      .alpha(if (properties.isRestDay) 0.45f else 1f),
     shape = RoundedCornerShape(8.dp),
     color = backgroundColor,
     contentColor = contentColor,
