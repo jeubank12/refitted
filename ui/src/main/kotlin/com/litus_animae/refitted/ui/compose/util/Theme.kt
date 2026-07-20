@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 object Theme {
 
   val timerAmber = Color(0xFFFFB300)   // warning/almost-done arc colour
-  val timerSuccess = Color(0xFF2E7D32)   // finish blink colour
+  val goodAttention = Color(0xFF2E7D32)   // draws the eye for a positive reason — timer finish blink, today marker
   val timerTrack = Color(0x1F000000)   // muted track behind the arc — both palettes use a white surface/background
 
   val darkColors = Colors(

@@ -177,8 +177,9 @@ fun WorkoutCalendar(
                 else base
               }
           ) {
+            val isToday = cellDate == today
             if (!inRange) {
-              OutOfRangeDayCell(cellDate.dayOfMonth)
+              OutOfRangeDayCell(cellDate.dayOfMonth, isToday = isToday)
             } else if (hidden) {
               Box(Modifier.fillMaxSize())
             } else {
@@ -194,7 +195,8 @@ fun WorkoutCalendar(
                   isLastViewedDay = aligned && workoutDay == plan.lastViewedDay,
                   isRestDay = isRestDay
                 ),
-                selected = !aligned && cellDate == pickedDate
+                selected = !aligned && cellDate == pickedDate,
+                isToday = isToday
               )
             }
           }
@@ -403,12 +405,14 @@ fun PreviewCalendarDayButton(
 }
 
 @Composable
-private fun OutOfRangeDayCell(dayOfMonth: Int) {
+private fun OutOfRangeDayCell(dayOfMonth: Int, isToday: Boolean = false) {
   Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     Text(
       "$dayOfMonth",
       fontSize = 13.sp,
-      color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+      color = if (isToday) Theme.goodAttention
+      else MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled),
+      fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
     )
   }
 }
@@ -418,7 +422,8 @@ private fun CalendarDayCell(
   dayOfMonth: Int,
   workoutDay: Int,
   properties: DayProperties,
-  selected: Boolean = false
+  selected: Boolean = false,
+  isToday: Boolean = false
 ) {
   // Last-viewed (aligned) and selected-as-start (unaligned) are mutually exclusive - one
   // outline style covers "this is the reference day" in either mode.
@@ -445,7 +450,12 @@ private fun CalendarDayCell(
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Text("$dayOfMonth", fontSize = 14.sp)
+      Text(
+        "$dayOfMonth",
+        fontSize = 14.sp,
+        color = if (isToday) Theme.goodAttention else contentColor,
+        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+      )
       Text(
         if (properties.isRestDay) "rest" else "day $workoutDay",
         fontSize = 9.sp,

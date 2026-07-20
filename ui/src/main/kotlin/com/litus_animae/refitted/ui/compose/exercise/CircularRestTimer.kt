@@ -169,7 +169,7 @@ fun CircularRestTimer(
 
   val primaryColor = MaterialTheme.colors.primary
   val amberColor = Theme.timerAmber
-  val successColor = Theme.timerSuccess
+  val successColor = Theme.goodAttention
   val trackColor = Theme.timerTrack
 
   Column(
