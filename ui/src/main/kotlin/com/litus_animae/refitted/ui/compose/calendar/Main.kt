@@ -278,7 +278,8 @@ fun Calendar(
       WorkoutCalendar(
         selectedWorkoutPlan!!,
         completedDays,
-        contentPadding = contentPadding
+        contentPadding = contentPadding,
+        onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) }
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)

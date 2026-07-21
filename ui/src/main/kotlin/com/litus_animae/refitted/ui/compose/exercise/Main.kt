@@ -128,7 +128,8 @@ fun Exercise(
         onStartEditWeight = {
           sheetWeight = it
           scaffoldScope.launch { sheetState.show() }
-        })
+        },
+        onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) })
     }
   }
 }

@@ -57,7 +57,8 @@ fun PagerExerciseView(
   setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
-  onStartEditWeight: (Weight) -> Unit
+  onStartEditWeight: (Weight) -> Unit,
+  onSetSaved: () -> Unit = {}
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
@@ -126,6 +127,7 @@ fun PagerExerciseView(
           model.saveExercise(
             SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
           )
+          onSetSaved()
           // Superset auto-advance
           instruction?.offsetToNextSuperSet?.let { offset ->
             val isChallengeSet = exerciseSet!!.sets < 0

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -151,13 +152,32 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
-  fun resetWorkoutCompletion(workout: WorkoutPlan) {
+  private fun writeStartDate(workout: WorkoutPlan, startDate: Instant) {
     viewModelScope.launch(Dispatchers.IO) {
-      log.d(TAG, "Setting start date for plan $workout")
-      val now = Instant.now()
-      savedStateHandle[selectedPlanStartDate] = now.toEpochMilli()
-      workoutPlanRepo.setWorkoutStartDate(workout, now)
+      log.d(TAG, "Setting start date $startDate for plan $workout")
+      savedStateHandle[selectedPlanStartDate] = startDate.toEpochMilli()
+      workoutPlanRepo.setWorkoutStartDate(workout, startDate)
     }
+  }
+
+  // Epoch marks a plan as not yet aligned to a real calendar date - see WorkoutCalendar.
+  private val unaligned = Instant.ofEpochMilli(0)
+
+  fun resetWorkoutCompletion(workout: WorkoutPlan) {
+    writeStartDate(workout, unaligned)
+  }
+
+  // No-op once aligned, so this is safe to call on every set save.
+  fun alignToDayIfUnaligned(workout: WorkoutPlan?, day: Int) {
+    if (workout == null || workout.workoutStartDate != unaligned) return
+    val zone = ZoneId.systemDefault()
+    val anchor = LocalDate.now(zone).minusDays((day - 1).toLong()).atStartOfDay(zone).toInstant()
+    writeStartDate(workout, anchor)
+  }
+
+  // date may be in the future or past - explicit picks aren't limited to "starting today".
+  fun setStartDate(workout: WorkoutPlan, date: LocalDate) {
+    writeStartDate(workout, date.atStartOfDay(ZoneId.systemDefault()).toInstant())
   }
 
   var workoutError: String? by mutableStateOf(null)
