@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -137,10 +138,10 @@ fun ColumnScope.ExerciseSetView(
     // when space is tight the weight card absorbs the difference
     Layout(
       content = {
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
           WeightDisplay(onStartEditWeight, weight, saveWeight)
         }
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
           RepsDisplay(setWithRecord, reps)
         }
       },
@@ -162,27 +163,35 @@ fun ColumnScope.ExerciseSetView(
         repsPlaceable.place(0, weightPlaceable.height + spacing)
       }
     }
-    Column(
+    Box(
       Modifier
         .weight(1f)
-        .padding(start = 8.dp)
+        .fillMaxHeight()
+        .padding(start = 8.dp),
+      contentAlignment = Alignment.Center
     ) {
-      CircularRestTimer(
-        restSeconds = effectiveRestSeconds,
-        maxRestSeconds = maxRestSeconds,
-        isRunning = isTimerRunning,
-        startedAt = effectiveTimerStart,
-        nextRestSeconds = nextRestSeconds,
-        onAdjust = onRestOverrideChange,
-        onFinish = {
-          if (onTimerToggle != null) {
-            onTimerToggle()
-          } else {
-            timerRunning.value = false
-            timerDuration.intValue = exerciseSet.rest * 1000
+      // Wraps its content instead of filling the row's height (which the Weight/Reps
+      // stack next to it doesn't fully occupy either) so it floats centered rather than
+      // stretching to an arbitrary bottom edge that never quite matched theirs.
+      Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        CircularRestTimer(
+          restSeconds = effectiveRestSeconds,
+          maxRestSeconds = maxRestSeconds,
+          isRunning = isTimerRunning,
+          startedAt = effectiveTimerStart,
+          modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight),
+          nextRestSeconds = nextRestSeconds,
+          onAdjust = onRestOverrideChange,
+          onFinish = {
+            if (onTimerToggle != null) {
+              onTimerToggle()
+            } else {
+              timerRunning.value = false
+              timerDuration.intValue = exerciseSet.rest * 1000
+            }
           }
-        }
-      )
+        )
+      }
     }
   }
 

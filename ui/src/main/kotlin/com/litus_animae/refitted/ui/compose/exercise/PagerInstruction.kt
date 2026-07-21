@@ -365,7 +365,11 @@ private fun CardContent(
           translationX = swapProgress * (size.width + 32.dp.toPx())
           translationY = -swapProgress * (size.height + 32.dp.toPx())
           rotationZ = swapProgress * 18f
-        }
+        },
+        // The front-and-center card gets a pronounced shadow so it visibly lifts off the
+        // deck; cards still sitting in the deck stay near-flat so the depth reads from
+        // the active card alone rather than every jittered card casting its own shadow.
+        elevation = if (isActivePage) 6.dp else 1.dp
       ) {
         CompositionLocalProvider(
           LocalOverscrollFactory provides null
