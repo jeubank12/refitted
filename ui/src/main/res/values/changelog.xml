@@ -2,6 +2,8 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.3.1</item>
+        <item>Calendar now aligns to real dates</item>
         <item>**v1.3.0</item>
         <item>Updated Exercise UI</item>
     </string-array>
