@@ -5,9 +5,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -82,12 +84,14 @@ fun PreviewCalendarUnaligned() {
   }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
   contentPadding: PaddingValues,
   onSaveStartDate: (LocalDate) -> Unit = {},
+  onCopyDay: (fromDay: Int, toDay: Int?) -> Unit = { _, _ -> },
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -113,6 +117,8 @@ fun WorkoutCalendar(
   }
 
   var hideRestDays by rememberSaveable { mutableStateOf(false) }
+  // Long-pressed day awaiting the copy-day dialog - custom plans only (see onLongClick below).
+  var copyDaySource by rememberSaveable { mutableStateOf<Int?>(null) }
 
   val firstOfMonth = displayedMonth.atDay(1)
   // Sunday-first grid: ISO Sunday (7) should wrap to 0 leading cells, not 7.
@@ -160,6 +166,9 @@ fun WorkoutCalendar(
             aligned && inRange && !hidden -> ({ navigateToDay(workoutDay) })
             else -> null
           }
+          val onLongClick: (() -> Unit)? =
+            if (plan.isCustom && aligned && inRange && !hidden) ({ copyDaySource = workoutDay })
+            else null
           val label = when {
             !aligned && inDisplayedMonth ->
               "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
@@ -173,8 +182,17 @@ fun WorkoutCalendar(
               .height(52.dp)
               .padding(3.dp)
               .let { base ->
-                if (onClick != null) base.clickable(onClickLabel = label, onClick = onClick)
-                else base
+                when {
+                  onClick != null && onLongClick != null -> base.combinedClickable(
+                    onClickLabel = label,
+                    onClick = onClick,
+                    // TODO localize
+                    onLongClickLabel = "Copy day $workoutDay",
+                    onLongClick = onLongClick
+                  )
+                  onClick != null -> base.clickable(onClickLabel = label, onClick = onClick)
+                  else -> base
+                }
               }
           ) {
             val isToday = cellDate == today
@@ -203,6 +221,18 @@ fun WorkoutCalendar(
         }
       }
     }
+  }
+
+  copyDaySource?.let { fromDay ->
+    CopyDayDialog(
+      fromDay = fromDay,
+      totalDays = plan.totalDays,
+      onDismissRequest = { copyDaySource = null },
+      onCopy = { toDay ->
+        onCopyDay(fromDay, toDay)
+        copyDaySource = null
+      }
+    )
   }
 }
 

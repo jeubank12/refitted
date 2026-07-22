@@ -202,4 +202,29 @@ class WorkoutViewModel @Inject constructor(
         }
     }
   }
+
+  fun createCustomWorkout(name: String) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Creating custom workout $name")
+      val plan = workoutPlanRepo.createCustomPlan(name)
+      loadWorkoutDaysCompleted(plan)
+    }
+  }
+
+  fun addDay(workout: WorkoutPlan) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Adding day to custom plan ${workout.workout}")
+      workoutPlanRepo.addDayToCustomPlan(workout)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
+  // A null toDay appends a new day; otherwise toDay is overwritten.
+  fun copyDay(workout: WorkoutPlan, fromDay: Int, toDay: Int?) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Copying day $fromDay to ${toDay ?: "new day"} for custom plan ${workout.workout}")
+      workoutPlanRepo.copyCustomDay(workout, fromDay, toDay)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
 }

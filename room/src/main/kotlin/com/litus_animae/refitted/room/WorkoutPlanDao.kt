@@ -13,7 +13,7 @@ interface WorkoutPlanDao {
     @Update
     fun update(workoutPlan: RoomWorkoutPlan)
 
-    @Query("SELECT * FROM workouts")
+    @Query("SELECT * FROM workouts ORDER BY isCustom ASC, workout ASC")
     fun pagingSource(): PagingSource<Int, RoomWorkoutPlan>
 
     @Query("SELECT * FROM workouts")
@@ -22,6 +22,16 @@ interface WorkoutPlanDao {
     @Query("SELECT * FROM workouts where `workout` = :name")
     fun planByName(name: String): Flow<RoomWorkoutPlan?>
 
+    @Query("SELECT * FROM workouts where `workout` = :name")
+    suspend fun getByName(name: String): RoomWorkoutPlan?
+
     @Query("DELETE FROM workouts")
     suspend fun clearAll()
+
+    /**
+     * Clears only admin-authored plans, leaving user-created (`isCustom`) plans untouched -
+     * used before re-inserting the server's plan list on refresh.
+     */
+    @Query("DELETE FROM workouts where `isCustom` = 0")
+    suspend fun clearServerPlans()
 }

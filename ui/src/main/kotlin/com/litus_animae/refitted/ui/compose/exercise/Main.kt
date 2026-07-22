@@ -21,6 +21,7 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.rememberScaffoldState
@@ -55,7 +56,8 @@ import kotlinx.coroutines.launch
 fun Exercise(
   day: String, workoutId: String,
   exerciseModel: ExerciseViewModel = viewModel(),
-  workoutModel: WorkoutViewModel = viewModel()
+  workoutModel: WorkoutViewModel = viewModel(),
+  onAddExercise: () -> Unit = {}
 ) {
   val title = stringResource(id = R.string.app_name)
   val dayWord = stringResource(id = R.string.day)
@@ -87,6 +89,12 @@ fun Exercise(
         ),
         backgroundColor = MaterialTheme.colors.primary,
         actions = {
+          if (loadedWorkoutPlan?.isCustom == true) {
+            IconButton(onAddExercise) {
+              // TODO localize
+              Icon(Icons.Default.Add, "add exercise")
+            }
+          }
           contextMenu()
         },
         navigationIcon = {
@@ -129,7 +137,8 @@ fun Exercise(
           sheetWeight = it
           scaffoldScope.launch { sheetState.show() }
         },
-        onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) })
+        onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
+        onAddExercise = onAddExercise)
     }
   }
 }

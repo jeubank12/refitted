@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.litus_animae.refitted.ui.compose.calendar.Calendar
 import com.litus_animae.refitted.ui.compose.exercise.Exercise
+import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePicker
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.data.models.WorkoutPlan
@@ -39,7 +40,24 @@ fun Top() {
           day = day,
           workoutId = workoutId,
           exerciseModel = exerciseModel,
-          workoutModel = workoutModel
+          workoutModel = workoutModel,
+          onAddExercise = { controller.navigate("add-exercise/$workoutId/$day") }
+        )
+      } else {
+        controller.navigate("calendar")
+      }
+    }
+    composable("add-exercise/{workout}/{day}") {
+      val exerciseModel: ExerciseViewModel = hiltViewModel(it)
+      val workoutId = it.arguments?.getString("workout")
+      val day = it.arguments?.getString("day")
+      if (workoutId != null && day != null) {
+        AddExercisePicker(
+          onExercisePicked = { name ->
+            exerciseModel.addExercise(workoutId, day, name)
+            controller.popBackStack()
+          },
+          onClose = { controller.popBackStack() }
         )
       } else {
         controller.navigate("calendar")

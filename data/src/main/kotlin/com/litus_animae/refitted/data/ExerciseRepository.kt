@@ -16,6 +16,11 @@ interface ExerciseRepository {
   fun refreshExercises()
   suspend fun storeSetRecord(record: SetRecord)
   fun loadWorkoutRecords(workoutId: String)
+
+  /**
+   * Adds a user-authored exercise to a custom plan's day, as an open (no set limit) set.
+   */
+  suspend fun addCustomExercise(workout: String, day: String, exerciseName: String)
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>

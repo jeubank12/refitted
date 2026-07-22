@@ -4,6 +4,7 @@ import androidx.paging.AsyncPagingDataDiffer
 import androidx.paging.LoadState
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import androidx.paging.map
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
@@ -16,6 +17,8 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.room.RefittedRoomProvider
+import com.litus_animae.refitted.room.entities.RoomExercise
+import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
@@ -30,7 +33,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -114,20 +119,42 @@ class RoomCacheExerciseRepository @Inject constructor(
   override suspend fun loadExercises(day: String, workoutId: String) {
     _exercisesAreLoading.emit(true)
     log.i(TAG, "loadExercises: updating to workout $workoutId, day $day")
-    val mediator =
-      ExerciseSetPager(DayAndWorkout(day, workoutId), roomProvider, networkService, log)
+    val isCustom = withContext(Dispatchers.IO) {
+      refittedRoom.getWorkoutPlanDao().getByName(workoutId)?.isCustom == true
+    }
+    val pagingData = if (isCustom) {
+      log.i(TAG, "loadExercises: $workoutId is a custom plan, paginating from Room only")
+      customExercisePagingData(day, workoutId)
+    } else {
+      ExerciseSetPager(DayAndWorkout(day, workoutId), roomProvider, networkService, log).pagingData
+    }
     coroutineScope {
 
-      launch { mediator.pagingData.collectLatest { pagingDataDiffer.submitData(it) } }
+      launch { pagingData.collectLatest { pagingDataDiffer.submitData(it) } }
 
       launch {
-        mediator.pagingData.collectLatest {
+        pagingData.collectLatest {
           pagingDataDiffer.loadStateFlow.collect {
             _exercisesAreLoading.emit(it.refresh is LoadState.Loading)
           }
         }
       }
     }
+  }
+
+  // Custom plans have no network-authored content, so this paginates straight from Room with no
+  // RemoteMediator - a pull-to-refresh can then never reach the network and wipe locally-added
+  // exercises via ExerciseDao.storeExercisesAndSets.
+  private fun customExercisePagingData(day: String, workoutId: String): Flow<PagingData<ExerciseSet>> {
+    val exerciseDao = refittedRoom.getExerciseDao()
+    return Pager(PagingConfig(20)) {
+      exerciseDao.getStepsPages(day, workoutId)
+    }.flow.mapLatest { pagingData ->
+      pagingData.map { step ->
+        val roomSet = exerciseDao.loadExerciseSet(day, workoutId, step)!!
+        buildExerciseSet(exerciseDao, roomSet)
+      }
+    }.flowOn(Dispatchers.IO)
   }
 
   override val records =
@@ -149,6 +176,40 @@ class RoomCacheExerciseRepository @Inject constructor(
 
   override fun loadWorkoutRecords(workoutId: String) {
     currentWorkout.value = workoutId
+  }
+
+  override suspend fun addCustomExercise(workout: String, day: String, exerciseName: String) {
+    withContext(Dispatchers.IO) {
+      val exerciseDao = refittedRoom.getExerciseDao()
+      val nextStep = exerciseDao.getMaxPrimaryStep(day, workout) + 1
+      // Reusing the exercise name as its Room id lets the same custom exercise, added on
+      // different days of the same plan, share one records history - same convention as
+      // admin-authored content (RoomExercise keyed by workout + exercise id).
+      val exerciseId = "custom_$exerciseName"
+      log.d(TAG, "adding custom exercise $exerciseId to $workout day $day, step $nextStep")
+      exerciseDao.storeExerciseAndSet(
+        RoomExercise(workout = workout, id = exerciseId),
+        RoomExerciseSet(
+          workout = workout,
+          day = day,
+          step = nextStep.toString(),
+          primaryStep = nextStep,
+          superSetStep = null,
+          alternateStep = null,
+          name = exerciseId,
+          note = "",
+          reps = -1,
+          sets = -1,
+          isToFailure = false,
+          rest = 90,
+          repsUnit = "",
+          repsRange = 0,
+          timeLimit = null,
+          timeLimitUnit = null,
+          repsSequence = emptyList()
+        )
+      )
+    }
   }
 
   fun getRecordsForLoadedExercises(

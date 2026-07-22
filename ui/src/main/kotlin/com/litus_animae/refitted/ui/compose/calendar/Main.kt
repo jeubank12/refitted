@@ -17,6 +17,7 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
+import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -26,6 +27,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.rememberScaffoldState
@@ -67,6 +69,7 @@ fun Calendar(
 ) {
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
+  var showCreateCustomDialog by rememberSaveable { mutableStateOf(false) }
 
   val selectedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
@@ -179,6 +182,14 @@ fun Calendar(
         }
       )
     },
+    floatingActionButton = {
+      if (selectedWorkoutPlan?.isCustom == true) {
+        FloatingActionButton(onClick = { workoutModel.addDay(selectedWorkoutPlan!!) }) {
+          // TODO localize
+          Icon(Icons.Default.Add, "add day")
+        }
+      }
+    },
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
       val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
@@ -203,11 +214,16 @@ fun Calendar(
         Modifier.weight(1f),
         lastRefresh,
         workoutPlanPagingItems,
-        workoutPlanError
-      ) {
-        scaffoldScope.launch { scaffoldState.drawerState.close() }
-        workoutModel.loadWorkoutDaysCompleted(it)
-      }
+        workoutPlanError,
+        onSelect = {
+          scaffoldScope.launch { scaffoldState.drawerState.close() }
+          workoutModel.loadWorkoutDaysCompleted(it)
+        },
+        onCreateCustom = {
+          scaffoldScope.launch { scaffoldState.drawerState.close() }
+          showCreateCustomDialog = true
+        }
+      )
       Row(
         Modifier
           .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
@@ -279,11 +295,22 @@ fun Calendar(
         selectedWorkoutPlan!!,
         completedDays,
         contentPadding = contentPadding,
-        onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) }
+        onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) },
+        onCopyDay = { fromDay, toDay -> workoutModel.copyDay(selectedWorkoutPlan!!, fromDay, toDay) }
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
     }
+  }
+
+  if (showCreateCustomDialog) {
+    NewCustomWorkoutDialog(
+      onDismissRequest = { showCreateCustomDialog = false },
+      onCreate = {
+        workoutModel.createCustomWorkout(it)
+        showCreateCustomDialog = false
+      }
+    )
   }
 }

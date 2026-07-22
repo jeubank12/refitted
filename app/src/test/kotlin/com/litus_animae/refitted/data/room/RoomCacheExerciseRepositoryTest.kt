@@ -7,6 +7,7 @@ import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.room.RefittedRoom
@@ -18,6 +19,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow
@@ -332,6 +334,50 @@ class RoomCacheExerciseRepositoryTest {
 
       // Then
       coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(newRecord)) }
+    }
+  }
+
+  @Nested
+  @DisplayName("addCustomExercise")
+  inner class AddCustomExercise {
+    @Test
+    fun `adds an open set at the next step`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 2
+      val storedExercise = slot<RoomExercise>()
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery {
+        exerciseDao.storeExerciseAndSet(capture(storedExercise), capture(storedSet))
+      } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Push-Up")
+
+      // Then
+      assertThat(storedExercise.captured).isEqualTo(RoomExercise(workout = workoutName, id = "custom_Push-Up"))
+      assertThat(storedSet.captured.day).isEqualTo("2")
+      assertThat(storedSet.captured.step).isEqualTo("3")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(3)
+      assertThat(storedSet.captured.name).isEqualTo("custom_Push-Up")
+      // No set limit yet - targets fill in as the user logs, same convention as challenge sets
+      assertThat(storedSet.captured.sets).isEqualTo(-1)
+      assertThat(storedSet.captured.reps).isEqualTo(-1)
+      assertThat(storedSet.captured.rest).isEqualTo(90)
+    }
+
+    @Test
+    fun `starts at step 1 for an empty day`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("1", workoutName) } returns 0
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseAndSet(any(), capture(storedSet)) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "1", "Push-Up")
+
+      // Then
+      assertThat(storedSet.captured.step).isEqualTo("1")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(1)
     }
   }
 }

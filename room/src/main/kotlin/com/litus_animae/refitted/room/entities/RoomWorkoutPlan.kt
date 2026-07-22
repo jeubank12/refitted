@@ -19,7 +19,8 @@ data class RoomWorkoutPlan(
     val restDays: List<Int> = emptyList(),
     val description: String = "",
     val globalAlternateLabels: List<String> = emptyList(),
-    val globalAlternate: Int? = null
+    val globalAlternate: Int? = null,
+    val isCustom: Boolean = false
 ) {
     /**
      * Convert Room entity to domain model
@@ -32,7 +33,8 @@ data class RoomWorkoutPlan(
         restDays = restDays,
         description = description,
         globalAlternateLabels = globalAlternateLabels,
-        globalAlternate = globalAlternate
+        globalAlternate = globalAlternate,
+        isCustom = isCustom
     )
 
     companion object {
@@ -47,7 +49,8 @@ data class RoomWorkoutPlan(
             restDays = workoutPlan.restDays,
             description = workoutPlan.description,
             globalAlternateLabels = workoutPlan.globalAlternateLabels,
-            globalAlternate = workoutPlan.globalAlternate
+            globalAlternate = workoutPlan.globalAlternate,
+            isCustom = workoutPlan.isCustom
         )
     }
 }

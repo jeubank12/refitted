@@ -1,0 +1,320 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 13,
+    "identityHash": "91c714c643efbd72a6180c4631b11c42",
+    "entities": [
+      {
+        "tableName": "Exercise",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`exercise_workout` TEXT NOT NULL, `exercise_name` TEXT NOT NULL, `description` TEXT, PRIMARY KEY(`exercise_name`, `exercise_workout`))",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "exercise_workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "exercise_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "exercise_name",
+            "exercise_workout"
+          ]
+        }
+      },
+      {
+        "tableName": "exerciseset",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, `day` TEXT NOT NULL, `step` TEXT NOT NULL, `primaryStep` INTEGER NOT NULL, `superSetStep` INTEGER, `alternateStep` TEXT, `name` TEXT NOT NULL, `note` TEXT NOT NULL, `reps` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `toFailure` INTEGER NOT NULL, `rest` INTEGER NOT NULL, `repsUnit` TEXT NOT NULL, `repsRange` INTEGER NOT NULL, `timeLimit` INTEGER, `timeLimitUnit` TEXT, `repsSequence` TEXT NOT NULL, PRIMARY KEY(`day`, `step`, `workout`), FOREIGN KEY(`name`, `workout`) REFERENCES `Exercise`(`exercise_name`, `exercise_workout`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "day",
+            "columnName": "day",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "step",
+            "columnName": "step",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryStep",
+            "columnName": "primaryStep",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "superSetStep",
+            "columnName": "superSetStep",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "alternateStep",
+            "columnName": "alternateStep",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sets",
+            "columnName": "sets",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isToFailure",
+            "columnName": "toFailure",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rest",
+            "columnName": "rest",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsUnit",
+            "columnName": "repsUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repsRange",
+            "columnName": "repsRange",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeLimit",
+            "columnName": "timeLimit",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "timeLimitUnit",
+            "columnName": "timeLimitUnit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "repsSequence",
+            "columnName": "repsSequence",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "day",
+            "step",
+            "workout"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_exerciseset_name_workout",
+            "unique": false,
+            "columnNames": [
+              "name",
+              "workout"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exerciseset_name_workout` ON `${TABLE_NAME}` (`name`, `workout`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "Exercise",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "name",
+              "workout"
+            ],
+            "referencedColumns": [
+              "exercise_name",
+              "exercise_workout"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "SetRecord",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`weight` REAL NOT NULL, `reps` INTEGER NOT NULL, `workout` TEXT NOT NULL, `target_set` TEXT NOT NULL, `completed` INTEGER NOT NULL, `exercise` TEXT NOT NULL, PRIMARY KEY(`exercise`, `completed`))",
+        "fields": [
+          {
+            "fieldPath": "weight",
+            "columnName": "weight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetSet",
+            "columnName": "target_set",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exercise",
+            "columnName": "exercise",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "exercise",
+            "completed"
+          ]
+        }
+      },
+      {
+        "tableName": "workouts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workout` TEXT NOT NULL, `totalDays` INTEGER NOT NULL, `lastViewedDay` INTEGER NOT NULL, `workoutStartDate` INTEGER NOT NULL, `restDays` TEXT NOT NULL, `description` TEXT NOT NULL, `globalAlternateLabels` TEXT NOT NULL, `globalAlternate` INTEGER, `isCustom` INTEGER NOT NULL, PRIMARY KEY(`workout`))",
+        "fields": [
+          {
+            "fieldPath": "workout",
+            "columnName": "workout",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalDays",
+            "columnName": "totalDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastViewedDay",
+            "columnName": "lastViewedDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workoutStartDate",
+            "columnName": "workoutStartDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restDays",
+            "columnName": "restDays",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "globalAlternateLabels",
+            "columnName": "globalAlternateLabels",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "globalAlternate",
+            "columnName": "globalAlternate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isCustom",
+            "columnName": "isCustom",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workout"
+          ]
+        }
+      },
+      {
+        "tableName": "SavedState",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '91c714c643efbd72a6180c4631b11c42')"
+    ]
+  }
+}

@@ -4,16 +4,27 @@ package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.Button
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -21,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -58,7 +70,8 @@ fun PagerExerciseView(
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
-  onSetSaved: () -> Unit = {}
+  onSetSaved: () -> Unit = {},
+  onAddExercise: () -> Unit = {}
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
@@ -108,37 +121,77 @@ fun PagerExerciseView(
         .align(Alignment.TopCenter)
         .zIndex(100f)
     )
-    Column {
-      PagerDetailView(
-        instructions = instructions,
-        pagerState = pagerState,
-        activeSetWithRecord = currentSetRecord,
-        displayedPage = displayedPage,
-        globalAlternate = workoutPlan?.globalAlternate,
-        setRecords = setRecords,
-        maxRestSeconds = maxRestSeconds,
-        timerStateByExerciseId = model.timerStateByExerciseId,
-        restOverrideByExerciseId = model.restOverrideByExerciseId,
-        onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
-        onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
-        onSave = { updatedRecord ->
-          val savedRecord = updatedRecord.copy(stored = true)
-          currentSetRecord!!.saveRecordInState(savedRecord)
-          model.saveExercise(
-            SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
-          )
-          onSetSaved()
-          // Superset auto-advance
-          instruction?.offsetToNextSuperSet?.let { offset ->
-            val isChallengeSet = exerciseSet!!.sets < 0
-            val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
-            val isLastExerciseInSuperset = offset <= 0
-            if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-              pagerState.requestScrollToPage(pagerState.settledPage + offset)
-          }
-        },
-        onStartEditWeight = onStartEditWeight
-      )
+    if (workoutPlan?.isCustom == true && instructions.isEmpty() && !isRefreshing) {
+      EmptyCustomDay(onAddExercise = onAddExercise)
+    } else {
+      Column {
+        PagerDetailView(
+          instructions = instructions,
+          pagerState = pagerState,
+          activeSetWithRecord = currentSetRecord,
+          displayedPage = displayedPage,
+          globalAlternate = workoutPlan?.globalAlternate,
+          setRecords = setRecords,
+          maxRestSeconds = maxRestSeconds,
+          timerStateByExerciseId = model.timerStateByExerciseId,
+          restOverrideByExerciseId = model.restOverrideByExerciseId,
+          onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
+          onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
+          onSave = { updatedRecord ->
+            val savedRecord = updatedRecord.copy(stored = true)
+            currentSetRecord!!.saveRecordInState(savedRecord)
+            model.saveExercise(
+              SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
+            )
+            onSetSaved()
+            // Superset auto-advance
+            instruction?.offsetToNextSuperSet?.let { offset ->
+              val isChallengeSet = exerciseSet!!.sets < 0
+              val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
+              val isLastExerciseInSuperset = offset <= 0
+              if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
+                pagerState.requestScrollToPage(pagerState.settledPage + offset)
+            }
+          },
+          onStartEditWeight = onStartEditWeight
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun EmptyCustomDay(onAddExercise: () -> Unit, modifier: Modifier = Modifier) {
+  Column(
+    modifier
+      .fillMaxSize()
+      .padding(32.dp),
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally
+  ) {
+    Icon(
+      Icons.Default.FitnessCenter,
+      // TODO localize
+      contentDescription = null,
+      modifier = Modifier.size(56.dp),
+      tint = MaterialTheme.colors.onSurface.copy(alpha = 0.26f)
+    )
+    Spacer(Modifier.height(12.dp))
+    // TODO localize
+    Text("No exercises yet", style = MaterialTheme.typography.h5, textAlign = TextAlign.Center)
+    Spacer(Modifier.height(8.dp))
+    Text(
+      // TODO localize
+      "Build this day as you train. There are no set limits the first time — targets fill in from what you complete.",
+      style = MaterialTheme.typography.body2,
+      textAlign = TextAlign.Center
+    )
+    Spacer(Modifier.height(16.dp))
+    Button(onClick = onAddExercise) {
+      Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+      Spacer(Modifier.width(8.dp))
+      // TODO localize
+      Text("Add exercise")
     }
   }
 }

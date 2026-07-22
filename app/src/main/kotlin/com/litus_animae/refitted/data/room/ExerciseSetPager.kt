@@ -20,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map as flowMap
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 
@@ -73,24 +72,7 @@ class ExerciseSetPager(
   }.flow.mapLatest {
     it.map { step ->
       val roomSet = exerciseDao.loadExerciseSet(dayAndWorkout.day, dayAndWorkout.workoutId, step)!!
-      val exercise = exerciseDao.getExercise(roomSet.name, roomSet.workout).flowMap { it?.toDomain() }
-      ExerciseSet(
-        workout = roomSet.workout,
-        day = roomSet.day,
-        step = roomSet.step,
-        name = roomSet.name,
-        note = roomSet.note,
-        reps = roomSet.reps,
-        sets = roomSet.sets,
-        isToFailure = roomSet.isToFailure,
-        rest = roomSet.rest,
-        repsUnit = roomSet.repsUnit,
-        repsRange = roomSet.repsRange,
-        timeLimit = roomSet.timeLimit,
-        timeLimitUnit = roomSet.timeLimitUnit,
-        repsSequence = roomSet.repsSequence,
-        exercise = exercise
-      )
+      buildExerciseSet(exerciseDao, roomSet)
     }
   }.flowOn(Dispatchers.IO)
 

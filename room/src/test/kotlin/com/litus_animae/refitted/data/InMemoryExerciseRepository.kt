@@ -33,6 +33,10 @@ class InMemoryExerciseRepository(
         TODO("Not yet implemented")
     }
 
+    override suspend fun addCustomExercise(workout: String, day: String, exerciseName: String) {
+        TODO("Not yet implemented")
+    }
+
     override val exercises: Flow<List<ExerciseSet>> = exerciseList
     override val exercisesAreLoading: StateFlow<Boolean>
         get() = TODO("Not yet implemented")
