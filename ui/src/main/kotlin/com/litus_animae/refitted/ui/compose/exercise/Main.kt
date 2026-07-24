@@ -57,7 +57,8 @@ fun Exercise(
   day: String, workoutId: String,
   exerciseModel: ExerciseViewModel = viewModel(),
   workoutModel: WorkoutViewModel = viewModel(),
-  onAddExercise: () -> Unit = {}
+  onAddExercise: () -> Unit = {},
+  scrollToExerciseName: String? = null
 ) {
   val title = stringResource(id = R.string.app_name)
   val dayWord = stringResource(id = R.string.day)
@@ -138,7 +139,8 @@ fun Exercise(
           scaffoldScope.launch { sheetState.show() }
         },
         onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
-        onAddExercise = onAddExercise)
+        onAddExercise = onAddExercise,
+        scrollToExerciseName = scrollToExerciseName)
     }
   }
 }

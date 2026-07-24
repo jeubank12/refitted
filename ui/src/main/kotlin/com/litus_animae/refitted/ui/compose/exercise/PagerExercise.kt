@@ -71,13 +71,25 @@ fun PagerExerciseView(
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   onSetSaved: () -> Unit = {},
-  onAddExercise: () -> Unit = {}
+  onAddExercise: () -> Unit = {},
+  scrollToExerciseName: String? = null
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val pagerState = rememberPagerState(pageCount = { instructions.size })
+
+  // Land on an exercise just added from the add-exercise flow instead of wherever the pager
+  // otherwise starts - fires once the newly-inserted row has actually loaded.
+  LaunchedEffect(instructions, scrollToExerciseName) {
+    if (scrollToExerciseName != null) {
+      val targetIndex = instructions.indexOfFirst { instruction ->
+        instruction.sets.any { it.exerciseName == scrollToExerciseName }
+      }
+      if (targetIndex >= 0) pagerState.scrollToPage(targetIndex)
+    }
+  }
   // While a finger is down the index holds at the settled page — releasing is what
   // commits the change. Once released (fling included), targetPage knows the
   // destination immediately, so the bottom half doesn't wait out the coast animation.
@@ -102,7 +114,11 @@ fun PagerExerciseView(
     currentSetRecord?.allSets?.let { setHistoryList(it) }
   }
 
-  val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null
+  // A genuinely empty day (no instructions, e.g. a fresh custom day) never resolves an
+  // exerciseSet/currentSetRecord - only treat those as "still loading" when there's an
+  // instruction they should eventually resolve against.
+  val showRefreshIndicator = isRefreshing ||
+    (instructions.isNotEmpty() && (exerciseSet == null || currentSetRecord == null))
   val pullRefreshState =
     rememberPullRefreshState(
       refreshing = showRefreshIndicator,
@@ -293,7 +309,15 @@ fun PagerDetailView(
           },
           maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
           restOverride = ringRestSeconds,
-          onRestOverrideChange = null,   // rest adjustment not exposed in pager path for now
+          // Open (custom) exercises' rest is adjustable until the first set lands - after
+          // that, whatever rest was used for set one is the established rest for the day,
+          // same as how reps/weight targets lock in once completed.
+          onRestOverrideChange = if (exerciseSetId != null &&
+            activeSetWithRecord.exerciseSet.sets < 0 &&
+            activeSetWithRecord.numCompleted == 0
+          ) {
+            { secs: Int -> onRestOverrideChange(exerciseSetId, secs) }
+          } else null,
           nextRestSeconds = nextRestSeconds
         )
       }
