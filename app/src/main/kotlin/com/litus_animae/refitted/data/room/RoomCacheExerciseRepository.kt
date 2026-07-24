@@ -220,7 +220,9 @@ class RoomCacheExerciseRepository @Inject constructor(
 
   override suspend fun loadRemoteExercisesByMuscle(workout: String, muscle: String): List<Exercise> {
     return withContext(Dispatchers.IO) {
-      networkService.getExercisesByMuscle(workout, muscle)
+      val exercises = networkService.getExercisesByMuscle(workout, muscle)
+      refittedRoom.getExerciseDao().storeExercises(exercises.map { RoomExercise.fromDomain(it) })
+      exercises
     }
   }
 
