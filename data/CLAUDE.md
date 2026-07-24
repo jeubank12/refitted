@@ -12,7 +12,10 @@ Pure Kotlin domain layer defining business models and repository interfaces with
 
 ## Important Files
 
-- `models/Exercise.kt` - Exercise definitions
+- `models/Exercise.kt` - Exercise definitions. `id` encodes `{muscleGroup}_{name}`; `name` and
+  `muscleGroup` are parsed from it (no separate stored field). Custom (BYO) exercises follow the
+  same scheme, using the muscle group selected when the exercise was added, so they're queryable
+  by muscle-group prefix the same way as admin content.
 - `models/ExerciseSet.kt` - Exercise sets with step parsing logic (computed properties: `isSuperSet`, `primaryStep`, `superStep`, `alternateTag`)
 - `models/ExerciseRecord.kt` - Aggregates set + records + pagination hints
 - `models/Record.kt` - Historical performance with volume calculation

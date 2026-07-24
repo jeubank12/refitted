@@ -5,11 +5,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -84,14 +82,16 @@ fun PreviewCalendarUnaligned() {
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
   contentPadding: PaddingValues,
+  editMode: Boolean = false,
+  onExitEdit: () -> Unit = {},
   onSaveStartDate: (LocalDate) -> Unit = {},
-  onCopyDay: (fromDay: Int, toDay: Int?) -> Unit = { _, _ -> },
+  onClearDay: (day: Int) -> Unit = {},
+  onSetDayRest: (day: Int, isRest: Boolean) -> Unit = { _, _ -> },
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -117,8 +117,8 @@ fun WorkoutCalendar(
   }
 
   var hideRestDays by rememberSaveable { mutableStateOf(false) }
-  // Long-pressed day awaiting the copy-day dialog - custom plans only (see onLongClick below).
-  var copyDaySource by rememberSaveable { mutableStateOf<Int?>(null) }
+  // Tapped day awaiting the edit-actions dialog - edit mode only (see onClick below).
+  var editingDay by rememberSaveable { mutableStateOf<Int?>(null) }
 
   val firstOfMonth = displayedMonth.atDay(1)
   // Sunday-first grid: ISO Sunday (7) should wrap to 0 leading cells, not 7.
@@ -144,6 +144,11 @@ fun WorkoutCalendar(
       }
     }
     item {
+      AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
+        EditModeBanner(onDone = onExitEdit, modifier = Modifier.padding(bottom = 12.dp))
+      }
+    }
+    item {
       MonthNavRow(
         displayedMonth,
         onPrevious = { displayedMonthKey -= 1 },
@@ -160,18 +165,18 @@ fun WorkoutCalendar(
           val inDisplayedMonth = YearMonth.from(cellDate) == displayedMonth
           val inRange = inDisplayedMonth && workoutDay in 1..plan.totalDays
           val isRestDay = inRange && plan.restDays.contains(workoutDay)
-          val hidden = isRestDay && hideRestDays
+          // Edit mode needs rest days visible to manage them, even with "hide rest days" on.
+          val hidden = isRestDay && hideRestDays && !editMode
           val onClick: (() -> Unit)? = when {
             !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
+            editMode && inRange && !hidden -> ({ editingDay = workoutDay })
             aligned && inRange && !hidden -> ({ navigateToDay(workoutDay) })
             else -> null
           }
-          val onLongClick: (() -> Unit)? =
-            if (plan.isCustom && aligned && inRange && !hidden) ({ copyDaySource = workoutDay })
-            else null
           val label = when {
             !aligned && inDisplayedMonth ->
               "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
+            editMode && inRange -> "Edit day $workoutDay"
             isRestDay -> "Rest day $workoutDay"
             inRange -> "Day $workoutDay"
             else -> null
@@ -182,17 +187,8 @@ fun WorkoutCalendar(
               .height(52.dp)
               .padding(3.dp)
               .let { base ->
-                when {
-                  onClick != null && onLongClick != null -> base.combinedClickable(
-                    onClickLabel = label,
-                    onClick = onClick,
-                    // TODO localize
-                    onLongClickLabel = "Copy day $workoutDay",
-                    onLongClick = onLongClick
-                  )
-                  onClick != null -> base.clickable(onClickLabel = label, onClick = onClick)
-                  else -> base
-                }
+                if (onClick != null) base.clickable(onClickLabel = label, onClick = onClick)
+                else base
               }
           ) {
             val isToday = cellDate == today
@@ -223,16 +219,40 @@ fun WorkoutCalendar(
     }
   }
 
-  copyDaySource?.let { fromDay ->
-    CopyDayDialog(
-      fromDay = fromDay,
-      totalDays = plan.totalDays,
-      onDismissRequest = { copyDaySource = null },
-      onCopy = { toDay ->
-        onCopyDay(fromDay, toDay)
-        copyDaySource = null
-      }
+  editingDay?.let { day ->
+    DayEditDialog(
+      day = day,
+      isRestDay = plan.restDays.contains(day),
+      onDismissRequest = { editingDay = null },
+      onClear = { onClearDay(day) },
+      onSetRest = { isRest -> onSetDayRest(day, isRest) }
     )
+  }
+}
+
+@Composable
+private fun EditModeBanner(onDone: () -> Unit, modifier: Modifier = Modifier) {
+  Surface(
+    modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(10.dp),
+    color = MaterialTheme.colors.primary,
+    contentColor = MaterialTheme.colors.onPrimary,
+    elevation = 1.dp
+  ) {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .padding(14.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      // TODO localize
+      Text("Editing plan — tap a day to change it", fontSize = 13.sp)
+      Button(onClick = onDone) {
+        // TODO localize
+        Text("Done")
+      }
+    }
   }
 }
 

@@ -77,11 +77,21 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         return newDay
     }
 
-    override suspend fun copyCustomDay(workoutPlan: WorkoutPlan, fromDay: Int, toDay: Int?): Int {
+    override suspend fun addRestDayToCustomPlan(workoutPlan: WorkoutPlan): Int {
+        val currentPlan = workoutPlanDao.getByName(workoutPlan.workout)
+            ?: RoomWorkoutPlan.fromDomain(workoutPlan)
+        val newDay = currentPlan.totalDays + 1
+        workoutPlanDao.update(
+            currentPlan.copy(totalDays = newDay, restDays = currentPlan.restDays + newDay)
+        )
+        return newDay
+    }
+
+    override suspend fun copyCustomDay(workoutPlan: WorkoutPlan, fromDay: Int): Int {
         val exerciseDao = database.getExerciseDao()
         val currentPlan = workoutPlanDao.getByName(workoutPlan.workout)
             ?: RoomWorkoutPlan.fromDomain(workoutPlan)
-        val newDay = toDay ?: (currentPlan.totalDays + 1)
+        val newDay = currentPlan.totalDays + 1
 
         val sourceSets = exerciseDao.loadDayExerciseSets(fromDay.toString(), workoutPlan.workout)
         // Targets come from what was actually completed, not the source day's (possibly still
@@ -90,9 +100,6 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
             .loadDaySetRecords(workoutPlan.workout, fromDay.toString())
             .groupBy { it.targetSet }
 
-        if (toDay != null) {
-            exerciseDao.clearDay(newDay.toString(), workoutPlan.workout)
-        }
         val copiedSets = sourceSets.map { source ->
             val completed = completedByTargetSet["$fromDay.${source.step}"]
             if (completed.isNullOrEmpty()) {
@@ -103,9 +110,21 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         }
         exerciseDao.storeExerciseSets(copiedSets)
 
-        if (newDay > currentPlan.totalDays) {
-            workoutPlanDao.update(currentPlan.copy(totalDays = newDay))
-        }
+        workoutPlanDao.update(currentPlan.copy(totalDays = newDay))
         return newDay
+    }
+
+    override suspend fun clearCustomDay(workoutPlan: WorkoutPlan, day: Int) {
+        database.getExerciseDao().clearDay(day.toString(), workoutPlan.workout)
+    }
+
+    override suspend fun setCustomDayRest(workoutPlan: WorkoutPlan, day: Int, isRest: Boolean) {
+        val currentPlan = workoutPlanDao.getByName(workoutPlan.workout)
+            ?: RoomWorkoutPlan.fromDomain(workoutPlan)
+        val newRestDays = if (isRest) currentPlan.restDays + day else currentPlan.restDays - day
+        workoutPlanDao.update(currentPlan.copy(restDays = newRestDays))
+        if (isRest) {
+            database.getExerciseDao().clearDay(day.toString(), workoutPlan.workout)
+        }
     }
 }

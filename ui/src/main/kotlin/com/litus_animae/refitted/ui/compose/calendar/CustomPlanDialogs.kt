@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
@@ -69,70 +69,106 @@ fun NewCustomWorkoutDialog(
 }
 
 /**
- * Copy-day dialog (design 1e, minus the per-exercise preview list and Move day). [onCopy]
- * receives null to append a new day, or an existing day number to overwrite.
+ * Copy-day dialog (design 1e, minus the per-exercise preview list, Move day, and the
+ * append/overwrite choice - copy is always non-destructive and always appends a new day). Lets
+ * the user pick which existing day to copy from.
  */
 @Composable
 fun CopyDayDialog(
-  fromDay: Int,
   totalDays: Int,
   onDismissRequest: () -> Unit,
-  onCopy: (toDay: Int?) -> Unit
+  onCopy: (fromDay: Int) -> Unit
 ) {
-  var appendAsNewDay by rememberSaveable { mutableStateOf(true) }
-  var chosenDay by rememberSaveable { mutableIntStateOf(1.coerceAtMost(totalDays.coerceAtLeast(1))) }
+  var fromDay by rememberSaveable { mutableIntStateOf(1.coerceAtMost(totalDays.coerceAtLeast(1))) }
   val newDayNumber = totalDays + 1
   AlertDialog(
     onDismissRequest = onDismissRequest,
     // TODO localize
-    title = { Text("Copy Day $fromDay") },
+    title = { Text("Copy a Day") },
     text = {
       Column {
         Text(
-          "Creates a new day with the same exercises. Set and rep targets come from the sets you completed.",
+          "Adds Day $newDayNumber with the same exercises as the day you pick below. Set and rep targets come from the sets you completed.",
           style = MaterialTheme.typography.body2
         )
         Spacer(Modifier.height(16.dp))
-        Row(
-          Modifier
-            .fillMaxWidth()
-            .clickable { appendAsNewDay = true },
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          RadioButton(selected = appendAsNewDay, onClick = { appendAsNewDay = true })
-          Text("Add as new day — Day $newDayNumber")
-        }
-        Row(
-          Modifier
-            .fillMaxWidth()
-            .clickable { appendAsNewDay = false },
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          RadioButton(selected = !appendAsNewDay, onClick = { appendAsNewDay = false })
-          Text("Choose a day…")
-        }
-        if (!appendAsNewDay && totalDays > 0) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-              onClick = { chosenDay = (chosenDay - 1).coerceAtLeast(1) },
-              enabled = chosenDay > 1
-            ) { Icon(Icons.Default.Remove, "previous day") }
-            Text("Day $chosenDay", style = MaterialTheme.typography.subtitle1)
-            IconButton(
-              onClick = { chosenDay = (chosenDay + 1).coerceAtMost(totalDays) },
-              enabled = chosenDay < totalDays
-            ) { Icon(Icons.Default.Add, "next day") }
-          }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          IconButton(
+            onClick = { fromDay = (fromDay - 1).coerceAtLeast(1) },
+            enabled = fromDay > 1
+          ) { Icon(Icons.Default.Remove, "previous day") }
+          Text("Day $fromDay", style = MaterialTheme.typography.subtitle1)
+          IconButton(
+            onClick = { fromDay = (fromDay + 1).coerceAtMost(totalDays) },
+            enabled = fromDay < totalDays
+          ) { Icon(Icons.Default.Add, "next day") }
         }
       }
     },
     confirmButton = {
-      Button(onClick = { onCopy(if (appendAsNewDay) null else chosenDay) }) {
+      Button(onClick = { onCopy(fromDay) }) {
         Text("Copy")
       }
     },
     dismissButton = {
       Button(onClick = onDismissRequest) { Text("Cancel") }
     }
+  )
+}
+
+/**
+ * Per-day edit actions (edit mode only). Delete-with-renumber and move/reorder are deferred -
+ * both would renumber later days and misalign historical SetRecords keyed "day.step".
+ */
+@Composable
+fun DayEditDialog(
+  day: Int,
+  isRestDay: Boolean,
+  onDismissRequest: () -> Unit,
+  onClear: () -> Unit,
+  onSetRest: (isRest: Boolean) -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismissRequest,
+    // TODO localize
+    title = { Text("Day $day") },
+    text = {
+      Column {
+        if (isRestDay) {
+          DayEditAction("Remove rest day") {
+            onSetRest(false)
+            onDismissRequest()
+          }
+        } else {
+          DayEditAction("Clear contents") {
+            onClear()
+            onDismissRequest()
+          }
+          DayEditAction("Make rest day") {
+            onSetRest(true)
+            onDismissRequest()
+          }
+        }
+      }
+    },
+    confirmButton = {
+      Button(onClick = onDismissRequest) {
+        // TODO localize
+        Text("Close")
+      }
+    }
+  )
+}
+
+@Composable
+private fun DayEditAction(label: String, onClick: () -> Unit) {
+  Text(
+    // TODO localize
+    label,
+    Modifier
+      .fillMaxWidth()
+      .clickable(onClick = onClick)
+      .padding(vertical = 12.dp),
+    style = MaterialTheme.typography.body1
   )
 }

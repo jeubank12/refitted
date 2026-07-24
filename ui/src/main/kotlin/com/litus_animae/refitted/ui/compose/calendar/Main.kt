@@ -70,11 +70,20 @@ fun Calendar(
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
   var showCreateCustomDialog by rememberSaveable { mutableStateOf(false) }
+  var showCopyDayDialog by rememberSaveable { mutableStateOf(false) }
+  var showAddMenu by rememberSaveable { mutableStateOf(false) }
+  var editMode by rememberSaveable { mutableStateOf(false) }
 
   val selectedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
     Dispatchers.IO
   )
+  // A freshly created custom plan has nothing to "use" yet - land straight in edit mode.
+  LaunchedEffect(selectedWorkoutPlan?.workout) {
+    if (selectedWorkoutPlan?.isCustom == true && selectedWorkoutPlan?.totalDays == 0) {
+      editMode = true
+    }
+  }
   val savedSelectedPlanLoading = workoutModel.savedStateLoading
   val completedDaysLoading = workoutModel.completedDaysLoading
 
@@ -133,6 +142,18 @@ fun Calendar(
             DropdownMenu(
               expanded = expanded,
               onDismissRequest = { setExpanded(false) }) {
+              if (selectedWorkoutPlan?.isCustom == true && !editMode) {
+                Text(
+                  "Edit plan",
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                      editMode = true
+                      setExpanded(false)
+                    }
+                    .padding(start = 5.dp, end = 15.dp)
+                    .padding(vertical = 5.dp))
+              }
               Text(
                 "Reset workout",
                 Modifier
@@ -183,10 +204,47 @@ fun Calendar(
       )
     },
     floatingActionButton = {
-      if (selectedWorkoutPlan?.isCustom == true) {
-        FloatingActionButton(onClick = { workoutModel.addDay(selectedWorkoutPlan!!) }) {
+      if (selectedWorkoutPlan?.isCustom == true && editMode) {
+        FloatingActionButton(onClick = { showAddMenu = true }) {
           // TODO localize
-          Icon(Icons.Default.Add, "add day")
+          Icon(Icons.Default.Add, "add to plan")
+        }
+        DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
+          Text(
+            // TODO localize
+            "New day",
+            Modifier
+              .fillMaxWidth()
+              .clickable {
+                workoutModel.addDay(selectedWorkoutPlan!!)
+                showAddMenu = false
+              }
+              .padding(start = 5.dp, end = 15.dp)
+              .padding(vertical = 5.dp))
+          if (selectedWorkoutPlan!!.totalDays > 0) {
+            Text(
+              // TODO localize
+              "Copy from…",
+              Modifier
+                .fillMaxWidth()
+                .clickable {
+                  showAddMenu = false
+                  showCopyDayDialog = true
+                }
+                .padding(start = 5.dp, end = 15.dp)
+                .padding(vertical = 5.dp))
+          }
+          Text(
+            // TODO localize
+            "Rest day",
+            Modifier
+              .fillMaxWidth()
+              .clickable {
+                workoutModel.addRestDay(selectedWorkoutPlan!!)
+                showAddMenu = false
+              }
+              .padding(start = 5.dp, end = 15.dp)
+              .padding(vertical = 5.dp))
         }
       }
     },
@@ -295,8 +353,11 @@ fun Calendar(
         selectedWorkoutPlan!!,
         completedDays,
         contentPadding = contentPadding,
+        editMode = editMode,
+        onExitEdit = { editMode = false },
         onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) },
-        onCopyDay = { fromDay, toDay -> workoutModel.copyDay(selectedWorkoutPlan!!, fromDay, toDay) }
+        onClearDay = { day -> workoutModel.clearDay(selectedWorkoutPlan!!, day) },
+        onSetDayRest = { day, isRest -> workoutModel.setDayRest(selectedWorkoutPlan!!, day, isRest) }
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan!!, it)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
@@ -310,6 +371,17 @@ fun Calendar(
       onCreate = {
         workoutModel.createCustomWorkout(it)
         showCreateCustomDialog = false
+      }
+    )
+  }
+
+  if (showCopyDayDialog && selectedWorkoutPlan != null) {
+    CopyDayDialog(
+      totalDays = selectedWorkoutPlan!!.totalDays,
+      onDismissRequest = { showCopyDayDialog = false },
+      onCopy = { fromDay ->
+        workoutModel.copyDay(selectedWorkoutPlan!!, fromDay)
+        showCopyDayDialog = false
       }
     )
   }

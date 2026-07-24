@@ -27,8 +27,25 @@ interface WorkoutPlanRepository {
   suspend fun addDayToCustomPlan(workoutPlan: WorkoutPlan): Int
 
   /**
-   * Copies [fromDay]'s exercises - with targets derived from completed sets - into [toDay].
-   * A null [toDay] appends a new day. Returns the day number written to.
+   * Appends a new rest day to a custom plan and returns its day number.
    */
-  suspend fun copyCustomDay(workoutPlan: WorkoutPlan, fromDay: Int, toDay: Int?): Int
+  suspend fun addRestDayToCustomPlan(workoutPlan: WorkoutPlan): Int
+
+  /**
+   * Copies [fromDay]'s exercises - with targets derived from completed sets - into a newly
+   * appended day. Returns the day number written to.
+   */
+  suspend fun copyCustomDay(workoutPlan: WorkoutPlan, fromDay: Int): Int
+
+  /**
+   * Deletes all exercises on [day] of a custom plan, leaving the day slot (and its number) in
+   * place, empty.
+   */
+  suspend fun clearCustomDay(workoutPlan: WorkoutPlan, day: Int)
+
+  /**
+   * Marks or unmarks [day] of a custom plan as a rest day. Marking a day as rest also clears its
+   * exercises.
+   */
+  suspend fun setCustomDayRest(workoutPlan: WorkoutPlan, day: Int, isRest: Boolean)
 }

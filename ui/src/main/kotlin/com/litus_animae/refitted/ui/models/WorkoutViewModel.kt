@@ -219,11 +219,35 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
-  // A null toDay appends a new day; otherwise toDay is overwritten.
-  fun copyDay(workout: WorkoutPlan, fromDay: Int, toDay: Int?) {
+  fun addRestDay(workout: WorkoutPlan) {
     viewModelScope.launch(Dispatchers.IO) {
-      log.d(TAG, "Copying day $fromDay to ${toDay ?: "new day"} for custom plan ${workout.workout}")
-      workoutPlanRepo.copyCustomDay(workout, fromDay, toDay)
+      log.d(TAG, "Adding rest day to custom plan ${workout.workout}")
+      workoutPlanRepo.addRestDayToCustomPlan(workout)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
+  // Always appends - copy-day is non-destructive, it never overwrites an existing day.
+  fun copyDay(workout: WorkoutPlan, fromDay: Int) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Copying day $fromDay to a new day for custom plan ${workout.workout}")
+      workoutPlanRepo.copyCustomDay(workout, fromDay)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
+  fun clearDay(workout: WorkoutPlan, day: Int) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Clearing day $day of custom plan ${workout.workout}")
+      workoutPlanRepo.clearCustomDay(workout, day)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
+  fun setDayRest(workout: WorkoutPlan, day: Int, isRest: Boolean) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Setting day $day rest=$isRest for custom plan ${workout.workout}")
+      workoutPlanRepo.setCustomDayRest(workout, day, isRest)
       workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
     }
   }
