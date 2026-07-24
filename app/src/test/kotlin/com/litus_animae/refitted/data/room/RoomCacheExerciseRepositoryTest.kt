@@ -386,14 +386,32 @@ class RoomCacheExerciseRepositoryTest {
   @DisplayName("exercisesByMuscle")
   inner class ExercisesByMuscle {
     @Test
-    fun `queries by the muscle-group id prefix and maps to domain`() = runTest {
-      // Given
+    fun `queries every prefix mapped to the muscle group, including Compound, and merges results`() = runTest {
+      // Given - "Chest" maps to just itself, but every category also queries the shared
+      // Compound bucket (see MuscleGroup.prefixesFor)
       val roomExercise = RoomExercise(workout = workoutName, id = "Chest_Push-Up")
+      val compoundExercise = RoomExercise(workout = workoutName, id = "Compound_Burpees")
       coEvery { exerciseDao.getExercisesByMusclePrefix("Chest_") } returns flowOf(listOf(roomExercise))
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Compound_") } returns flowOf(listOf(compoundExercise))
 
       // When / Then
       subject.exercisesByMuscle("Chest").test {
-        assertThat(awaitItem()).containsExactly(roomExercise.toDomain())
+        assertThat(awaitItem()).containsExactly(roomExercise.toDomain(), compoundExercise.toDomain())
+        awaitComplete()
+      }
+    }
+
+    @Test
+    fun `queries every stored spelling variant for a multi-prefix category`() = runTest {
+      // Given - "Quads" also covers the "Quadricep" spelling some admin programs use
+      val quadsExercise = RoomExercise(workout = workoutName, id = "Quads_Barbell Squats")
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Quads_") } returns flowOf(listOf(quadsExercise))
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Quadricep_") } returns flowOf(emptyList())
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Compound_") } returns flowOf(emptyList())
+
+      // When / Then
+      subject.exercisesByMuscle("Quads").test {
+        assertThat(awaitItem()).containsExactly(quadsExercise.toDomain())
         awaitComplete()
       }
     }
@@ -403,16 +421,24 @@ class RoomCacheExerciseRepositoryTest {
   @DisplayName("loadRemoteExercisesByMuscle")
   inner class LoadRemoteExercisesByMuscle {
     @Test
-    fun `delegates to the network service`() = runTest {
+    fun `fans out to every mapped prefix, caches results, and merges them`() = runTest {
       // Given
       val remoteExercise = Exercise(workoutName, "Chest_Cable Fly")
+      val compoundExercise = Exercise(workoutName, "Compound_Burpees")
       coEvery { networkService.getExercisesByMuscle(workoutName, "Chest") } returns listOf(remoteExercise)
+      coEvery { networkService.getExercisesByMuscle(workoutName, "Compound") } returns listOf(compoundExercise)
+      coEvery { exerciseDao.storeExercises(any()) } returns Unit
 
       // When
       val result = subject.loadRemoteExercisesByMuscle(workoutName, "Chest")
 
       // Then
-      assertThat(result).containsExactly(remoteExercise)
+      assertThat(result).containsExactly(remoteExercise, compoundExercise)
+      coVerify {
+        exerciseDao.storeExercises(
+          listOf(RoomExercise.fromDomain(remoteExercise), RoomExercise.fromDomain(compoundExercise))
+        )
+      }
     }
   }
 }
