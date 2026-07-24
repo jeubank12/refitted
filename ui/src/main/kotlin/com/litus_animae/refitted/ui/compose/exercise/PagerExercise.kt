@@ -149,9 +149,7 @@ fun PagerExerciseView(
           globalAlternate = workoutPlan?.globalAlternate,
           setRecords = setRecords,
           timerStateByExerciseId = model.timerStateByExerciseId,
-          restOverrideByExerciseId = model.restOverrideByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
-          onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
           editing = editing,
           onUpdateCustomTargets = { workout, day, step, sets, reps, rest ->
             model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest)
@@ -233,9 +231,7 @@ fun PagerDetailView(
   globalAlternate: Int? = null,
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
-  restOverrideByExerciseId: Map<String, Int> = emptyMap(),
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
-  onRestOverrideChange: (id: String, seconds: Int) -> Unit = { _, _ -> },
   onSave: (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   editing: Boolean = false,
@@ -254,7 +250,7 @@ fun PagerDetailView(
   // Ring shows the running timer's rest duration; +/- controls apply to the settled exercise
   val ringRestSeconds = when {
     activeRunningTimerState != null -> activeRunningTimerState.restSeconds
-    exerciseSetId != null -> restOverrideByExerciseId[exerciseSetId] ?: activeSetWithRecord.exerciseSet.rest
+    exerciseSetId != null -> activeSetWithRecord.exerciseSet.rest
     else -> 0
   }
 
@@ -269,7 +265,7 @@ fun PagerDetailView(
   val nextRestSeconds = when {
     activeSetWithRecord?.exerciseIncomplete == false -> null
     isViewingDifferentExerciseThanRunning ->
-      exerciseSetId?.let { restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest }
+      exerciseSetId?.let { activeSetWithRecord.exerciseSet.rest }
     displayedExerciseHasRecordToday -> ringRestSeconds
     else -> null
   }
@@ -314,16 +310,25 @@ fun PagerDetailView(
                 onTimerToggle(activeRunningEntry.key, false, 0)
               } else {
                 // Start a timer for the settled exercise
-                val restSecs = restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest
-                onTimerToggle(it, true, restSecs)
+                onTimerToggle(it, true, activeSetWithRecord.exerciseSet.rest)
               }
             }
           },
           restOverride = ringRestSeconds,
           // Rest is freely adjustable in edit mode only - unconditionally, not gated on
-          // completion state. Outside edit mode the prescribed rest is fixed.
+          // completion state - and writes straight through to the persisted set, same path
+          // as the sets/reps target editor. Outside edit mode the prescribed rest is fixed.
           onRestOverrideChange = if (editing && exerciseSetId != null) {
-            { secs: Int -> onRestOverrideChange(exerciseSetId, secs) }
+            { secs: Int ->
+              onUpdateCustomTargets(
+                activeSetWithRecord.exerciseSet.workout,
+                activeSetWithRecord.exerciseSet.day,
+                activeSetWithRecord.exerciseSet.step,
+                activeSetWithRecord.exerciseSet.sets,
+                activeSetWithRecord.exerciseSet.reps,
+                secs
+              )
+            }
           } else null,
           nextRestSeconds = nextRestSeconds,
           editing = editing,

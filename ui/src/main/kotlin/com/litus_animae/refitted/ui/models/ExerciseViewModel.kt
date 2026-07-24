@@ -119,7 +119,6 @@ class ExerciseViewModel @Inject constructor(
     val restSeconds: Int = 0
   )
   val timerStateByExerciseId: SnapshotStateMap<String, TimerState> = mutableStateMapOf()
-  val restOverrideByExerciseId: SnapshotStateMap<String, Int> = mutableStateMapOf()
 
   fun setTimerRunning(id: String, running: Boolean, restSeconds: Int = 0) {
     if (running) {
@@ -133,10 +132,6 @@ class ExerciseViewModel @Inject constructor(
     } else {
       timerStateByExerciseId[id] = TimerState(isRunning = false)
     }
-  }
-
-  fun setRestOverride(id: String, seconds: Int) {
-    restOverrideByExerciseId[id] = seconds.coerceAtLeast(0)
   }
 
   data class LatestRecord(val targetSet: ExerciseSet, val completed: Instant)
