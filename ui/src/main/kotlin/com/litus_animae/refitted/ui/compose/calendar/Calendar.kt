@@ -92,6 +92,7 @@ fun WorkoutCalendar(
   onSaveStartDate: (LocalDate) -> Unit = {},
   onClearDay: (day: Int) -> Unit = {},
   onSetDayRest: (day: Int, isRest: Boolean) -> Unit = { _, _ -> },
+  onEditDay: (day: Int) -> Unit = {},
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -224,6 +225,7 @@ fun WorkoutCalendar(
       day = day,
       isRestDay = plan.restDays.contains(day),
       onDismissRequest = { editingDay = null },
+      onEditDay = { onEditDay(day) },
       onClear = { onClearDay(day) },
       onSetRest = { isRest -> onSetDayRest(day, isRest) }
     )

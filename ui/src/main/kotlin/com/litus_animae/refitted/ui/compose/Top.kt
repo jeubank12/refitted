@@ -31,15 +31,18 @@ fun Top() {
     composable("calendar") {
       val workoutModel: WorkoutViewModel = hiltViewModel(it)
       val userModel: UserViewModel = hiltViewModel(it)
-      val navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit =
-        { wp, day -> controller.navigate("exercise/${wp.workout}/$day") }
+      val navigateToWorkoutDay: (WorkoutPlan, Int, Boolean) -> Unit =
+        { wp, day, editing -> controller.navigate("exercise/${wp.workout}/$day/$editing") }
       Calendar(Modifier.fillMaxSize(), navigateToWorkoutDay, workoutModel, userModel)
     }
-    composable("exercise/{workout}/{day}") {
+    // "editing" gates the add-exercise affordance - only reachable from the edit-mode calendar
+    // (Calendar.kt's DayEditDialog), so a plan can't be built up by tapping into a day normally.
+    composable("exercise/{workout}/{day}/{editing}") {
       val exerciseModel: ExerciseViewModel = hiltViewModel(it)
       val workoutModel: WorkoutViewModel = hiltViewModel(it)
       val workoutId = it.arguments?.getString("workout")
       val day = it.arguments?.getString("day")
+      val editing = it.arguments?.getString("editing")?.toBoolean() == true
       // Consumed once per return to this destination - set by the add-exercise flow below
       // just before popping back here, so the pager can land on it instead of page 0.
       val scrollToExerciseName = remember(it) {
@@ -49,6 +52,7 @@ fun Top() {
         Exercise(
           day = day,
           workoutId = workoutId,
+          editing = editing,
           exerciseModel = exerciseModel,
           workoutModel = workoutModel,
           onAddExercise = { controller.navigate("add-exercise/$workoutId/$day") },
@@ -84,18 +88,21 @@ fun Top() {
           .collectAsStateWithLifecycle(initialValue = emptyList())
         ExercisePickerList(
           muscle = muscle,
-          currentWorkoutId = workoutId,
-          localExercisesByWorkout = localExercises.groupBy { it.workout },
+          // Exclude the plan being built itself - a custom plan is assembled from admin
+          // content, so any local rows under its own name just duplicate an admin section.
+          localExercisesByWorkout = localExercises
+            .filter { it.workout != workoutId }
+            .groupBy { it.workout },
           accessibleWorkoutNames = accessibleWorkoutNames,
           remoteExercisesByWorkout = exerciseModel.remoteExercisesByWorkout,
           loadingWorkouts = exerciseModel.loadingWorkouts,
           onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
           onPick = { exercise ->
             exerciseModel.addExercise(workoutId, day, exercise.id)
-            controller.getBackStackEntry("exercise/{workout}/{day}")
+            controller.getBackStackEntry("exercise/{workout}/{day}/{editing}")
               .savedStateHandle["justAddedExercise"] = exercise.name
             // Pop the whole add-exercise sub-flow at once, back to the day screen.
-            controller.popBackStack("exercise/{workout}/{day}", inclusive = false)
+            controller.popBackStack("exercise/{workout}/{day}/{editing}", inclusive = false)
           },
           onBack = { controller.popBackStack() }
         )

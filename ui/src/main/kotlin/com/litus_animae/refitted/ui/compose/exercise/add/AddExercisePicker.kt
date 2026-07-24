@@ -132,14 +132,15 @@ fun MuscleGroupPickerScreen(
 /**
  * Exercise-list screen (design 1j) - workouts the user can pull exercises from, as sections.
  * Locally-synced matches ([localExercisesByWorkout]) render immediately; other accessible
- * workouts render a "Load exercises" row that triggers an on-demand remote query
- * ([onLoadWorkout] - see ExerciseViewModel.loadRemoteExercises). Picking an exercise reuses its
- * exact id so its record history carries over ([onPick]).
+ * (admin-authored) workouts render a "Load exercises" row that triggers an on-demand remote query
+ * ([onLoadWorkout] - see ExerciseViewModel.loadRemoteExercises). Custom plans - including the one
+ * being edited - only ever show local matches: they're built *from* admin content and have
+ * nothing of their own to load remotely. Picking an exercise reuses its exact id so its record
+ * history carries over ([onPick]).
  */
 @Composable
 fun ExercisePickerList(
   muscle: String,
-  currentWorkoutId: String,
   localExercisesByWorkout: Map<String, List<Exercise>>,
   accessibleWorkoutNames: List<String>,
   remoteExercisesByWorkout: Map<String, List<Exercise>>,
@@ -149,7 +150,7 @@ fun ExercisePickerList(
   onBack: () -> Unit,
   modifier: Modifier = Modifier
 ) {
-  val workouts = (accessibleWorkoutNames + currentWorkoutId + localExercisesByWorkout.keys)
+  val workouts = (accessibleWorkoutNames + localExercisesByWorkout.keys)
     .distinct()
     .sorted()
   Scaffold(
@@ -365,7 +366,6 @@ private fun PreviewExercisePickerList() {
   MaterialTheme {
     ExercisePickerList(
       muscle = "Chest",
-      currentWorkoutId = "My Plan",
       localExercisesByWorkout = mapOf(
         "Push Pull Legs" to listOf(
           Exercise("Push Pull Legs", "Chest_Barbell Bench Press"),

@@ -125,6 +125,7 @@ fun DayEditDialog(
   day: Int,
   isRestDay: Boolean,
   onDismissRequest: () -> Unit,
+  onEditDay: () -> Unit,
   onClear: () -> Unit,
   onSetRest: (isRest: Boolean) -> Unit
 ) {
@@ -140,6 +141,12 @@ fun DayEditDialog(
             onDismissRequest()
           }
         } else {
+          // Only way into the day screen with the add-exercise affordance enabled - see
+          // Exercise(editing=).
+          DayEditAction("Edit day") {
+            onEditDay()
+            onDismissRequest()
+          }
           DayEditAction("Clear contents") {
             onClear()
             onDismissRequest()

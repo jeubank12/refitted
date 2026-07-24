@@ -71,6 +71,7 @@ fun PagerExerciseView(
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   onSetSaved: () -> Unit = {},
+  editing: Boolean = false,
   onAddExercise: () -> Unit = {},
   scrollToExerciseName: String? = null
 ) {
@@ -138,7 +139,7 @@ fun PagerExerciseView(
         .zIndex(100f)
     )
     if (workoutPlan?.isCustom == true && instructions.isEmpty() && !isRefreshing) {
-      EmptyCustomDay(onAddExercise = onAddExercise)
+      EmptyCustomDay(onAddExercise = if (editing) onAddExercise else null)
     } else {
       Column {
         PagerDetailView(
@@ -176,8 +177,10 @@ fun PagerExerciseView(
   }
 }
 
+// A null onAddExercise means this day was opened outside edit mode - exercises can only be added
+// from the edit-mode calendar, so the button (and its prompt) is left off entirely.
 @Composable
-private fun EmptyCustomDay(onAddExercise: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyCustomDay(onAddExercise: (() -> Unit)?, modifier: Modifier = Modifier) {
   Column(
     modifier
       .fillMaxSize()
@@ -198,16 +201,21 @@ private fun EmptyCustomDay(onAddExercise: () -> Unit, modifier: Modifier = Modif
     Spacer(Modifier.height(8.dp))
     Text(
       // TODO localize
-      "Build this day as you train. There are no set limits the first time — targets fill in from what you complete.",
+      if (onAddExercise != null)
+        "Build this day as you train. There are no set limits the first time — targets fill in from what you complete."
+      else
+        "Open this day from edit mode on the calendar to add exercises.",
       style = MaterialTheme.typography.body2,
       textAlign = TextAlign.Center
     )
-    Spacer(Modifier.height(16.dp))
-    Button(onClick = onAddExercise) {
-      Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-      Spacer(Modifier.width(8.dp))
-      // TODO localize
-      Text("Add exercise")
+    if (onAddExercise != null) {
+      Spacer(Modifier.height(16.dp))
+      Button(onClick = onAddExercise) {
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        // TODO localize
+        Text("Add exercise")
+      }
     }
   }
 }

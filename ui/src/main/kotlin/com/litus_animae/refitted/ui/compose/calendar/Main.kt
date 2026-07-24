@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun Calendar(
   modifier: Modifier = Modifier,
-  navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
+  navigateToWorkoutDay: (WorkoutPlan, Int, editing: Boolean) -> Unit,
   workoutModel: WorkoutViewModel = viewModel(),
   userModel: UserViewModel = viewModel()
 ) {
@@ -357,9 +357,13 @@ fun Calendar(
         onExitEdit = { editMode = false },
         onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) },
         onClearDay = { day -> workoutModel.clearDay(selectedWorkoutPlan!!, day) },
-        onSetDayRest = { day, isRest -> workoutModel.setDayRest(selectedWorkoutPlan!!, day, isRest) }
+        onSetDayRest = { day, isRest -> workoutModel.setDayRest(selectedWorkoutPlan!!, day, isRest) },
+        onEditDay = { day ->
+          navigateToWorkoutDay(selectedWorkoutPlan!!, day, true)
+          workoutModel.setLastViewedDay(selectedWorkoutPlan!!, day)
+        }
       ) {
-        navigateToWorkoutDay(selectedWorkoutPlan!!, it)
+        navigateToWorkoutDay(selectedWorkoutPlan!!, it, false)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
     }

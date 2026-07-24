@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun Exercise(
   day: String, workoutId: String,
+  editing: Boolean = false,
   exerciseModel: ExerciseViewModel = viewModel(),
   workoutModel: WorkoutViewModel = viewModel(),
   onAddExercise: () -> Unit = {},
@@ -90,7 +91,7 @@ fun Exercise(
         ),
         backgroundColor = MaterialTheme.colors.primary,
         actions = {
-          if (loadedWorkoutPlan?.isCustom == true) {
+          if (loadedWorkoutPlan?.isCustom == true && editing) {
             IconButton(onAddExercise) {
               // TODO localize
               Icon(Icons.Default.Add, "add exercise")
@@ -139,6 +140,7 @@ fun Exercise(
           scaffoldScope.launch { sheetState.show() }
         },
         onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
+        editing = editing,
         onAddExercise = onAddExercise,
         scrollToExerciseName = scrollToExerciseName)
     }
