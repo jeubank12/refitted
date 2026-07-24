@@ -269,16 +269,18 @@ fun CircularRestTimer(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
       ) {
+        // Only ever shown in edit mode (see call site), so no upper bound here - the
+        // day-wide maxRestSeconds is purely a ring-fill reference, not an edit limit.
         IconButton(
-          onClick = { onAdjust((restSeconds - 5).coerceIn(0, maxRestSeconds)) },
+          onClick = { onAdjust((restSeconds - 5).coerceAtLeast(0)) },
           enabled = !isRunning && restSeconds > 0
         ) {
           Icon(Icons.Default.Remove, contentDescription = "decrease rest")
         }
         Text("${restSeconds}s", style = MaterialTheme.typography.body2)
         IconButton(
-          onClick = { onAdjust((restSeconds + 5).coerceIn(0, maxRestSeconds)) },
-          enabled = !isRunning && restSeconds < maxRestSeconds
+          onClick = { onAdjust(restSeconds + 5) },
+          enabled = !isRunning
         ) {
           Icon(Icons.Default.Add, contentDescription = "increase rest")
         }

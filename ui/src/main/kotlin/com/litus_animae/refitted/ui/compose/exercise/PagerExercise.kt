@@ -324,13 +324,9 @@ fun PagerDetailView(
           },
           maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
           restOverride = ringRestSeconds,
-          // Open (custom) exercises' rest is adjustable until the first set lands - after
-          // that, whatever rest was used for set one is the established rest for the day,
-          // same as how reps/weight targets lock in once completed.
-          onRestOverrideChange = if (exerciseSetId != null &&
-            activeSetWithRecord.exerciseSet.sets < 0 &&
-            activeSetWithRecord.numCompleted == 0
-          ) {
+          // Rest is freely adjustable in edit mode only - unconditionally, not gated on
+          // completion state. Outside edit mode the prescribed rest is fixed.
+          onRestOverrideChange = if (editing && exerciseSetId != null) {
             { secs: Int -> onRestOverrideChange(exerciseSetId, secs) }
           } else null,
           nextRestSeconds = nextRestSeconds,
