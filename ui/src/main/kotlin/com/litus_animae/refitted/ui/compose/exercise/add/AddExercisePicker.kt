@@ -57,11 +57,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.models.Exercise
+import com.litus_animae.refitted.data.models.MuscleGroup
 
-private val muscleGroups = listOf(
-  "Chest", "Shoulders", "Biceps", "Triceps", "Forearms", "Core",
-  "Traps", "Lats", "Lower back", "Glutes", "Hamstrings", "Quads", "Calves"
-)
+private val muscleGroups = MuscleGroup.displayNames()
 
 /**
  * Target-muscle screen (design 1i): body diagram + chips, both driving the same selection.
@@ -279,8 +277,9 @@ private val frontBodyParts = listOf(
   BodyPart("Biceps", 26, 64, 15, 46, roundedPart),
   BodyPart("Biceps", 109, 64, 15, 46, roundedPart),
   BodyPart("Core", 49, 87, 52, 54, RoundedCornerShape(10.dp)),
-  BodyPart("Forearms", 24, 114, 12, 44, roundedPart),
-  BodyPart("Forearms", 114, 114, 12, 44, roundedPart),
+  // Forearms dropped: no admin program has ever stored an exercise under that prefix.
+  BodyPart(null, 24, 114, 12, 44, roundedPart),
+  BodyPart(null, 114, 114, 12, 44, roundedPart),
   BodyPart(null, 47, 145, 56, 22, roundedPart),
   BodyPart("Quads", 47, 171, 24, 78, RoundedCornerShape(12.dp)),
   BodyPart("Quads", 79, 171, 24, 78, RoundedCornerShape(12.dp)),
@@ -297,7 +296,8 @@ private val backBodyParts = listOf(
   BodyPart("Lats", 45, 63, 60, 52, RoundedCornerShape(10.dp)),
   BodyPart("Triceps", 26, 64, 15, 46, roundedPart),
   BodyPart("Triceps", 109, 64, 15, 46, roundedPart),
-  BodyPart("Lower back", 55, 118, 40, 24, roundedPart),
+  // Lower back dropped: no admin program has ever stored an exercise under that prefix.
+  BodyPart(null, 55, 118, 40, 24, roundedPart),
   BodyPart("Glutes", 47, 145, 56, 26, RoundedCornerShape(12.dp)),
   BodyPart("Hamstrings", 47, 175, 24, 72, RoundedCornerShape(12.dp)),
   BodyPart("Hamstrings", 79, 175, 24, 72, RoundedCornerShape(12.dp)),

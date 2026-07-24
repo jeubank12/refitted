@@ -15,6 +15,7 @@ import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.room.RefittedRoomProvider
@@ -213,14 +214,22 @@ class RoomCacheExerciseRepository @Inject constructor(
   }
 
   override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
-    return refittedRoom.getExerciseDao().getExercisesByMusclePrefix("${muscle}_")
-      .map { roomExercises -> roomExercises.map { it.toDomain() } }
-      .flowOn(Dispatchers.IO)
+    val exerciseDao = refittedRoom.getExerciseDao()
+    val prefixQueries = MuscleGroup.prefixesFor(muscle).map { prefix ->
+      exerciseDao.getExercisesByMusclePrefix("${prefix}_")
+    }
+    return combine(prefixQueries) { resultsByPrefix ->
+      resultsByPrefix.flatMap { it }
+        .distinctBy { it.workout to it.id }
+        .map { it.toDomain() }
+    }.flowOn(Dispatchers.IO)
   }
 
   override suspend fun loadRemoteExercisesByMuscle(workout: String, muscle: String): List<Exercise> {
     return withContext(Dispatchers.IO) {
-      val exercises = networkService.getExercisesByMuscle(workout, muscle)
+      val exercises = MuscleGroup.prefixesFor(muscle)
+        .flatMap { prefix -> networkService.getExercisesByMuscle(workout, prefix) }
+        .distinctBy { it.id }
       refittedRoom.getExerciseDao().storeExercises(exercises.map { RoomExercise.fromDomain(it) })
       exercises
     }
