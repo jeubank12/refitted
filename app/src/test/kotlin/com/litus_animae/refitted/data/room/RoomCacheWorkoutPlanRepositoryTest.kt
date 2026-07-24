@@ -18,6 +18,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -45,6 +46,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
     every { roomDatabase.getWorkoutPlanDao() } returns workoutPlanDao
     every { roomDatabase.getExerciseDao() } returns exerciseDao
     every { workoutPlanDao.update(any()) } returns Unit
+    every { workoutPlanDao.getServerWorkoutNames() } returns emptyFlow()
 
     subject = RoomCacheWorkoutPlanRepository(roomProvider, networkService, log)
   }
@@ -139,13 +141,14 @@ class RoomCacheWorkoutPlanRepositoryTest {
       coEvery { exerciseDao.storeExerciseSets(capture(stored)) } returns Unit
 
       // When
-      val newDay = subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1, toDay = null)
+      val newDay = subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1)
 
       // Then - a new day 3, with sets/reps filled from what was actually completed
       assertThat(newDay).isEqualTo(3)
       assertThat(stored.captured).containsExactly(
         sourceExercise.copy(day = "3", sets = 2, reps = 8)
       )
+      // Copy is append-only - it must never touch an existing day's rows.
       coVerify(exactly = 0) { exerciseDao.clearDay(any(), any()) }
       coVerify { workoutPlanDao.update(existingPlan.copy(totalDays = 3)) }
     }
@@ -161,29 +164,81 @@ class RoomCacheWorkoutPlanRepositoryTest {
       coEvery { exerciseDao.storeExerciseSets(capture(stored)) } returns Unit
 
       // When
-      subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1, toDay = null)
+      subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1)
 
       // Then
       assertThat(stored.captured).containsExactly(sourceExercise.copy(day = "3"))
     }
+  }
 
+  @Nested
+  @DisplayName("addRestDayToCustomPlan")
+  inner class AddRestDayToCustomPlan {
     @Test
-    fun `overwrites an existing day and leaves totalDays unchanged`() = runTest {
+    fun `appends a new day and marks it as rest`() = runTest {
       // Given
-      val existingPlan = RoomWorkoutPlan(workout = workoutName, totalDays = 3, isCustom = true)
+      val existingPlan = RoomWorkoutPlan(workout = workoutName, totalDays = 2, isCustom = true)
       coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
-      coEvery { exerciseDao.loadDayExerciseSets("1", workoutName) } returns listOf(sourceExercise)
-      coEvery { exerciseDao.loadDaySetRecords(workoutName, "1") } returns emptyList()
-      coEvery { exerciseDao.clearDay("2", workoutName) } returns Unit
-      coEvery { exerciseDao.storeExerciseSets(any()) } returns Unit
 
       // When
-      val newDay = subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1, toDay = 2)
+      val newDay = subject.addRestDayToCustomPlan(existingPlan.toDomain())
 
       // Then
-      assertThat(newDay).isEqualTo(2)
+      assertThat(newDay).isEqualTo(3)
+      coVerify { workoutPlanDao.update(existingPlan.copy(totalDays = 3, restDays = listOf(3))) }
+    }
+  }
+
+  @Nested
+  @DisplayName("clearCustomDay")
+  inner class ClearCustomDay {
+    @Test
+    fun `deletes the day's exercises without touching totalDays or restDays`() = runTest {
+      // Given
+      coEvery { exerciseDao.clearDay("2", workoutName) } returns Unit
+      val plan = WorkoutPlan(workoutName, totalDays = 3, isCustom = true)
+
+      // When
+      subject.clearCustomDay(plan, day = 2)
+
+      // Then
       coVerify { exerciseDao.clearDay("2", workoutName) }
       coVerify(exactly = 0) { workoutPlanDao.update(any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("setCustomDayRest")
+  inner class SetCustomDayRest {
+    @Test
+    fun `marking a day as rest adds it to restDays and clears its exercises`() = runTest {
+      // Given
+      val existingPlan =
+        RoomWorkoutPlan(workout = workoutName, totalDays = 3, isCustom = true, restDays = emptyList())
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+      coEvery { exerciseDao.clearDay("2", workoutName) } returns Unit
+
+      // When
+      subject.setCustomDayRest(existingPlan.toDomain(), day = 2, isRest = true)
+
+      // Then
+      coVerify { workoutPlanDao.update(existingPlan.copy(restDays = listOf(2))) }
+      coVerify { exerciseDao.clearDay("2", workoutName) }
+    }
+
+    @Test
+    fun `removing rest drops the day from restDays without touching exercises`() = runTest {
+      // Given
+      val existingPlan =
+        RoomWorkoutPlan(workout = workoutName, totalDays = 3, isCustom = true, restDays = listOf(2))
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.setCustomDayRest(existingPlan.toDomain(), day = 2, isRest = false)
+
+      // Then
+      coVerify { workoutPlanDao.update(existingPlan.copy(restDays = emptyList())) }
+      coVerify(exactly = 0) { exerciseDao.clearDay(any(), any()) }
     }
   }
 }

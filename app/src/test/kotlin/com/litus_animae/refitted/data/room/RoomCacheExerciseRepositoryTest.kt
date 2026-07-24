@@ -351,14 +351,15 @@ class RoomCacheExerciseRepositoryTest {
       } returns Unit
 
       // When
-      subject.addCustomExercise(workoutName, "2", "Push-Up")
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up")
 
-      // Then
-      assertThat(storedExercise.captured).isEqualTo(RoomExercise(workout = workoutName, id = "custom_Push-Up"))
+      // Then - the id is stored as-is, whether it's a fresh "{muscleGroup}_{name}" id or an
+      // existing catalog exercise's id being reused for shared record history.
+      assertThat(storedExercise.captured).isEqualTo(RoomExercise(workout = workoutName, id = "Chest_Push-Up"))
       assertThat(storedSet.captured.day).isEqualTo("2")
       assertThat(storedSet.captured.step).isEqualTo("3")
       assertThat(storedSet.captured.primaryStep).isEqualTo(3)
-      assertThat(storedSet.captured.name).isEqualTo("custom_Push-Up")
+      assertThat(storedSet.captured.name).isEqualTo("Chest_Push-Up")
       // No set limit yet - targets fill in as the user logs, same convention as challenge sets
       assertThat(storedSet.captured.sets).isEqualTo(-1)
       assertThat(storedSet.captured.reps).isEqualTo(-1)
@@ -373,11 +374,45 @@ class RoomCacheExerciseRepositoryTest {
       coEvery { exerciseDao.storeExerciseAndSet(any(), capture(storedSet)) } returns Unit
 
       // When
-      subject.addCustomExercise(workoutName, "1", "Push-Up")
+      subject.addCustomExercise(workoutName, "1", "Chest_Push-Up")
 
       // Then
       assertThat(storedSet.captured.step).isEqualTo("1")
       assertThat(storedSet.captured.primaryStep).isEqualTo(1)
+    }
+  }
+
+  @Nested
+  @DisplayName("exercisesByMuscle")
+  inner class ExercisesByMuscle {
+    @Test
+    fun `queries by the muscle-group id prefix and maps to domain`() = runTest {
+      // Given
+      val roomExercise = RoomExercise(workout = workoutName, id = "Chest_Push-Up")
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Chest_") } returns flowOf(listOf(roomExercise))
+
+      // When / Then
+      subject.exercisesByMuscle("Chest").test {
+        assertThat(awaitItem()).containsExactly(roomExercise.toDomain())
+        awaitComplete()
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("loadRemoteExercisesByMuscle")
+  inner class LoadRemoteExercisesByMuscle {
+    @Test
+    fun `delegates to the network service`() = runTest {
+      // Given
+      val remoteExercise = Exercise(workoutName, "Chest_Cable Fly")
+      coEvery { networkService.getExercisesByMuscle(workoutName, "Chest") } returns listOf(remoteExercise)
+
+      // When
+      val result = subject.loadRemoteExercisesByMuscle(workoutName, "Chest")
+
+      // Then
+      assertThat(result).containsExactly(remoteExercise)
     }
   }
 }

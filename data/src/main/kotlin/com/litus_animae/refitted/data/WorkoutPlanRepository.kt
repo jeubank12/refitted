@@ -12,6 +12,12 @@ import java.time.Instant
 interface WorkoutPlanRepository {
   val workouts: Flow<PagingData<WorkoutPlan>>
   fun workoutByName(name: String): Flow<WorkoutPlan?>
+
+  /**
+   * Names of admin-authored plans the user has access to - used by the add-exercise picker to
+   * list which workouts' exercises can be browsed by muscle group.
+   */
+  val accessibleWorkoutNames: Flow<List<String>>
   suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
   suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
   suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)

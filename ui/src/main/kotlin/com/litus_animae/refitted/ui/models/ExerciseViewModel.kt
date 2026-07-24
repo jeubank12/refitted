@@ -11,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.WorkoutPlanRepository
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
@@ -28,6 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
   private val exerciseRepo: ExerciseRepository,
+  private val workoutPlanRepo: WorkoutPlanRepository,
   private val log: LogUtil
 ) : ViewModel() {
   var exercisesError: String? by mutableStateOf(null)
@@ -210,14 +213,38 @@ class ExerciseViewModel @Inject constructor(
     exerciseRepo.refreshExercises()
   }
 
-  fun addExercise(workout: String, day: String, exerciseName: String) {
+  fun addExercise(workout: String, day: String, exerciseId: String) {
     try {
       viewModelScope.launch {
-        exerciseRepo.addCustomExercise(workout, day, exerciseName)
+        exerciseRepo.addCustomExercise(workout, day, exerciseId)
       }
     } catch (ex: Throwable) {
       log.e(TAG, "error adding custom exercise", ex)
       exercisesError = "There was an error adding the exercise"
+    }
+  }
+
+  // Add-exercise picker (muscle group browsing) - local matches are live; remote matches are
+  // fetched per-workout on demand since browsing shouldn't pull every accessible plan's catalog.
+  val accessibleWorkoutNames = workoutPlanRepo.accessibleWorkoutNames
+
+  fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> = exerciseRepo.exercisesByMuscle(muscle)
+
+  val remoteExercisesByWorkout: SnapshotStateMap<String, List<Exercise>> = mutableStateMapOf()
+  val loadingWorkouts: SnapshotStateMap<String, Boolean> = mutableStateMapOf()
+
+  fun loadRemoteExercises(workout: String, muscle: String) {
+    if (loadingWorkouts[workout] == true) return
+    loadingWorkouts[workout] = true
+    viewModelScope.launch {
+      try {
+        remoteExercisesByWorkout[workout] = exerciseRepo.loadRemoteExercisesByMuscle(workout, muscle)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error loading remote exercises for $workout/$muscle", ex)
+        exercisesError = "There was an error loading exercises"
+      } finally {
+        loadingWorkouts[workout] = false
+      }
     }
   }
 

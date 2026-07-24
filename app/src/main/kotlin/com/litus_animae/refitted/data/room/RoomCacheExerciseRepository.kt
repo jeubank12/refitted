@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
@@ -178,14 +179,13 @@ class RoomCacheExerciseRepository @Inject constructor(
     currentWorkout.value = workoutId
   }
 
-  override suspend fun addCustomExercise(workout: String, day: String, exerciseName: String) {
+  override suspend fun addCustomExercise(workout: String, day: String, exerciseId: String) {
     withContext(Dispatchers.IO) {
       val exerciseDao = refittedRoom.getExerciseDao()
       val nextStep = exerciseDao.getMaxPrimaryStep(day, workout) + 1
-      // Reusing the exercise name as its Room id lets the same custom exercise, added on
-      // different days of the same plan, share one records history - same convention as
+      // Reusing an existing catalog exercise's id (rather than minting a new one) lets it share
+      // one records history across every day/plan it's added to - same convention as
       // admin-authored content (RoomExercise keyed by workout + exercise id).
-      val exerciseId = "custom_$exerciseName"
       log.d(TAG, "adding custom exercise $exerciseId to $workout day $day, step $nextStep")
       exerciseDao.storeExerciseAndSet(
         RoomExercise(workout = workout, id = exerciseId),
@@ -209,6 +209,18 @@ class RoomCacheExerciseRepository @Inject constructor(
           repsSequence = emptyList()
         )
       )
+    }
+  }
+
+  override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
+    return refittedRoom.getExerciseDao().getExercisesByMusclePrefix("${muscle}_")
+      .map { roomExercises -> roomExercises.map { it.toDomain() } }
+      .flowOn(Dispatchers.IO)
+  }
+
+  override suspend fun loadRemoteExercisesByMuscle(workout: String, muscle: String): List<Exercise> {
+    return withContext(Dispatchers.IO) {
+      networkService.getExercisesByMuscle(workout, muscle)
     }
   }
 

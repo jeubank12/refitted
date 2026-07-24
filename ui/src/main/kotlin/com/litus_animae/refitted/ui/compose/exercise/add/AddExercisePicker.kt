@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
@@ -55,18 +56,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.data.models.Exercise
 
 private val muscleGroups = listOf(
   "Chest", "Shoulders", "Biceps", "Triceps", "Forearms", "Core",
   "Traps", "Lats", "Lower back", "Glutes", "Hamstrings", "Quads", "Calves"
-)
-
-// There's no cross-plan exercise catalog yet (exercises today belong to one workout's admin
-// content), so this list is a placeholder shown for any muscle group - selecting an entry still
-// adds a real exercise to the day, it just isn't tailored to what was tapped.
-private val stubExercises = listOf(
-  "Barbell Bench Press", "Incline Dumbbell Press", "Weighted Dip", "Cable Fly",
-  "Machine Chest Press", "Push-Up", "Decline Barbell Press", "Dumbbell Pullover"
 )
 
 /**
@@ -136,15 +130,28 @@ fun MuscleGroupPickerScreen(
 }
 
 /**
- * Exercise-list screen (design 1j). [onPick] is called with the chosen exercise's display name.
+ * Exercise-list screen (design 1j) - workouts the user can pull exercises from, as sections.
+ * Locally-synced matches ([localExercisesByWorkout]) render immediately; other accessible
+ * workouts render a "Load exercises" row that triggers an on-demand remote query
+ * ([onLoadWorkout] - see ExerciseViewModel.loadRemoteExercises). Picking an exercise reuses its
+ * exact id so its record history carries over ([onPick]).
  */
 @Composable
 fun ExercisePickerList(
   muscle: String,
-  onPick: (String) -> Unit,
+  currentWorkoutId: String,
+  localExercisesByWorkout: Map<String, List<Exercise>>,
+  accessibleWorkoutNames: List<String>,
+  remoteExercisesByWorkout: Map<String, List<Exercise>>,
+  loadingWorkouts: Map<String, Boolean>,
+  onLoadWorkout: (String) -> Unit,
+  onPick: (Exercise) -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier
 ) {
+  val workouts = (accessibleWorkoutNames + currentWorkoutId + localExercisesByWorkout.keys)
+    .distinct()
+    .sorted()
   Scaffold(
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     modifier = modifier,
@@ -162,19 +169,71 @@ fun ExercisePickerList(
     }
   ) { contentPadding ->
     LazyColumn(Modifier.padding(contentPadding).fillMaxSize()) {
-      items(stubExercises) { exercise ->
-        Row(
-          Modifier
-            .fillMaxWidth()
-            .clickable { onPick(exercise) }
-            .padding(start = 10.dp, end = 6.dp, top = 15.dp, bottom = 15.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Text(exercise, style = MaterialTheme.typography.button)
-          Icon(Icons.Default.Add, "add $exercise", tint = MaterialTheme.colors.primary)
+      workouts.forEach { workout ->
+        item(key = "header:$workout") {
+          Text(
+            workout,
+            Modifier
+              .fillMaxWidth()
+              .padding(start = 10.dp, top = 14.dp, bottom = 4.dp),
+            style = MaterialTheme.typography.overline
+          )
         }
-        Divider()
+        val exercises = localExercisesByWorkout[workout] ?: remoteExercisesByWorkout[workout]
+        when {
+          exercises == null && loadingWorkouts[workout] == true -> item(key = "loading:$workout") {
+            Row(
+              Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+              horizontalArrangement = Arrangement.Center
+            ) {
+              CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+          }
+
+          exercises == null -> item(key = "load:$workout") {
+            Row(
+              Modifier
+                .fillMaxWidth()
+                .clickable { onLoadWorkout(workout) }
+                .padding(start = 10.dp, end = 6.dp, top = 15.dp, bottom = 15.dp),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              // TODO localize
+              Text("Load exercises", style = MaterialTheme.typography.button)
+            }
+          }
+
+          exercises.isEmpty() -> item(key = "empty:$workout") {
+            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
+              // TODO localize
+              Text(
+                "No $muscle exercises",
+                Modifier
+                  .fillMaxWidth()
+                  .padding(start = 10.dp, bottom = 10.dp),
+                style = MaterialTheme.typography.body2
+              )
+            }
+          }
+
+          else -> items(exercises, key = { "exercise:${it.workout}:${it.id}" }) { exercise ->
+            Row(
+              Modifier
+                .fillMaxWidth()
+                .clickable { onPick(exercise) }
+                .padding(start = 10.dp, end = 6.dp, top = 15.dp, bottom = 15.dp),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(exercise.name ?: exercise.id, style = MaterialTheme.typography.button)
+              Icon(Icons.Default.Add, "add ${exercise.name}", tint = MaterialTheme.colors.primary)
+            }
+            Divider()
+          }
+        }
       }
     }
   }
@@ -304,6 +363,21 @@ private fun PreviewMuscleGroupPicker() {
 @Composable
 private fun PreviewExercisePickerList() {
   MaterialTheme {
-    ExercisePickerList(muscle = "Chest", onPick = {}, onBack = {})
+    ExercisePickerList(
+      muscle = "Chest",
+      currentWorkoutId = "My Plan",
+      localExercisesByWorkout = mapOf(
+        "Push Pull Legs" to listOf(
+          Exercise("Push Pull Legs", "Chest_Barbell Bench Press"),
+          Exercise("Push Pull Legs", "Chest_Push-Up")
+        )
+      ),
+      accessibleWorkoutNames = listOf("Push Pull Legs", "Full Body"),
+      remoteExercisesByWorkout = emptyMap(),
+      loadingWorkouts = emptyMap(),
+      onLoadWorkout = {},
+      onPick = {},
+      onBack = {}
+    )
   }
 }

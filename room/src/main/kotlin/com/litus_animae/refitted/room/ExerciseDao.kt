@@ -56,6 +56,13 @@ interface ExerciseDao {
   @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
   fun getExercise(name: String, workout: String): Flow<RoomExercise?>
 
+  /**
+   * Locally-synced exercises whose id starts with [prefix] (pass "$muscleGroup_") - the muscle
+   * group is encoded as the id's prefix, see [com.litus_animae.refitted.data.models.Exercise].
+   */
+  @Query("select * from exercise where exercise_name like :prefix || '%' order by exercise_workout, exercise_name")
+  fun getExercisesByMusclePrefix(prefix: String): Flow<List<RoomExercise>>
+
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun storeExercise(exercise: RoomExercise)
 

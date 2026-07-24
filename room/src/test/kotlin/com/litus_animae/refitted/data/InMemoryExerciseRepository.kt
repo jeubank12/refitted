@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.data
 
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
@@ -33,7 +34,7 @@ class InMemoryExerciseRepository(
         TODO("Not yet implemented")
     }
 
-    override suspend fun addCustomExercise(workout: String, day: String, exerciseName: String) {
+    override suspend fun addCustomExercise(workout: String, day: String, exerciseId: String) {
         TODO("Not yet implemented")
     }
 
@@ -43,4 +44,12 @@ class InMemoryExerciseRepository(
     override val records: Flow<List<ExerciseRecord>> = recordList
     override val workoutRecords: Flow<List<ExerciseCompletionRecord>>
         get() = TODO("Not yet implemented")
+
+    override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun loadRemoteExercisesByMuscle(workout: String, muscle: String): List<Exercise> {
+        TODO("Not yet implemented")
+    }
 }

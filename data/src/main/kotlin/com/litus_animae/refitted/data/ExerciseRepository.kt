@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.data
 
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
@@ -18,11 +19,25 @@ interface ExerciseRepository {
   fun loadWorkoutRecords(workoutId: String)
 
   /**
-   * Adds a user-authored exercise to a custom plan's day, as an open (no set limit) set.
+   * Adds an exercise to a custom plan's day, as an open (no set limit) set. [exerciseId] should
+   * be an existing catalog exercise's id to share its record history, or a fresh
+   * "{muscleGroup}_{name}" id for a user-authored exercise.
    */
-  suspend fun addCustomExercise(workout: String, day: String, exerciseName: String)
+  suspend fun addCustomExercise(workout: String, day: String, exerciseId: String)
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>
   val workoutRecords: Flow<List<ExerciseCompletionRecord>>
+
+  /**
+   * Locally-synced exercises for [muscle] (the id's muscle-group prefix), across every workout
+   * that has been opened locally.
+   */
+  fun exercisesByMuscle(muscle: String): Flow<List<Exercise>>
+
+  /**
+   * On-demand remote lookup of [workout]'s exercises for [muscle] - not persisted locally, purely
+   * for browsing in the add-exercise picker.
+   */
+  suspend fun loadRemoteExercisesByMuscle(workout: String, muscle: String): List<Exercise>
 }

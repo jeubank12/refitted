@@ -3,9 +3,11 @@ package com.litus_animae.refitted.ui.compose
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -76,12 +78,22 @@ fun Top() {
       val day = it.arguments?.getString("day")
       val muscle = it.arguments?.getString("muscle")?.let(Uri::decode)
       if (workoutId != null && day != null && muscle != null) {
+        val localExercises by remember(muscle) { exerciseModel.exercisesByMuscle(muscle) }
+          .collectAsStateWithLifecycle(initialValue = emptyList())
+        val accessibleWorkoutNames by exerciseModel.accessibleWorkoutNames
+          .collectAsStateWithLifecycle(initialValue = emptyList())
         ExercisePickerList(
           muscle = muscle,
-          onPick = { name ->
-            exerciseModel.addExercise(workoutId, day, name)
+          currentWorkoutId = workoutId,
+          localExercisesByWorkout = localExercises.groupBy { it.workout },
+          accessibleWorkoutNames = accessibleWorkoutNames,
+          remoteExercisesByWorkout = exerciseModel.remoteExercisesByWorkout,
+          loadingWorkouts = exerciseModel.loadingWorkouts,
+          onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
+          onPick = { exercise ->
+            exerciseModel.addExercise(workoutId, day, exercise.id)
             controller.getBackStackEntry("exercise/{workout}/{day}")
-              .savedStateHandle["justAddedExercise"] = name
+              .savedStateHandle["justAddedExercise"] = exercise.name
             // Pop the whole add-exercise sub-flow at once, back to the day screen.
             controller.popBackStack("exercise/{workout}/{day}", inclusive = false)
           },
