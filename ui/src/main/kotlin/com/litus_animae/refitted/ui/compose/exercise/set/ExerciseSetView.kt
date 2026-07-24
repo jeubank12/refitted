@@ -68,7 +68,6 @@ fun ExerciseSetView(
   showNavigationButtons: Boolean = true,
   externalTimerState: ExerciseViewModel.TimerState? = null,
   onTimerToggle: (() -> Unit)? = null,
-  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
@@ -86,7 +85,6 @@ fun ExerciseSetView(
       showNavigationButtons = showNavigationButtons,
       externalTimerState = externalTimerState,
       onTimerToggle = onTimerToggle,
-      maxRestSeconds = maxRestSeconds,
       restOverride = restOverride,
       onRestOverrideChange = onRestOverrideChange,
       nextRestSeconds = nextRestSeconds,
@@ -108,7 +106,6 @@ fun ColumnScope.ExerciseSetView(
   showNavigationButtons: Boolean = true,
   externalTimerState: ExerciseViewModel.TimerState? = null,
   onTimerToggle: (() -> Unit)? = null,
-  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
@@ -198,7 +195,6 @@ fun ColumnScope.ExerciseSetView(
         Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
           CircularRestTimer(
             restSeconds = effectiveRestSeconds,
-            maxRestSeconds = maxRestSeconds,
             isRunning = isTimerRunning,
             startedAt = effectiveTimerStart,
             modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight),

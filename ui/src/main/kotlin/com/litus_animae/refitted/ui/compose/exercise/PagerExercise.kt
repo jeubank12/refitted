@@ -106,7 +106,6 @@ fun PagerExerciseView(
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
-  val maxRestSeconds by model.maxRestSeconds.collectAsState(initial = 0)
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
@@ -149,7 +148,6 @@ fun PagerExerciseView(
           displayedPage = displayedPage,
           globalAlternate = workoutPlan?.globalAlternate,
           setRecords = setRecords,
-          maxRestSeconds = maxRestSeconds,
           timerStateByExerciseId = model.timerStateByExerciseId,
           restOverrideByExerciseId = model.restOverrideByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
@@ -234,7 +232,6 @@ fun PagerDetailView(
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
-  maxRestSeconds: Int = 0,
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
   restOverrideByExerciseId: Map<String, Int> = emptyMap(),
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
@@ -322,7 +319,6 @@ fun PagerDetailView(
               }
             }
           },
-          maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
           restOverride = ringRestSeconds,
           // Rest is freely adjustable in edit mode only - unconditionally, not gated on
           // completion state. Outside edit mode the prescribed rest is fixed.
@@ -373,7 +369,6 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
           setRecords = records,
           allSets = emptyFlow()
         ),
-        maxRestSeconds = 90,
         onSave = { },
         onStartEditWeight = {}
       )

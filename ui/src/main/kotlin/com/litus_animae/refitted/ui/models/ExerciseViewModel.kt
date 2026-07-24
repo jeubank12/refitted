@@ -139,11 +139,6 @@ class ExerciseViewModel @Inject constructor(
     restOverrideByExerciseId[id] = seconds.coerceAtLeast(0)
   }
 
-  /** Largest rest value across all exercises in the day, used to normalise the ring fill. */
-  val maxRestSeconds: Flow<Int> = exercises.map { list ->
-    list.flatMap { it.sets.toList() }.maxOfOrNull { it.rest } ?: 0
-  }
-
   data class LatestRecord(val targetSet: ExerciseSet, val completed: Instant)
 
   data class ExerciseInstruction(
