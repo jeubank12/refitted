@@ -24,6 +24,12 @@ interface ExerciseRepository {
    * "{muscleGroup}_{name}" id for a user-authored exercise.
    */
   suspend fun addCustomExercise(workout: String, day: String, exerciseId: String)
+
+  /**
+   * Updates a custom (BYO) exercise set's prescription - target [sets], [reps], and [rest] - in
+   * place, keyed by [workout]/[day]/[step]. No-op if the set doesn't exist (e.g. admin content).
+   */
+  suspend fun updateCustomExerciseSet(workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int)
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>

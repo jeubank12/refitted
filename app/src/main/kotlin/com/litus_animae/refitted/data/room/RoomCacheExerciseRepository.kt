@@ -213,6 +213,21 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
+  override suspend fun updateCustomExerciseSet(
+    workout: String,
+    day: String,
+    step: String,
+    sets: Int,
+    reps: Int,
+    rest: Int
+  ) {
+    withContext(Dispatchers.IO) {
+      val exerciseDao = refittedRoom.getExerciseDao()
+      val existing = exerciseDao.loadExerciseSet(day, workout, step) ?: return@withContext
+      exerciseDao.storeExerciseSet(existing.copy(sets = sets, reps = reps, rest = rest))
+    }
+  }
+
   override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
     val exerciseDao = refittedRoom.getExerciseDao()
     val prefixQueries = MuscleGroup.prefixesFor(muscle).map { prefix ->
