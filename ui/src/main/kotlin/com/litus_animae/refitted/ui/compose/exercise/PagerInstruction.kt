@@ -518,6 +518,14 @@ private fun ExerciseInstructions(
 
 /** Formats a human-readable prescription string from an [ExerciseSet]. */
 private fun buildPrescriptionText(exerciseSet: ExerciseSet): String {
+  // A freshly-added custom exercise starts fully open (sets and reps both -1) rather than
+  // "AMRAP x AMRAP reps" - that's not a real prescription, just "nothing set yet".
+  if (exerciseSet.sets < 0 && exerciseSet.reps < 0 &&
+    !exerciseSet.isToFailure && !exerciseSet.repsAreSequenced
+  ) {
+    // TODO localize
+    return "Target not set yet"
+  }
   val setsStr = when {
     exerciseSet.sets < 0 -> "AMRAP"
     else -> "${exerciseSet.sets} sets"
