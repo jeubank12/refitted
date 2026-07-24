@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose.calendar
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -17,6 +18,7 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
+import androidx.compose.material.FabPosition
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -205,49 +207,55 @@ fun Calendar(
     },
     floatingActionButton = {
       if (selectedWorkoutPlan?.isCustom == true && editMode) {
-        FloatingActionButton(onClick = { showAddMenu = true }) {
-          // TODO localize
-          Icon(Icons.Default.Add, "add to plan")
-        }
-        DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
-          Text(
+        // FAB + its menu need to share one layout node in this slot - as two loose siblings,
+        // Scaffold measured the slot's width from both and threw the FAB's End position off,
+        // rendering it on the left.
+        Box {
+          FloatingActionButton(onClick = { showAddMenu = true }) {
             // TODO localize
-            "New day",
-            Modifier
-              .fillMaxWidth()
-              .clickable {
-                workoutModel.addDay(selectedWorkoutPlan!!)
-                showAddMenu = false
-              }
-              .padding(start = 5.dp, end = 15.dp)
-              .padding(vertical = 5.dp))
-          if (selectedWorkoutPlan!!.totalDays > 0) {
+            Icon(Icons.Default.Add, "add to plan")
+          }
+          DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
             Text(
               // TODO localize
-              "Copy from…",
+              "New day",
               Modifier
                 .fillMaxWidth()
                 .clickable {
+                  workoutModel.addDay(selectedWorkoutPlan!!)
                   showAddMenu = false
-                  showCopyDayDialog = true
+                }
+                .padding(start = 5.dp, end = 15.dp)
+                .padding(vertical = 5.dp))
+            if (selectedWorkoutPlan!!.totalDays > 0) {
+              Text(
+                // TODO localize
+                "Copy from…",
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    showAddMenu = false
+                    showCopyDayDialog = true
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp))
+            }
+            Text(
+              // TODO localize
+              "Rest day",
+              Modifier
+                .fillMaxWidth()
+                .clickable {
+                  workoutModel.addRestDay(selectedWorkoutPlan!!)
+                  showAddMenu = false
                 }
                 .padding(start = 5.dp, end = 15.dp)
                 .padding(vertical = 5.dp))
           }
-          Text(
-            // TODO localize
-            "Rest day",
-            Modifier
-              .fillMaxWidth()
-              .clickable {
-                workoutModel.addRestDay(selectedWorkoutPlan!!)
-                showAddMenu = false
-              }
-              .padding(start = 5.dp, end = 15.dp)
-              .padding(vertical = 5.dp))
         }
       }
     },
+    floatingActionButtonPosition = FabPosition.End,
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
       val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
