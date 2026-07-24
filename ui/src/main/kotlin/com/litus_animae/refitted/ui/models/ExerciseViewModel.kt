@@ -224,6 +224,17 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
+  fun updateCustomExerciseSetTargets(workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int) {
+    try {
+      viewModelScope.launch {
+        exerciseRepo.updateCustomExerciseSet(workout, day, step, sets, reps, rest)
+      }
+    } catch (ex: Throwable) {
+      log.e(TAG, "error updating custom exercise set targets", ex)
+      exercisesError = "There was an error updating the exercise"
+    }
+  }
+
   // Add-exercise picker (muscle group browsing) - local matches are live; remote matches are
   // fetched per-workout on demand since browsing shouldn't pull every accessible plan's catalog.
   val accessibleWorkoutNames = workoutPlanRepo.accessibleWorkoutNames

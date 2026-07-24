@@ -154,6 +154,10 @@ fun PagerExerciseView(
           restOverrideByExerciseId = model.restOverrideByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
           onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
+          editing = editing,
+          onUpdateCustomTargets = { workout, day, step, sets, reps, rest ->
+            model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest)
+          },
           onSave = { updatedRecord ->
             val savedRecord = updatedRecord.copy(stored = true)
             currentSetRecord!!.saveRecordInState(savedRecord)
@@ -236,7 +240,10 @@ fun PagerDetailView(
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
   onRestOverrideChange: (id: String, seconds: Int) -> Unit = { _, _ -> },
   onSave: (Record) -> Unit,
-  onStartEditWeight: (Weight) -> Unit
+  onStartEditWeight: (Weight) -> Unit,
+  editing: Boolean = false,
+  onUpdateCustomTargets: (workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int) -> Unit =
+    { _, _, _, _, _, _ -> }
 ) {
   val scope = rememberCoroutineScope()
   val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
@@ -326,7 +333,18 @@ fun PagerDetailView(
           ) {
             { secs: Int -> onRestOverrideChange(exerciseSetId, secs) }
           } else null,
-          nextRestSeconds = nextRestSeconds
+          nextRestSeconds = nextRestSeconds,
+          editing = editing,
+          onUpdateCustomTargets = { sets, reps ->
+            onUpdateCustomTargets(
+              activeSetWithRecord.exerciseSet.workout,
+              activeSetWithRecord.exerciseSet.day,
+              activeSetWithRecord.exerciseSet.step,
+              sets,
+              reps,
+              activeSetWithRecord.exerciseSet.rest
+            )
+          }
         )
       }
     }
