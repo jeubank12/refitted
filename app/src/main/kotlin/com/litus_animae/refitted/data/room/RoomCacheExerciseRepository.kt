@@ -28,12 +28,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -137,9 +139,20 @@ class RoomCacheExerciseRepository @Inject constructor(
 
       launch {
         pagingData.collectLatest {
-          pagingDataDiffer.loadStateFlow.collect {
-            _exercisesAreLoading.emit(it.refresh is LoadState.Loading)
-          }
+          pagingDataDiffer.loadStateFlow
+            .map { it.refresh is LoadState.Loading }
+            .distinctUntilChanged()
+            .collectLatest { isLoading ->
+              if (isLoading) {
+                // A single-set edit (rest/target steppers) invalidates the same PagingSource
+                // and reloads in a few ms - debounce so that blip never reaches the spinner;
+                // a genuinely slow load (first open, network refresh) still shows it.
+                delay(LOADING_INDICATOR_DEBOUNCE_MILLIS)
+                _exercisesAreLoading.emit(true)
+              } else {
+                _exercisesAreLoading.emit(false)
+              }
+            }
         }
       }
     }
@@ -365,5 +378,6 @@ class RoomCacheExerciseRepository @Inject constructor(
 
   companion object {
     private const val TAG = "RoomCacheExerciseRepository"
+    private const val LOADING_INDICATOR_DEBOUNCE_MILLIS = 250L
   }
 }
