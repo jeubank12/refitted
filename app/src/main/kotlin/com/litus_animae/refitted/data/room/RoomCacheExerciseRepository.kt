@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.lang.Integer.min
@@ -221,10 +222,31 @@ class RoomCacheExerciseRepository @Inject constructor(
     reps: Int,
     rest: Int
   ) {
+    // Optimistic: the write below still lands on the `exerciseset` table Room's PagingSource
+    // observes, so it'll eventually trigger a reload regardless - patching here means the UI
+    // reflects the edit immediately instead of waiting on that round-trip.
+    applyOptimisticSetUpdate(workout, day, step, sets, reps, rest)
     withContext(Dispatchers.IO) {
       val exerciseDao = refittedRoom.getExerciseDao()
       val existing = exerciseDao.loadExerciseSet(day, workout, step) ?: return@withContext
       exerciseDao.storeExerciseSet(existing.copy(sets = sets, reps = reps, rest = rest))
+    }
+  }
+
+  private fun applyOptimisticSetUpdate(
+    workout: String,
+    day: String,
+    step: String,
+    sets: Int,
+    reps: Int,
+    rest: Int
+  ) {
+    exerciseState.update { current ->
+      current.map { set ->
+        if (set.workout == workout && set.day == day && set.step == step) {
+          set.copy(sets = sets, reps = reps, rest = rest)
+        } else set
+      }
     }
   }
 
