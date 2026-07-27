@@ -26,6 +26,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -37,6 +39,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -94,6 +97,8 @@ fun PagerExerciseInstructions(
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
    */
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
 ) {
   val pageRotations = remember(instructions.size) {
     val rotation = maxRotation - minRotation
@@ -145,6 +150,8 @@ fun PagerExerciseInstructions(
               // The deck's own copy of a card is never the authoritative, focused render (the
               // pager owns that for the settled page) — never worth animating a swap here.
               isActivePage = false,
+              editing = editing,
+              onDeleteExercise = onDeleteExercise,
               modifier = Modifier
                 .fillMaxSize()
                 // Upcoming cards stack above previously completed ones
@@ -197,6 +204,8 @@ fun PagerExerciseInstructions(
           // popup — anything mid-swipe or off to the side would just be a phantom animation
           // bleeding through on top of whatever the user is actually looking at.
           isActivePage = pagesFromCurrent == 0,
+          editing = editing,
+          onDeleteExercise = onDeleteExercise,
           modifier = Modifier
             .fillMaxSize()
             // The card leaving the top of the deck stays above the one being revealed or
@@ -297,6 +306,8 @@ private fun CardContent(
   setRecords: Map<String, ExerciseSetWithRecord>,
   isActivePage: Boolean,
   modifier: Modifier = Modifier,
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
 ) {
   val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
   val exerciseSet by exerciseSetFlow
@@ -375,7 +386,12 @@ private fun CardContent(
           LocalOverscrollFactory provides null
         ) {
           // Each card self-serves its own progress from the records map — no reflow on swipe
-          ExerciseInstructions(targetSet, setRecords[targetSet?.id]?.numCompleted ?: 0)
+          ExerciseInstructions(
+            targetSet,
+            setRecords[targetSet?.id]?.numCompleted ?: 0,
+            editing = editing,
+            onDeleteExercise = onDeleteExercise
+          )
         }
       }
     }
@@ -431,6 +447,8 @@ private fun ExerciseInstructions(
   exerciseSet: ExerciseSet?,
   /** Defaults to 0 so the progress line always occupies space from first paint — no layout jump. */
   numCompleted: Int = 0,
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
 ) {
   val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
     ?: MaterialTheme.colors.surface
@@ -512,6 +530,35 @@ private fun ExerciseInstructions(
           .align(Alignment.BottomCenter)
           .padding(bottom = 12.dp)
       )
+    }
+
+    // Anchored to the Box, not inside the LazyColumn, so it stays put regardless of scroll.
+    if (editing && exerciseSet != null) {
+      var confirmingDelete by remember(exerciseSet.id) { mutableStateOf(false) }
+      IconButton(
+        onClick = { confirmingDelete = true },
+        modifier = Modifier.align(Alignment.TopEnd)
+      ) {
+        // TODO localize
+        Icon(Icons.Default.Close, contentDescription = "remove ${exerciseSet.exerciseName}")
+      }
+      if (confirmingDelete) {
+        AlertDialog(
+          onDismissRequest = { confirmingDelete = false },
+          // TODO localize
+          title = { Text("Remove ${exerciseSet.exerciseName}?") },
+          text = { Text("This removes it from today's plan. Your past completed sets are kept.") },
+          confirmButton = {
+            Button(onClick = {
+              confirmingDelete = false
+              onDeleteExercise(exerciseSet)
+            }) { Text("Remove") }
+          },
+          dismissButton = {
+            Button(onClick = { confirmingDelete = false }) { Text("Cancel") }
+          }
+        )
+      }
     }
   }
 }
