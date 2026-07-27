@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -170,18 +171,47 @@ fun ExercisePickerList(
   ) { contentPadding ->
     LazyColumn(Modifier.padding(contentPadding).fillMaxSize()) {
       workouts.forEach { workout ->
+        // Custom plans have no remote catalog of their own (see the KDoc above) - only ever
+        // appear here from localExercisesByWorkout, so they get no refresh affordance.
+        val isRemoteSource = workout in accessibleWorkoutNames
+        val loading = loadingWorkouts[workout to muscle] == true
+        val hasFetched = remoteExercisesByWorkout.containsKey(workout to muscle)
+        // Merge rather than local ?: remote - a workout opened locally for one day is only
+        // ever partially synced, so its cached rows and a fresh remote fetch both contribute.
+        val exercises = (localExercisesByWorkout[workout].orEmpty() + remoteExercisesByWorkout[workout to muscle].orEmpty())
+          .distinctBy { it.id }
+          .sortedBy { it.name ?: it.id }
+
         item(key = "header:$workout") {
-          Text(
-            workout,
+          Row(
             Modifier
               .fillMaxWidth()
-              .padding(start = 10.dp, top = 14.dp, bottom = 4.dp),
-            style = MaterialTheme.typography.overline
-          )
+              .padding(start = 10.dp, end = 6.dp, top = 14.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(workout, style = MaterialTheme.typography.overline)
+            if (isRemoteSource) {
+              if (loading) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+              } else {
+                IconButton(
+                  onClick = { onLoadWorkout(workout) },
+                  modifier = Modifier.size(28.dp)
+                ) {
+                  // TODO localize
+                  Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "refresh $workout",
+                    modifier = Modifier.size(18.dp)
+                  )
+                }
+              }
+            }
+          }
         }
-        val exercises = localExercisesByWorkout[workout] ?: remoteExercisesByWorkout[workout to muscle]
         when {
-          exercises == null && loadingWorkouts[workout to muscle] == true -> item(key = "loading:$workout") {
+          exercises.isEmpty() && loading -> item(key = "loading:$workout") {
             Row(
               Modifier
                 .fillMaxWidth()
@@ -192,7 +222,7 @@ fun ExercisePickerList(
             }
           }
 
-          exercises == null -> item(key = "load:$workout") {
+          exercises.isEmpty() && !hasFetched -> item(key = "load:$workout") {
             Row(
               Modifier
                 .fillMaxWidth()
@@ -202,7 +232,7 @@ fun ExercisePickerList(
               verticalAlignment = Alignment.CenterVertically
             ) {
               // TODO localize
-              Text("Load exercises", style = MaterialTheme.typography.button)
+              Text("Refresh to load", style = MaterialTheme.typography.button)
             }
           }
 
@@ -374,7 +404,11 @@ private fun PreviewExercisePickerList() {
         )
       ),
       accessibleWorkoutNames = listOf("Push Pull Legs", "Full Body"),
-      remoteExercisesByWorkout = emptyMap(),
+      // "Push Pull Legs" shows the merge of its cached local row plus a remote fetch already in
+      // hand; "Full Body" has never been fetched, so it falls through to "Refresh to load".
+      remoteExercisesByWorkout = mapOf(
+        ("Push Pull Legs" to "Chest") to listOf(Exercise("Push Pull Legs", "Chest_Incline Dumbbell Press"))
+      ),
       loadingWorkouts = emptyMap(),
       onLoadWorkout = {},
       onPick = {},
