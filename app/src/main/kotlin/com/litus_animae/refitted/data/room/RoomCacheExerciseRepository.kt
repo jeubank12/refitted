@@ -243,16 +243,19 @@ class RoomCacheExerciseRepository @Inject constructor(
     step: String,
     sets: Int,
     reps: Int,
-    rest: Int
+    rest: Int,
+    repsRange: Int
   ) {
     // Optimistic: the write below still lands on the `exerciseset` table Room's PagingSource
     // observes, so it'll eventually trigger a reload regardless - patching here means the UI
     // reflects the edit immediately instead of waiting on that round-trip.
-    applyOptimisticSetUpdate(workout, day, step, sets, reps, rest)
+    applyOptimisticSetUpdate(workout, day, step, sets, reps, rest, repsRange)
     withContext(Dispatchers.IO) {
       val exerciseDao = refittedRoom.getExerciseDao()
       val existing = exerciseDao.loadExerciseSet(day, workout, step) ?: return@withContext
-      exerciseDao.storeExerciseSet(existing.copy(sets = sets, reps = reps, rest = rest))
+      exerciseDao.storeExerciseSet(
+        existing.copy(sets = sets, reps = reps, rest = rest, repsRange = repsRange)
+      )
     }
   }
 
@@ -262,12 +265,13 @@ class RoomCacheExerciseRepository @Inject constructor(
     step: String,
     sets: Int,
     reps: Int,
-    rest: Int
+    rest: Int,
+    repsRange: Int
   ) {
     exerciseState.update { current ->
       current.map { set ->
         if (set.workout == workout && set.day == day && set.step == step) {
-          set.copy(sets = sets, reps = reps, rest = rest)
+          set.copy(sets = sets, reps = reps, rest = rest, repsRange = repsRange)
         } else set
       }
     }

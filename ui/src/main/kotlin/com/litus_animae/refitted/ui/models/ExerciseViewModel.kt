@@ -214,10 +214,18 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
-  fun updateCustomExerciseSetTargets(workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int) {
+  fun updateCustomExerciseSetTargets(
+    workout: String,
+    day: String,
+    step: String,
+    sets: Int,
+    reps: Int,
+    rest: Int,
+    repsRange: Int
+  ) {
     try {
       viewModelScope.launch {
-        exerciseRepo.updateCustomExerciseSet(workout, day, step, sets, reps, rest)
+        exerciseRepo.updateCustomExerciseSet(workout, day, step, sets, reps, rest, repsRange)
       }
     } catch (ex: Throwable) {
       log.e(TAG, "error updating custom exercise set targets", ex)

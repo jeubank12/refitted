@@ -44,7 +44,8 @@ class InMemoryExerciseRepository(
         step: String,
         sets: Int,
         reps: Int,
-        rest: Int
+        rest: Int,
+        repsRange: Int
     ) {
         TODO("Not yet implemented")
     }

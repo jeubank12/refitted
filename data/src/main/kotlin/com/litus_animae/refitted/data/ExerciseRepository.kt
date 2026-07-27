@@ -28,10 +28,19 @@ interface ExerciseRepository {
   suspend fun addCustomExercise(workout: String, day: String, exerciseId: String, description: String? = null)
 
   /**
-   * Updates a custom (BYO) exercise set's prescription - target [sets], [reps], and [rest] - in
-   * place, keyed by [workout]/[day]/[step]. No-op if the set doesn't exist (e.g. admin content).
+   * Updates a custom (BYO) exercise set's prescription - target [sets], [reps], [rest], and
+   * [repsRange] (an offset above [reps]; e.g. reps=10/repsRange=2 prescribes "10-12") - in place,
+   * keyed by [workout]/[day]/[step]. No-op if the set doesn't exist (e.g. admin content).
    */
-  suspend fun updateCustomExerciseSet(workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int)
+  suspend fun updateCustomExerciseSet(
+    workout: String,
+    day: String,
+    step: String,
+    sets: Int,
+    reps: Int,
+    rest: Int,
+    repsRange: Int
+  )
 
   /**
    * Deletes a single custom exercise set, keyed by [workout]/[day]/[step]. Leaves the shared

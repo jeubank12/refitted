@@ -425,12 +425,13 @@ class RoomCacheExerciseRepositoryTest {
       coEvery { exerciseDao.storeExerciseSet(capture(storedSet)) } returns Unit
 
       // When
-      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45)
+      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45, repsRange = 2)
 
       // Then
       assertThat(storedSet.captured.sets).isEqualTo(4)
       assertThat(storedSet.captured.reps).isEqualTo(12)
       assertThat(storedSet.captured.rest).isEqualTo(45)
+      assertThat(storedSet.captured.repsRange).isEqualTo(2)
       assertThat(storedSet.captured.name).isEqualTo(simpleRoomSet.name)
     }
 
@@ -440,7 +441,7 @@ class RoomCacheExerciseRepositoryTest {
       coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns null
 
       // When
-      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45)
+      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45, repsRange = 0)
 
       // Then
       coVerify(exactly = 0) { exerciseDao.storeExerciseSet(any()) }

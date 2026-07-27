@@ -151,8 +151,8 @@ fun PagerExerciseView(
           timerStateByExerciseId = model.timerStateByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
           editing = editing,
-          onUpdateCustomTargets = { workout, day, step, sets, reps, rest ->
-            model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest)
+          onUpdateCustomTargets = { workout, day, step, sets, reps, rest, repsRange ->
+            model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest, repsRange)
           },
           onDeleteExercise = { workout, day, step -> model.deleteExercise(workout, day, step) },
           onEditNote = { workout, day, step, note ->
@@ -239,8 +239,9 @@ fun PagerDetailView(
   onSave: (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   editing: Boolean = false,
-  onUpdateCustomTargets: (workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int) -> Unit =
-    { _, _, _, _, _, _ -> },
+  onUpdateCustomTargets: (
+    workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int, repsRange: Int
+  ) -> Unit = { _, _, _, _, _, _, _ -> },
   onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> },
   onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> }
 ) {
@@ -335,7 +336,8 @@ fun PagerDetailView(
                 activeSetWithRecord.exerciseSet.step,
                 activeSetWithRecord.exerciseSet.sets,
                 activeSetWithRecord.exerciseSet.reps,
-                secs
+                secs,
+                activeSetWithRecord.exerciseSet.repsRange
               )
             }
           } else null,
@@ -348,7 +350,8 @@ fun PagerDetailView(
               activeSetWithRecord.exerciseSet.step,
               sets,
               reps,
-              activeSetWithRecord.exerciseSet.rest
+              activeSetWithRecord.exerciseSet.rest,
+              activeSetWithRecord.exerciseSet.repsRange
             )
           }
         )
