@@ -39,6 +39,12 @@ interface ExerciseRepository {
    * later recovers its history. No-op if the set doesn't exist.
    */
   suspend fun deleteCustomExerciseSet(workout: String, day: String, step: String)
+
+  /**
+   * Updates a custom (BYO) exercise set's free-text instructions in place, keyed by
+   * [workout]/[day]/[step]. No-op if the set doesn't exist.
+   */
+  suspend fun updateCustomExerciseSetNote(workout: String, day: String, step: String, note: String)
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>

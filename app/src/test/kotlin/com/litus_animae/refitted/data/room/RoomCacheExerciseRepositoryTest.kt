@@ -464,6 +464,37 @@ class RoomCacheExerciseRepositoryTest {
   }
 
   @Nested
+  @DisplayName("updateCustomExerciseSetNote")
+  inner class UpdateCustomExerciseSetNote {
+    @Test
+    fun `overwrites the existing set's note, keeping other fields`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns simpleRoomSet.copy(day = "2", step = "3")
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseSet(capture(storedSet)) } returns Unit
+
+      // When
+      subject.updateCustomExerciseSetNote(workoutName, "2", "3", note = "Keep elbows tucked")
+
+      // Then
+      assertThat(storedSet.captured.note).isEqualTo("Keep elbows tucked")
+      assertThat(storedSet.captured.reps).isEqualTo(simpleRoomSet.reps)
+    }
+
+    @Test
+    fun `does nothing when the set doesn't exist`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns null
+
+      // When
+      subject.updateCustomExerciseSetNote(workoutName, "2", "3", note = "Keep elbows tucked")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.storeExerciseSet(any()) }
+    }
+  }
+
+  @Nested
   @DisplayName("exercisesByMuscle")
   inner class ExercisesByMuscle {
     @Test
