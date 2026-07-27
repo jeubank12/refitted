@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
+import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayEditingMinHeight
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayMinHeight
 import com.litus_animae.refitted.ui.compose.exercise.TargetStepper
 import com.litus_animae.refitted.ui.compose.exercise.WeightDisplay
@@ -170,7 +171,12 @@ fun ColumnScope.ExerciseSetView(
       val width = constraints.maxWidth
       val available = (constraints.maxHeight - spacing).coerceAtLeast(0)
       val (weightCard, repsCard) = measurables
-      val repsHeight = maxOf(available / 2, RepsDisplayMinHeight.roundToPx())
+      val repsFloor = if (editing && onUpdateCustomTargets != null) {
+        RepsDisplayEditingMinHeight
+      } else {
+        RepsDisplayMinHeight
+      }
+      val repsHeight = maxOf(available / 2, repsFloor.roundToPx())
         .coerceAtMost(available)
       val weightPlaceable = weightCard.measure(Constraints.fixed(width, available - repsHeight))
       val repsPlaceable = repsCard.measure(Constraints.fixed(width, repsHeight))

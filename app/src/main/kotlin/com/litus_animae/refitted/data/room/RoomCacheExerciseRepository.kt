@@ -78,11 +78,16 @@ class RoomCacheExerciseRepository @Inject constructor(
   private val pagingDataDiffer = AsyncPagingDataDiffer(
     diffCallback = object : DiffUtil.ItemCallback<ExerciseSet>() {
       override fun areItemsTheSame(oldItem: ExerciseSet, newItem: ExerciseSet): Boolean {
-        return oldItem == newItem
+        return oldItem.id == newItem.id
       }
 
+      // Room hands back a fresh `exercise: Flow<Exercise?>` on every query, so full data-class
+      // equality here is nearly always false across a reload even when nothing user-visible
+      // changed - that's fine, it just means onChanged fires a bit more than strictly needed,
+      // which is harmless (unlike areItemsTheSame returning false, which reads as a delete+
+      // insert and makes the item visibly vanish and reappear).
       override fun areContentsTheSame(oldItem: ExerciseSet, newItem: ExerciseSet): Boolean {
-        return areItemsTheSame(oldItem, newItem)
+        return oldItem == newItem
       }
 
     },

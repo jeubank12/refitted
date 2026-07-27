@@ -5,6 +5,7 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
@@ -294,7 +295,14 @@ fun PagerExerciseInstructions(
     }
 
     val instruction = instructions.getOrNull(pagerState.currentPage)
-    val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+    // Keyed on the instruction's stable identity, not the instruction object itself - every edit
+    // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
+    // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
+    // across reloads), so keying on `instruction` would recreate this flow - and reset the
+    // collected state to null for a frame - on every unrelated edit, not just this card's own.
+    val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
+      instruction?.set(alternateIndex)
+    }
     val exerciseSet by exerciseSetFlow
       ?.collectAsStateWithLifecycle(initialValue = null)
       ?: remember { mutableStateOf(null) }
@@ -315,7 +323,14 @@ private fun CardContent(
   onDeleteExercise: (ExerciseSet) -> Unit = {},
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
-  val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+  // Keyed on the instruction's stable identity, not the instruction object itself - every edit
+  // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
+  // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
+  // across reloads), so keying on `instruction` would recreate this flow - and reset the
+  // collected state to null for a frame - on every unrelated edit, not just this card's own.
+  val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
+    instruction?.set(alternateIndex)
+  }
   val exerciseSet by exerciseSetFlow
     ?.collectAsStateWithLifecycle(initialValue = null)
     ?: remember { mutableStateOf(null) }
@@ -375,6 +390,12 @@ private fun CardContent(
 
     @Composable
     fun SwapCard(cardModifier: Modifier) {
+      // Animated rather than a hard cut - isActivePage flips as the pager settles on a new
+      // page mid-swipe, and jumping straight from 1.dp to 6.dp popped visibly at that instant.
+      val elevation = animateDpAsState(
+        targetValue = if (isActivePage) 6.dp else 1.dp,
+        label = "cardElevation"
+      )
       Card(
         cardModifier.graphicsLayer {
           // Clear the card's own full bounds plus a margin, so it's completely offscreen at
@@ -382,11 +403,8 @@ private fun CardContent(
           translationX = swapProgress * (size.width + 32.dp.toPx())
           translationY = -swapProgress * (size.height + 32.dp.toPx())
           rotationZ = swapProgress * 18f
+          shadowElevation = elevation.value.toPx()
         },
-        // The front-and-center card gets a pronounced shadow so it visibly lifts off the
-        // deck; cards still sitting in the deck stay near-flat so the depth reads from
-        // the active card alone rather than every jittered card casting its own shadow.
-        elevation = if (isActivePage) 6.dp else 1.dp
       ) {
         CompositionLocalProvider(
           LocalOverscrollFactory provides null

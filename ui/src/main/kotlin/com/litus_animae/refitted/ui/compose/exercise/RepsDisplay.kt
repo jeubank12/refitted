@@ -43,7 +43,6 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
@@ -57,6 +56,9 @@ import java.time.Instant
 /** Minimum height [RepsDisplay] needs; layouts sizing its container must not go below this */
 val RepsDisplayMinHeight = 170.dp
 
+/** Minimum height needed in edit mode, where [RepsRangeStepper] adds a value line and a +/- row */
+val RepsDisplayEditingMinHeight = 200.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RepsDisplay(
@@ -66,10 +68,11 @@ fun RepsDisplay(
   onUpdateTargetReps: ((reps: Int, repsRange: Int) -> Unit)? = null
 ) {
   val exerciseSet = setWithRecord.exerciseSet
+  val targetUpdater = onUpdateTargetReps.takeIf { editing }
   Column(
     Modifier
       .padding(bottom = 5.dp)
-      .heightIn(min = RepsDisplayMinHeight),
+      .heightIn(min = if (targetUpdater != null) RepsDisplayEditingMinHeight else RepsDisplayMinHeight),
     verticalArrangement = Arrangement.Center,
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
@@ -113,21 +116,20 @@ fun RepsDisplay(
       color = lineColor,
       thickness = 3.dp
     )
-    Row {
+    Row(Modifier.fillMaxWidth()) {
       // Edit mode: adjustable target reps in place of the static prescription text.
       // isToFailure/repsUnit/sequenced reps are admin-only and never occur on a custom set, but
       // a rep range is - hence RepsRangeStepper rather than the plain TargetStepper the sets
       // count next to it uses.
-      if (editing && onUpdateTargetReps != null) {
-        // Matches the NumberPicker's own digit size/width above - the "Reps" header below
-        // already labels this, so the stepper's own caption would just repeat it.
+      if (targetUpdater != null) {
+        // Matches the NumberPicker's own text style above - the "Reps" header below already
+        // labels this, so the stepper's own caption would just repeat it.
         RepsRangeStepper(
           setId = exerciseSet.id,
           reps = exerciseSet.reps,
           repsRange = exerciseSet.repsRange,
-          onChange = onUpdateTargetReps,
-          valueStyle = typography,
-          valueWidth = 64.dp
+          onChange = targetUpdater,
+          valueStyle = typography
         )
       } else {
         Column(
@@ -177,8 +179,7 @@ private fun RepsRangeStepper(
   reps: Int,
   repsRange: Int,
   onChange: (reps: Int, repsRange: Int) -> Unit,
-  valueStyle: TextStyle,
-  valueWidth: Dp
+  valueStyle: TextStyle
 ) {
   val isSet = reps >= 0
   // Defaults to the low-end lock when restoring a persisted range with no remembered choice yet
@@ -197,55 +198,64 @@ private fun RepsRangeStepper(
     onChange(reps, 0)
   }
 
-  Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      IconButton(
-        onClick = {
-          when (lock) {
-            RepsRangeLock.NONE -> onChange((reps - 1).coerceAtLeast(1), 0)
-            RepsRangeLock.HIGH -> onChange(reps - 1, repsRange + 1)
-            RepsRangeLock.LOW -> Unit
-          }
-        },
-        enabled = isSet && lock != RepsRangeLock.LOW && reps > 1
-      ) {
-        Icon(Icons.Default.Remove, contentDescription = "decrease reps")
+  Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Text(
+      displayValue,
+      style = valueStyle,
+      textAlign = TextAlign.Center,
+      maxLines = 1,
+      softWrap = false,
+      modifier = Modifier.fillMaxWidth()
+    )
+    // Each button is paired with the lock that governs it and the two pairs pushed to the
+    // card's edges, rather than stacking +/- above the locks - that split the row width
+    // between two differently-sized rows the parent Column centered independently, so the
+    // locks never actually lined up under the button each one pins.
+    Row(
+      Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+          onClick = {
+            when (lock) {
+              RepsRangeLock.NONE -> onChange((reps - 1).coerceAtLeast(1), 0)
+              RepsRangeLock.HIGH -> onChange(reps - 1, repsRange + 1)
+              RepsRangeLock.LOW -> Unit
+            }
+          },
+          enabled = isSet && lock != RepsRangeLock.LOW && reps > 1
+        ) {
+          Icon(Icons.Default.Remove, contentDescription = "decrease reps")
+        }
+        LockToggle(
+          locked = lock == RepsRangeLock.LOW,
+          enabled = isSet,
+          contentDescription = "lock the low end of the reps range",
+          onClick = { toggleLock(RepsRangeLock.LOW) }
+        )
       }
-      // Fixed width so a range's extra digits don't shift the text off-centre between the
-      // two fixed-size IconButtons.
-      Text(
-        displayValue,
-        style = valueStyle,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.width(valueWidth)
-      )
-      IconButton(
-        onClick = {
-          when (lock) {
-            RepsRangeLock.NONE -> onChange((reps.takeIf { isSet } ?: 0) + 1, 0)
-            RepsRangeLock.LOW -> onChange(reps, repsRange + 1)
-            RepsRangeLock.HIGH -> Unit
-          }
-        },
-        enabled = lock != RepsRangeLock.HIGH
-      ) {
-        Icon(Icons.Default.Add, contentDescription = "increase reps")
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        LockToggle(
+          locked = lock == RepsRangeLock.HIGH,
+          enabled = isSet,
+          contentDescription = "lock the high end of the reps range",
+          onClick = { toggleLock(RepsRangeLock.HIGH) }
+        )
+        IconButton(
+          onClick = {
+            when (lock) {
+              RepsRangeLock.NONE -> onChange((reps.takeIf { isSet } ?: 0) + 1, 0)
+              RepsRangeLock.LOW -> onChange(reps, repsRange + 1)
+              RepsRangeLock.HIGH -> Unit
+            }
+          },
+          enabled = lock != RepsRangeLock.HIGH
+        ) {
+          Icon(Icons.Default.Add, contentDescription = "increase reps")
+        }
       }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      LockToggle(
-        locked = lock == RepsRangeLock.LOW,
-        enabled = isSet,
-        contentDescription = "lock the low end of the reps range",
-        onClick = { toggleLock(RepsRangeLock.LOW) }
-      )
-      Spacer(Modifier.width(valueWidth))
-      LockToggle(
-        locked = lock == RepsRangeLock.HIGH,
-        enabled = isSet,
-        contentDescription = "lock the high end of the reps range",
-        onClick = { toggleLock(RepsRangeLock.HIGH) }
-      )
     }
   }
 }
@@ -296,7 +306,36 @@ fun RepsDisplayEditingPreview(@PreviewParameter(ExampleExerciseProvider::class) 
   val records = remember { mutableStateListOf<Record>() }
   val currentRecord =
     remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
-  Card(Modifier.size(170.dp)) {
+  // Sized to match the real portrait card rather than a 170dp square, which under-reports the
+  // width available and hides overcrowding.
+  Card(Modifier.size(width = 181.dp, height = RepsDisplayEditingMinHeight)) {
+    RepsDisplay(
+      setWithRecord = ExerciseSetWithRecord(
+        exerciseSet.copy(reps = reps, repsRange = repsRange),
+        currentRecord,
+        numCompleted = 1,
+        setRecords = records,
+        allSets = emptyFlow()
+      ),
+      Repetitions(95),
+      editing = true,
+      onUpdateTargetReps = { newReps, newRepsRange ->
+        reps = newReps
+        repsRange = newRepsRange
+      }
+    )
+  }
+}
+
+@Composable
+@Preview(apiLevel = 36)
+fun RepsDisplayEditingRangePreview(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
+  var reps by remember { mutableStateOf(10) }
+  var repsRange by remember { mutableStateOf(2) }
+  val records = remember { mutableStateListOf<Record>() }
+  val currentRecord =
+    remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }
+  Card(Modifier.size(width = 181.dp, height = RepsDisplayEditingMinHeight)) {
     RepsDisplay(
       setWithRecord = ExerciseSetWithRecord(
         exerciseSet.copy(reps = reps, repsRange = repsRange),
