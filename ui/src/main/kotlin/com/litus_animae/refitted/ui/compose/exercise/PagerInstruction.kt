@@ -5,7 +5,6 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
@@ -45,6 +44,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +64,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
@@ -149,11 +150,23 @@ fun PagerExerciseInstructions(
         val currentPage = pagerState.currentPage
         instructions.forEachIndexed { idx, instruction ->
           key(idx) {
+            // Same continuous focus the pager layer computes, keyed the same way (distance
+            // from the settled scroll position) — the pager hands a card off to the deck
+            // mid-focus (at distance -0.5, pageFocus 0.5) as it slides out to the left, so
+            // without this the card's elevation snapped from 3.5dp to a hardcoded 1dp right
+            // at the handoff.
+            val pageFocus by remember(idx) {
+              derivedStateOf {
+                val scroll = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                (1f - (idx - scroll).absoluteValue).coerceIn(0f, 1f)
+              }
+            }
             CardContent(
               instruction, alternateIndex, setRecords,
               // The deck's own copy of a card is never the authoritative, focused render (the
               // pager owns that for the settled page) — never worth animating a swap here.
               isActivePage = false,
+              pageFocus = pageFocus,
               editing = editing,
               onDeleteExercise = onDeleteExercise,
               onEditNote = onEditNote,
@@ -203,12 +216,23 @@ fun PagerExerciseInstructions(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
       ) { page ->
         val pagesFromCurrent = page - pagerState.currentPage
+        // Continuous distance of this page from front-and-center, in pages — the same
+        // measure the graphicsLayer block below uses for position. Driving elevation from
+        // this instead of the isActivePage boolean means it tracks the drag itself rather
+        // than jumping into a tween at the halfway point where currentPage flips.
+        val pageFocus by remember(page) {
+          derivedStateOf {
+            val distance = (page - pagerState.currentPage) - pagerState.currentPageOffsetFraction
+            (1f - distance.absoluteValue).coerceIn(0f, 1f)
+          }
+        }
         CardContent(
           instructions.getOrNull(page), alternateIndex, setRecords,
           // Only the settled, front-and-center page should ever escape into the unclipped
           // popup — anything mid-swipe or off to the side would just be a phantom animation
           // bleeding through on top of whatever the user is actually looking at.
           isActivePage = pagesFromCurrent == 0,
+          pageFocus = pageFocus,
           editing = editing,
           onDeleteExercise = onDeleteExercise,
           onEditNote = onEditNote,
@@ -318,6 +342,8 @@ private fun CardContent(
   alternateIndex: Int?,
   setRecords: Map<String, ExerciseSetWithRecord>,
   isActivePage: Boolean,
+  /** Continuous 0..1 distance-from-center, in pages — 0 for deck cards, which never focus. */
+  pageFocus: Float = 0f,
   modifier: Modifier = Modifier,
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
@@ -390,12 +416,16 @@ private fun CardContent(
 
     @Composable
     fun SwapCard(cardModifier: Modifier) {
-      // Animated rather than a hard cut - isActivePage flips as the pager settles on a new
-      // page mid-swipe, and jumping straight from 1.dp to 6.dp popped visibly at that instant.
-      val elevation = animateDpAsState(
-        targetValue = if (isActivePage) 6.dp else 1.dp,
-        label = "cardElevation"
-      )
+      // Driven straight off pageFocus (the page's continuous distance from center) rather
+      // than a boolean + tween — tracks the drag itself instead of jumping into an animation
+      // at the halfway point where isActivePage flips. Passed to Card's own elevation param,
+      // not just a graphicsLayer shadow, so the tonal surface color moves with it too.
+      //
+      // Known issue: this card's rounded corners render square for the duration of the
+      // NavHost fade transition when first navigating in from the calendar, self-correcting
+      // once the fade settles — a Compose framework bug, not caused by the elevation logic
+      // here. See https://issuetracker.google.com/issues/375496210.
+      val elevation = lerp(1.dp, 6.dp, pageFocus)
       Card(
         cardModifier.graphicsLayer {
           // Clear the card's own full bounds plus a margin, so it's completely offscreen at
@@ -403,8 +433,8 @@ private fun CardContent(
           translationX = swapProgress * (size.width + 32.dp.toPx())
           translationY = -swapProgress * (size.height + 32.dp.toPx())
           rotationZ = swapProgress * 18f
-          shadowElevation = elevation.value.toPx()
         },
+        elevation = elevation,
       ) {
         CompositionLocalProvider(
           LocalOverscrollFactory provides null
