@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise.add
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
@@ -54,6 +56,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -153,6 +156,7 @@ fun ExercisePickerList(
   val workouts = (accessibleWorkoutNames + localExercisesByWorkout.keys)
     .distinct()
     .sorted()
+  var collapsedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
   Scaffold(
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     modifier = modifier,
@@ -182,6 +186,7 @@ fun ExercisePickerList(
           .distinctBy { it.id }
           .sortedBy { it.name ?: it.id }
 
+        val isCollapsed = workout in collapsedWorkouts
         item(key = "header:$workout") {
           Row(
             Modifier
@@ -190,7 +195,28 @@ fun ExercisePickerList(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            Text(workout, style = MaterialTheme.typography.overline)
+            Row(
+              Modifier
+                .clickable(onClickLabel = if (isCollapsed) "expand $workout" else "collapse $workout") {
+                  collapsedWorkouts = if (isCollapsed) collapsedWorkouts - workout else collapsedWorkouts + workout
+                }
+                .padding(end = 4.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              val rotation by animateFloatAsState(
+                if (isCollapsed) -90f else 0f,
+                label = "collapseChevron"
+              )
+              Icon(
+                Icons.Default.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier
+                  .size(28.dp)
+                  .padding(4.dp)
+                  .rotate(rotation)
+              )
+              Text(workout, style = MaterialTheme.typography.overline)
+            }
             if (isRemoteSource) {
               if (loading) {
                 CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -210,6 +236,7 @@ fun ExercisePickerList(
             }
           }
         }
+        if (isCollapsed) return@forEach
         when {
           exercises.isEmpty() && loading -> item(key = "loading:$workout") {
             Row(
