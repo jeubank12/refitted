@@ -53,6 +53,14 @@ interface ExerciseDao {
   @Query("delete from exerciseset where day = :day and workout = :workout")
   suspend fun clearDay(day: String, workout: String)
 
+  /**
+   * Deletes a single exercise set. Leaves gaps in [RoomExerciseSet.primaryStep] rather than
+   * renumbering - completed [RoomSetRecord]s are keyed by the literal "day.step" string with no
+   * FK back to exerciseset, so shifting steps would orphan their history.
+   */
+  @Query("delete from exerciseset where day = :day and workout = :workout and step = :step")
+  suspend fun deleteExerciseSet(day: String, workout: String, step: String)
+
   @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
   fun getExercise(name: String, workout: String): Flow<RoomExercise?>
 

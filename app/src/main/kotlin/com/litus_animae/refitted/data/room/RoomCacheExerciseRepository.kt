@@ -273,6 +273,17 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
+  override suspend fun deleteCustomExerciseSet(workout: String, day: String, step: String) {
+    // Optimistic, same reasoning as updateCustomExerciseSet - the delete below still lands on
+    // the observed table and would eventually reload the list regardless.
+    exerciseState.update { current ->
+      current.filterNot { it.workout == workout && it.day == day && it.step == step }
+    }
+    withContext(Dispatchers.IO) {
+      refittedRoom.getExerciseDao().deleteExerciseSet(day, workout, step)
+    }
+  }
+
   override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
     val exerciseDao = refittedRoom.getExerciseDao()
     val prefixQueries = MuscleGroup.prefixesFor(muscle).map { prefix ->

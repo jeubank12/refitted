@@ -32,6 +32,13 @@ interface ExerciseRepository {
    * place, keyed by [workout]/[day]/[step]. No-op if the set doesn't exist (e.g. admin content).
    */
   suspend fun updateCustomExerciseSet(workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int)
+
+  /**
+   * Deletes a single custom exercise set, keyed by [workout]/[day]/[step]. Leaves the shared
+   * `Exercise` row and any completed `SetRecord` history in place - re-adding the same exercise
+   * later recovers its history. No-op if the set doesn't exist.
+   */
+  suspend fun deleteCustomExerciseSet(workout: String, day: String, step: String)
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>

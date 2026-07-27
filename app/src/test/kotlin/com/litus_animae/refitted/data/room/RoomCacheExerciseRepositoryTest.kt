@@ -448,6 +448,22 @@ class RoomCacheExerciseRepositoryTest {
   }
 
   @Nested
+  @DisplayName("deleteCustomExerciseSet")
+  inner class DeleteCustomExerciseSet {
+    @Test
+    fun `deletes the set by day, workout, and step`() = runTest {
+      // Given
+      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, "3") } returns Unit
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      coVerify { exerciseDao.deleteExerciseSet("2", workoutName, "3") }
+    }
+  }
+
+  @Nested
   @DisplayName("exercisesByMuscle")
   inner class ExercisesByMuscle {
     @Test

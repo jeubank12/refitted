@@ -225,6 +225,17 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
+  fun deleteExercise(workout: String, day: String, step: String) {
+    try {
+      viewModelScope.launch {
+        exerciseRepo.deleteCustomExerciseSet(workout, day, step)
+      }
+    } catch (ex: Throwable) {
+      log.e(TAG, "error deleting custom exercise set", ex)
+      exercisesError = "There was an error removing the exercise"
+    }
+  }
+
   // Add-exercise picker (muscle group browsing) - local matches are live; remote matches are
   // fetched per-workout on demand since browsing shouldn't pull every accessible plan's catalog.
   val accessibleWorkoutNames = workoutPlanRepo.accessibleWorkoutNames
