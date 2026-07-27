@@ -155,6 +155,9 @@ fun PagerExerciseView(
             model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest)
           },
           onDeleteExercise = { workout, day, step -> model.deleteExercise(workout, day, step) },
+          onEditNote = { workout, day, step, note ->
+            model.updateCustomExerciseSetNote(workout, day, step, note)
+          },
           onSave = { updatedRecord ->
             val savedRecord = updatedRecord.copy(stored = true)
             currentSetRecord!!.saveRecordInState(savedRecord)
@@ -238,7 +241,8 @@ fun PagerDetailView(
   editing: Boolean = false,
   onUpdateCustomTargets: (workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int) -> Unit =
     { _, _, _, _, _, _ -> },
-  onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> }
+  onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> },
+  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> }
 ) {
   val scope = rememberCoroutineScope()
   val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
@@ -283,7 +287,8 @@ fun PagerDetailView(
         alternateIndex = globalAlternate,
         setRecords = setRecords,
         editing = editing,
-        onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) }
+        onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
+        onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
       )
     },
     second = {

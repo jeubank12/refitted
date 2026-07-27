@@ -40,6 +40,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +74,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
@@ -99,6 +101,7 @@ fun PagerExerciseInstructions(
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
   val pageRotations = remember(instructions.size) {
     val rotation = maxRotation - minRotation
@@ -152,6 +155,7 @@ fun PagerExerciseInstructions(
               isActivePage = false,
               editing = editing,
               onDeleteExercise = onDeleteExercise,
+              onEditNote = onEditNote,
               modifier = Modifier
                 .fillMaxSize()
                 // Upcoming cards stack above previously completed ones
@@ -206,6 +210,7 @@ fun PagerExerciseInstructions(
           isActivePage = pagesFromCurrent == 0,
           editing = editing,
           onDeleteExercise = onDeleteExercise,
+          onEditNote = onEditNote,
           modifier = Modifier
             .fillMaxSize()
             // The card leaving the top of the deck stays above the one being revealed or
@@ -308,6 +313,7 @@ private fun CardContent(
   modifier: Modifier = Modifier,
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
   val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
   val exerciseSet by exerciseSetFlow
@@ -390,7 +396,8 @@ private fun CardContent(
             targetSet,
             setRecords[targetSet?.id]?.numCompleted ?: 0,
             editing = editing,
-            onDeleteExercise = onDeleteExercise
+            onDeleteExercise = onDeleteExercise,
+            onEditNote = onEditNote
           )
         }
       }
@@ -449,9 +456,13 @@ private fun ExerciseInstructions(
   numCompleted: Int = 0,
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
   val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
     ?: MaterialTheme.colors.surface
+  // Hoisted (rather than collected only inside the LazyColumn item below) so the edit dialog can
+  // show the same description without a second subscription.
+  val exercise by (exerciseSet?.exercise ?: emptyFlow()).collectAsStateWithLifecycle(null)
   // The band anchored above the pinned counter, bottom to top: solidHeight is fully
   // opaque card background (guarantees the counter never sits on visible text, since a
   // linear fade alone only reaches full opacity at its very last pixel), then fadeHeight
@@ -492,7 +503,6 @@ private fun ExerciseInstructions(
       }
       item {
         if (exerciseSet != null) {
-          val exercise by exerciseSet.exercise.collectAsStateWithLifecycle(null)
           Text(exercise?.description ?: "", Modifier.padding(bottom = 5.dp))
         }
       }
@@ -535,12 +545,16 @@ private fun ExerciseInstructions(
     // Anchored to the Box, not inside the LazyColumn, so it stays put regardless of scroll.
     if (editing && exerciseSet != null) {
       var confirmingDelete by remember(exerciseSet.id) { mutableStateOf(false) }
-      IconButton(
-        onClick = { confirmingDelete = true },
-        modifier = Modifier.align(Alignment.TopEnd)
-      ) {
-        // TODO localize
-        Icon(Icons.Default.Close, contentDescription = "remove ${exerciseSet.exerciseName}")
+      var editingNote by remember(exerciseSet.id) { mutableStateOf(false) }
+      Row(modifier = Modifier.align(Alignment.TopEnd)) {
+        IconButton(onClick = { editingNote = true }) {
+          // TODO localize
+          Icon(Icons.Default.Edit, contentDescription = "edit ${exerciseSet.exerciseName} instructions")
+        }
+        IconButton(onClick = { confirmingDelete = true }) {
+          // TODO localize
+          Icon(Icons.Default.Close, contentDescription = "remove ${exerciseSet.exerciseName}")
+        }
       }
       if (confirmingDelete) {
         AlertDialog(
@@ -556,6 +570,18 @@ private fun ExerciseInstructions(
           },
           dismissButton = {
             Button(onClick = { confirmingDelete = false }) { Text("Cancel") }
+          }
+        )
+      }
+      if (editingNote) {
+        EditInstructionDialog(
+          exerciseName = exerciseSet.exerciseName,
+          description = exercise?.description,
+          initialNote = exerciseSet.note,
+          onDismissRequest = { editingNote = false },
+          onSave = { note ->
+            editingNote = false
+            onEditNote(exerciseSet, note)
           }
         )
       }
