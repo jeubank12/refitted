@@ -203,10 +203,10 @@ class ExerciseViewModel @Inject constructor(
     exerciseRepo.refreshExercises()
   }
 
-  fun addExercise(workout: String, day: String, exerciseId: String) {
+  fun addExercise(workout: String, day: String, exerciseId: String, description: String? = null) {
     try {
       viewModelScope.launch {
-        exerciseRepo.addCustomExercise(workout, day, exerciseId)
+        exerciseRepo.addCustomExercise(workout, day, exerciseId, description)
       }
     } catch (ex: Throwable) {
       log.e(TAG, "error adding custom exercise", ex)

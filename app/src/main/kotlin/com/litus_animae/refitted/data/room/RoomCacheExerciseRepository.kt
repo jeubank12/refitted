@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -194,7 +195,12 @@ class RoomCacheExerciseRepository @Inject constructor(
     currentWorkout.value = workoutId
   }
 
-  override suspend fun addCustomExercise(workout: String, day: String, exerciseId: String) {
+  override suspend fun addCustomExercise(
+    workout: String,
+    day: String,
+    exerciseId: String,
+    description: String?
+  ) {
     withContext(Dispatchers.IO) {
       val exerciseDao = refittedRoom.getExerciseDao()
       val nextStep = exerciseDao.getMaxPrimaryStep(day, workout) + 1
@@ -202,8 +208,12 @@ class RoomCacheExerciseRepository @Inject constructor(
       // one records history across every day/plan it's added to - same convention as
       // admin-authored content (RoomExercise keyed by workout + exercise id).
       log.d(TAG, "adding custom exercise $exerciseId to $workout day $day, step $nextStep")
+      // storeExercise REPLACEs the whole row - a blank incoming description would otherwise wipe
+      // out a description this id/workout pair already has (e.g. re-adding after a delete).
+      val resolvedDescription = description?.takeIf { it.isNotBlank() }
+        ?: exerciseDao.getExercise(exerciseId, workout).first()?.description
       exerciseDao.storeExerciseAndSet(
-        RoomExercise(workout = workout, id = exerciseId),
+        RoomExercise(workout = workout, id = exerciseId, description = resolvedDescription),
         RoomExerciseSet(
           workout = workout,
           day = day,

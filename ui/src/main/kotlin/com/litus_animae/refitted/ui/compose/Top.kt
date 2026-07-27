@@ -98,7 +98,7 @@ fun Top() {
           loadingWorkouts = exerciseModel.loadingWorkouts,
           onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
           onPick = { exercise ->
-            exerciseModel.addExercise(workoutId, day, exercise.id)
+            exerciseModel.addExercise(workoutId, day, exercise.id, exercise.description)
             controller.getBackStackEntry("exercise/{workout}/{day}/{editing}")
               .savedStateHandle["justAddedExercise"] = exercise.name
             // Pop the whole add-exercise sub-flow at once, back to the day screen.

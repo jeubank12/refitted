@@ -344,6 +344,7 @@ class RoomCacheExerciseRepositoryTest {
     fun `adds an open set at the next step`() = runTest {
       // Given
       coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 2
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
       val storedExercise = slot<RoomExercise>()
       val storedSet = slot<RoomExerciseSet>()
       coEvery {
@@ -370,6 +371,7 @@ class RoomCacheExerciseRepositoryTest {
     fun `starts at step 1 for an empty day`() = runTest {
       // Given
       coEvery { exerciseDao.getMaxPrimaryStep("1", workoutName) } returns 0
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
       val storedSet = slot<RoomExerciseSet>()
       coEvery { exerciseDao.storeExerciseAndSet(any(), capture(storedSet)) } returns Unit
 
@@ -379,6 +381,36 @@ class RoomCacheExerciseRepositoryTest {
       // Then
       assertThat(storedSet.captured.step).isEqualTo("1")
       assertThat(storedSet.captured.primaryStep).isEqualTo(1)
+    }
+
+    @Test
+    fun `carries the source exercise's description across`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 0
+      val storedExercise = slot<RoomExercise>()
+      coEvery { exerciseDao.storeExerciseAndSet(capture(storedExercise), any()) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up", description = "Keep your core tight")
+
+      // Then
+      assertThat(storedExercise.captured.description).isEqualTo("Keep your core tight")
+    }
+
+    @Test
+    fun `falls back to the existing stored description when none is passed`() = runTest {
+      // Given - e.g. re-adding an exercise the picker didn't have a cached description for
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 0
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns
+        flowOf(RoomExercise(workout = workoutName, id = "Chest_Push-Up", description = "Existing description"))
+      val storedExercise = slot<RoomExercise>()
+      coEvery { exerciseDao.storeExerciseAndSet(capture(storedExercise), any()) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up", description = null)
+
+      // Then - never clobbered by a blank incoming description
+      assertThat(storedExercise.captured.description).isEqualTo("Existing description")
     }
   }
 

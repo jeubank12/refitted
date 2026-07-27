@@ -21,9 +21,11 @@ interface ExerciseRepository {
   /**
    * Adds an exercise to a custom plan's day, as an open (no set limit) set. [exerciseId] should
    * be an existing catalog exercise's id to share its record history, or a fresh
-   * "{muscleGroup}_{name}" id for a user-authored exercise.
+   * "{muscleGroup}_{name}" id for a user-authored exercise. [description] carries over the source
+   * exercise's instructions, if any - a null/blank value never overwrites an existing description
+   * already stored for this id under [workout].
    */
-  suspend fun addCustomExercise(workout: String, day: String, exerciseId: String)
+  suspend fun addCustomExercise(workout: String, day: String, exerciseId: String, description: String? = null)
 
   /**
    * Updates a custom (BYO) exercise set's prescription - target [sets], [reps], and [rest] - in

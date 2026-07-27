@@ -34,7 +34,7 @@ class InMemoryExerciseRepository(
         TODO("Not yet implemented")
     }
 
-    override suspend fun addCustomExercise(workout: String, day: String, exerciseId: String) {
+    override suspend fun addCustomExercise(workout: String, day: String, exerciseId: String, description: String?) {
         TODO("Not yet implemented")
     }
 
