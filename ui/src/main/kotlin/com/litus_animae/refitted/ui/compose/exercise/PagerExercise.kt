@@ -343,7 +343,7 @@ fun PagerDetailView(
           } else null,
           nextRestSeconds = nextRestSeconds,
           editing = editing,
-          onUpdateCustomTargets = { sets, reps ->
+          onUpdateCustomTargets = { sets, reps, repsRange ->
             onUpdateCustomTargets(
               activeSetWithRecord.exerciseSet.workout,
               activeSetWithRecord.exerciseSet.day,
@@ -351,7 +351,7 @@ fun PagerDetailView(
               sets,
               reps,
               activeSetWithRecord.exerciseSet.rest,
-              activeSetWithRecord.exerciseSet.repsRange
+              repsRange
             )
           }
         )

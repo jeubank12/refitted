@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +34,7 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayMinHeight
+import com.litus_animae.refitted.ui.compose.exercise.TargetStepper
 import com.litus_animae.refitted.ui.compose.exercise.WeightDisplay
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
@@ -72,7 +68,7 @@ fun ExerciseSetView(
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
-  onUpdateCustomTargets: ((sets: Int, reps: Int) -> Unit)? = null,
+  onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -110,16 +106,20 @@ fun ColumnScope.ExerciseSetView(
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
-  onUpdateCustomTargets: ((sets: Int, reps: Int) -> Unit)? = null,
+  onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
-  val weight = rememberSaveable(saver = Weight.Saver, inputs = arrayOf(exerciseSet, record)) {
+  // Keyed on exerciseSet.id (day.step), not the exerciseSet object itself - editing this set's
+  // own target/rest (see onUpdateCustomTargets/onRestOverrideChange) replaces that object via
+  // .copy(), and keying on the whole value would reset an in-progress weight/reps pick every
+  // time. record is still a key: a genuinely new record (next set, different day) should reset.
+  val weight = rememberSaveable(saver = Weight.Saver, inputs = arrayOf(exerciseSet.id, record)) {
     Weight(record.weight)
   }
   val reps = rememberSaveable(
     saver = Repetitions.Saver,
-    inputs = arrayOf(exerciseSet, record)
+    inputs = arrayOf(exerciseSet.id, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
 
   // Local timer state used as fallback for the legacy ExerciseView path
@@ -151,7 +151,14 @@ fun ColumnScope.ExerciseSetView(
           WeightDisplay(onStartEditWeight, weight, saveWeight)
         }
         Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
-          RepsDisplay(setWithRecord, reps)
+          RepsDisplay(
+            setWithRecord,
+            reps,
+            editing = editing,
+            onUpdateTargetReps = onUpdateCustomTargets?.let { update ->
+              { newReps: Int, newRepsRange: Int -> update(exerciseSet.sets, newReps, newRepsRange) }
+            }
+          )
         }
       },
       modifier = Modifier
@@ -185,11 +192,14 @@ fun ColumnScope.ExerciseSetView(
       Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (editing && onUpdateCustomTargets != null) {
           Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
-            TargetEditor(
-              sets = exerciseSet.sets,
-              reps = exerciseSet.reps,
-              onUpdate = onUpdateCustomTargets
-            )
+            Box(Modifier.padding(8.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+              // TODO localize
+              TargetStepper(
+                label = "sets",
+                value = exerciseSet.sets,
+                onChange = { onUpdateCustomTargets(it, exerciseSet.reps, exerciseSet.repsRange) }
+              )
+            }
           }
         }
         Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
@@ -197,7 +207,11 @@ fun ColumnScope.ExerciseSetView(
             restSeconds = effectiveRestSeconds,
             isRunning = isTimerRunning,
             startedAt = effectiveTimerStart,
-            modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight),
+            // Grows the card instead of insetting the ring - CircularRestTimer's own square
+            // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
+            // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
+            // more height, not padding down the ring's existing (correct) size.
+            modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
             nextRestSeconds = nextRestSeconds,
             onAdjust = onRestOverrideChange,
             onFinish = {
@@ -288,52 +302,6 @@ fun ColumnScope.ExerciseSetView(
     numCompleted,
     isTimerRunning
   )
-}
-
-/** Edit-mode target editor for a custom exercise's set-count and reps prescription. */
-@Composable
-private fun TargetEditor(
-  sets: Int,
-  reps: Int,
-  onUpdate: (sets: Int, reps: Int) -> Unit,
-  modifier: Modifier = Modifier
-) {
-  Column(modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-    // TODO localize
-    Text("Target", style = MaterialTheme.typography.overline)
-    Row(
-      Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceEvenly,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      // TODO localize
-      TargetStepper(label = "sets", value = sets, onChange = { onUpdate(it, reps) })
-      // TODO localize
-      TargetStepper(label = "reps", value = reps, onChange = { onUpdate(sets, it) })
-    }
-  }
-}
-
-// A negative value is the open/AMRAP state - not yet targeted. The first tap up starts it at 1
-// rather than 0, since a 0-set or 0-rep target isn't a meaningful prescription.
-@Composable
-private fun TargetStepper(label: String, value: Int, onChange: (Int) -> Unit) {
-  val displayValue = value.takeIf { it >= 0 }
-  Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      IconButton(
-        onClick = { onChange(((displayValue ?: 1) - 1).coerceAtLeast(1)) },
-        enabled = displayValue != null && displayValue > 1
-      ) {
-        Icon(Icons.Default.Remove, contentDescription = "decrease $label")
-      }
-      Text(displayValue?.toString() ?: "—", style = MaterialTheme.typography.body2)
-      IconButton(onClick = { onChange((displayValue ?: 0) + 1) }) {
-        Icon(Icons.Default.Add, contentDescription = "increase $label")
-      }
-    }
-    Text(label, style = MaterialTheme.typography.overline)
-  }
 }
 
 @OptIn(FlowPreview::class)

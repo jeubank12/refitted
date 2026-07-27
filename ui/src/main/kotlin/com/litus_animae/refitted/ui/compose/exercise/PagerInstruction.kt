@@ -607,6 +607,7 @@ private fun buildPrescriptionText(exerciseSet: ExerciseSet): String {
     exerciseSet.isToFailure -> "to failure"
     exerciseSet.repsAreSequenced -> exerciseSet.repsSequence.joinToString("/")
     exerciseSet.reps < 0 -> "AMRAP reps"
+    exerciseSet.repsRange > 0 -> "${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} reps"
     else -> "${exerciseSet.reps} reps"
   }
   val restStr = if (exerciseSet.rest > 0) " · ${exerciseSet.rest}s rest" else ""
