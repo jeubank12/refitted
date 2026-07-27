@@ -261,20 +261,23 @@ class ExerciseViewModel @Inject constructor(
 
   fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> = exerciseRepo.exercisesByMuscle(muscle)
 
-  val remoteExercisesByWorkout: SnapshotStateMap<String, List<Exercise>> = mutableStateMapOf()
-  val loadingWorkouts: SnapshotStateMap<String, Boolean> = mutableStateMapOf()
+  // Keyed by (workout, muscle) - not workout alone - so switching muscle within one session
+  // never shows a stale result cached under the same workout for a different muscle.
+  val remoteExercisesByWorkout: SnapshotStateMap<Pair<String, String>, List<Exercise>> = mutableStateMapOf()
+  val loadingWorkouts: SnapshotStateMap<Pair<String, String>, Boolean> = mutableStateMapOf()
 
   fun loadRemoteExercises(workout: String, muscle: String) {
-    if (loadingWorkouts[workout] == true) return
-    loadingWorkouts[workout] = true
+    val key = workout to muscle
+    if (loadingWorkouts[key] == true) return
+    loadingWorkouts[key] = true
     viewModelScope.launch {
       try {
-        remoteExercisesByWorkout[workout] = exerciseRepo.loadRemoteExercisesByMuscle(workout, muscle)
+        remoteExercisesByWorkout[key] = exerciseRepo.loadRemoteExercisesByMuscle(workout, muscle)
       } catch (ex: Throwable) {
         log.e(TAG, "error loading remote exercises for $workout/$muscle", ex)
         exercisesError = "There was an error loading exercises"
       } finally {
-        loadingWorkouts[workout] = false
+        loadingWorkouts[key] = false
       }
     }
   }

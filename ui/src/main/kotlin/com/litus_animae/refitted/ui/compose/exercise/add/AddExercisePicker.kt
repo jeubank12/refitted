@@ -141,8 +141,9 @@ fun ExercisePickerList(
   muscle: String,
   localExercisesByWorkout: Map<String, List<Exercise>>,
   accessibleWorkoutNames: List<String>,
-  remoteExercisesByWorkout: Map<String, List<Exercise>>,
-  loadingWorkouts: Map<String, Boolean>,
+  /** Keyed by (workout, muscle) - a workout's cached rows are only ever for this screen's own muscle. */
+  remoteExercisesByWorkout: Map<Pair<String, String>, List<Exercise>>,
+  loadingWorkouts: Map<Pair<String, String>, Boolean>,
   onLoadWorkout: (String) -> Unit,
   onPick: (Exercise) -> Unit,
   onBack: () -> Unit,
@@ -178,9 +179,9 @@ fun ExercisePickerList(
             style = MaterialTheme.typography.overline
           )
         }
-        val exercises = localExercisesByWorkout[workout] ?: remoteExercisesByWorkout[workout]
+        val exercises = localExercisesByWorkout[workout] ?: remoteExercisesByWorkout[workout to muscle]
         when {
-          exercises == null && loadingWorkouts[workout] == true -> item(key = "loading:$workout") {
+          exercises == null && loadingWorkouts[workout to muscle] == true -> item(key = "loading:$workout") {
             Row(
               Modifier
                 .fillMaxWidth()
