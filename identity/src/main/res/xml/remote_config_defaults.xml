@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <defaults>
+  <!-- record_chart_type: line | bubble | bubble-exploded | effort -->
   <entry>
     <key>record_chart_type</key>
     <value>line</value>

@@ -27,6 +27,8 @@ import androidx.compose.material.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,10 +46,14 @@ import com.litus_animae.refitted.ui.compose.LocalFeatures
 import com.litus_animae.refitted.ui.compose.charts.BubbleChart
 import com.litus_animae.refitted.ui.compose.charts.BubbleChartExploded
 import com.litus_animae.refitted.ui.compose.charts.BubbleData
+import com.litus_animae.refitted.ui.compose.charts.EffortChart
+import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.LineChart
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.identity.ConfigProvider
+import com.litus_animae.refitted.data.effort.EffortModel
+import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
@@ -142,7 +148,37 @@ fun SetRecordList(
       }
     }
 
-    if (records.itemCount > 0) {
+    val recent by history.recent.collectAsState(initial = emptyList())
+    if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
+      // Fit from the bounded recent-history flow, never the paged snapshot backing the list
+      // above - that would make the trend visibly shift as the user scrolls and more pages
+      // load, since the fit would be over however much of the list happens to be loaded.
+      if (recent.isNotEmpty()) {
+        val series = remember(recent) { EffortModel.score(recent.map { it.toEffortSet() }) }
+        val points = remember(series) {
+          series.sets.map {
+            EffortPoint(
+              // Spreads same-day sets within [dayOffset, dayOffset + 1) instead of stacking
+              // them on one x value.
+              x = it.dayOffset + (it.setIndexInSession + 1f) / (it.setsInSession + 1f),
+              weight = it.source.weight.toFloat(),
+              size = it.size,
+              zone = it.zone
+            )
+          }
+        }
+        val trend = remember(series) {
+          listOf(series.trend.map { it.dayOffset.toFloat() to it.expectedWeight.toFloat() })
+        }
+        EffortChart(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          points = points,
+          trend = trend
+        )
+      }
+    } else if (records.itemCount > 0) {
       val items = remember(records.itemSnapshotList) {
         records.itemSnapshotList.items.reversed()
       }
