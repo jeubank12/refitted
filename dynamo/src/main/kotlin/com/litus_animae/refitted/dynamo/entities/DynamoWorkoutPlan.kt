@@ -27,7 +27,11 @@ internal data class DynamoWorkoutPlan @JvmOverloads constructor(
   var description: String = "",
 
   @get:DynamoDBAttribute(attributeName = "GlobalAlternateLabels")
-  var globalAlternateLabels: String = ""
+  var globalAlternateLabels: String = "",
+
+  /** Absent on every plan stored before equipment libraries existed - PlanKind.fromStored treats that as PROGRAM. */
+  @get:DynamoDBAttribute(attributeName = "Kind")
+  var kind: String? = null
 ) {
   constructor() : this(null)
 }
