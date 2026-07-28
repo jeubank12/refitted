@@ -2,29 +2,46 @@ package com.litus_animae.refitted.ui.compose.charts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.litus_animae.refitted.data.effort.EffortZone
+import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlin.math.sqrt
 
 /** One bubble to draw: [x] and [weight] in the caller's chosen domain, [size] in `[0, 1]`. */
 data class EffortPoint(val x: Float, val weight: Float, val size: Float, val zone: EffortZone)
+
+private val LabelPadding = 4.dp
+private val GapMarkDash = 4.dp
 
 /**
  * Effort-scored sets as bubbles (radius by demonstrated capacity vs. expectation) plus the
@@ -33,6 +50,11 @@ data class EffortPoint(val x: Float, val weight: Float, val size: Float, val zon
  * [trend] is a list of runs rather than one flat polyline - a run breaks wherever the caller's
  * domain has no prediction (cold start, or a skipped index in a compact window), and each run
  * is drawn as its own connected segment rather than one line bridging the gap.
+ *
+ * [xLabels] and [yLabels] are axis ticks in the caller's domain (`domain value to display
+ * text`); [gapMarks] are x-domain positions for a dashed rule (e.g. between sessions with a
+ * long calendar gap between them). All three default empty and cost nothing when unused - the
+ * compact strip never passes them.
  */
 @Composable
 fun EffortChart(
@@ -40,6 +62,9 @@ fun EffortChart(
   points: List<EffortPoint>,
   trend: List<List<Pair<Float, Float>>> = emptyList(),
   compact: Boolean = false,
+  xLabels: List<Pair<Float, String>> = emptyList(),
+  yLabels: List<Pair<Float, String>> = emptyList(),
+  gapMarks: List<Float> = emptyList(),
   baseColor: Color = MaterialTheme.colors.primary,
   peakColor: Color = Theme.goodAttention,
   punishedColor: Color = Theme.timerAmber,
@@ -70,20 +95,65 @@ fun EffortChart(
   fun nx(x: Float) = if (xSpan <= 0f) 0.5f else (x - minX) / xSpan
   fun ny(y: Float) = if (ySpan <= 0f) 0.5f else (y - minY) / ySpan
 
-  val minPx = with(LocalDensity.current) { minPointSize.toPx() }
-  val maxPx = with(LocalDensity.current) { maxPointSize.toPx() }
-  val trendPx = with(LocalDensity.current) { trendWidth.toPx() }
+  // Largest first so a peak bubble never visually swallows a smaller one drawn after it -
+  // hoisted out of the draw scope so it isn't re-sorted every frame.
+  val sortedPoints = remember(points) { points.sortedByDescending { it.size } }
+
+  val density = LocalDensity.current
+  val minPx = with(density) { minPointSize.toPx() }
+  val maxPx = with(density) { maxPointSize.toPx() }
+  val trendPx = with(density) { trendWidth.toPx() }
+  val labelPaddingPx = with(density) { LabelPadding.toPx() }
+  val gapDashPx = with(density) { GapMarkDash.toPx() }
+
+  val textMeasurer = rememberTextMeasurer()
+  val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f))
+  val xLabelLayouts = remember(xLabels, labelStyle) {
+    xLabels.map { (x, text) -> x to textMeasurer.measure(text, labelStyle) }
+  }
+  val yLabelLayouts = remember(yLabels, labelStyle) {
+    yLabels.map { (y, text) -> y to textMeasurer.measure(text, labelStyle) }
+  }
+  val leftGutter = if (yLabelLayouts.isEmpty()) 0f else {
+    yLabelLayouts.maxOf { it.second.size.width } + labelPaddingPx
+  }
+  val bottomGutter = if (xLabelLayouts.isEmpty()) 0f else {
+    xLabelLayouts.maxOf { it.second.size.height } + labelPaddingPx
+  }
 
   val canvasModifier = if (compact) {
     modifier.padding(horizontal = 6.dp, vertical = 4.dp)
   } else {
-    modifier.padding(20.dp).defaultMinSize(100.dp, 100.dp)
+    modifier.padding(8.dp).defaultMinSize(100.dp, 100.dp)
   }
 
   Canvas(canvasModifier) {
+    // Bubble centers are inset by their own radius so the largest bubble's edge lands on the
+    // canvas boundary instead of its center - previously only the composable's outer padding
+    // stood between a max-size edge bubble and clipping by whatever container (e.g. a Card)
+    // sits around this chart.
+    val maxR = maxPx / 2f
+    val plotLeft = (maxR + leftGutter).coerceAtMost(size.width / 2f)
+    val plotRight = (size.width - maxR).coerceAtLeast(plotLeft)
+    val plotTop = maxR.coerceAtMost(size.height / 2f)
+    val plotBottom = (size.height - maxR - bottomGutter).coerceAtLeast(plotTop)
+
+    fun px(x: Float) = lerp(plotLeft, plotRight, nx(x))
+    fun py(y: Float) = lerp(plotBottom, plotTop, ny(y))
+
+    gapMarks.forEach { x ->
+      drawLine(
+        coldColor,
+        Offset(px(x), plotTop),
+        Offset(px(x), plotBottom),
+        strokeWidth = trendPx / 2f,
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx, gapDashPx))
+      )
+    }
+
     trend.forEach { run ->
       if (run.size < 2) return@forEach
-      val offsets = run.map { (x, y) -> Offset(lerp(0f, size.width, nx(x)), lerp(size.height, 0f, ny(y))) }
+      val offsets = run.map { (x, y) -> Offset(px(x), py(y)) }
       drawPoints(
         offsets.zipWithNext().flatMap { sequenceOf(it.first, it.second) },
         PointMode.Lines,
@@ -92,8 +162,7 @@ fun EffortChart(
       )
     }
 
-    // Largest first so a peak bubble never visually swallows a smaller one drawn after it.
-    points.sortedByDescending { it.size }.forEach { point ->
+    sortedPoints.forEach { point ->
       // Stroke width is a diameter, so mapping size -> diameter linearly would make the
       // *area* (what the eye actually reads as "bigger") grow quadratically with size.
       // Interpolating the squared diameter and taking the root keeps size proportional to area.
@@ -101,17 +170,63 @@ fun EffortChart(
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
       val color = zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
       drawPoints(
-        listOf(Offset(lerp(0f, size.width, nx(point.x)), lerp(size.height, 0f, ny(point.weight)))),
+        listOf(Offset(px(point.x), py(point.weight))),
         PointMode.Points,
         color,
         diameter,
         StrokeCap.Round
       )
     }
+
+    yLabelLayouts.forEach { (y, layout) ->
+      drawText(
+        layout,
+        topLeft = Offset(plotLeft - maxR - labelPaddingPx - layout.size.width, py(y) - layout.size.height / 2f)
+      )
+    }
+    xLabelLayouts.forEach { (x, layout) ->
+      val left = (px(x) - layout.size.width / 2f).coerceIn(0f, size.width - layout.size.width)
+      drawText(layout, topLeft = Offset(left, plotBottom + maxR + labelPaddingPx))
+    }
   }
 }
 
-private fun zoneColor(
+/** Dot + label per [EffortZone], decoding the bubble colors drawn by [EffortChart]. */
+@Composable
+fun EffortLegend(
+  modifier: Modifier = Modifier,
+  baseColor: Color = MaterialTheme.colors.primary,
+  peakColor: Color = Theme.goodAttention,
+  punishedColor: Color = Theme.timerAmber,
+  coldColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f)
+) {
+  FlowRow(
+    modifier,
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    verticalArrangement = Arrangement.spacedBy(2.dp)
+  ) {
+    EffortZone.entries.forEach { zone ->
+      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(
+          Modifier
+            .size(8.dp)
+            .background(zoneColor(zone, baseColor, peakColor, punishedColor, coldColor), CircleShape)
+        )
+        Text(stringResource(zoneLabelRes(zone)), style = MaterialTheme.typography.caption)
+      }
+    }
+  }
+}
+
+internal fun zoneLabelRes(zone: EffortZone): Int = when (zone) {
+  EffortZone.COLD -> R.string.effort_zone_cold
+  EffortZone.BELOW -> R.string.effort_zone_below
+  EffortZone.ON_CURVE -> R.string.effort_zone_on_curve
+  EffortZone.GROWTH -> R.string.effort_zone_growth
+  EffortZone.IMPLAUSIBLE -> R.string.effort_zone_implausible
+}
+
+internal fun zoneColor(
   zone: EffortZone,
   baseColor: Color,
   peakColor: Color,
@@ -196,4 +311,45 @@ private fun PreviewEffortChartFlatHistory() {
     points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.60f, EffortZone.ON_CURVE) },
     trend = listOf((3..6).map { it.toFloat() to 100f })
   )
+}
+
+/** Regression check for the plot-rect inset: max-size bubbles sit at every domain corner and
+ * must not touch the [Color.White] box edge. */
+@Preview
+@Composable
+private fun PreviewEffortChartCornerPoints() {
+  EffortChart(
+    Modifier.size(300.dp).background(Color.White),
+    points = listOf(
+      EffortPoint(0f, 0f, 1.00f, EffortZone.GROWTH),
+      EffortPoint(0f, 100f, 1.00f, EffortZone.GROWTH),
+      EffortPoint(10f, 0f, 1.00f, EffortZone.GROWTH),
+      EffortPoint(10f, 100f, 1.00f, EffortZone.GROWTH)
+    )
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewEffortChartWithAxesAndGaps() {
+  EffortChart(
+    Modifier.size(340.dp, 220.dp).background(Color.White),
+    points = listOf(
+      EffortPoint(0f, 20f, 0.30f, EffortZone.COLD),
+      EffortPoint(1f, 20f, 0.30f, EffortZone.COLD),
+      EffortPoint(2f, 15f, 0.60f, EffortZone.ON_CURVE),
+      EffortPoint(3f, 35f, 0.85f, EffortZone.GROWTH),
+      EffortPoint(4f, 40f, 1.00f, EffortZone.GROWTH)
+    ),
+    trend = listOf(listOf(3f to 33f, 4f to 38f)),
+    gapMarks = listOf(1.5f, 2.5f),
+    xLabels = listOf(0f to "Nov '21", 2f to "Jan '23", 4f to "Jun '23"),
+    yLabels = listOf(15f to "15", 40f to "40")
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewEffortLegend() {
+  EffortLegend(Modifier.background(Color.White).padding(8.dp))
 }
