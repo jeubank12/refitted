@@ -1,8 +1,10 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -156,95 +159,111 @@ fun SetRecordList(
       }
     }
 
-    // Charted above the scrolling list, not below it - a card anchored at the very bottom of
-    // the drawer sat under the gesture nav bar / corner bezel on edge-to-edge devices. The
-    // list is the one thing here that's meant to scroll, so it's the one that should own the
-    // bottom edge, with its own inset padding rather than a card fighting the system bars.
-    if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
-      if (bestBySessionIndex.isNotEmpty()) {
-        EffortHistoryCard(
-          Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          bestBySessionIndex = bestBySessionIndex,
-          trend = series.trend,
-          zone = zone
-        )
-      }
-    } else if (records.itemCount > 0) {
-      val items = remember(records.itemSnapshotList) {
-        records.itemSnapshotList.items.reversed()
-      }
-      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble-exploded") {
-        val data = remember(items) {
-          items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
-        }
-
-        BubbleChartExploded(
-          Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          data = data,
-          inverseRelationship = true
-        )
-      } else if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble") {
-        val data = remember(items) {
-          items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
-        }
-
-        BubbleChart(
-          Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          data = data,
-          inverseRelationship = true
-        )
-      } else {
-        val data = remember(items) {
-          items.map { it.completed to it.weight.toFloat() }
-        }
-        LineChart(
-          Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          data = data
-        )
-      }
+    // AdaptiveExercisePanes applies one ratio to both axes, but the list's good portrait
+    // width (2/3 of a narrow screen) and its good landscape width (which only needs to stay
+    // roughly that same absolute width, not 2/3 of a much wider screen) aren't the same
+    // fraction - a landscape screen is wide enough that giving the chart a bigger share still
+    // leaves the list at a comparable width to portrait's, rather than needlessly wide.
+    val chartSplitRatio = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+      0.6f
+    } else {
+      1f / 3f
     }
 
-    LazyColumn(
-      Modifier.weight(2f),
-      contentPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues()
-    ) {
-      // TODO does this cause everything to recompose? Should we just overlay?
-      if (records.loadState.refresh is LoadState.Loading) {
-        item {
-          Row(Modifier.fillMaxWidth()) {
-            LoadingView()
-          }
-        }
-      } else {
-        items(sessions, key = { it.day.toEpochDay() }) { session ->
-          val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
-          SessionRow(
-            session = session,
-            isPR = scored != null && scored.capacity == bestCapacityOverall,
-            expanded = isExpanded(session.day),
-            onToggle = {
-              expandedOverrides = expandedOverrides +
-                (session.day.toEpochDay() to !isExpanded(session.day))
+    // Chart left / list right in landscape, chart top / list bottom in portrait - reuses the
+    // same reflow PagerExercise.kt uses for its instructions/set-detail split. In landscape a
+    // side-mounted camera cutout lands on whichever pane sits at that edge, so this needs the
+    // same horizontal cutout inset the header above already applies to itself - unlike the
+    // header, there's no app bar to carry it, so it's applied directly here. The chart pane
+    // must always emit exactly one composable (AdaptiveExercisePanes measures first() and
+    // second() as one child each), so the flag/empty-state branches below are wrapped in one
+    // outer Box rather than conditionally emitting nothing.
+    AdaptiveExercisePanes(
+      Modifier
+        .fillMaxWidth()
+        .weight(1f)
+        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
+      splitRatio = chartSplitRatio,
+      first = {
+        // Matches SessionRow's own horizontal inset (10.dp) so the chart pane doesn't sit
+        // flush against the drawer edge or the header the way the list's Card rows don't
+        // either - the elevated Card had no margin of its own in any orientation, most
+        // visible in landscape where it touched both the header and the pane's bottom edge.
+        Box(
+          Modifier
+            .fillMaxSize()
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+        ) {
+          if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
+            if (bestBySessionIndex.isNotEmpty()) {
+              EffortHistoryCard(
+                Modifier.fillMaxSize(),
+                bestBySessionIndex = bestBySessionIndex,
+                trend = series.trend,
+                zone = zone
+              )
             }
-          )
-        }
-        if (records.loadState.append is LoadState.Loading) {
-          item {
-            Row(Modifier.fillMaxWidth()) {
-              LoadingView()
+          } else if (records.itemCount > 0) {
+            val items = remember(records.itemSnapshotList) {
+              records.itemSnapshotList.items.reversed()
+            }
+            if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble-exploded") {
+              val data = remember(items) {
+                items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
+              }
+
+              BubbleChartExploded(Modifier.fillMaxSize(), data = data, inverseRelationship = true)
+            } else if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble") {
+              val data = remember(items) {
+                items.map { BubbleData(it.completed, it.weight.toFloat(), it.reps) }
+              }
+
+              BubbleChart(Modifier.fillMaxSize(), data = data, inverseRelationship = true)
+            } else {
+              val data = remember(items) {
+                items.map { it.completed to it.weight.toFloat() }
+              }
+              LineChart(Modifier.fillMaxSize(), data = data)
             }
           }
         }
+      },
+      second = {
+        LazyColumn(
+          Modifier.fillMaxSize(),
+          contentPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues()
+        ) {
+          // TODO does this cause everything to recompose? Should we just overlay?
+          if (records.loadState.refresh is LoadState.Loading) {
+            item {
+              Row(Modifier.fillMaxWidth()) {
+                LoadingView()
+              }
+            }
+          } else {
+            items(sessions, key = { it.day.toEpochDay() }) { session ->
+              val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
+              SessionRow(
+                session = session,
+                isPR = scored != null && scored.capacity == bestCapacityOverall,
+                expanded = isExpanded(session.day),
+                onToggle = {
+                  expandedOverrides = expandedOverrides +
+                    (session.day.toEpochDay() to !isExpanded(session.day))
+                }
+              )
+            }
+            if (records.loadState.append is LoadState.Loading) {
+              item {
+                Row(Modifier.fillMaxWidth()) {
+                  LoadingView()
+                }
+              }
+            }
+          }
+        }
       }
-    }
+    )
   }
 }
 
