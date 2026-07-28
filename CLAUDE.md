@@ -340,3 +340,7 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Each commit should build on its own — avoid a commit that only compiles once a later commit lands.
 - Prefer succinct commit messages over long ones — a short message that explains what's not obvious from the diff beats a detailed one.
 - Do not add a `Claude-Session` link or similar session-tracking trailer to commit messages unless explicitly asked. A `Co-Authored-By` trailer is fine.
+
+## Pull Request Conventions
+
+- Do not include a test plan checklist of CI-run commands (`./gradlew test`, `assembleDebug`, `lint`, etc.) in the PR description — CI (`.github/workflows/build.yml`) already runs these on every push, so listing them as manual checkboxes is redundant. If a test plan section is useful, keep it to what CI *doesn't* cover (on-device/manual verification steps, specific scenarios to check by hand).
