@@ -10,13 +10,26 @@ import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
+/**
+ * The set-history drawer's data source. [paged] backs the scrolling list (unbounded
+ * scrollback); [recent] backs any chart drawn from it - a bounded, non-paged flow so a
+ * trend fit sees a stable window of history rather than however many pages happen to be
+ * loaded under the list at the time.
+ */
+data class SetHistory(
+  val paged: Flow<PagingData<SetRecord>> = emptyFlow(),
+  val recent: Flow<List<SetRecord>> = emptyFlow()
+)
 
 data class ExerciseSetWithRecord(
   val exerciseSet: ExerciseSet,
   val currentRecord: MutableState<Record>,
   val numCompleted: Int,
   val setRecords: SnapshotStateList<Record>,
-  val allSets: Flow<PagingData<SetRecord>>
+  val allSets: Flow<PagingData<SetRecord>>,
+  val recentSets: Flow<List<SetRecord>> = emptyFlow()
 ) {
   fun saveRecordInState(
     savedRecord: Record
@@ -86,7 +99,8 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
         currentRecord,
         effectiveNumCompleted,
         rememberedSetRecords,
-        currentSetRecord.allSets
+        currentSetRecord.allSets,
+        currentSetRecord.recentSets
       )
 
       state[currentSet.id] = exerciseSetWithRecord

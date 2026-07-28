@@ -39,10 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.paging.PagingData
 import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
+import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.ui.compose.util.Theme
@@ -53,7 +53,6 @@ import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -66,7 +65,7 @@ fun PagerExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
-  setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
+  setHistoryList: (SetHistory) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
@@ -115,7 +114,7 @@ fun PagerExerciseView(
 
   LaunchedEffect(exerciseSet) {
     setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
-    currentSetRecord?.allSets?.let { setHistoryList(it) }
+    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets, it.recentSets)) }
   }
 
   // A genuinely empty day (no instructions, e.g. a fresh custom day) never resolves an

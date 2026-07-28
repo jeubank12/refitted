@@ -123,6 +123,14 @@ interface ExerciseDao {
   @Query("select * from setrecord where exercise = :targetExercise order by completed desc")
   fun getAllSetRecord(targetExercise: String): PagingSource<Int, RoomSetRecord>
 
+  /**
+   * Newest [limit] records for [targetExercise], descending - callers reverse for chronology.
+   * Unlike [getAllSetRecord], this is a plain list flow so a trend fit can see a stable window
+   * of history without depending on how many Paging pages happen to be loaded.
+   */
+  @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit :limit")
+  fun getRecentSetRecords(targetExercise: String, limit: Int): Flow<List<RoomSetRecord>>
+
   @Insert
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 

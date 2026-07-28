@@ -45,10 +45,10 @@ import com.litus_animae.refitted.ui.compose.charts.BubbleChart
 import com.litus_animae.refitted.ui.compose.charts.BubbleChartExploded
 import com.litus_animae.refitted.ui.compose.charts.BubbleData
 import com.litus_animae.refitted.ui.compose.charts.LineChart
+import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.data.models.SetRecord
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 import java.time.ZoneId
@@ -58,9 +58,9 @@ import java.time.format.FormatStyle
 @Composable
 fun SetRecordList(
   modifier: Modifier = Modifier,
-  flow: Flow<PagingData<SetRecord>>
+  history: SetHistory
 ) {
-  val records = flow.collectAsLazyPagingItems()
+  val records = history.paged.collectAsLazyPagingItems()
 
   Column(modifier
     .fillMaxSize()) {
@@ -215,14 +215,15 @@ private fun RecordItem(
 @Preview
 @Composable
 private fun PreviewSetRecordList() {
+  val records = listOf(
+    SetRecord(35.0, 6, "X", "Y", Instant.ofEpochMilli(1000), "Z"),
+    SetRecord(37.5, 6, "X", "Y", Instant.ofEpochMilli(2000), "Z"),
+    SetRecord(35.0, 10, "X", "Y", Instant.ofEpochMilli(4000), "Z"),
+    SetRecord(40.0, 6, "X", "Y", Instant.ofEpochMilli(6000), "Z"),
+    SetRecord(45.0, 2, "X", "Y", Instant.ofEpochMilli(7000), "Z"),
+  )
   val data = PagingData.from(
-    listOf(
-      SetRecord(35.0, 6, "X", "Y", Instant.ofEpochMilli(1000), "Z"),
-      SetRecord(37.5, 6, "X", "Y", Instant.ofEpochMilli(2000), "Z"),
-      SetRecord(35.0, 10, "X", "Y", Instant.ofEpochMilli(4000), "Z"),
-      SetRecord(40.0, 6, "X", "Y", Instant.ofEpochMilli(6000), "Z"),
-      SetRecord(45.0, 2, "X", "Y", Instant.ofEpochMilli(7000), "Z"),
-    ),
+    records,
     sourceLoadStates = LoadStates(
       LoadState.NotLoading(true),
       LoadState.NotLoading(true),
@@ -235,6 +236,6 @@ private fun PreviewSetRecordList() {
       .background(Color.White)
       .height(400.dp)
       .width(200.dp),
-    flowOf(data)
+    SetHistory(flowOf(data), flowOf(records))
   )
 }
