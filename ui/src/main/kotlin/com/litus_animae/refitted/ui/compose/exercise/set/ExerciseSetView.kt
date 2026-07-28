@@ -60,8 +60,9 @@ import java.time.Instant
 // label + the surrounding 8.dp padding on each side) - pinned rather than measured so the
 // strip's height budget below can be computed exactly instead of guessed.
 private val EditStepperCardHeight = 80.dp
-private val StripPreferredHeight = 72.dp
-private val StripMinHeight = 48.dp
+// Raised from 72/48.dp to fit the strip's title + zone-label header row on top of the chart.
+private val StripPreferredHeight = 88.dp
+private val StripMinHeight = 64.dp
 
 /**
  * Wrapper overload that puts [ExerciseSetView] in its own [Column].

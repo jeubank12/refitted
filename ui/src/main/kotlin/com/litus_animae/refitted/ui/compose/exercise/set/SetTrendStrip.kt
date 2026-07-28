@@ -1,22 +1,39 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.effort.EffortModel
 import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
+import com.litus_animae.refitted.ui.compose.charts.zoneColor
+import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
+import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
@@ -86,7 +103,48 @@ fun SetTrendStrip(
     }
 
     Card(Modifier.fillMaxSize(), elevation = 2.dp) {
-      EffortChart(Modifier.fillMaxSize(), points = points, trend = trend, compact = true)
+      Column(Modifier.fillMaxSize()) {
+        // Doubles as the chart's only legend: it names the color of the bubble the user
+        // just earned, in the moment they earn it, rather than a static key for all five.
+        Row(
+          Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.caption)
+          val latestZone = windowed.last().zone
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+          ) {
+            Box(
+              Modifier
+                .size(8.dp)
+                .background(
+                  zoneColor(
+                    latestZone,
+                    MaterialTheme.colors.primary,
+                    Theme.goodAttention,
+                    Theme.timerAmber,
+                    MaterialTheme.colors.onSurface.copy(alpha = 0.25f)
+                  ),
+                  CircleShape
+                )
+            )
+            Text(stringResource(zoneLabelRes(latestZone)), style = MaterialTheme.typography.caption)
+          }
+        }
+        EffortChart(
+          Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          points = points,
+          trend = trend,
+          compact = true
+        )
+      }
     }
   }
 }
