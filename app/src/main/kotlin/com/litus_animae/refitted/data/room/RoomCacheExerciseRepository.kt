@@ -36,8 +36,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -363,10 +365,23 @@ class RoomCacheExerciseRepository @Inject constructor(
       e,
       defaultRecord,
       latestRecord,
-      Pager(config = PagingConfig(pageSize = 20)) {
+      // initialLoadSize defaults to pageSize * 3 - too little history for the effort
+      // chart's fit to be stable on first composition. A large first page means the
+      // trend only ever refines (recency-weighted, so old sessions barely move it) as
+      // later pages load, rather than visibly refitting.
+      Pager(config = PagingConfig(pageSize = 20, initialLoadSize = 400)) {
         refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
       }.flow.map { it.map { roomRecord -> roomRecord.toDomain() } },
-      currentRecords
+      currentRecords,
+      // The DAO call itself is deferred inside this builder - like the Pager above - so
+      // building an ExerciseRecord never queries Room unless recentSets is collected.
+      flow {
+        emitAll(
+          refittedRoom.getExerciseDao()
+            .getRecentSetRecords(e.exerciseName, SET_RECORD_HISTORY_LIMIT)
+            .map { rows -> rows.asReversed().map { it.toDomain() } }
+        )
+      }.flowOn(Dispatchers.IO)
     )
   }
 
@@ -423,5 +438,9 @@ class RoomCacheExerciseRepository @Inject constructor(
   companion object {
     private const val TAG = "RoomCacheExerciseRepository"
     private const val LOADING_INDICATOR_DEBOUNCE_MILLIS = 250L
+
+    // ~100+ sessions of history; the effort model's recency weighting makes anything
+    // beyond that numerically irrelevant, so there's no reason to load more into memory.
+    private const val SET_RECORD_HISTORY_LIMIT = 400
   }
 }

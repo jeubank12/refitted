@@ -253,6 +253,7 @@ The Android app is organized into the following Gradle modules:
 | DAOs | :room | `room/.../*Dao.kt` |
 | Network Services | :dynamo | `dynamo/.../Dynamo*NetworkService.kt` |
 | Firebase Providers | :identity | `identity/.../*Provider.kt` |
+| In-app changelog | :ui | `ui/src/main/res/values/changelog.xml`, `ui/.../compose/Changelog.kt` |
 
 Note: Paths abbreviated with `...` represent the full package path `com/litus_animae/refitted/`
 
@@ -330,6 +331,7 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Keep modules focused: domain logic in `:data`, persistence in `:room`, UI in `:ui`, etc.
 - Repository implementations in `:app` bridge multiple data sources (Room + DynamoDB)
 - Do not add comments explaining what code does when the code is self-explanatory. Only comment non-obvious *why* (a hidden constraint, a workaround, a subtle invariant) — never restate the *what*. Prefer putting that *why* in the commit message over a code comment when it's about the change itself rather than a lasting property of the code
+- User-facing changes should get an entry in `ui/src/main/res/values/changelog.xml` (a `string-array` where an item starting with `**` is a version header, e.g. `**v1.4.0`, and following items are bullets shown under it). New entries go under the current in-progress version header at the top rather than bumping the version — the in-app dialog (`Changelog.kt`, gated in `UserViewModel.shouldShowChangelog()`) fires once per change in `versionCode` (`app/build.gradle`), not per changelog edit, so editing this file alone is safe and doesn't trigger anything for existing users until a release bumps the version. Keep entries short and benefit-oriented, not implementation detail. Order bullets within a version by importance/impact to the user, not chronologically by when they landed — reorder existing entries in that version if a new one outranks them.
 
 ## Commit Conventions
 
@@ -338,3 +340,7 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Each commit should build on its own — avoid a commit that only compiles once a later commit lands.
 - Prefer succinct commit messages over long ones — a short message that explains what's not obvious from the diff beats a detailed one.
 - Do not add a `Claude-Session` link or similar session-tracking trailer to commit messages unless explicitly asked. A `Co-Authored-By` trailer is fine.
+
+## Pull Request Conventions
+
+- Do not include a test plan checklist of CI-run commands (`./gradlew test`, `assembleDebug`, `lint`, etc.) in the PR description — CI (`.github/workflows/build.yml`) already runs these on every push, so listing them as manual checkboxes is redundant. If a test plan section is useful, keep it to what CI *doesn't* cover (on-device/manual verification steps, specific scenarios to check by hand).

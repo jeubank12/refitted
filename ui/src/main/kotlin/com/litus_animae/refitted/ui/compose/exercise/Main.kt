@@ -37,17 +37,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.paging.PagingData
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.input.WeightButtons
+import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
-import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalMaterialApi::class)
@@ -77,7 +75,7 @@ fun Exercise(
   }
   var contextMenu by remember { mutableStateOf<@Composable RowScope.() -> Unit>({}) }
   val (historyList, setHistoryList) = remember {
-    mutableStateOf(emptyFlow<PagingData<SetRecord>>())
+    mutableStateOf(SetHistory())
   }
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
@@ -116,7 +114,7 @@ fun Exercise(
       )
     },
     scaffoldState = scaffoldState,
-    drawerContent = { SetRecordList(flow = historyList) }
+    drawerContent = { SetRecordList(history = historyList) }
   ) {
     var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
     ModalBottomSheetLayout(
@@ -140,6 +138,7 @@ fun Exercise(
           scaffoldScope.launch { sheetState.show() }
         },
         onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
+        onOpenHistory = { scaffoldScope.launch { scaffoldState.drawerState.open() } },
         editing = editing,
         onAddExercise = onAddExercise,
         scrollToExerciseName = scrollToExerciseName)

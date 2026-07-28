@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -29,8 +31,11 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.LocalFeatures
 import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayEditingMinHeight
@@ -44,9 +49,20 @@ import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.data.models.Record
+import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
+import java.time.Duration
 import java.time.Instant
+
+// Wrapped-content height of the sets TargetStepper card (48.dp IconButton row + overline
+// label + the surrounding 8.dp padding on each side) - pinned rather than measured so the
+// strip's height budget below can be computed exactly instead of guessed.
+private val EditStepperCardHeight = 80.dp
+// Raised from 72/48.dp to fit the strip's title + zone-label header row on top of the chart.
+private val StripPreferredHeight = 88.dp
+private val StripMinHeight = 64.dp
 
 /**
  * Wrapper overload that puts [ExerciseSetView] in its own [Column].
@@ -70,6 +86,7 @@ fun ExerciseSetView(
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
+  onOpenHistory: () -> Unit = {},
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -87,6 +104,7 @@ fun ExerciseSetView(
       nextRestSeconds = nextRestSeconds,
       editing = editing,
       onUpdateCustomTargets = onUpdateCustomTargets,
+      onOpenHistory = onOpenHistory,
     )
   }
 }
@@ -108,8 +126,11 @@ fun ColumnScope.ExerciseSetView(
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
+  onOpenHistory: () -> Unit = {},
 ) {
-  val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
+  val exerciseSet = setWithRecord.exerciseSet
+  val currentRecord = setWithRecord.currentRecord
+  val numCompleted = setWithRecord.numCompleted
   val record by currentRecord
   // Keyed on exerciseSet.id (day.step), not the exerciseSet object itself - editing this set's
   // own target/rest (see onUpdateCustomTargets/onRestOverrideChange) replaces that object via
@@ -185,19 +206,48 @@ fun ColumnScope.ExerciseSetView(
         repsPlaceable.place(0, weightPlaceable.height + spacing)
       }
     }
-    Box(
+    BoxWithConstraints(
       Modifier
         .weight(1f)
         .fillMaxHeight()
         .padding(start = 8.dp),
       contentAlignment = Alignment.Center
     ) {
+      val stepperShown = editing && onUpdateCustomTargets != null
+      val stepperHeight = if (stepperShown) EditStepperCardHeight + 8.dp else 0.dp
+      val timerHeight = RepsDisplayMinHeight + 16.dp
+      // No scroll exists in this pane, so a strip that doesn't fit is omitted rather than
+      // shrunk below legibility or wrapped - landscape and short screens fall through to
+      // stripHeight == null and the layout is unchanged from before the strip existed.
+      val stripHeight = if (maxHeight == Dp.Infinity) {
+        null
+      } else {
+        val slack = maxHeight - timerHeight - stepperHeight - 8.dp
+        when {
+          slack >= StripPreferredHeight -> StripPreferredHeight
+          slack >= StripMinHeight -> slack
+          else -> null
+        }
+      }
+      val showStrip = stripHeight != null &&
+        LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort"
+
       // Wraps its content instead of filling the row's height (which the Weight/Reps
       // stack next to it doesn't fully occupy either) so it floats centered rather than
       // stretching to an arbitrary bottom edge that never quite matched theirs.
       Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (editing && onUpdateCustomTargets != null) {
-          Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        if (showStrip) {
+          SetTrendStrip(
+            Modifier
+              .fillMaxWidth()
+              .height(stripHeight),
+            history = setWithRecord.recentSets,
+            todaysRecords = setWithRecord.setRecords,
+            onClick = onOpenHistory
+          )
+        }
+        if (stepperShown) {
+          Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = 2.dp) {
             Box(Modifier.padding(8.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
               // TODO localize
               TargetStepper(
@@ -310,12 +360,32 @@ fun ColumnScope.ExerciseSetView(
   )
 }
 
+private val previewRecentSets: List<SetRecord> = run {
+  val base = Instant.now().minus(Duration.ofDays(10))
+  (0 until 10).flatMap { day ->
+    (0 until 3).map { setIndex ->
+      SetRecord(
+        weight = 95.0 + day * 1.5,
+        reps = 8,
+        workout = exampleExerciseSet.workout,
+        targetSet = exampleExerciseSet.id,
+        completed = base.plus(Duration.ofDays(day.toLong())).plusSeconds(setIndex * 120L),
+        exercise = exampleExerciseSet.exerciseName
+      )
+    }
+  }
+}
+
 @OptIn(FlowPreview::class)
 @Composable
-@Preview(heightDp = 400, apiLevel = 36)
-private fun PreviewExerciseSetDetails() {
+private fun PreviewExerciseSetDetails(
+  heightDp: Int = 400,
+  editing: Boolean = false,
+  recentSets: List<SetRecord> = previewRecentSets
+) {
   var numCompleted by remember { mutableIntStateOf(0) }
   var currentIndex by remember { mutableIntStateOf(5) }
+  var sets by remember { mutableIntStateOf(exampleExerciseSet.sets) }
   val records = remember { mutableStateListOf<Record>() }
   val currentRecord =
     remember {
@@ -328,27 +398,59 @@ private fun PreviewExerciseSetDetails() {
         )
       )
     }
-  androidx.compose.material.MaterialTheme(Theme.lightColors) {
-    Column(
-      Modifier
-        .padding(16.dp)
-        .fillMaxSize()
-    ) {
-      ExerciseSetView(
-        setWithRecord = ExerciseSetWithRecord(
-          exampleExerciseSet,
-          currentRecord,
-          numCompleted = 1,
-          setRecords = records,
-          allSets = emptyFlow()
-        ),
-        currentIndex = currentIndex,
-        maxIndex = 5,
-        updateIndex = { newIndex, _ -> currentIndex = newIndex },
-        onSave = { numCompleted += 1 },
-        onStartEditWeight = {},
-        showNavigationButtons = false
-      )
+  CompositionLocalProvider(
+    LocalFeatures provides ConfigProvider.Companion.RemoteConfig(
+      mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
+    )
+  ) {
+    MaterialTheme(Theme.lightColors) {
+      Column(
+        Modifier
+          .padding(16.dp)
+          .height(heightDp.dp)
+          .fillMaxWidth()
+      ) {
+        ExerciseSetView(
+          setWithRecord = ExerciseSetWithRecord(
+            exampleExerciseSet.copy(sets = sets),
+            currentRecord,
+            numCompleted = 1,
+            setRecords = records,
+            allSets = emptyFlow(),
+            recentSets = flowOf(recentSets)
+          ),
+          currentIndex = currentIndex,
+          maxIndex = 5,
+          updateIndex = { newIndex, _ -> currentIndex = newIndex },
+          onSave = { numCompleted += 1 },
+          onStartEditWeight = {},
+          showNavigationButtons = false,
+          editing = editing,
+          onUpdateCustomTargets = if (editing) {
+            { newSets, _, _ -> sets = newSets }
+          } else {
+            null
+          }
+        )
+      }
     }
   }
+}
+
+@Preview(heightDp = 400, apiLevel = 36)
+@Composable
+private fun PreviewExerciseSetDetailsStripShown() {
+  PreviewExerciseSetDetails(heightDp = 400)
+}
+
+@Preview(heightDp = 300, apiLevel = 36)
+@Composable
+private fun PreviewExerciseSetDetailsStripOmitted() {
+  PreviewExerciseSetDetails(heightDp = 300)
+}
+
+@Preview(heightDp = 400, apiLevel = 36)
+@Composable
+private fun PreviewExerciseSetDetailsEditing() {
+  PreviewExerciseSetDetails(heightDp = 400, editing = true)
 }

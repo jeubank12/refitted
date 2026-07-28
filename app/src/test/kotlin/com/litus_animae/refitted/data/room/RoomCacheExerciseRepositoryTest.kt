@@ -20,6 +20,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow
@@ -313,6 +314,46 @@ class RoomCacheExerciseRepositoryTest {
         cancelAndIgnoreRemainingEvents()
       }
     }
+    @Test
+    fun `recentSets is not queried until collected`() = runTest {
+      // Given
+      val runTime = Instant.now()
+      setupGetSetRecords(runTime, simpleExerciseSet, emptyList())
+      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(null)
+
+      // When - building the record alone must not touch Room, same laziness as the allSets Pager
+      subject.buildExerciseRecord(simpleExerciseSet, runTime)
+
+      // Then
+      verify(exactly = 0) { exerciseDao.getRecentSetRecords(any(), any()) }
+    }
+
+    @Test
+    fun `recentSets reverses the DAO's newest-first rows to chronological order`() = runTest {
+      // Given
+      val runTime = Instant.now()
+      setupGetSetRecords(runTime, simpleExerciseSet, emptyList())
+      every { exerciseDao.getLatestSetRecord(simpleExerciseSet.exerciseName) } returns flowOf(null)
+      val older = SetRecord(90.0, 8, simpleExerciseSet)
+        .copy(completed = runTime.minus(2, ChronoUnit.DAYS))
+      val newer = SetRecord(95.0, 8, simpleExerciseSet)
+        .copy(completed = runTime.minus(1, ChronoUnit.DAYS))
+      // DAO returns newest-first (order by completed desc) - 400 is
+      // RoomCacheExerciseRepository's private SET_RECORD_HISTORY_LIMIT.
+      every {
+        exerciseDao.getRecentSetRecords(simpleExerciseSet.exerciseName, 400)
+      } returns flowOf(listOf(newer, older).map { RoomSetRecord.fromDomain(it) })
+
+      // When
+      val result = subject.buildExerciseRecord(simpleExerciseSet, runTime)
+
+      // Then
+      result.recentSets.test {
+        assertThat(awaitItem()).isEqualTo(listOf(older, newer))
+        cancelAndIgnoreRemainingEvents()
+      }
+    }
+
     // TODO test buildNewDayUnstoredRecord directly to test different day behavior
   }
 

@@ -26,13 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.paging.PagingData
 import androidx.window.layout.DisplayFeature
 import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
+import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.state.recordsByExerciseId
 import com.litus_animae.refitted.ui.compose.util.Theme
@@ -44,7 +44,6 @@ import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import java.time.Instant
 
@@ -55,7 +54,7 @@ fun ExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
-  setHistoryList: (Flow<PagingData<SetRecord>>) -> Unit,
+  setHistoryList: (SetHistory) -> Unit,
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit
@@ -80,7 +79,7 @@ fun ExerciseView(
 
   LaunchedEffect(exerciseSet) {
     setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
-    currentSetRecord?.allSets?.let { setHistoryList(it) }
+    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
   val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null

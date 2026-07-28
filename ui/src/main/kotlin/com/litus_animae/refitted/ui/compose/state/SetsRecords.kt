@@ -10,13 +10,25 @@ import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
+/**
+ * The set-history drawer's data source. The pager's initialLoadSize is large (see
+ * RoomCacheExerciseRepository) so both the grouped list and the effort chart built from it
+ * see a full history window on first composition - later pages only refine a causal,
+ * recency-weighted fit rather than visibly changing it.
+ */
+data class SetHistory(
+  val paged: Flow<PagingData<SetRecord>> = emptyFlow()
+)
 
 data class ExerciseSetWithRecord(
   val exerciseSet: ExerciseSet,
   val currentRecord: MutableState<Record>,
   val numCompleted: Int,
   val setRecords: SnapshotStateList<Record>,
-  val allSets: Flow<PagingData<SetRecord>>
+  val allSets: Flow<PagingData<SetRecord>>,
+  val recentSets: Flow<List<SetRecord>> = emptyFlow()
 ) {
   fun saveRecordInState(
     savedRecord: Record
@@ -86,7 +98,8 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
         currentRecord,
         effectiveNumCompleted,
         rememberedSetRecords,
-        currentSetRecord.allSets
+        currentSetRecord.allSets,
+        currentSetRecord.recentSets
       )
 
       state[currentSet.id] = exerciseSetWithRecord

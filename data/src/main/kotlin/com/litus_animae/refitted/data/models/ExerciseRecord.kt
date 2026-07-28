@@ -2,6 +2,7 @@ package com.litus_animae.refitted.data.models
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -12,7 +13,8 @@ data class ExerciseRecord(
   val defaultRecord: Record,
   val latestRecord: Flow<Record>,
   val allSets: Flow<PagingData<SetRecord>>,
-  val currentRecords: Flow<List<Record>>
+  val currentRecords: Flow<List<Record>>,
+  val recentSets: Flow<List<SetRecord>> = emptyFlow()
 ) {
   val currentRecordsCount = currentRecords.map { sets -> sets.size }
 
