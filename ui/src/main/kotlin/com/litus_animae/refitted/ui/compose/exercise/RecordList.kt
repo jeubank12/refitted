@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,7 @@ import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.litus_animae.refitted.data.effort.EffortConfig
 import com.litus_animae.refitted.data.effort.EffortModel
 import com.litus_animae.refitted.data.effort.ScoredSet
 import com.litus_animae.refitted.data.effort.TrendPoint
@@ -334,6 +336,18 @@ private fun SessionRow(
  * sessions, and a calendar x-axis would leave most of the plot empty. [EffortModel.score]
  * still fits on real day-offset regardless of this display choice.
  */
+/**
+ * The coarsest tick format that keeps thinned labels legible at the loaded span - avoids the
+ * month/year pattern rounding a handful of days apart down to identical text, while still
+ * collapsing a multi-year history to something coarser than a day-of-month number nobody
+ * needs at that scale.
+ */
+private fun axisFormatterFor(spanDays: Long): DateTimeFormatter = when {
+  spanDays < 120 -> DateTimeFormatter.ofPattern("MMM d")
+  spanDays < 730 -> DateTimeFormatter.ofPattern("MMM ''yy")
+  else -> DateTimeFormatter.ofPattern("yyyy")
+}
+
 @Composable
 private fun EffortHistoryCard(
   modifier: Modifier = Modifier,
@@ -341,7 +355,6 @@ private fun EffortHistoryCard(
   trend: List<TrendPoint>,
   zone: ZoneId
 ) {
-  val monthYear = remember { DateTimeFormatter.ofPattern("MMM ''yy") }
   val sortedEntries = remember(bestBySessionIndex) {
     bestBySessionIndex.entries.sortedBy { it.key }
   }
@@ -362,14 +375,21 @@ private fun EffortHistoryCard(
       if (b.value.dayOffset - a.value.dayOffset > GapThresholdDays) a.key + 0.5f else null
     }
   }
-  val xLabels = remember(sortedEntries) {
+  val xLabels = remember(sortedEntries, zone) {
     if (sortedEntries.isEmpty()) {
       emptyList()
     } else {
+      val spanDays = sortedEntries.last().value.dayOffset - sortedEntries.first().value.dayOffset
+      val formatter = axisFormatterFor(spanDays)
       val step = (sortedEntries.size / MaxXLabels).coerceAtLeast(1)
-      sortedEntries.filterIndexed { index, _ -> index % step == 0 }.map { (sessionIndex, scored) ->
-        sessionIndex.toFloat() to monthYear.format(scored.source.completed.atZone(zone))
-      }
+      sortedEntries.filterIndexed { index, _ -> index % step == 0 }
+        .map { (sessionIndex, scored) ->
+          sessionIndex.toFloat() to formatter.format(scored.source.completed.atZone(zone))
+        }
+        // The whole point of picking a granularity is distinct ticks - a residual collision
+        // (e.g. sessions packed tightly at extreme thinning) drops the later duplicate rather
+        // than showing two ticks with the same rounded text.
+        .distinctBy { it.second }
     }
   }
   val yLabels = remember(points) {
@@ -402,11 +422,28 @@ private fun EffortHistoryCard(
         yLabels = yLabels,
         gapMarks = gapMarks
       )
-      EffortLegend(
-        Modifier
-          .fillMaxWidth()
-          .padding(top = 4.dp)
-      )
+      if (trend.isEmpty()) {
+        // No SESSION-sourced trend point exists yet - say so explicitly instead of a legend
+        // decoding colors that haven't appeared. The drawer only ever calls plain
+        // EffortModel.score(), so it never sees the strip's bootstrap trend either; the wait
+        // is real, not just a rendering gap.
+        val remaining = (EffortConfig.Default.minPriorSessions + 1 - bestBySessionIndex.size)
+          .coerceAtLeast(1)
+        Text(
+          pluralStringResource(R.plurals.sessions_until_trend, remaining, remaining),
+          style = MaterialTheme.typography.caption,
+          color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+        )
+      } else {
+        EffortLegend(
+          Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+        )
+      }
     }
   }
 }
@@ -457,5 +494,46 @@ private fun PreviewSetRecordListEffortChart() {
     )
   ) {
     PreviewSetRecordList()
+  }
+}
+
+/**
+ * Only 2 sessions, days apart - regression check for both the adaptive axis (previously
+ * always rendered month/year ticks, which round a 2-day gap to identical text) and the
+ * countdown caption that should replace the legend while EffortModel.score() has no
+ * SESSION-sourced trend point yet.
+ */
+@Preview
+@Composable
+private fun PreviewSetRecordListEffortChartFewSessions() {
+  val records = listOf(
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2026-07-12T06:44:50Z"), "Z"),
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2026-07-12T06:46:29Z"), "Z"),
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2026-07-12T06:49:20Z"), "Z"),
+    SetRecord(22.5, 8, "X", "Y", Instant.parse("2026-07-26T06:29:26Z"), "Z"),
+    SetRecord(22.5, 8, "X", "Y", Instant.parse("2026-07-26T06:31:18Z"), "Z"),
+    SetRecord(22.5, 8, "X", "Y", Instant.parse("2026-07-26T06:33:05Z"), "Z")
+  )
+  val data = PagingData.from(
+    records.reversed(),
+    sourceLoadStates = LoadStates(
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true)
+    )
+  )
+
+  CompositionLocalProvider(
+    LocalFeatures provides ConfigProvider.Companion.RemoteConfig(
+      mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
+    )
+  ) {
+    SetRecordList(
+      Modifier
+        .background(Color.White)
+        .height(500.dp)
+        .width(360.dp),
+      SetHistory(flowOf(data))
+    )
   }
 }
