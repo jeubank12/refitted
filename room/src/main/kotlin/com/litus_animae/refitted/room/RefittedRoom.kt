@@ -9,7 +9,7 @@ import com.litus_animae.refitted.room.entities.*
 
 @Database(
   entities = [RoomExercise::class, RoomExerciseSet::class, RoomSetRecord::class, RoomWorkoutPlan::class, RoomSavedState::class],
-  version = 13
+  version = 14
 )
 @TypeConverters(Converters::class)
 abstract class RefittedRoom : RoomDatabase() {
@@ -205,6 +205,15 @@ abstract class RefittedRoom : RoomDatabase() {
         db.execSQL(
           "ALTER TABLE `workouts` " +
             "ADD COLUMN `isCustom` INTEGER NOT NULL DEFAULT 0"
+        )
+      }
+    }
+
+    val MIGRATION_13_14: Migration = object : Migration(13, 14) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+          "ALTER TABLE `workouts` " +
+            "ADD COLUMN `kind` TEXT NOT NULL DEFAULT 'PROGRAM'"
         )
       }
     }

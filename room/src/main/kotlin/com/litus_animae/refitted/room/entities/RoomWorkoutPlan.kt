@@ -2,6 +2,7 @@ package com.litus_animae.refitted.room.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.litus_animae.refitted.data.models.PlanKind
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import java.time.Instant
 
@@ -20,7 +21,8 @@ data class RoomWorkoutPlan(
     val description: String = "",
     val globalAlternateLabels: List<String> = emptyList(),
     val globalAlternate: Int? = null,
-    val isCustom: Boolean = false
+    val isCustom: Boolean = false,
+    val kind: PlanKind = PlanKind.PROGRAM
 ) {
     /**
      * Convert Room entity to domain model
@@ -34,7 +36,8 @@ data class RoomWorkoutPlan(
         description = description,
         globalAlternateLabels = globalAlternateLabels,
         globalAlternate = globalAlternate,
-        isCustom = isCustom
+        isCustom = isCustom,
+        kind = kind
     )
 
     companion object {
@@ -50,7 +53,8 @@ data class RoomWorkoutPlan(
             description = workoutPlan.description,
             globalAlternateLabels = workoutPlan.globalAlternateLabels,
             globalAlternate = workoutPlan.globalAlternate,
-            isCustom = workoutPlan.isCustom
+            isCustom = workoutPlan.isCustom,
+            kind = workoutPlan.kind
         )
     }
 }

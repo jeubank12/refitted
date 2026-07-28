@@ -15,7 +15,8 @@ data class WorkoutPlan(
   val description: String = "",
   val globalAlternateLabels: List<String> = emptyList(),
   val globalAlternate: Int? = null,
-  val isCustom: Boolean = false
+  val isCustom: Boolean = false,
+  val kind: PlanKind = PlanKind.PROGRAM
 )
 
 /**

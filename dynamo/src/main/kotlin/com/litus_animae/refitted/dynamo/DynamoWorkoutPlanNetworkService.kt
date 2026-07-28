@@ -3,6 +3,7 @@ package com.litus_animae.refitted.dynamo
 import android.content.Context
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBQueryExpression
+import com.litus_animae.refitted.data.models.PlanKind
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.dynamo.DynamoUtil.queryReverseIndex
@@ -53,6 +54,23 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
       command
         .mapNotNull { plan ->
           plan.workout?.let { workout ->
+            val kind = PlanKind.fromStored(plan.kind)
+            val alternateLabels = plan.globalAlternateLabels.split(';')
+              .filter { it.isNotBlank() }
+
+            // Equipment libraries have no days - only their Exercise rows matter - so skip the
+            // per-plan day query entirely rather than pay for a round trip that can only come back empty.
+            if (kind != PlanKind.PROGRAM) {
+              return@mapNotNull WorkoutPlan(
+                workout,
+                totalDays = 0,
+                kind = kind,
+                description = plan.description,
+                globalAlternateLabels = alternateLabels,
+                globalAlternate = if (alternateLabels.isNotEmpty()) 0 else null
+              )
+            }
+
             val subKeyValues = DynamoWorkoutDay(workout = workout)
             val subQueryExpression = DynamoDBQueryExpression<DynamoWorkoutDay>()
               .withHashKeyValues(subKeyValues)
@@ -68,8 +86,6 @@ class DynamoWorkoutPlanNetworkService @Inject constructor(
             }
               .mapNotNull { it.day?.toIntOrNull() ?: 0 }
             log.d(TAG, "Got rest days for workout $workout: $restDays")
-            val alternateLabels = plan.globalAlternateLabels.split(';')
-              .filter { it.isNotBlank() }
             if (totalDays != null) {
               WorkoutPlan(
                 workout,

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -62,6 +63,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.MuscleGroup
+import com.litus_animae.refitted.data.models.PlanKind
+import com.litus_animae.refitted.data.models.WorkoutPlan
 
 private val muscleGroups = MuscleGroup.displayNames()
 
@@ -131,32 +134,50 @@ fun MuscleGroupPickerScreen(
   }
 }
 
+/** A section of [ExercisePickerList] - one accessible plan, ordered by [kind] then name. */
+private data class PickerSection(val name: String, val kind: PlanKind, val isRemoteSource: Boolean)
+
 /**
- * Exercise-list screen (design 1j) - workouts the user can pull exercises from, as sections.
+ * Exercise-list screen (design 1j) - plans the user can pull exercises from, as sections, equipment
+ * libraries ([PlanKind.LOCATION]/[PlanKind.EQUIPMENT]) first and admin programs after a divider.
  * Locally-synced matches ([localExercisesByWorkout]) render immediately; other accessible
- * (admin-authored) workouts render a "Load exercises" row that triggers an on-demand remote query
- * ([onLoadWorkout] - see ExerciseViewModel.loadRemoteExercises). Custom plans - including the one
+ * (admin-authored) plans render a "Load exercises" row that triggers an on-demand remote query
+ * ([onLoadWorkout] - see ExerciseViewModel.loadRemoteExercises) - nothing is pre-fetched, so the
+ * cost of browsing a library sits with whoever taps into it. Custom plans - including the one
  * being edited - only ever show local matches: they're built *from* admin content and have
  * nothing of their own to load remotely. Picking an exercise reuses its exact id so its record
- * history carries over ([onPick]).
+ * history carries over ([onPick]). Every section starts collapsed - [onRefreshWorkouts] is a
+ * separate top-bar action re-syncing the plan list itself (new/removed plans), not any one
+ * plan's exercises.
  */
 @Composable
 fun ExercisePickerList(
   muscle: String,
   localExercisesByWorkout: Map<String, List<Exercise>>,
-  accessibleWorkoutNames: List<String>,
+  accessibleWorkouts: List<WorkoutPlan>,
   /** Keyed by (workout, muscle) - a workout's cached rows are only ever for this screen's own muscle. */
   remoteExercisesByWorkout: Map<Pair<String, String>, List<Exercise>>,
   loadingWorkouts: Map<Pair<String, String>, Boolean>,
   onLoadWorkout: (String) -> Unit,
   onPick: (Exercise) -> Unit,
   onBack: () -> Unit,
+  /** Re-syncs [accessibleWorkouts] itself (new/removed plans) - separate from a section's own onLoadWorkout, which only refreshes that plan's exercises. */
+  onRefreshWorkouts: () -> Unit,
+  isRefreshingWorkouts: Boolean,
   modifier: Modifier = Modifier
 ) {
-  val workouts = (accessibleWorkoutNames + localExercisesByWorkout.keys)
-    .distinct()
-    .sorted()
-  var collapsedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
+  val accessibleNames = accessibleWorkouts.map { it.workout }.toSet()
+  val sections = (
+    accessibleWorkouts.map { PickerSection(it.workout, it.kind, isRemoteSource = true) } +
+      localExercisesByWorkout.keys.filter { it !in accessibleNames }
+        .map { PickerSection(it, PlanKind.PROGRAM, isRemoteSource = false) }
+    )
+    .distinctBy { it.name }
+    .sortedWith(compareBy({ it.kind.ordinal }, { it.name }))
+  val firstProgramIndex = sections.indexOfFirst { it.kind == PlanKind.PROGRAM }
+  // Empty by default means every section starts collapsed - with a location/equipment library
+  // run plus every program, a fully expanded list is more than fits on screen at once.
+  var expandedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
   Scaffold(
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     modifier = modifier,
@@ -169,15 +190,46 @@ fun ExercisePickerList(
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "back") }
+        },
+        actions = {
+          if (isRefreshingWorkouts) {
+            CircularProgressIndicator(
+              Modifier
+                .padding(12.dp)
+                .size(20.dp),
+              color = MaterialTheme.colors.onPrimary,
+              strokeWidth = 2.dp
+            )
+          } else {
+            IconButton(onClick = onRefreshWorkouts) {
+              // TODO localize
+              Icon(Icons.Default.Refresh, contentDescription = "refresh plan list")
+            }
+          }
         }
       )
     }
   ) { contentPadding ->
     LazyColumn(Modifier.padding(contentPadding).fillMaxSize()) {
-      workouts.forEach { workout ->
+      sections.forEachIndexed { index, section ->
+        val workout = section.name
+        if (index == firstProgramIndex && index > 0) {
+          item(key = "kind-divider") {
+            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
+              // TODO localize
+              Text(
+                "— programs —",
+                Modifier
+                  .fillMaxWidth()
+                  .padding(start = 10.dp, top = 18.dp, bottom = 2.dp),
+                style = MaterialTheme.typography.overline
+              )
+            }
+          }
+        }
         // Custom plans have no remote catalog of their own (see the KDoc above) - only ever
         // appear here from localExercisesByWorkout, so they get no refresh affordance.
-        val isRemoteSource = workout in accessibleWorkoutNames
+        val isRemoteSource = section.isRemoteSource
         val loading = loadingWorkouts[workout to muscle] == true
         val hasFetched = remoteExercisesByWorkout.containsKey(workout to muscle)
         // Merge rather than local ?: remote - a workout opened locally for one day is only
@@ -185,8 +237,12 @@ fun ExercisePickerList(
         val exercises = (localExercisesByWorkout[workout].orEmpty() + remoteExercisesByWorkout[workout to muscle].orEmpty())
           .distinctBy { it.id }
           .sortedBy { it.name ?: it.id }
+        // A remote section's count isn't meaningful until it's been fetched at least once (or a
+        // local cache already answers it) - showing 0 before that would read as "nothing here"
+        // rather than "not checked yet".
+        val knowsCount = !isRemoteSource || hasFetched || exercises.isNotEmpty()
 
-        val isCollapsed = workout in collapsedWorkouts
+        val isCollapsed = workout !in expandedWorkouts
         item(key = "header:$workout") {
           Row(
             Modifier
@@ -198,7 +254,7 @@ fun ExercisePickerList(
             Row(
               Modifier
                 .clickable(onClickLabel = if (isCollapsed) "expand $workout" else "collapse $workout") {
-                  collapsedWorkouts = if (isCollapsed) collapsedWorkouts - workout else collapsedWorkouts + workout
+                  expandedWorkouts = if (isCollapsed) expandedWorkouts + workout else expandedWorkouts - workout
                 }
                 .padding(end = 4.dp),
               verticalAlignment = Alignment.CenterVertically
@@ -216,6 +272,12 @@ fun ExercisePickerList(
                   .rotate(rotation)
               )
               Text(workout, style = MaterialTheme.typography.overline)
+              if (knowsCount) {
+                Spacer(Modifier.width(6.dp))
+                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                  Text(exercises.size.toString(), style = MaterialTheme.typography.overline)
+                }
+              }
             }
             if (isRemoteSource) {
               if (loading) {
@@ -236,7 +298,7 @@ fun ExercisePickerList(
             }
           }
         }
-        if (isCollapsed) return@forEach
+        if (isCollapsed) return@forEachIndexed
         when {
           exercises.isEmpty() && loading -> item(key = "loading:$workout") {
             Row(
@@ -354,8 +416,7 @@ private val backBodyParts = listOf(
   BodyPart("Lats", 45, 63, 60, 52, RoundedCornerShape(10.dp)),
   BodyPart("Triceps", 26, 64, 15, 46, roundedPart),
   BodyPart("Triceps", 109, 64, 15, 46, roundedPart),
-  // Lower back dropped: no admin program has ever stored an exercise under that prefix.
-  BodyPart(null, 55, 118, 40, 24, roundedPart),
+  BodyPart("Lower back", 55, 118, 40, 24, roundedPart),
   BodyPart("Glutes", 47, 145, 56, 26, RoundedCornerShape(12.dp)),
   BodyPart("Hamstrings", 47, 175, 24, 72, RoundedCornerShape(12.dp)),
   BodyPart("Hamstrings", 79, 175, 24, 72, RoundedCornerShape(12.dp)),
@@ -430,16 +491,24 @@ private fun PreviewExercisePickerList() {
           Exercise("Push Pull Legs", "Chest_Push-Up")
         )
       ),
-      accessibleWorkoutNames = listOf("Push Pull Legs", "Full Body"),
-      // "Push Pull Legs" shows the merge of its cached local row plus a remote fetch already in
-      // hand; "Full Body" has never been fetched, so it falls through to "Refresh to load".
+      accessibleWorkouts = listOf(
+        WorkoutPlan("Planet Fitness", kind = PlanKind.LOCATION),
+        WorkoutPlan("Push Pull Legs"),
+        WorkoutPlan("Full Body")
+      ),
+      // "Planet Fitness" sorts first as a LOCATION and has never been fetched, so it falls through
+      // to "Refresh to load". "Push Pull Legs" shows the merge of its cached local row plus a
+      // remote fetch already in hand. "Full Body" is a PROGRAM, sorted after the "— programs —"
+      // divider, and also unfetched.
       remoteExercisesByWorkout = mapOf(
         ("Push Pull Legs" to "Chest") to listOf(Exercise("Push Pull Legs", "Chest_Incline Dumbbell Press"))
       ),
       loadingWorkouts = emptyMap(),
       onLoadWorkout = {},
       onPick = {},
-      onBack = {}
+      onBack = {},
+      onRefreshWorkouts = {},
+      isRefreshingWorkouts = false
     )
   }
 }

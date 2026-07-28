@@ -1,9 +1,20 @@
 package com.litus_animae.refitted.room
 
 import androidx.room.TypeConverter
+import com.litus_animae.refitted.data.models.PlanKind
 import java.time.Instant
 
 object Converters {
+  // Stored by name rather than ordinal so the migration default ('PROGRAM') stays legible in the
+  // schema and reordering the enum can't silently remap existing rows.
+  @JvmStatic
+  @TypeConverter
+  fun planKindFromString(value: String?): PlanKind = PlanKind.fromStored(value)
+
+  @JvmStatic
+  @TypeConverter
+  fun planKindToString(kind: PlanKind): String = kind.name
+
   @JvmStatic
   @TypeConverter
   fun fromTimestamp(value: Long?): Instant? {

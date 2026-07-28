@@ -63,7 +63,8 @@ class WorkoutPlanRemoteMediator(
           restDays = newPlan.restDays,
           description = newPlan.description,
           globalAlternateLabels = newPlan.globalAlternateLabels,
-          globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate
+          globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate,
+          kind = newPlan.kind
         ))
       }
       workoutPlanDao.insertAll(upsertPlans)

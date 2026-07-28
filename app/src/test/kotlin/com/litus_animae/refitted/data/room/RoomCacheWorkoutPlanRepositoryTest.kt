@@ -46,7 +46,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
     every { roomDatabase.getWorkoutPlanDao() } returns workoutPlanDao
     every { roomDatabase.getExerciseDao() } returns exerciseDao
     every { workoutPlanDao.update(any()) } returns Unit
-    every { workoutPlanDao.getServerWorkoutNames() } returns emptyFlow()
+    every { workoutPlanDao.getServerPlans() } returns emptyFlow()
 
     subject = RoomCacheWorkoutPlanRepository(roomProvider, networkService, log)
   }

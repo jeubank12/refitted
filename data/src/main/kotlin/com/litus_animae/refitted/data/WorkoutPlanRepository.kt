@@ -14,10 +14,11 @@ interface WorkoutPlanRepository {
   fun workoutByName(name: String): Flow<WorkoutPlan?>
 
   /**
-   * Names of admin-authored plans the user has access to - used by the add-exercise picker to
-   * list which workouts' exercises can be browsed by muscle group.
+   * Admin-authored plans the user has access to, programs and equipment libraries alike - used by
+   * the add-exercise picker to list which workouts' exercises can be browsed by muscle group, and
+   * to order/section that list by [WorkoutPlan.kind].
    */
-  val accessibleWorkoutNames: Flow<List<String>>
+  val accessibleWorkouts: Flow<List<WorkoutPlan>>
   suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
   suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
   suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)

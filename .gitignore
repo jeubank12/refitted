@@ -9,6 +9,10 @@
 groups.json
 PLAN-web-security.md
 
+# Equipment-library content for scripts/seed_libraries.py - synthesized descriptions, but they
+# live only in DynamoDB, same as workout-program content never belonging in this repo
+content/libraries/
+
 # Generated files
 bin/
 gen/

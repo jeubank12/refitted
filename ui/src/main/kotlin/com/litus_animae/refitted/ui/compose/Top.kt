@@ -11,6 +11,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.ui.compose.calendar.Calendar
 import com.litus_animae.refitted.ui.compose.exercise.Exercise
 import com.litus_animae.refitted.ui.compose.exercise.add.ExercisePickerList
@@ -78,14 +80,19 @@ fun Top() {
     }
     composable("add-exercise/{workout}/{day}/{muscle}") {
       val exerciseModel: ExerciseViewModel = hiltViewModel(it)
+      val workoutModel: WorkoutViewModel = hiltViewModel(it)
       val workoutId = it.arguments?.getString("workout")
       val day = it.arguments?.getString("day")
       val muscle = it.arguments?.getString("muscle")?.let(Uri::decode)
       if (workoutId != null && day != null && muscle != null) {
         val localExercises by remember(muscle) { exerciseModel.exercisesByMuscle(muscle) }
           .collectAsStateWithLifecycle(initialValue = emptyList())
-        val accessibleWorkoutNames by exerciseModel.accessibleWorkoutNames
+        val accessibleWorkouts by exerciseModel.accessibleWorkouts
           .collectAsStateWithLifecycle(initialValue = emptyList())
+        // The plan list itself (accessibleWorkouts) only updates when this same paging refresh
+        // runs - reusing it rather than a separate sync path keeps this screen's "refresh the
+        // plan list" in lockstep with the drawer's.
+        val workoutPlansPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
         ExercisePickerList(
           muscle = muscle,
           // Exclude the plan being built itself - a custom plan is assembled from admin
@@ -93,7 +100,7 @@ fun Top() {
           localExercisesByWorkout = localExercises
             .filter { it.workout != workoutId }
             .groupBy { it.workout },
-          accessibleWorkoutNames = accessibleWorkoutNames,
+          accessibleWorkouts = accessibleWorkouts,
           remoteExercisesByWorkout = exerciseModel.remoteExercisesByWorkout,
           loadingWorkouts = exerciseModel.loadingWorkouts,
           onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
@@ -104,7 +111,9 @@ fun Top() {
             // Pop the whole add-exercise sub-flow at once, back to the day screen.
             controller.popBackStack("exercise/{workout}/{day}/{editing}", inclusive = false)
           },
-          onBack = { controller.popBackStack() }
+          onBack = { controller.popBackStack() },
+          onRefreshWorkouts = { workoutPlansPagingItems.refresh() },
+          isRefreshingWorkouts = workoutPlansPagingItems.loadState.refresh is LoadState.Loading
         )
       } else {
         controller.navigate("calendar")
