@@ -59,7 +59,7 @@ private val EmphasisRingWidth = 1.5.dp
 
 /**
  * Effort-scored sets as bubbles (radius by demonstrated capacity vs. expectation) plus the
- * adaptive expectation curve. See `docs/exercise-history-chart.md`.
+ * adaptive expectation curve.
  *
  * [trend] is a list of runs rather than one flat polyline - a run breaks wherever the caller's
  * domain has no prediction (cold start, or a skipped index in a compact window), and each run

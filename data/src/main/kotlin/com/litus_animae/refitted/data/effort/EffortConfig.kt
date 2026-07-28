@@ -1,10 +1,10 @@
 package com.litus_animae.refitted.data.effort
 
 /**
- * Tunables for [EffortModel]. See `docs/exercise-history-chart.md` for the design this
- * implements.
+ * Tunables for [EffortModel]'s adaptive, causally-fit expectation of demonstrated capacity.
  *
- * [residualScaleFloorFraction] intentionally deviates from that doc's 2.5%: at 2.5% the
+ * [residualScaleFloorFraction] intentionally deviates from the original 2.5% design target:
+ * at 2.5% the
  * floor only ever binds on a near-flat history, and there it makes a small, plausible
  * improvement (e.g. +5 lb on a plateau) score as "implausibly far above" and get punished
  * — the opposite of what an adaptive curve should reward. 5% keeps that case in the

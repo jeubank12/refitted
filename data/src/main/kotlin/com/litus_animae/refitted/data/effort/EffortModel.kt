@@ -9,8 +9,12 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
- * Scores sets against an adaptive, causally-fit expectation of demonstrated capacity.
- * See `docs/exercise-history-chart.md` for the design this implements.
+ * Scores each completed set's demonstrated capacity (weight x reps, Epley-style) against an
+ * adaptive, causally-fit expectation of what a session "should" look like given training
+ * history - never a static baseline, and a session's own outcome never judges itself. A set
+ * scores larger (see [bubbleSize]) the closer it lands to or just above that expectation,
+ * and shrinks again once it's implausibly far above - a likely fluke or typo, still worth
+ * showing but not the target to chase.
  */
 object EffortModel {
 

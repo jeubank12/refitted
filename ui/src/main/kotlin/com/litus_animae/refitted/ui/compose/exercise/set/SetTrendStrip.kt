@@ -101,7 +101,7 @@ fun SetTrendStrip(
     // scoreWithBootstrap augments score()'s output rather than replacing it - every session
     // past EffortConfig.minPriorSessions behaves identically, and a first-ever session stays
     // all-COLD regardless of its own set count (no prior session exists yet to bootstrap
-    // from). See docs/exercise-history-chart.md "Bootstrap trend (strip-only)".
+    // from).
     val series = remember(merged) { EffortModel.scoreWithBootstrap(merged) }
     val windowed = remember(series, window) { series.sets.takeLast(window) }
     if (windowed.isEmpty()) return@BoxWithConstraints
