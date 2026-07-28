@@ -323,6 +323,79 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("scoreWithBootstrap")
+  inner class Bootstrap {
+    @Test
+    fun `a first-ever session is all COLD no matter how many sets it has`() {
+      val firstSession = (0 until 6).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+      val series = EffortModel.scoreWithBootstrap(firstSession)
+
+      assertThat(series.trend).isEmpty()
+      series.sets.forEach {
+        assertThat(it.expectationSource).isNull()
+        assertThat(it.zone).isEqualTo(EffortZone.COLD)
+      }
+    }
+
+    @Test
+    fun `a second session bootstraps once 3 prior sets exist`() {
+      val firstSession = (0 until 3).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+      val secondSession = listOf(EffortSet(day(7), 105.0, 8))
+      val series = EffortModel.scoreWithBootstrap(firstSession + secondSession)
+
+      val second = series.sets.last()
+      assertThat(second.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP)
+      assertThat(second.expectation).isNotNull()
+      assertThat(second.zone).isNotEqualTo(EffortZone.COLD)
+      assertThat(series.trend).hasSize(1)
+      assertThat(series.trend.single().expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP)
+    }
+
+    @Test
+    fun `a second session with too few prior sets stays COLD`() {
+      val firstSession = listOf(EffortSet(day(0), 100.0, 8), EffortSet(day(0).plusSeconds(60), 100.0, 8))
+      val secondSession = listOf(EffortSet(day(7), 105.0, 8))
+      val series = EffortModel.scoreWithBootstrap(firstSession + secondSession)
+
+      assertThat(series.sets.last().expectationSource).isNull()
+      assertThat(series.sets.last().zone).isEqualTo(EffortZone.COLD)
+    }
+
+    @Test
+    fun `a session's own sets never move its own bootstrap value`() {
+      val firstSession = (0 until 3).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+      val fewSets = listOf(EffortSet(day(7), 105.0, 8))
+      val manySets = (0 until 8).map { EffortSet(day(7).plusSeconds(it * 60L), 105.0 + it * 50, 8) }
+
+      val withFew = EffortModel.scoreWithBootstrap(firstSession + fewSets)
+      val withMany = EffortModel.scoreWithBootstrap(firstSession + manySets)
+
+      val firstDotFew = withFew.sets.first { it.sessionIndex == 1 }
+      val firstDotMany = withMany.sets.first { it.sessionIndex == 1 }
+      assertThat(firstDotMany.expectation).isWithin(1e-9).of(firstDotFew.expectation!!)
+    }
+
+    @Test
+    fun `once real session count is reached, output matches score exactly`() {
+      val sets = (0..3).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        EffortSet(day(28), 108.0, 8)
+      val real = EffortModel.score(sets)
+      val bootstrapped = EffortModel.scoreWithBootstrap(sets)
+
+      val realFourth = real.sets.filter { it.sessionIndex == 4 }
+      val bootstrappedFourth = bootstrapped.sets.filter { it.sessionIndex == 4 }
+      assertThat(bootstrappedFourth.map { it.expectation }).isEqualTo(realFourth.map { it.expectation })
+      assertThat(bootstrappedFourth.map { it.z }).isEqualTo(realFourth.map { it.z })
+      bootstrappedFourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.SESSION) }
+    }
+
+    @Test
+    fun `empty input returns the shared Empty instance`() {
+      assertThat(EffortModel.scoreWithBootstrap(emptyList())).isSameInstanceAs(EffortSeries.Empty)
+    }
+  }
+
+  @Nested
   @DisplayName("degenerate input")
   inner class Degenerate {
     @Test

@@ -207,4 +207,140 @@ object EffortModel {
 
     return EffortSeries(scoredSets, trendPoints)
   }
+
+  /**
+   * Strip-only augmentation of [score]: for a session still COLD under the real, session-best
+   * fit (fewer than [EffortConfig.minPriorSessions] prior sessions), fits a second, coarser
+   * regression over individual set capacities from strictly prior sessions instead of
+   * session-bests, so a chart with too little history to trust a session-best fit still has
+   * something real to show rather than a screen of neutral grey. [score] itself is untouched
+   * by this - the doc spec's cold-start rule and every session at or past
+   * [EffortConfig.minPriorSessions] behave identically to calling [score] directly, just
+   * tagged [ExpectationSource.SESSION] instead of left `null`.
+   *
+   * Gated on [EffortConfig.minPriorSetsForBootstrap] sets accumulated from sessions strictly
+   * before the one being scored - never the current session's own sets, so logging a set never
+   * moves that same set's own comparison value (the same causal, fold-in-after-scoring
+   * discipline [score] uses for sessions, just at set granularity). Concretely: a first-ever
+   * session is always all-COLD no matter how many sets it has, since no prior session exists
+   * yet to bootstrap from.
+   */
+  fun scoreWithBootstrap(
+    sets: List<EffortSet>,
+    zone: ZoneId = ZoneId.systemDefault(),
+    config: EffortConfig = EffortConfig.Default
+  ): EffortSeries {
+    val real = score(sets, zone, config)
+    if (real.sets.isEmpty()) return real
+
+    val sessions = sets
+      .sortedBy { it.completed }
+      .groupBy { it.completed.atZone(zone).toLocalDate() }
+      .toSortedMap()
+      .values
+      .toList()
+
+    val decay = 0.5.pow(1.0 / config.halfLifeSessions)
+
+    // Recency-weighted causal regression over individual prior-session set capacities - same
+    // shrink-to-mean shape as score()'s session-best regression, just keyed by a running
+    // set-sequence x instead of day-offset, and fit only on sets from sessions strictly
+    // before the one it predicts for.
+    var sumW = 0.0
+    var sumWx = 0.0
+    var sumWy = 0.0
+    var sumWxx = 0.0
+    var sumWxy = 0.0
+    var sumRepsW = 0.0
+    var sumRepsWr = 0.0
+    var priorSetCount = 0
+    var x = 0.0
+
+    var realIndex = 0
+    val scoredSets = mutableListOf<ScoredSet>()
+    val trendPoints = mutableListOf<TrendPoint>()
+
+    sessions.forEach { sessionSets ->
+      val firstReal = real.sets[realIndex]
+      val useBootstrap = firstReal.expectation == null &&
+        priorSetCount >= config.minPriorSetsForBootstrap
+
+      if (useBootstrap) {
+        val meanY = sumWy / sumW
+        val den = sumW * sumWxx - sumWx * sumWx
+        val cHat = if (abs(den) < 1e-9) {
+          meanY
+        } else {
+          val slope = (sumW * sumWxy - sumWx * sumWy) / den
+          val intercept = (sumWy - slope * sumWx) / sumW
+          (intercept + slope * x).coerceIn(0.5 * meanY, 1.5 * meanY)
+        }
+        // No fitted residual pass here - too little data yet to trust one - always the floor.
+        val residualScale = max(config.residualScaleFloorFraction * cHat, 1e-6)
+        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repCap.toDouble())
+        val wHat = cHat / (1 + rHat / config.epleyDivisor)
+
+        trendPoints.add(
+          TrendPoint(
+            sessionIndex = firstReal.sessionIndex,
+            dayOffset = firstReal.dayOffset,
+            at = sessionSets.first().completed,
+            expectedCapacity = cHat,
+            typicalReps = rHat,
+            expectedWeight = wHat,
+            expectationSource = ExpectationSource.BOOTSTRAP
+          )
+        )
+
+        sessionSets.forEach { effortSet ->
+          val c = capacity(effortSet.weight, effortSet.reps, config)
+          val z = ((c - cHat) / residualScale).coerceIn(-config.maxAbsZ, config.maxAbsZ)
+          scoredSets.add(
+            real.sets[realIndex].copy(
+              expectation = cHat,
+              z = z,
+              size = bubbleSize(z),
+              zone = zoneOf(z),
+              expectationSource = ExpectationSource.BOOTSTRAP
+            )
+          )
+          realIndex++
+        }
+      } else {
+        sessionSets.forEach { _ ->
+          val scored = real.sets[realIndex]
+          scoredSets.add(
+            if (scored.expectation != null) {
+              scored.copy(expectationSource = ExpectationSource.SESSION)
+            } else {
+              scored
+            }
+          )
+          realIndex++
+        }
+        real.trend.firstOrNull { it.sessionIndex == firstReal.sessionIndex }?.let {
+          trendPoints.add(it.copy(expectationSource = ExpectationSource.SESSION))
+        }
+      }
+
+      // Fold in after scoring, same discipline as score() - a session's own sets never move
+      // its own bootstrap value.
+      sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
+      sumRepsW *= decay; sumRepsWr *= decay
+      sessionSets.forEach { effortSet ->
+        val c = capacity(effortSet.weight, effortSet.reps, config)
+        sumW += 1.0
+        sumWx += x
+        sumWy += c
+        sumWxx += x * x
+        sumWxy += x * c
+        sumRepsW += 1.0
+        sumRepsWr += effortSet.reps.coerceIn(0, config.repCap).toDouble()
+        priorSetCount += 1
+        x += 1.0
+      }
+    }
+
+    return EffortSeries(scoredSets, trendPoints.sortedBy { it.sessionIndex })
+  }
 }
