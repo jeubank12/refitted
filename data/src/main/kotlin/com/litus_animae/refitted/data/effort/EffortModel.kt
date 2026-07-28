@@ -28,10 +28,19 @@ object EffortModel {
     2.5 to 0.40
   )
 
-  /** Epley-style estimated 1RM, the single scale weight×reps sets are compared on. */
+  /**
+   * Epley-style estimated 1RM, the single scale weight×reps sets are compared on.
+   *
+   * Floored at 1.0, not 0.0 - a bodyweight-only set (no explicit "bodyweight" flag exists,
+   * so weight = 0 is how one is logged) would otherwise multiply out to 0 regardless of
+   * reps, making every bodyweight session score identically instead of tracking rep
+   * progress. z-scoring only cares about relative capacity changes session-to-session, so
+   * this tiny floor doesn't distort anything - it just keeps reps the driver until real
+   * weight gets logged, at which point the floor stops applying.
+   */
   fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double {
     val clampedReps = reps.coerceIn(0, config.repCap)
-    return max(weight, 0.0) * (1 + clampedReps.toDouble() / config.epleyDivisor)
+    return max(weight, 1.0) * (1 + clampedReps.toDouble() / config.epleyDivisor)
   }
 
   fun bubbleSize(z: Double?): Float {

@@ -39,8 +39,23 @@ class EffortModelTest {
     }
 
     @Test
-    fun `negative weight floors at zero`() {
-      assertThat(EffortModel.capacity(-10.0, 8)).isWithin(1e-9).of(0.0)
+    fun `negative weight floors at the same minimum as bodyweight`() {
+      assertThat(EffortModel.capacity(-10.0, 8))
+        .isWithin(1e-9).of(EffortModel.capacity(0.0, 8))
+    }
+
+    @Test
+    fun `bodyweight (zero weight) capacity still tracks reps instead of collapsing to zero`() {
+      val fewerReps = EffortModel.capacity(0.0, 5)
+      val moreReps = EffortModel.capacity(0.0, 12)
+
+      assertThat(fewerReps).isGreaterThan(0.0)
+      assertThat(moreReps).isGreaterThan(fewerReps)
+    }
+
+    @Test
+    fun `the bodyweight floor stops applying once real weight is logged`() {
+      assertThat(EffortModel.capacity(5.0, 8)).isGreaterThan(EffortModel.capacity(0.0, 8))
     }
   }
 
