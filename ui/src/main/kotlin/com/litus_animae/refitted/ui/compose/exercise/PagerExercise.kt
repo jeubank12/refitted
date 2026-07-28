@@ -82,13 +82,17 @@ fun PagerExerciseView(
   val pagerState = rememberPagerState(pageCount = { instructions.size })
 
   // Land on an exercise just added from the add-exercise flow instead of wherever the pager
-  // otherwise starts - fires once the newly-inserted row has actually loaded.
-  LaunchedEffect(instructions, scrollToExerciseName) {
-    if (scrollToExerciseName != null) {
-      val targetIndex = instructions.indexOfFirst { instruction ->
-        instruction.sets.any { it.exerciseName == scrollToExerciseName }
-      }
-      if (targetIndex >= 0) pagerState.scrollToPage(targetIndex)
+  // otherwise starts - fires once the newly-inserted row has actually loaded, then clears
+  // itself so later unrelated recompositions of `instructions` don't re-trigger the scroll.
+  var pendingScrollTarget by remember { mutableStateOf(scrollToExerciseName) }
+  LaunchedEffect(instructions, pendingScrollTarget) {
+    val target = pendingScrollTarget ?: return@LaunchedEffect
+    val targetIndex = instructions.indexOfFirst { instruction ->
+      instruction.sets.any { it.exerciseName == target }
+    }
+    if (targetIndex >= 0) {
+      pagerState.scrollToPage(targetIndex)
+      pendingScrollTarget = null
     }
   }
   // While a finger is down the index holds at the settled page — releasing is what
