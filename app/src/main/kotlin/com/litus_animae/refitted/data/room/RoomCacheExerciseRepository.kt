@@ -365,7 +365,11 @@ class RoomCacheExerciseRepository @Inject constructor(
       e,
       defaultRecord,
       latestRecord,
-      Pager(config = PagingConfig(pageSize = 20)) {
+      // initialLoadSize defaults to pageSize * 3 - too little history for the effort
+      // chart's fit to be stable on first composition. A large first page means the
+      // trend only ever refines (recency-weighted, so old sessions barely move it) as
+      // later pages load, rather than visibly refitting.
+      Pager(config = PagingConfig(pageSize = 20, initialLoadSize = 400)) {
         refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
       }.flow.map { it.map { roomRecord -> roomRecord.toDomain() } },
       currentRecords,
