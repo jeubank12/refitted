@@ -49,6 +49,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 private val MinSlotWidth = 20.dp
 private const val MIN_WINDOW = 5
@@ -107,8 +108,27 @@ fun SetTrendStrip(
 
     val points = remember(windowed) {
       windowed.mapIndexed { index, scored ->
-        EffortPoint(index.toFloat(), scored.source.weight.toFloat(), scored.size, scored.zone)
+        EffortPoint(
+          index.toFloat(),
+          scored.source.weight.toFloat(),
+          scored.size,
+          scored.zone,
+          emphasized = index == windowed.lastIndex
+        )
       }
+    }
+    // A faint dashed rule wherever the window crosses into a new session, so "these 3 are
+    // today, that one's from last time" reads at a glance instead of needing the header's
+    // single zone label to carry it.
+    val sessionGapMarks = remember(windowed) {
+      windowed.zipWithNext().mapIndexedNotNull { index, (a, b) ->
+        if (a.sessionIndex != b.sessionIndex) index + 0.5f else null
+      }
+    }
+    val yLabels = remember(points) {
+      val minWeight = points.minOf { it.weight }
+      val maxWeight = points.maxOf { it.weight }
+      listOf(minWeight, maxWeight).distinct().map { it to it.roundToInt().toString() }
     }
     // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
     // beneath trend, so the dash itself is the only signal a segment is the coarser,
@@ -191,6 +211,8 @@ fun SetTrendStrip(
           points = points,
           trend = realTrend,
           dashedTrend = bootstrapTrend,
+          yLabels = yLabels,
+          gapMarks = sessionGapMarks,
           compact = true
         )
       }

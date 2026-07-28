@@ -39,11 +39,23 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlin.math.sqrt
 
-/** One bubble to draw: [x] and [weight] in the caller's chosen domain, [size] in `[0, 1]`. */
-data class EffortPoint(val x: Float, val weight: Float, val size: Float, val zone: EffortZone)
+/**
+ * One bubble to draw: [x] and [weight] in the caller's chosen domain, [size] in `[0, 1]`.
+ * [emphasized] draws a ring around this bubble (e.g. "the set you just did") - false costs
+ * nothing extra to draw.
+ */
+data class EffortPoint(
+  val x: Float,
+  val weight: Float,
+  val size: Float,
+  val zone: EffortZone,
+  val emphasized: Boolean = false
+)
 
 private val LabelPadding = 4.dp
 private val GapMarkDash = 4.dp
+private val EmphasisRingGap = 3.dp
+private val EmphasisRingWidth = 1.5.dp
 
 /**
  * Effort-scored sets as bubbles (radius by demonstrated capacity vs. expectation) plus the
@@ -76,6 +88,7 @@ fun EffortChart(
   punishedColor: Color = Theme.timerAmber,
   coldColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f),
   trendColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.35f),
+  emphasisColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
   maxPointSize: Dp = if (compact) 16.dp else 30.dp,
   trendWidth: Dp = if (compact) 1.5.dp else 2.dp
@@ -119,6 +132,8 @@ fun EffortChart(
   val trendPx = with(density) { trendWidth.toPx() }
   val labelPaddingPx = with(density) { LabelPadding.toPx() }
   val gapDashPx = with(density) { GapMarkDash.toPx() }
+  val emphasisGapPx = with(density) { EmphasisRingGap.toPx() }
+  val emphasisWidthPx = with(density) { EmphasisRingWidth.toPx() }
 
   val textMeasurer = rememberTextMeasurer()
   val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f))
@@ -200,13 +215,16 @@ fun EffortChart(
       val clampedSize = point.size.coerceIn(0f, 1f)
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
       val color = zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
-      drawPoints(
-        listOf(Offset(px(point.x), py(point.weight))),
-        PointMode.Points,
-        color,
-        diameter,
-        StrokeCap.Round
-      )
+      val center = Offset(px(point.x), py(point.weight))
+      drawPoints(listOf(center), PointMode.Points, color, diameter, StrokeCap.Round)
+      if (point.emphasized) {
+        drawCircle(
+          emphasisColor,
+          radius = diameter / 2f + emphasisGapPx,
+          center = center,
+          style = Stroke(width = emphasisWidthPx)
+        )
+      }
     }
 
     yLabelLayouts.forEach { (y, layout) ->
@@ -331,6 +349,21 @@ private fun PreviewEffortChartLongHistoryWithSpike() {
     trend = listOf(
       listOf(3f to 96f, 4f to 98f, 5f to 100f, 6f to 101f, 7f to 103f)
     )
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewEffortChartEmphasizedNewest() {
+  EffortChart(
+    Modifier.size(300.dp).background(Color.White),
+    points = listOf(
+      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+      EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
+      EffortPoint(2f, 98f, 0.85f, EffortZone.GROWTH, emphasized = true)
+    ),
+    gapMarks = listOf(0.5f, 1.5f),
+    yLabels = listOf(90f to "90", 98f to "98")
   )
 }
 
