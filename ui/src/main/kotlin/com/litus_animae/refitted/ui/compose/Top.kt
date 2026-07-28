@@ -84,7 +84,7 @@ fun Top() {
       if (workoutId != null && day != null && muscle != null) {
         val localExercises by remember(muscle) { exerciseModel.exercisesByMuscle(muscle) }
           .collectAsStateWithLifecycle(initialValue = emptyList())
-        val accessibleWorkoutNames by exerciseModel.accessibleWorkoutNames
+        val accessibleWorkouts by exerciseModel.accessibleWorkouts
           .collectAsStateWithLifecycle(initialValue = emptyList())
         ExercisePickerList(
           muscle = muscle,
@@ -93,7 +93,7 @@ fun Top() {
           localExercisesByWorkout = localExercises
             .filter { it.workout != workoutId }
             .groupBy { it.workout },
-          accessibleWorkoutNames = accessibleWorkoutNames,
+          accessibleWorkouts = accessibleWorkouts,
           remoteExercisesByWorkout = exerciseModel.remoteExercisesByWorkout,
           loadingWorkouts = exerciseModel.loadingWorkouts,
           onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
