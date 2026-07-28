@@ -19,9 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -61,6 +63,10 @@ fun EffortChart(
   modifier: Modifier = Modifier,
   points: List<EffortPoint>,
   trend: List<List<Pair<Float, Float>>> = emptyList(),
+  // A second trend line, drawn dashed and beneath [trend] - for callers that fit two kinds
+  // of expectation (e.g. a coarser stand-in while there isn't enough history for the real
+  // one) and want the dash itself to carry that distinction rather than a text label.
+  dashedTrend: List<List<Pair<Float, Float>>> = emptyList(),
   compact: Boolean = false,
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
@@ -81,10 +87,18 @@ fun EffortChart(
     return
   }
 
-  val minX = remember(points, trend) { minOf(points.minOf { it.x }, trend.flatten().minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY) }
-  val maxX = remember(points, trend) { maxOf(points.maxOf { it.x }, trend.flatten().maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY) }
-  val minY = remember(points, trend) { minOf(points.minOf { it.weight }, trend.flatten().minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY) }
-  val maxY = remember(points, trend) { maxOf(points.maxOf { it.weight }, trend.flatten().maxOfOrNull { it.second } ?: Float.NEGATIVE_INFINITY) }
+  val minX = remember(points, trend, dashedTrend) {
+    minOf(points.minOf { it.x }, (trend + dashedTrend).flatten().minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY)
+  }
+  val maxX = remember(points, trend, dashedTrend) {
+    maxOf(points.maxOf { it.x }, (trend + dashedTrend).flatten().maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY)
+  }
+  val minY = remember(points, trend, dashedTrend) {
+    minOf(points.minOf { it.weight }, (trend + dashedTrend).flatten().minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY)
+  }
+  val maxY = remember(points, trend, dashedTrend) {
+    maxOf(points.maxOf { it.weight }, (trend + dashedTrend).flatten().maxOfOrNull { it.second } ?: Float.NEGATIVE_INFINITY)
+  }
 
   val xSpan = maxX - minX
   val ySpan = maxY - minY
@@ -148,6 +162,23 @@ fun EffortChart(
         Offset(px(x), plotBottom),
         strokeWidth = trendPx / 2f,
         pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx, gapDashPx))
+      )
+    }
+
+    // Drawn first, and beneath the solid trend below, so a solid segment starting exactly
+    // where a dashed one ends (the bootstrap-to-real handoff) renders over it cleanly.
+    dashedTrend.forEach { run ->
+      if (run.size < 2) return@forEach
+      val path = Path().apply {
+        run.forEachIndexed { index, (x, y) ->
+          val offset = Offset(px(x), py(y))
+          if (index == 0) moveTo(offset.x, offset.y) else lineTo(offset.x, offset.y)
+        }
+      }
+      drawPath(
+        path,
+        trendColor,
+        style = Stroke(width = trendPx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx, gapDashPx)))
       )
     }
 
@@ -300,6 +331,25 @@ private fun PreviewEffortChartLongHistoryWithSpike() {
     trend = listOf(
       listOf(3f to 96f, 4f to 98f, 5f to 100f, 6f to 101f, 7f to 103f)
     )
+  )
+}
+
+@Preview
+@Composable
+private fun PreviewEffortChartDashedTrendHandoff() {
+  EffortChart(
+    Modifier.size(300.dp).background(Color.White),
+    points = listOf(
+      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+      EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
+      EffortPoint(2f, 98f, 0.60f, EffortZone.ON_CURVE),
+      EffortPoint(3f, 100f, 0.70f, EffortZone.ON_CURVE),
+      EffortPoint(4f, 103f, 0.85f, EffortZone.GROWTH)
+    ),
+    // The bootstrap (dashed) run hands off to the real (solid) run at x=2 - the solid
+    // segment should render cleanly over the dash where they overlap.
+    dashedTrend = listOf(listOf(1f to 94f, 2f to 97f)),
+    trend = listOf(listOf(2f to 97f, 3f to 99f, 4f to 101f))
   )
 }
 
