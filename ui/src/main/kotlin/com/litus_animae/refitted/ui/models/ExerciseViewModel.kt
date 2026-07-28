@@ -189,13 +189,13 @@ class ExerciseViewModel @Inject constructor(
   val isLoading = exerciseRepo.exercisesAreLoading
 
   fun loadExercises(day: String, workoutId: String) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.loadExercises(day, workoutId)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error loading exercises", ex)
+        exercisesError = "There was an error loading exercises"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error loading exercises", ex)
-      exercisesError = "There was an error loading exercises"
     }
   }
 
@@ -204,13 +204,13 @@ class ExerciseViewModel @Inject constructor(
   }
 
   fun addExercise(workout: String, day: String, exerciseId: String, description: String? = null) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.addCustomExercise(workout, day, exerciseId, description)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error adding custom exercise", ex)
+        exercisesError = "There was an error adding the exercise"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error adding custom exercise", ex)
-      exercisesError = "There was an error adding the exercise"
     }
   }
 
@@ -223,35 +223,35 @@ class ExerciseViewModel @Inject constructor(
     rest: Int,
     repsRange: Int
   ) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.updateCustomExerciseSet(workout, day, step, sets, reps, rest, repsRange)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error updating custom exercise set targets", ex)
+        exercisesError = "There was an error updating the exercise"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error updating custom exercise set targets", ex)
-      exercisesError = "There was an error updating the exercise"
     }
   }
 
   fun deleteExercise(workout: String, day: String, step: String) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.deleteCustomExerciseSet(workout, day, step)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error deleting custom exercise set", ex)
+        exercisesError = "There was an error removing the exercise"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error deleting custom exercise set", ex)
-      exercisesError = "There was an error removing the exercise"
     }
   }
 
   fun updateCustomExerciseSetNote(workout: String, day: String, step: String, note: String) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.updateCustomExerciseSetNote(workout, day, step, note)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error updating custom exercise set note", ex)
+        exercisesError = "There was an error updating the exercise's instructions"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error updating custom exercise set note", ex)
-      exercisesError = "There was an error updating the exercise's instructions"
     }
   }
 
@@ -283,13 +283,13 @@ class ExerciseViewModel @Inject constructor(
   }
 
   fun saveExercise(record: SetRecord) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.storeSetRecord(record)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error storing set record", ex)
+        exercisesError = "There was an error storing the set record"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error storing set record", ex)
-      exercisesError = "There was an error storing the set record"
     }
   }
 
