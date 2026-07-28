@@ -37,19 +37,9 @@ class ExerciseSetPager(
       Log.d(TAG, "initializing")
       val (day, workout) = dayAndWorkout
       return withContext(Dispatchers.IO) {
-        val localStepCount = exerciseDao.loadSteps(day, workout).size
-        if (localStepCount == 0) return@withContext InitializeAction.LAUNCH_INITIAL_REFRESH
-        // A non-empty cache isn't necessarily a complete one - e.g. the app was killed mid-load
-        // after storing only some of the day's sets. Compare against the network's real count
-        // rather than trusting "any rows at all" as "fully loaded".
-        val remoteStepCount = try {
-          networkService.getExerciseSets(dayAndWorkout).size
-        } catch (ex: Throwable) {
-          log.e(TAG, "initialize: couldn't verify cache completeness, keeping cached data", ex)
-          return@withContext InitializeAction.SKIP_INITIAL_REFRESH
-        }
-        if (localStepCount < remoteStepCount) InitializeAction.LAUNCH_INITIAL_REFRESH
-        else InitializeAction.SKIP_INITIAL_REFRESH
+        if (exerciseDao.loadSteps(day, workout).isNotEmpty())
+          InitializeAction.SKIP_INITIAL_REFRESH
+        else InitializeAction.LAUNCH_INITIAL_REFRESH
       }
     }
 
