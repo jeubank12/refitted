@@ -146,7 +146,9 @@ private data class PickerSection(val name: String, val kind: PlanKind, val isRem
  * cost of browsing a library sits with whoever taps into it. Custom plans - including the one
  * being edited - only ever show local matches: they're built *from* admin content and have
  * nothing of their own to load remotely. Picking an exercise reuses its exact id so its record
- * history carries over ([onPick]).
+ * history carries over ([onPick]). Every section starts collapsed - [onRefreshWorkouts] is a
+ * separate top-bar action re-syncing the plan list itself (new/removed plans), not any one
+ * plan's exercises.
  */
 @Composable
 fun ExercisePickerList(
@@ -159,6 +161,9 @@ fun ExercisePickerList(
   onLoadWorkout: (String) -> Unit,
   onPick: (Exercise) -> Unit,
   onBack: () -> Unit,
+  /** Re-syncs [accessibleWorkouts] itself (new/removed plans) - separate from a section's own onLoadWorkout, which only refreshes that plan's exercises. */
+  onRefreshWorkouts: () -> Unit,
+  isRefreshingWorkouts: Boolean,
   modifier: Modifier = Modifier
 ) {
   val accessibleNames = accessibleWorkouts.map { it.workout }.toSet()
@@ -170,7 +175,9 @@ fun ExercisePickerList(
     .distinctBy { it.name }
     .sortedWith(compareBy({ it.kind.ordinal }, { it.name }))
   val firstProgramIndex = sections.indexOfFirst { it.kind == PlanKind.PROGRAM }
-  var collapsedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
+  // Empty by default means every section starts collapsed - with a location/equipment library
+  // run plus every program, a fully expanded list is more than fits on screen at once.
+  var expandedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
   Scaffold(
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     modifier = modifier,
@@ -183,6 +190,22 @@ fun ExercisePickerList(
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "back") }
+        },
+        actions = {
+          if (isRefreshingWorkouts) {
+            CircularProgressIndicator(
+              Modifier
+                .padding(12.dp)
+                .size(20.dp),
+              color = MaterialTheme.colors.onPrimary,
+              strokeWidth = 2.dp
+            )
+          } else {
+            IconButton(onClick = onRefreshWorkouts) {
+              // TODO localize
+              Icon(Icons.Default.Refresh, contentDescription = "refresh plan list")
+            }
+          }
         }
       )
     }
@@ -219,7 +242,7 @@ fun ExercisePickerList(
         // rather than "not checked yet".
         val knowsCount = !isRemoteSource || hasFetched || exercises.isNotEmpty()
 
-        val isCollapsed = workout in collapsedWorkouts
+        val isCollapsed = workout !in expandedWorkouts
         item(key = "header:$workout") {
           Row(
             Modifier
@@ -231,7 +254,7 @@ fun ExercisePickerList(
             Row(
               Modifier
                 .clickable(onClickLabel = if (isCollapsed) "expand $workout" else "collapse $workout") {
-                  collapsedWorkouts = if (isCollapsed) collapsedWorkouts - workout else collapsedWorkouts + workout
+                  expandedWorkouts = if (isCollapsed) expandedWorkouts + workout else expandedWorkouts - workout
                 }
                 .padding(end = 4.dp),
               verticalAlignment = Alignment.CenterVertically
@@ -483,7 +506,9 @@ private fun PreviewExercisePickerList() {
       loadingWorkouts = emptyMap(),
       onLoadWorkout = {},
       onPick = {},
-      onBack = {}
+      onBack = {},
+      onRefreshWorkouts = {},
+      isRefreshingWorkouts = false
     )
   }
 }
