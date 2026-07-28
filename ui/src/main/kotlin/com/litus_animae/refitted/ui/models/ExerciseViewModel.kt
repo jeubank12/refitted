@@ -257,7 +257,7 @@ class ExerciseViewModel @Inject constructor(
 
   // Add-exercise picker (muscle group browsing) - local matches are live; remote matches are
   // fetched per-workout on demand since browsing shouldn't pull every accessible plan's catalog.
-  val accessibleWorkoutNames = workoutPlanRepo.accessibleWorkoutNames
+  val accessibleWorkouts = workoutPlanRepo.accessibleWorkouts
 
   fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> = exerciseRepo.exercisesByMuscle(muscle)
 
