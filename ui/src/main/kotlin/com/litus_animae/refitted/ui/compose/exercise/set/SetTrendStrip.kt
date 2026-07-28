@@ -16,6 +16,7 @@ import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
+import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
@@ -78,21 +79,10 @@ fun SetTrendStrip(
     }
     val trend = remember(windowed, series) {
       val expectedWeightBySession = series.trend.associateBy({ it.sessionIndex }, { it.expectedWeight })
-      val runs = mutableListOf<MutableList<Pair<Float, Float>>>()
-      var current: MutableList<Pair<Float, Float>>? = null
-      windowed.forEachIndexed { index, scored ->
-        val expectedWeight = expectedWeightBySession[scored.sessionIndex]
-        if (expectedWeight == null) {
-          current = null
-        } else {
-          val run = current ?: mutableListOf<Pair<Float, Float>>().also {
-            current = it
-            runs.add(it)
-          }
-          run.add(index.toFloat() to expectedWeight.toFloat())
-        }
-      }
-      runs
+      buildTrendRuns(
+        windowed.mapIndexed { index, scored -> index.toFloat() to scored.sessionIndex },
+        expectedWeightBySession
+      )
     }
 
     Card(Modifier.fillMaxSize(), elevation = 2.dp) {

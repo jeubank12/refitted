@@ -13,14 +13,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
 /**
- * The set-history drawer's data source. [paged] backs the scrolling list (unbounded
- * scrollback); [recent] backs any chart drawn from it - a bounded, non-paged flow so a
- * trend fit sees a stable window of history rather than however many pages happen to be
- * loaded under the list at the time.
+ * The set-history drawer's data source. The pager's initialLoadSize is large (see
+ * RoomCacheExerciseRepository) so both the grouped list and the effort chart built from it
+ * see a full history window on first composition - later pages only refine a causal,
+ * recency-weighted fit rather than visibly changing it.
  */
 data class SetHistory(
-  val paged: Flow<PagingData<SetRecord>> = emptyFlow(),
-  val recent: Flow<List<SetRecord>> = emptyFlow()
+  val paged: Flow<PagingData<SetRecord>> = emptyFlow()
 )
 
 data class ExerciseSetWithRecord(

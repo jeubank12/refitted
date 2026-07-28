@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AppBarDefaults
+import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -25,11 +28,16 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.contentColorFor
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,26 +48,35 @@ import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.itemKey
+import com.litus_animae.refitted.data.effort.EffortModel
+import com.litus_animae.refitted.data.effort.ScoredSet
+import com.litus_animae.refitted.data.effort.TrendPoint
+import com.litus_animae.refitted.data.effort.toEffortSet
+import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.LocalFeatures
 import com.litus_animae.refitted.ui.compose.charts.BubbleChart
 import com.litus_animae.refitted.ui.compose.charts.BubbleChartExploded
 import com.litus_animae.refitted.ui.compose.charts.BubbleData
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
+import com.litus_animae.refitted.ui.compose.charts.EffortLegend
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.LineChart
+import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
-import com.litus_animae.refitted.identity.ConfigProvider
-import com.litus_animae.refitted.data.effort.EffortModel
-import com.litus_animae.refitted.data.effort.toEffortSet
-import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.math.roundToInt
+
+private const val GapThresholdDays = 21L
+private const val MaxXLabels = 4
 
 @Composable
 fun SetRecordList(
@@ -67,9 +84,45 @@ fun SetRecordList(
   history: SetHistory
 ) {
   val records = history.paged.collectAsLazyPagingItems()
+  val zone = remember { ZoneId.systemDefault() }
 
-  Column(modifier
-    .fillMaxSize()) {
+  // The oldest loaded session may be an arbitrary slice of Paging's page boundary rather
+  // than the exercise's actual set count for that day - holding it back until pagination
+  // is exhausted keeps its row summary (set count, top weight) and its bubble/PR status
+  // from flickering, and keeps a truncated session from understating its capacity into the
+  // effort fit.
+  val appendDone = records.loadState.append.endOfPaginationReached
+  val retained = remember(records.itemSnapshotList, appendDone) {
+    val items = records.itemSnapshotList.items
+    if (appendDone || items.isEmpty()) {
+      items
+    } else {
+      val oldestDay = items.minOf { it.completed.atZone(zone).toLocalDate() }
+      items.filterNot { it.completed.atZone(zone).toLocalDate() == oldestDay }
+    }
+  }
+
+  val sessions = remember(retained) {
+    retained.groupBy { it.completed.atZone(zone).toLocalDate() }
+      .map { (day, sets) -> SessionGroup(day, sets.sortedBy { it.completed }) }
+  }
+  val series = remember(retained) { EffortModel.score(retained.map { it.toEffortSet() }) }
+  val sessionIndexByDay = remember(retained) {
+    retained.map { it.completed.atZone(zone).toLocalDate() }.distinct().sorted()
+      .withIndex().associate { (i, day) -> day to i }
+  }
+  val bestBySessionIndex = remember(series) {
+    series.sets.groupBy { it.sessionIndex }.mapValues { (_, scored) -> scored.maxBy { it.capacity } }
+  }
+  val bestCapacityOverall = remember(bestBySessionIndex) {
+    bestBySessionIndex.values.maxOfOrNull { it.capacity }
+  }
+
+  var expandedOverrides by rememberSaveable { mutableStateOf<Map<Long, Boolean>>(emptyMap()) }
+  fun isExpanded(day: LocalDate) =
+    expandedOverrides[day.toEpochDay()] ?: (day == sessions.firstOrNull()?.day)
+
+  Column(modifier.fillMaxSize()) {
     Row(
       Modifier
         .fillMaxWidth()
@@ -100,7 +153,6 @@ fun SetRecordList(
     }
 
     LazyColumn(Modifier.weight(2f)) {
-
       // TODO does this cause everything to recompose? Should we just overlay?
       if (records.loadState.refresh is LoadState.Loading) {
         item {
@@ -109,73 +161,37 @@ fun SetRecordList(
           }
         }
       } else {
-        // TODO if we can pull the loading state out, then make this sticky at the top outside the lazycolumn
-        val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-          .withZone(ZoneId.systemDefault())
-        item {
-          Row(
-            Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 10.dp, vertical = 15.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-          ) {
-            Text(
-              stringResource(id = R.string.date),
-              style = MaterialTheme.typography.button
-            )
-            Text(
-              stringResource(id = R.string.reps_label),
-              style = MaterialTheme.typography.button
-            )
-            val weightLabel = stringResource(id = R.string.weight_label)
-            val weightUnits = stringResource(id = R.string.lbs)
-            Text(
-              "$weightLabel ($weightUnits)",
-              style = MaterialTheme.typography.button
-            )
-          }
+        items(sessions, key = { it.day.toEpochDay() }) { session ->
+          val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
+          SessionRow(
+            session = session,
+            isPR = scored != null && scored.capacity == bestCapacityOverall,
+            expanded = isExpanded(session.day),
+            onToggle = {
+              expandedOverrides = expandedOverrides +
+                (session.day.toEpochDay() to !isExpanded(session.day))
+            }
+          )
         }
-
-        items(
-          count = records.itemCount,
-          key = records.itemKey { it.completed }
-        ) { index ->
-          val record = records[index]
-          if (record != null) {
-            RecordItem(dateFormat, record)
+        if (records.loadState.append is LoadState.Loading) {
+          item {
+            Row(Modifier.fillMaxWidth()) {
+              LoadingView()
+            }
           }
         }
       }
     }
 
-    val recent by history.recent.collectAsState(initial = emptyList())
     if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
-      // Fit from the bounded recent-history flow, never the paged snapshot backing the list
-      // above - that would make the trend visibly shift as the user scrolls and more pages
-      // load, since the fit would be over however much of the list happens to be loaded.
-      if (recent.isNotEmpty()) {
-        val series = remember(recent) { EffortModel.score(recent.map { it.toEffortSet() }) }
-        val points = remember(series) {
-          series.sets.map {
-            EffortPoint(
-              // Spreads same-day sets within [dayOffset, dayOffset + 1) instead of stacking
-              // them on one x value.
-              x = it.dayOffset + (it.setIndexInSession + 1f) / (it.setsInSession + 1f),
-              weight = it.source.weight.toFloat(),
-              size = it.size,
-              zone = it.zone
-            )
-          }
-        }
-        val trend = remember(series) {
-          listOf(series.trend.map { it.dayOffset.toFloat() to it.expectedWeight.toFloat() })
-        }
-        EffortChart(
+      if (bestBySessionIndex.isNotEmpty()) {
+        EffortHistoryCard(
           Modifier
             .fillMaxWidth()
             .weight(1f),
-          points = points,
-          trend = trend
+          bestBySessionIndex = bestBySessionIndex,
+          trend = series.trend,
+          zone = zone
         )
       }
     } else if (records.itemCount > 0) {
@@ -221,45 +237,192 @@ fun SetRecordList(
   }
 }
 
+private data class SessionGroup(val day: LocalDate, val sets: List<SetRecord>) {
+  val topWeight = sets.maxOf { it.weight }
+  val volume = sets.sumOf { it.reps * it.weight }
+}
+
 @Composable
-private fun RecordItem(
-  dateFormat: DateTimeFormatter,
-  record: SetRecord
+private fun SessionRow(
+  session: SessionGroup,
+  isPR: Boolean,
+  expanded: Boolean,
+  onToggle: () -> Unit
 ) {
-  Row(
+  val dayFormat = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
+  val timeFormat = remember {
+    DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault())
+  }
+
+  Card(
     Modifier
       .fillMaxWidth()
-      .padding(horizontal = 10.dp, vertical = 15.dp),
-    horizontalArrangement = Arrangement.SpaceBetween
+      .padding(horizontal = 10.dp, vertical = 4.dp),
+    elevation = 1.dp
   ) {
-    Text(
-      dateFormat.format(record.completed),
-      style = MaterialTheme.typography.button
-    )
-    Text(
-      record.reps.toString(),
-      style = MaterialTheme.typography.button
-    )
-    Text(
-      String.format("%.1f", record.weight),
-      style = MaterialTheme.typography.button
-    )
+    Column {
+      Row(
+        Modifier
+          .fillMaxWidth()
+          .clickable(onClick = onToggle)
+          .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+      ) {
+        Column(Modifier.weight(1f)) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+          ) {
+            Text(dayFormat.format(session.day), style = MaterialTheme.typography.subtitle2)
+            if (isPR) {
+              Text(
+                // TODO localize
+                "PR",
+                style = MaterialTheme.typography.caption,
+                color = Color.White,
+                modifier = Modifier
+                  .background(Theme.goodAttention, RoundedCornerShape(4.dp))
+                  .padding(horizontal = 4.dp, vertical = 1.dp)
+              )
+            }
+          }
+          Text(
+            // TODO localize
+            "${session.sets.size} sets · ${String.format("%.0f", session.volume)} lbs volume",
+            style = MaterialTheme.typography.caption,
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+          )
+        }
+        Text(String.format("%.1f", session.topWeight), style = MaterialTheme.typography.button)
+        Icon(
+          if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+          contentDescription = null
+        )
+      }
+      if (expanded) {
+        session.sets.forEachIndexed { index, set ->
+          Divider()
+          Row(
+            Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Text(timeFormat.format(set.completed), style = MaterialTheme.typography.caption)
+            Text(set.reps.toString(), style = MaterialTheme.typography.body2)
+            Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.body2)
+          }
+        }
+      }
+    }
   }
-  Divider()
+}
+
+/**
+ * The effort chart, titled and cared, plotting one bubble per session (its best set) against
+ * uniform session slots rather than calendar time - real histories jump months between
+ * sessions, and a calendar x-axis would leave most of the plot empty. [EffortModel.score]
+ * still fits on real day-offset regardless of this display choice.
+ */
+@Composable
+private fun EffortHistoryCard(
+  modifier: Modifier = Modifier,
+  bestBySessionIndex: Map<Int, ScoredSet>,
+  trend: List<TrendPoint>,
+  zone: ZoneId
+) {
+  val monthYear = remember { DateTimeFormatter.ofPattern("MMM ''yy") }
+  val sortedEntries = remember(bestBySessionIndex) {
+    bestBySessionIndex.entries.sortedBy { it.key }
+  }
+
+  val points = remember(sortedEntries) {
+    sortedEntries.map { (sessionIndex, scored) ->
+      EffortPoint(sessionIndex.toFloat(), scored.source.weight.toFloat(), scored.size, scored.zone)
+    }
+  }
+  val expectedWeightBySession = remember(trend) {
+    trend.associateBy({ it.sessionIndex }, { it.expectedWeight })
+  }
+  val trendRuns = remember(sortedEntries, expectedWeightBySession) {
+    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, expectedWeightBySession)
+  }
+  val gapMarks = remember(sortedEntries) {
+    sortedEntries.zipWithNext().mapNotNull { (a, b) ->
+      if (b.value.dayOffset - a.value.dayOffset > GapThresholdDays) a.key + 0.5f else null
+    }
+  }
+  val xLabels = remember(sortedEntries) {
+    if (sortedEntries.isEmpty()) {
+      emptyList()
+    } else {
+      val step = (sortedEntries.size / MaxXLabels).coerceAtLeast(1)
+      sortedEntries.filterIndexed { index, _ -> index % step == 0 }.map { (sessionIndex, scored) ->
+        sessionIndex.toFloat() to monthYear.format(scored.source.completed.atZone(zone))
+      }
+    }
+  }
+  val yLabels = remember(points) {
+    if (points.isEmpty()) {
+      emptyList()
+    } else {
+      val minWeight = points.minOf { it.weight }
+      val maxWeight = points.maxOf { it.weight }
+      listOf(minWeight, (minWeight + maxWeight) / 2f, maxWeight)
+        .distinct()
+        .map { it to it.roundToInt().toString() }
+    }
+  }
+
+  Card(modifier, elevation = 2.dp) {
+    Column(Modifier.padding(12.dp)) {
+      Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.subtitle2)
+      Text(
+        stringResource(R.string.effort_chart_subtitle),
+        style = MaterialTheme.typography.caption,
+        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+      )
+      EffortChart(
+        Modifier
+          .fillMaxWidth()
+          .weight(1f),
+        points = points,
+        trend = trendRuns,
+        xLabels = xLabels,
+        yLabels = yLabels,
+        gapMarks = gapMarks
+      )
+      EffortLegend(
+        Modifier
+          .fillMaxWidth()
+          .padding(top = 4.dp)
+      )
+    }
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewSetRecordList() {
+  // Spans a multi-year gap so the drawer preview exercises grouping, the PR badge, and the
+  // chart's gap marks together - same fixture shape as the drafted redesign this was based on.
   val records = listOf(
-    SetRecord(35.0, 6, "X", "Y", Instant.ofEpochMilli(1000), "Z"),
-    SetRecord(37.5, 6, "X", "Y", Instant.ofEpochMilli(2000), "Z"),
-    SetRecord(35.0, 10, "X", "Y", Instant.ofEpochMilli(4000), "Z"),
-    SetRecord(40.0, 6, "X", "Y", Instant.ofEpochMilli(6000), "Z"),
-    SetRecord(45.0, 2, "X", "Y", Instant.ofEpochMilli(7000), "Z"),
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2021-11-16T06:44:50Z"), "Z"),
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2021-11-16T06:46:29Z"), "Z"),
+    SetRecord(20.0, 8, "X", "Y", Instant.parse("2021-11-16T06:49:20Z"), "Z"),
+    SetRecord(15.0, 11, "X", "Y", Instant.parse("2023-01-17T06:29:26Z"), "Z"),
+    SetRecord(15.0, 10, "X", "Y", Instant.parse("2023-01-17T06:31:18Z"), "Z"),
+    SetRecord(15.0, 10, "X", "Y", Instant.parse("2023-01-17T06:33:05Z"), "Z"),
+    SetRecord(35.0, 10, "X", "Y", Instant.parse("2023-06-05T06:32:29Z"), "Z"),
+    SetRecord(35.0, 11, "X", "Y", Instant.parse("2023-06-05T06:34:27Z"), "Z"),
+    SetRecord(35.0, 11, "X", "Y", Instant.parse("2023-06-05T06:36:36Z"), "Z"),
+    SetRecord(40.0, 11, "X", "Y", Instant.parse("2023-06-13T06:24:07Z"), "Z"),
+    SetRecord(40.0, 10, "X", "Y", Instant.parse("2023-06-13T06:25:59Z"), "Z"),
+    SetRecord(40.0, 10, "X", "Y", Instant.parse("2023-06-13T06:27:55Z"), "Z")
   )
   val data = PagingData.from(
-    records,
+    records.reversed(),
     sourceLoadStates = LoadStates(
       LoadState.NotLoading(true),
       LoadState.NotLoading(true),
@@ -270,8 +433,20 @@ private fun PreviewSetRecordList() {
   SetRecordList(
     Modifier
       .background(Color.White)
-      .height(400.dp)
-      .width(200.dp),
-    SetHistory(flowOf(data), flowOf(records))
+      .height(500.dp)
+      .width(360.dp),
+    SetHistory(flowOf(data))
   )
+}
+
+@Preview
+@Composable
+private fun PreviewSetRecordListEffortChart() {
+  CompositionLocalProvider(
+    LocalFeatures provides ConfigProvider.Companion.RemoteConfig(
+      mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
+    )
+  ) {
+    PreviewSetRecordList()
+  }
 }

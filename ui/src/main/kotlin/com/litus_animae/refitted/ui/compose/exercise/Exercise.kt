@@ -79,7 +79,7 @@ fun ExerciseView(
 
   LaunchedEffect(exerciseSet) {
     setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
-    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets, it.recentSets)) }
+    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
   val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null

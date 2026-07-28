@@ -114,7 +114,7 @@ fun PagerExerciseView(
 
   LaunchedEffect(exerciseSet) {
     setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
-    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets, it.recentSets)) }
+    currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
   // A genuinely empty day (no instructions, e.g. a fresh custom day) never resolves an
