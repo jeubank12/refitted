@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
@@ -152,37 +154,10 @@ fun SetRecordList(
       }
     }
 
-    LazyColumn(Modifier.weight(2f)) {
-      // TODO does this cause everything to recompose? Should we just overlay?
-      if (records.loadState.refresh is LoadState.Loading) {
-        item {
-          Row(Modifier.fillMaxWidth()) {
-            LoadingView()
-          }
-        }
-      } else {
-        items(sessions, key = { it.day.toEpochDay() }) { session ->
-          val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
-          SessionRow(
-            session = session,
-            isPR = scored != null && scored.capacity == bestCapacityOverall,
-            expanded = isExpanded(session.day),
-            onToggle = {
-              expandedOverrides = expandedOverrides +
-                (session.day.toEpochDay() to !isExpanded(session.day))
-            }
-          )
-        }
-        if (records.loadState.append is LoadState.Loading) {
-          item {
-            Row(Modifier.fillMaxWidth()) {
-              LoadingView()
-            }
-          }
-        }
-      }
-    }
-
+    // Charted above the scrolling list, not below it - a card anchored at the very bottom of
+    // the drawer sat under the gesture nav bar / corner bezel on edge-to-edge devices. The
+    // list is the one thing here that's meant to scroll, so it's the one that should own the
+    // bottom edge, with its own inset padding rather than a card fighting the system bars.
     if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
       if (bestBySessionIndex.isNotEmpty()) {
         EffortHistoryCard(
@@ -232,6 +207,40 @@ fun SetRecordList(
             .weight(1f),
           data = data
         )
+      }
+    }
+
+    LazyColumn(
+      Modifier.weight(2f),
+      contentPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues()
+    ) {
+      // TODO does this cause everything to recompose? Should we just overlay?
+      if (records.loadState.refresh is LoadState.Loading) {
+        item {
+          Row(Modifier.fillMaxWidth()) {
+            LoadingView()
+          }
+        }
+      } else {
+        items(sessions, key = { it.day.toEpochDay() }) { session ->
+          val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
+          SessionRow(
+            session = session,
+            isPR = scored != null && scored.capacity == bestCapacityOverall,
+            expanded = isExpanded(session.day),
+            onToggle = {
+              expandedOverrides = expandedOverrides +
+                (session.day.toEpochDay() to !isExpanded(session.day))
+            }
+          )
+        }
+        if (records.loadState.append is LoadState.Loading) {
+          item {
+            Row(Modifier.fillMaxWidth()) {
+              LoadingView()
+            }
+          }
+        }
       }
     }
   }
