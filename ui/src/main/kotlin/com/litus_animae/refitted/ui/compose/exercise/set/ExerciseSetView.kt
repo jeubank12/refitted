@@ -86,6 +86,7 @@ fun ExerciseSetView(
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
+  onOpenHistory: () -> Unit = {},
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -103,6 +104,7 @@ fun ExerciseSetView(
       nextRestSeconds = nextRestSeconds,
       editing = editing,
       onUpdateCustomTargets = onUpdateCustomTargets,
+      onOpenHistory = onOpenHistory,
     )
   }
 }
@@ -124,6 +126,7 @@ fun ColumnScope.ExerciseSetView(
   nextRestSeconds: Int? = null,
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
+  onOpenHistory: () -> Unit = {},
 ) {
   val exerciseSet = setWithRecord.exerciseSet
   val currentRecord = setWithRecord.currentRecord
@@ -239,7 +242,8 @@ fun ColumnScope.ExerciseSetView(
               .fillMaxWidth()
               .height(stripHeight),
             history = setWithRecord.recentSets,
-            todaysRecords = setWithRecord.setRecords
+            todaysRecords = setWithRecord.setRecords,
+            onClick = onOpenHistory
           )
         }
         if (stepperShown) {

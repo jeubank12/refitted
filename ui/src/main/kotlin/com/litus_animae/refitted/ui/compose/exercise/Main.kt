@@ -138,6 +138,7 @@ fun Exercise(
           scaffoldScope.launch { sheetState.show() }
         },
         onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
+        onOpenHistory = { scaffoldScope.launch { scaffoldState.drawerState.open() } },
         editing = editing,
         onAddExercise = onAddExercise,
         scrollToExerciseName = scrollToExerciseName)

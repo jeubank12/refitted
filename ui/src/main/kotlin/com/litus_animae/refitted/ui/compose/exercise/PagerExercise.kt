@@ -70,6 +70,7 @@ fun PagerExerciseView(
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   onSetSaved: () -> Unit = {},
+  onOpenHistory: () -> Unit = {},
   editing: Boolean = false,
   onAddExercise: () -> Unit = {},
   scrollToExerciseName: String? = null
@@ -177,7 +178,8 @@ fun PagerExerciseView(
                 pagerState.requestScrollToPage(pagerState.settledPage + offset)
             }
           },
-          onStartEditWeight = onStartEditWeight
+          onStartEditWeight = onStartEditWeight,
+          onOpenHistory = onOpenHistory
         )
       }
     }
@@ -241,6 +243,7 @@ fun PagerDetailView(
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
   onSave: (Record) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
+  onOpenHistory: () -> Unit = {},
   editing: Boolean = false,
   onUpdateCustomTargets: (
     workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int, repsRange: Int
@@ -356,7 +359,8 @@ fun PagerDetailView(
               activeSetWithRecord.exerciseSet.rest,
               repsRange
             )
-          }
+          },
+          onOpenHistory = onOpenHistory
         )
       }
     }

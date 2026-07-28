@@ -1,6 +1,7 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -59,13 +60,15 @@ private const val MAX_WINDOW = 14
  *
  * [history] is the bounded recentSets flow; [todaysRecords] are the in-memory sets completed
  * this session so a just-finished set appears immediately instead of waiting on Room's
- * write/invalidation round-trip to reach [history].
+ * write/invalidation round-trip to reach [history]. [onClick] opens the full set-history
+ * drawer - this strip is a glance, not the place to read the whole history.
  */
 @Composable
 fun SetTrendStrip(
   modifier: Modifier = Modifier,
   history: Flow<List<SetRecord>>,
-  todaysRecords: List<Record>
+  todaysRecords: List<Record>,
+  onClick: () -> Unit = {}
 ) {
   val recorded by history.collectAsState(initial = emptyList(), Dispatchers.IO)
 
@@ -129,7 +132,7 @@ fun SetTrendStrip(
       )
     }
 
-    Card(Modifier.fillMaxSize(), elevation = 2.dp) {
+    Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = 2.dp) {
       Column(Modifier.fillMaxSize()) {
         // Doubles as the chart's only legend: it names the color of the bubble the user
         // just earned, in the moment they earn it, rather than a static key for all five.
