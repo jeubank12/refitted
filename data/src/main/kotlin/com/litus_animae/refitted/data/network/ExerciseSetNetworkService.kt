@@ -18,4 +18,10 @@ data class NetworkExerciseSet(
  */
 interface ExerciseSetNetworkService {
   suspend fun getExerciseSets(dayAndWorkout: DayAndWorkout): List<NetworkExerciseSet>
+
+  /**
+   * Exercises belonging to [workout] whose id starts with "$muscle_" - see
+   * [com.litus_animae.refitted.data.models.Exercise] for the id's muscle-group prefix scheme.
+   */
+  suspend fun getExercisesByMuscle(workout: String, muscle: String): List<Exercise>
 }

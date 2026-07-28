@@ -55,9 +55,9 @@ import kotlin.math.min
 /**
  * A circular rest-timer ring.
  *
- * **Idle** (not resting): ring is filled in the primary colour up to the proportion
- * [restSeconds] / [maxRestSeconds], so rests are visually comparable across exercises
- * in the same workout day. A +/- control lets the user override the rest duration.
+ * **Idle** (not resting): ring is fully filled, representing [restSeconds] as a complete
+ * duration in its own right rather than scaled against any other exercise's rest. A +/-
+ * control lets the user override the rest duration.
  *
  * **Running** (resting): arc depletes clockwise; centre shows remaining seconds; goes
  * amber under 10 s. If [nextRestSeconds] is non-null a secondary note is shown so the
@@ -74,7 +74,6 @@ import kotlin.math.min
 @Composable
 fun CircularRestTimer(
   restSeconds: Int,
-  maxRestSeconds: Int,
   isRunning: Boolean,
   startedAt: Instant,
   modifier: Modifier = Modifier,
@@ -83,7 +82,9 @@ fun CircularRestTimer(
   onFinish: () -> Unit = {}
 ) {
   val durationMillis = restSeconds * 1000
-  val safeMax = maxRestSeconds.coerceAtLeast(1)
+  // Normalised against its own duration, not some other exercise's rest - a locked-in 45s
+  // rest fills the whole ring rather than a fraction of a day-wide maximum.
+  val safeMax = restSeconds.coerceAtLeast(1)
 
   // Recreate the animatable whenever a new timer starts (startedAt changes).
   // When already running on first composition, seek to the elapsed position immediately.
@@ -269,16 +270,17 @@ fun CircularRestTimer(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
       ) {
+        // Only ever shown in edit mode (see call site), so no upper bound here.
         IconButton(
-          onClick = { onAdjust((restSeconds - 5).coerceIn(0, maxRestSeconds)) },
+          onClick = { onAdjust((restSeconds - 5).coerceAtLeast(0)) },
           enabled = !isRunning && restSeconds > 0
         ) {
           Icon(Icons.Default.Remove, contentDescription = "decrease rest")
         }
         Text("${restSeconds}s", style = MaterialTheme.typography.body2)
         IconButton(
-          onClick = { onAdjust((restSeconds + 5).coerceIn(0, maxRestSeconds)) },
-          enabled = !isRunning && restSeconds < maxRestSeconds
+          onClick = { onAdjust(restSeconds + 5) },
+          enabled = !isRunning
         ) {
           Icon(Icons.Default.Add, contentDescription = "increase rest")
         }
@@ -288,8 +290,8 @@ fun CircularRestTimer(
 }
 
 private class IdleFillRatioProvider : PreviewParameterProvider<Int> {
-  // restSeconds against a fixed 90s maxRestSeconds, to see the idle ring at
-  // a few different fill proportions
+  // The idle ring is always full regardless of restSeconds (normalised against itself) -
+  // these values just check rendering/text sizing at a few different durations.
   override val values: Sequence<Int> = sequenceOf(0, 20, 45, 90)
 }
 
@@ -302,7 +304,6 @@ fun PreviewCircularRestTimerIdle(
     Card(Modifier.fillMaxSize()) {
       CircularRestTimer(
         restSeconds = restSeconds,
-        maxRestSeconds = 90,
         isRunning = false,
         startedAt = Instant.now(),
         onAdjust = {}
@@ -328,7 +329,6 @@ fun PreviewCircularRestTimerInteractive() {
         Box(Modifier.size(220.dp)) {
           CircularRestTimer(
             restSeconds = restSeconds,
-            maxRestSeconds = 90,
             isRunning = running,
             startedAt = startedAt,
             nextRestSeconds = 60,

@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose.calendar
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -17,6 +18,8 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.AppBarDefaults
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
+import androidx.compose.material.FabPosition
+import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -26,6 +29,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.rememberScaffoldState
@@ -61,17 +65,27 @@ import kotlinx.coroutines.launch
 @Composable
 fun Calendar(
   modifier: Modifier = Modifier,
-  navigateToWorkoutDay: (WorkoutPlan, Int) -> Unit,
+  navigateToWorkoutDay: (WorkoutPlan, Int, editing: Boolean) -> Unit,
   workoutModel: WorkoutViewModel = viewModel(),
   userModel: UserViewModel = viewModel()
 ) {
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
+  var showCreateCustomDialog by rememberSaveable { mutableStateOf(false) }
+  var showCopyDayDialog by rememberSaveable { mutableStateOf(false) }
+  var showAddMenu by rememberSaveable { mutableStateOf(false) }
+  var editMode by rememberSaveable { mutableStateOf(false) }
 
   val selectedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
     Dispatchers.IO
   )
+  // A freshly created custom plan has nothing to "use" yet - land straight in edit mode.
+  LaunchedEffect(selectedWorkoutPlan?.workout) {
+    if (selectedWorkoutPlan?.isCustom == true && selectedWorkoutPlan?.totalDays == 0) {
+      editMode = true
+    }
+  }
   val savedSelectedPlanLoading = workoutModel.savedStateLoading
   val completedDaysLoading = workoutModel.completedDaysLoading
 
@@ -130,6 +144,18 @@ fun Calendar(
             DropdownMenu(
               expanded = expanded,
               onDismissRequest = { setExpanded(false) }) {
+              if (selectedWorkoutPlan?.isCustom == true && !editMode) {
+                Text(
+                  "Edit plan",
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                      editMode = true
+                      setExpanded(false)
+                    }
+                    .padding(start = 5.dp, end = 15.dp)
+                    .padding(vertical = 5.dp))
+              }
               Text(
                 "Reset workout",
                 Modifier
@@ -179,6 +205,57 @@ fun Calendar(
         }
       )
     },
+    floatingActionButton = {
+      if (selectedWorkoutPlan?.isCustom == true && editMode) {
+        // FAB + its menu need to share one layout node in this slot - as two loose siblings,
+        // Scaffold measured the slot's width from both and threw the FAB's End position off,
+        // rendering it on the left.
+        Box {
+          FloatingActionButton(onClick = { showAddMenu = true }) {
+            // TODO localize
+            Icon(Icons.Default.Add, "add to plan")
+          }
+          DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
+            Text(
+              // TODO localize
+              "New day",
+              Modifier
+                .fillMaxWidth()
+                .clickable {
+                  workoutModel.addDay(selectedWorkoutPlan!!)
+                  showAddMenu = false
+                }
+                .padding(start = 5.dp, end = 15.dp)
+                .padding(vertical = 5.dp))
+            if (selectedWorkoutPlan!!.totalDays > 0) {
+              Text(
+                // TODO localize
+                "Copy from…",
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    showAddMenu = false
+                    showCopyDayDialog = true
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp))
+            }
+            Text(
+              // TODO localize
+              "Rest day",
+              Modifier
+                .fillMaxWidth()
+                .clickable {
+                  workoutModel.addRestDay(selectedWorkoutPlan!!)
+                  showAddMenu = false
+                }
+                .padding(start = 5.dp, end = 15.dp)
+                .padding(vertical = 5.dp))
+          }
+        }
+      }
+    },
+    floatingActionButtonPosition = FabPosition.End,
     drawerShape = MaterialTheme.shapes.medium,
     drawerContent = {
       val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
@@ -203,11 +280,16 @@ fun Calendar(
         Modifier.weight(1f),
         lastRefresh,
         workoutPlanPagingItems,
-        workoutPlanError
-      ) {
-        scaffoldScope.launch { scaffoldState.drawerState.close() }
-        workoutModel.loadWorkoutDaysCompleted(it)
-      }
+        workoutPlanError,
+        onSelect = {
+          scaffoldScope.launch { scaffoldState.drawerState.close() }
+          workoutModel.loadWorkoutDaysCompleted(it)
+        },
+        onCreateCustom = {
+          scaffoldScope.launch { scaffoldState.drawerState.close() }
+          showCreateCustomDialog = true
+        }
+      )
       Row(
         Modifier
           .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
@@ -279,11 +361,40 @@ fun Calendar(
         selectedWorkoutPlan!!,
         completedDays,
         contentPadding = contentPadding,
-        onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) }
+        editMode = editMode,
+        onExitEdit = { editMode = false },
+        onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan!!, it) },
+        onClearDay = { day -> workoutModel.clearDay(selectedWorkoutPlan!!, day) },
+        onSetDayRest = { day, isRest -> workoutModel.setDayRest(selectedWorkoutPlan!!, day, isRest) },
+        onEditDay = { day ->
+          navigateToWorkoutDay(selectedWorkoutPlan!!, day, true)
+          workoutModel.setLastViewedDay(selectedWorkoutPlan!!, day)
+        }
       ) {
-        navigateToWorkoutDay(selectedWorkoutPlan!!, it)
+        navigateToWorkoutDay(selectedWorkoutPlan!!, it, false)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
     }
+  }
+
+  if (showCreateCustomDialog) {
+    NewCustomWorkoutDialog(
+      onDismissRequest = { showCreateCustomDialog = false },
+      onCreate = {
+        workoutModel.createCustomWorkout(it)
+        showCreateCustomDialog = false
+      }
+    )
+  }
+
+  if (showCopyDayDialog && selectedWorkoutPlan != null) {
+    CopyDayDialog(
+      totalDays = selectedWorkoutPlan!!.totalDays,
+      onDismissRequest = { showCopyDayDialog = false },
+      onCopy = { fromDay ->
+        workoutModel.copyDay(selectedWorkoutPlan!!, fromDay)
+        showCopyDayDialog = false
+      }
+    )
   }
 }

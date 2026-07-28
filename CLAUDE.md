@@ -329,5 +329,12 @@ All three components share the same AWS DynamoDB backend for data storage.
 - Avoid fully qualified class names in code. Prefer file imports and use renames in the import syntax
 - Keep modules focused: domain logic in `:data`, persistence in `:room`, UI in `:ui`, etc.
 - Repository implementations in `:app` bridge multiple data sources (Room + DynamoDB)
-- Prefer succinct commit messages over long ones — a short message that explains what's not obvious from the diff beats a detailed one
 - Do not add comments explaining what code does when the code is self-explanatory. Only comment non-obvious *why* (a hidden constraint, a workaround, a subtle invariant) — never restate the *what*. Prefer putting that *why* in the commit message over a code comment when it's about the change itself rather than a lasting property of the code
+
+## Commit Conventions
+
+- One commit = one digestible, self-contained change, isolated by locus (module/file area) when possible. Never land a mega-commit that interleaves unrelated areas — it can't be reviewed in logical chunks.
+- Split a feature into tiers before writing code, and commit tier by tier. Tiers normally follow the architecture: domain/data models (`:data`), then persistence (`:room`/`:app` repositories), then UI (`:ui`). Going UI-first against dummy data is fine when the backend isn't ready yet — just keep each tier its own commit either way.
+- Each commit should build on its own — avoid a commit that only compiles once a later commit lands.
+- Prefer succinct commit messages over long ones — a short message that explains what's not obvious from the diff beats a detailed one.
+- Do not add a `Claude-Session` link or similar session-tracking trailer to commit messages unless explicitly asked. A `Co-Authored-By` trailer is fine.

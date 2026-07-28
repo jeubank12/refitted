@@ -70,6 +70,19 @@ class DynamoExerciseSetNetworkService @Inject constructor(
     }
   }
 
+  override suspend fun getExercisesByMuscle(workout: String, muscle: String): List<Exercise> {
+    return withContext(Dispatchers.IO) {
+      val db = dynamo.getDb()
+      log.i(TAG, "Querying exercises for muscle group $muscle in workout $workout")
+      db.queryReverseIndex(
+        DynamoExercise::class.java,
+        DynamoExercise(workout = workout),
+        "${muscle}_",
+        ComparisonOperator.BEGINS_WITH
+      ).map { it.toDomain() }
+    }
+  }
+
   companion object {
     private const val TAG = "DynamoExerciseSetNetworkService"
   }

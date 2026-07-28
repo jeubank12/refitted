@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.CircularRestTimer
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplay
+import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayEditingMinHeight
 import com.litus_animae.refitted.ui.compose.exercise.RepsDisplayMinHeight
+import com.litus_animae.refitted.ui.compose.exercise.TargetStepper
 import com.litus_animae.refitted.ui.compose.exercise.WeightDisplay
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
@@ -62,10 +65,11 @@ fun ExerciseSetView(
   showNavigationButtons: Boolean = true,
   externalTimerState: ExerciseViewModel.TimerState? = null,
   onTimerToggle: (() -> Unit)? = null,
-  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
+  editing: Boolean = false,
+  onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -78,10 +82,11 @@ fun ExerciseSetView(
       showNavigationButtons = showNavigationButtons,
       externalTimerState = externalTimerState,
       onTimerToggle = onTimerToggle,
-      maxRestSeconds = maxRestSeconds,
       restOverride = restOverride,
       onRestOverrideChange = onRestOverrideChange,
       nextRestSeconds = nextRestSeconds,
+      editing = editing,
+      onUpdateCustomTargets = onUpdateCustomTargets,
     )
   }
 }
@@ -98,19 +103,24 @@ fun ColumnScope.ExerciseSetView(
   showNavigationButtons: Boolean = true,
   externalTimerState: ExerciseViewModel.TimerState? = null,
   onTimerToggle: (() -> Unit)? = null,
-  maxRestSeconds: Int = setWithRecord.exerciseSet.rest,
   restOverride: Int? = null,
   onRestOverrideChange: ((Int) -> Unit)? = null,
   nextRestSeconds: Int? = null,
+  editing: Boolean = false,
+  onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
 ) {
   val (exerciseSet, currentRecord, numCompleted, _, _) = setWithRecord
   val record by currentRecord
-  val weight = rememberSaveable(saver = Weight.Saver, inputs = arrayOf(exerciseSet, record)) {
+  // Keyed on exerciseSet.id (day.step), not the exerciseSet object itself - editing this set's
+  // own target/rest (see onUpdateCustomTargets/onRestOverrideChange) replaces that object via
+  // .copy(), and keying on the whole value would reset an in-progress weight/reps pick every
+  // time. record is still a key: a genuinely new record (next set, different day) should reset.
+  val weight = rememberSaveable(saver = Weight.Saver, inputs = arrayOf(exerciseSet.id, record)) {
     Weight(record.weight)
   }
   val reps = rememberSaveable(
     saver = Repetitions.Saver,
-    inputs = arrayOf(exerciseSet, record)
+    inputs = arrayOf(exerciseSet.id, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
 
   // Local timer state used as fallback for the legacy ExerciseView path
@@ -142,7 +152,14 @@ fun ColumnScope.ExerciseSetView(
           WeightDisplay(onStartEditWeight, weight, saveWeight)
         }
         Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
-          RepsDisplay(setWithRecord, reps)
+          RepsDisplay(
+            setWithRecord,
+            reps,
+            editing = editing,
+            onUpdateTargetReps = onUpdateCustomTargets?.let { update ->
+              { newReps: Int, newRepsRange: Int -> update(exerciseSet.sets, newReps, newRepsRange) }
+            }
+          )
         }
       },
       modifier = Modifier
@@ -154,7 +171,12 @@ fun ColumnScope.ExerciseSetView(
       val width = constraints.maxWidth
       val available = (constraints.maxHeight - spacing).coerceAtLeast(0)
       val (weightCard, repsCard) = measurables
-      val repsHeight = maxOf(available / 2, RepsDisplayMinHeight.roundToPx())
+      val repsFloor = if (editing && onUpdateCustomTargets != null) {
+        RepsDisplayEditingMinHeight
+      } else {
+        RepsDisplayMinHeight
+      }
+      val repsHeight = maxOf(available / 2, repsFloor.roundToPx())
         .coerceAtMost(available)
       val weightPlaceable = weightCard.measure(Constraints.fixed(width, available - repsHeight))
       val repsPlaceable = repsCard.measure(Constraints.fixed(width, repsHeight))
@@ -173,24 +195,41 @@ fun ColumnScope.ExerciseSetView(
       // Wraps its content instead of filling the row's height (which the Weight/Reps
       // stack next to it doesn't fully occupy either) so it floats centered rather than
       // stretching to an arbitrary bottom edge that never quite matched theirs.
-      Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
-        CircularRestTimer(
-          restSeconds = effectiveRestSeconds,
-          maxRestSeconds = maxRestSeconds,
-          isRunning = isTimerRunning,
-          startedAt = effectiveTimerStart,
-          modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight),
-          nextRestSeconds = nextRestSeconds,
-          onAdjust = onRestOverrideChange,
-          onFinish = {
-            if (onTimerToggle != null) {
-              onTimerToggle()
-            } else {
-              timerRunning.value = false
-              timerDuration.intValue = exerciseSet.rest * 1000
+      Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (editing && onUpdateCustomTargets != null) {
+          Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+            Box(Modifier.padding(8.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+              // TODO localize
+              TargetStepper(
+                label = "sets",
+                value = exerciseSet.sets,
+                onChange = { onUpdateCustomTargets(it, exerciseSet.reps, exerciseSet.repsRange) }
+              )
             }
           }
-        )
+        }
+        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+          CircularRestTimer(
+            restSeconds = effectiveRestSeconds,
+            isRunning = isTimerRunning,
+            startedAt = effectiveTimerStart,
+            // Grows the card instead of insetting the ring - CircularRestTimer's own square
+            // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
+            // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
+            // more height, not padding down the ring's existing (correct) size.
+            modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
+            nextRestSeconds = nextRestSeconds,
+            onAdjust = onRestOverrideChange,
+            onFinish = {
+              if (onTimerToggle != null) {
+                onTimerToggle()
+              } else {
+                timerRunning.value = false
+                timerDuration.intValue = exerciseSet.rest * 1000
+              }
+            }
+          )
+        }
       }
     }
   }

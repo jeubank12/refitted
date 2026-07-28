@@ -26,6 +26,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -37,9 +39,12 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +64,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
@@ -70,6 +76,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
@@ -94,6 +101,9 @@ fun PagerExerciseInstructions(
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
    */
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
   val pageRotations = remember(instructions.size) {
     val rotation = maxRotation - minRotation
@@ -140,11 +150,26 @@ fun PagerExerciseInstructions(
         val currentPage = pagerState.currentPage
         instructions.forEachIndexed { idx, instruction ->
           key(idx) {
+            // Same continuous focus the pager layer computes, keyed the same way (distance
+            // from the settled scroll position) — the pager hands a card off to the deck
+            // mid-focus (at distance -0.5, pageFocus 0.5) as it slides out to the left, so
+            // without this the card's elevation snapped from 3.5dp to a hardcoded 1dp right
+            // at the handoff.
+            val pageFocus by remember(idx) {
+              derivedStateOf {
+                val scroll = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                (1f - (idx - scroll).absoluteValue).coerceIn(0f, 1f)
+              }
+            }
             CardContent(
               instruction, alternateIndex, setRecords,
               // The deck's own copy of a card is never the authoritative, focused render (the
               // pager owns that for the settled page) — never worth animating a swap here.
               isActivePage = false,
+              pageFocus = pageFocus,
+              editing = editing,
+              onDeleteExercise = onDeleteExercise,
+              onEditNote = onEditNote,
               modifier = Modifier
                 .fillMaxSize()
                 // Upcoming cards stack above previously completed ones
@@ -191,12 +216,26 @@ fun PagerExerciseInstructions(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
       ) { page ->
         val pagesFromCurrent = page - pagerState.currentPage
+        // Continuous distance of this page from front-and-center, in pages — the same
+        // measure the graphicsLayer block below uses for position. Driving elevation from
+        // this instead of the isActivePage boolean means it tracks the drag itself rather
+        // than jumping into a tween at the halfway point where currentPage flips.
+        val pageFocus by remember(page) {
+          derivedStateOf {
+            val distance = (page - pagerState.currentPage) - pagerState.currentPageOffsetFraction
+            (1f - distance.absoluteValue).coerceIn(0f, 1f)
+          }
+        }
         CardContent(
           instructions.getOrNull(page), alternateIndex, setRecords,
           // Only the settled, front-and-center page should ever escape into the unclipped
           // popup — anything mid-swipe or off to the side would just be a phantom animation
           // bleeding through on top of whatever the user is actually looking at.
           isActivePage = pagesFromCurrent == 0,
+          pageFocus = pageFocus,
+          editing = editing,
+          onDeleteExercise = onDeleteExercise,
+          onEditNote = onEditNote,
           modifier = Modifier
             .fillMaxSize()
             // The card leaving the top of the deck stays above the one being revealed or
@@ -280,7 +319,14 @@ fun PagerExerciseInstructions(
     }
 
     val instruction = instructions.getOrNull(pagerState.currentPage)
-    val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+    // Keyed on the instruction's stable identity, not the instruction object itself - every edit
+    // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
+    // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
+    // across reloads), so keying on `instruction` would recreate this flow - and reset the
+    // collected state to null for a frame - on every unrelated edit, not just this card's own.
+    val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
+      instruction?.set(alternateIndex)
+    }
     val exerciseSet by exerciseSetFlow
       ?.collectAsStateWithLifecycle(initialValue = null)
       ?: remember { mutableStateOf(null) }
@@ -296,9 +342,21 @@ private fun CardContent(
   alternateIndex: Int?,
   setRecords: Map<String, ExerciseSetWithRecord>,
   isActivePage: Boolean,
+  /** Continuous 0..1 distance-from-center, in pages — 0 for deck cards, which never focus. */
+  pageFocus: Float = 0f,
   modifier: Modifier = Modifier,
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
-  val exerciseSetFlow = remember(instruction, alternateIndex) { instruction?.set(alternateIndex) }
+  // Keyed on the instruction's stable identity, not the instruction object itself - every edit
+  // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
+  // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
+  // across reloads), so keying on `instruction` would recreate this flow - and reset the
+  // collected state to null for a frame - on every unrelated edit, not just this card's own.
+  val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
+    instruction?.set(alternateIndex)
+  }
   val exerciseSet by exerciseSetFlow
     ?.collectAsStateWithLifecycle(initialValue = null)
     ?: remember { mutableStateOf(null) }
@@ -358,6 +416,16 @@ private fun CardContent(
 
     @Composable
     fun SwapCard(cardModifier: Modifier) {
+      // Driven straight off pageFocus (the page's continuous distance from center) rather
+      // than a boolean + tween — tracks the drag itself instead of jumping into an animation
+      // at the halfway point where isActivePage flips. Passed to Card's own elevation param,
+      // not just a graphicsLayer shadow, so the tonal surface color moves with it too.
+      //
+      // Known issue: this card's rounded corners render square for the duration of the
+      // NavHost fade transition when first navigating in from the calendar, self-correcting
+      // once the fade settles — a Compose framework bug, not caused by the elevation logic
+      // here. See https://issuetracker.google.com/issues/375496210.
+      val elevation = lerp(1.dp, 6.dp, pageFocus)
       Card(
         cardModifier.graphicsLayer {
           // Clear the card's own full bounds plus a margin, so it's completely offscreen at
@@ -366,16 +434,19 @@ private fun CardContent(
           translationY = -swapProgress * (size.height + 32.dp.toPx())
           rotationZ = swapProgress * 18f
         },
-        // The front-and-center card gets a pronounced shadow so it visibly lifts off the
-        // deck; cards still sitting in the deck stay near-flat so the depth reads from
-        // the active card alone rather than every jittered card casting its own shadow.
-        elevation = if (isActivePage) 6.dp else 1.dp
+        elevation = elevation,
       ) {
         CompositionLocalProvider(
           LocalOverscrollFactory provides null
         ) {
           // Each card self-serves its own progress from the records map — no reflow on swipe
-          ExerciseInstructions(targetSet, setRecords[targetSet?.id]?.numCompleted ?: 0)
+          ExerciseInstructions(
+            targetSet,
+            setRecords[targetSet?.id]?.numCompleted ?: 0,
+            editing = editing,
+            onDeleteExercise = onDeleteExercise,
+            onEditNote = onEditNote
+          )
         }
       }
     }
@@ -431,9 +502,15 @@ private fun ExerciseInstructions(
   exerciseSet: ExerciseSet?,
   /** Defaults to 0 so the progress line always occupies space from first paint — no layout jump. */
   numCompleted: Int = 0,
+  editing: Boolean = false,
+  onDeleteExercise: (ExerciseSet) -> Unit = {},
+  onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
   val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
     ?: MaterialTheme.colors.surface
+  // Hoisted (rather than collected only inside the LazyColumn item below) so the edit dialog can
+  // show the same description without a second subscription.
+  val exercise by (exerciseSet?.exercise ?: emptyFlow()).collectAsStateWithLifecycle(null)
   // The band anchored above the pinned counter, bottom to top: solidHeight is fully
   // opaque card background (guarantees the counter never sits on visible text, since a
   // linear fade alone only reaches full opacity at its very last pixel), then fadeHeight
@@ -474,7 +551,6 @@ private fun ExerciseInstructions(
       }
       item {
         if (exerciseSet != null) {
-          val exercise by exerciseSet.exercise.collectAsStateWithLifecycle(null)
           Text(exercise?.description ?: "", Modifier.padding(bottom = 5.dp))
         }
       }
@@ -513,11 +589,64 @@ private fun ExerciseInstructions(
           .padding(bottom = 12.dp)
       )
     }
+
+    // Anchored to the Box, not inside the LazyColumn, so it stays put regardless of scroll.
+    if (editing && exerciseSet != null) {
+      var confirmingDelete by remember(exerciseSet.id) { mutableStateOf(false) }
+      var editingNote by remember(exerciseSet.id) { mutableStateOf(false) }
+      Row(modifier = Modifier.align(Alignment.TopEnd)) {
+        IconButton(onClick = { editingNote = true }) {
+          // TODO localize
+          Icon(Icons.Default.Edit, contentDescription = "edit ${exerciseSet.exerciseName} instructions")
+        }
+        IconButton(onClick = { confirmingDelete = true }) {
+          // TODO localize
+          Icon(Icons.Default.Close, contentDescription = "remove ${exerciseSet.exerciseName}")
+        }
+      }
+      if (confirmingDelete) {
+        AlertDialog(
+          onDismissRequest = { confirmingDelete = false },
+          // TODO localize
+          title = { Text("Remove ${exerciseSet.exerciseName}?") },
+          text = { Text("This removes it from today's plan. Your past completed sets are kept.") },
+          confirmButton = {
+            Button(onClick = {
+              confirmingDelete = false
+              onDeleteExercise(exerciseSet)
+            }) { Text("Remove") }
+          },
+          dismissButton = {
+            Button(onClick = { confirmingDelete = false }) { Text("Cancel") }
+          }
+        )
+      }
+      if (editingNote) {
+        EditInstructionDialog(
+          exerciseName = exerciseSet.exerciseName,
+          description = exercise?.description,
+          initialNote = exerciseSet.note,
+          onDismissRequest = { editingNote = false },
+          onSave = { note ->
+            editingNote = false
+            onEditNote(exerciseSet, note)
+          }
+        )
+      }
+    }
   }
 }
 
 /** Formats a human-readable prescription string from an [ExerciseSet]. */
 private fun buildPrescriptionText(exerciseSet: ExerciseSet): String {
+  // A freshly-added custom exercise starts fully open (sets and reps both -1) rather than
+  // "AMRAP x AMRAP reps" - that's not a real prescription, just "nothing set yet".
+  if (exerciseSet.sets < 0 && exerciseSet.reps < 0 &&
+    !exerciseSet.isToFailure && !exerciseSet.repsAreSequenced
+  ) {
+    // TODO localize
+    return "Target not set yet"
+  }
   val setsStr = when {
     exerciseSet.sets < 0 -> "AMRAP"
     else -> "${exerciseSet.sets} sets"
@@ -526,6 +655,7 @@ private fun buildPrescriptionText(exerciseSet: ExerciseSet): String {
     exerciseSet.isToFailure -> "to failure"
     exerciseSet.repsAreSequenced -> exerciseSet.repsSequence.joinToString("/")
     exerciseSet.reps < 0 -> "AMRAP reps"
+    exerciseSet.repsRange > 0 -> "${exerciseSet.reps}-${exerciseSet.reps + exerciseSet.repsRange} reps"
     else -> "${exerciseSet.reps} reps"
   }
   val restStr = if (exerciseSet.rest > 0) " · ${exerciseSet.rest}s rest" else ""

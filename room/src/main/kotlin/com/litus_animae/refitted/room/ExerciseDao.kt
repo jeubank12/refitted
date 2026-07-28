@@ -40,8 +40,36 @@ interface ExerciseDao {
   @Query("select * from exerciseset where day = :day and workout = :workout and step = :step")
   suspend fun loadExerciseSet(day: String, workout: String, step: String): RoomExerciseSet?
 
+  @Query("select * from exerciseset where day = :day and workout = :workout order by primaryStep")
+  suspend fun loadDayExerciseSets(day: String, workout: String): List<RoomExerciseSet>
+
+  /**
+   * Highest [RoomExerciseSet.primaryStep] used on [day], or 0 if the day has no exercises yet -
+   * used to pick the next step when a custom exercise is added.
+   */
+  @Query("select coalesce(max(primaryStep), 0) from exerciseset where day = :day and workout = :workout")
+  suspend fun getMaxPrimaryStep(day: String, workout: String): Int
+
+  @Query("delete from exerciseset where day = :day and workout = :workout")
+  suspend fun clearDay(day: String, workout: String)
+
+  /**
+   * Deletes a single exercise set. Leaves gaps in [RoomExerciseSet.primaryStep] rather than
+   * renumbering - completed [RoomSetRecord]s are keyed by the literal "day.step" string with no
+   * FK back to exerciseset, so shifting steps would orphan their history.
+   */
+  @Query("delete from exerciseset where day = :day and workout = :workout and step = :step")
+  suspend fun deleteExerciseSet(day: String, workout: String, step: String)
+
   @Query("select * from exercise where exercise_name = :name and exercise_workout = :workout")
   fun getExercise(name: String, workout: String): Flow<RoomExercise?>
+
+  /**
+   * Locally-synced exercises whose id starts with [prefix] (pass "$muscleGroup_") - the muscle
+   * group is encoded as the id's prefix, see [com.litus_animae.refitted.data.models.Exercise].
+   */
+  @Query("select * from exercise where exercise_name like :prefix || '%' order by exercise_workout, exercise_name")
+  fun getExercisesByMusclePrefix(prefix: String): Flow<List<RoomExercise>>
 
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun storeExercise(exercise: RoomExercise)
@@ -97,6 +125,13 @@ interface ExerciseDao {
 
   @Insert
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
+
+  /**
+   * All records logged against target sets belonging to [day] (target_set ids are
+   * "$day.$step") - used to derive copy-day targets from what was actually completed.
+   */
+  @Query("select * from setrecord where workout = :workout and target_set like (:day || '.%') order by completed")
+  suspend fun loadDaySetRecords(workout: String, day: String): List<RoomSetRecord>
 
   @Query(
     "select max(completed) as latest_completion, target_set from setrecord " +

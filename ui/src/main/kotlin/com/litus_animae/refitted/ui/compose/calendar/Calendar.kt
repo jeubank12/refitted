@@ -87,7 +87,12 @@ fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
   contentPadding: PaddingValues,
+  editMode: Boolean = false,
+  onExitEdit: () -> Unit = {},
   onSaveStartDate: (LocalDate) -> Unit = {},
+  onClearDay: (day: Int) -> Unit = {},
+  onSetDayRest: (day: Int, isRest: Boolean) -> Unit = { _, _ -> },
+  onEditDay: (day: Int) -> Unit = {},
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -113,6 +118,8 @@ fun WorkoutCalendar(
   }
 
   var hideRestDays by rememberSaveable { mutableStateOf(false) }
+  // Tapped day awaiting the edit-actions dialog - edit mode only (see onClick below).
+  var editingDay by rememberSaveable { mutableStateOf<Int?>(null) }
 
   val firstOfMonth = displayedMonth.atDay(1)
   // Sunday-first grid: ISO Sunday (7) should wrap to 0 leading cells, not 7.
@@ -138,6 +145,11 @@ fun WorkoutCalendar(
       }
     }
     item {
+      AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
+        EditModeBanner(onDone = onExitEdit, modifier = Modifier.padding(bottom = 12.dp))
+      }
+    }
+    item {
       MonthNavRow(
         displayedMonth,
         onPrevious = { displayedMonthKey -= 1 },
@@ -152,19 +164,26 @@ fun WorkoutCalendar(
         week.forEach { cellDate ->
           val workoutDay = ChronoUnit.DAYS.between(anchorDate, cellDate).toInt() + 1
           val inDisplayedMonth = YearMonth.from(cellDate) == displayedMonth
-          val inRange = inDisplayedMonth && workoutDay in 1..plan.totalDays
-          val isRestDay = inRange && plan.restDays.contains(workoutDay)
-          val hidden = isRestDay && hideRestDays
+          // A plan day can fall in a leading/trailing cell that belongs to an adjacent month
+          // (e.g. June 29 shown at the top of July's grid) - it's still a real day of the
+          // plan and should be reachable without a month-nav round trip, just visually
+          // distinguished (see CalendarDayCell's dimmed param) from the displayed month.
+          val inPlanRange = workoutDay in 1..plan.totalDays
+          val isRestDay = inPlanRange && plan.restDays.contains(workoutDay)
+          // Edit mode needs rest days visible to manage them, even with "hide rest days" on.
+          val hidden = isRestDay && hideRestDays && !editMode
           val onClick: (() -> Unit)? = when {
             !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
-            aligned && inRange && !hidden -> ({ navigateToDay(workoutDay) })
+            editMode && inPlanRange && !hidden -> ({ editingDay = workoutDay })
+            aligned && inPlanRange && !hidden -> ({ navigateToDay(workoutDay) })
             else -> null
           }
           val label = when {
             !aligned && inDisplayedMonth ->
               "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
+            editMode && inPlanRange -> "Edit day $workoutDay"
             isRestDay -> "Rest day $workoutDay"
-            inRange -> "Day $workoutDay"
+            inPlanRange -> "Day $workoutDay"
             else -> null
           }
           Box(
@@ -178,7 +197,7 @@ fun WorkoutCalendar(
               }
           ) {
             val isToday = cellDate == today
-            if (!inRange) {
+            if (!inPlanRange) {
               OutOfRangeDayCell(cellDate.dayOfMonth, isToday = isToday)
             } else if (hidden) {
               Box(Modifier.fillMaxSize())
@@ -196,11 +215,49 @@ fun WorkoutCalendar(
                   isRestDay = isRestDay
                 ),
                 selected = !aligned && cellDate == pickedDate,
-                isToday = isToday
+                isToday = isToday,
+                dimmed = !inDisplayedMonth
               )
             }
           }
         }
+      }
+    }
+  }
+
+  editingDay?.let { day ->
+    DayEditDialog(
+      day = day,
+      isRestDay = plan.restDays.contains(day),
+      onDismissRequest = { editingDay = null },
+      onEditDay = { onEditDay(day) },
+      onClear = { onClearDay(day) },
+      onSetRest = { isRest -> onSetDayRest(day, isRest) }
+    )
+  }
+}
+
+@Composable
+private fun EditModeBanner(onDone: () -> Unit, modifier: Modifier = Modifier) {
+  Surface(
+    modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(10.dp),
+    color = MaterialTheme.colors.primary,
+    contentColor = MaterialTheme.colors.onPrimary,
+    elevation = 1.dp
+  ) {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .padding(14.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      // TODO localize
+      Text("Editing plan — tap a day to change it", fontSize = 13.sp)
+      Button(onClick = onDone) {
+        // TODO localize
+        Text("Done")
       }
     }
   }
@@ -423,7 +480,8 @@ private fun CalendarDayCell(
   workoutDay: Int,
   properties: DayProperties,
   selected: Boolean = false,
-  isToday: Boolean = false
+  isToday: Boolean = false,
+  dimmed: Boolean = false
 ) {
   // Last-viewed (aligned) and selected-as-start (unaligned) are mutually exclusive - one
   // outline style covers "this is the reference day" in either mode.
@@ -435,11 +493,15 @@ private fun CalendarDayCell(
   }
   val contentColor = contentColorFor(backgroundColor)
   val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colors.primaryVariant) else null
+  // Rest-day and adjacent-month dimming both fade the same surface - multiply rather than
+  // pick one, so a rest day that also falls outside the displayed month reads as both.
+  val restDayAlpha = if (properties.isRestDay) 0.45f else 1f
+  val monthAlpha = if (dimmed) 0.6f else 1f
 
   Surface(
     modifier = Modifier
       .fillMaxSize()
-      .alpha(if (properties.isRestDay) 0.45f else 1f),
+      .alpha(restDayAlpha * monthAlpha),
     shape = RoundedCornerShape(8.dp),
     color = backgroundColor,
     contentColor = contentColor,

@@ -31,7 +31,8 @@ class RefittedRoomProviderLive @Inject constructor(
         RefittedRoom.MIGRATION_8_9,
         RefittedRoom.MIGRATION_9_10,
         RefittedRoom.MIGRATION_10_11,
-        RefittedRoom.MIGRATION_11_12
+        RefittedRoom.MIGRATION_11_12,
+        RefittedRoom.MIGRATION_12_13
       )
       .build()
   }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,7 +41,7 @@ fun WorkoutPlanPreview() {
     .collectAsLazyPagingItems()
   MaterialTheme(Theme.darkColors) {
     Column {
-      WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null) {}
+      WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null, onSelect = {})
     }
   }
 }
@@ -51,7 +52,8 @@ fun ColumnScope.WorkoutPlanMenu(
   lastRefresh: String,
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
-  onSelect: (WorkoutPlan) -> Unit
+  onSelect: (WorkoutPlan) -> Unit,
+  onCreateCustom: () -> Unit = {}
 ) {
   LazyColumn(modifier) {
     item {
@@ -124,6 +126,19 @@ fun ColumnScope.WorkoutPlanMenu(
       ) { index ->
         val plan = plans[index]
         if (plan != null) {
+          // Custom plans sort after server plans (see WorkoutPlanDao.pagingSource) - this is
+          // the transition into that section, so it only ever renders once.
+          val previousPlan = if (index > 0) plans[index - 1] else null
+          if (plan.isCustom && previousPlan?.isCustom != true) {
+            // TODO localize
+            Text(
+              "CUSTOM WORKOUTS",
+              Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, top = 18.dp, bottom = 4.dp),
+              style = MaterialTheme.typography.overline
+            )
+          }
           Text(
             plan.workout,
             Modifier
@@ -134,6 +149,25 @@ fun ColumnScope.WorkoutPlanMenu(
           )
           Divider()
         }
+      }
+      item {
+        Row(
+          Modifier
+            .fillMaxWidth()
+            .clickable { onCreateCustom() }
+            .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(Icons.Default.Add, "create your own", tint = MaterialTheme.colors.primary)
+          Spacer(Modifier.width(8.dp))
+          // TODO localize
+          Text(
+            "Create your own",
+            color = MaterialTheme.colors.primary,
+            style = MaterialTheme.typography.button
+          )
+        }
+        Divider()
       }
     }
   }

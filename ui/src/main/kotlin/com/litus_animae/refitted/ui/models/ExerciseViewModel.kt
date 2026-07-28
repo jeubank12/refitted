@@ -11,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.WorkoutPlanRepository
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
@@ -28,6 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ExerciseViewModel @Inject constructor(
   private val exerciseRepo: ExerciseRepository,
+  private val workoutPlanRepo: WorkoutPlanRepository,
   private val log: LogUtil
 ) : ViewModel() {
   var exercisesError: String? by mutableStateOf(null)
@@ -116,7 +119,6 @@ class ExerciseViewModel @Inject constructor(
     val restSeconds: Int = 0
   )
   val timerStateByExerciseId: SnapshotStateMap<String, TimerState> = mutableStateMapOf()
-  val restOverrideByExerciseId: SnapshotStateMap<String, Int> = mutableStateMapOf()
 
   fun setTimerRunning(id: String, running: Boolean, restSeconds: Int = 0) {
     if (running) {
@@ -130,15 +132,6 @@ class ExerciseViewModel @Inject constructor(
     } else {
       timerStateByExerciseId[id] = TimerState(isRunning = false)
     }
-  }
-
-  fun setRestOverride(id: String, seconds: Int) {
-    restOverrideByExerciseId[id] = seconds.coerceAtLeast(0)
-  }
-
-  /** Largest rest value across all exercises in the day, used to normalise the ring fill. */
-  val maxRestSeconds: Flow<Int> = exercises.map { list ->
-    list.flatMap { it.sets.toList() }.maxOfOrNull { it.rest } ?: 0
   }
 
   data class LatestRecord(val targetSet: ExerciseSet, val completed: Instant)
@@ -196,13 +189,13 @@ class ExerciseViewModel @Inject constructor(
   val isLoading = exerciseRepo.exercisesAreLoading
 
   fun loadExercises(day: String, workoutId: String) {
-    try {
-      viewModelScope.launch {
+    viewModelScope.launch {
+      try {
         exerciseRepo.loadExercises(day, workoutId)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error loading exercises", ex)
+        exercisesError = "There was an error loading exercises"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error loading exercises", ex)
-      exercisesError = "There was an error loading exercises"
     }
   }
 
@@ -210,14 +203,93 @@ class ExerciseViewModel @Inject constructor(
     exerciseRepo.refreshExercises()
   }
 
-  fun saveExercise(record: SetRecord) {
-    try {
-      viewModelScope.launch {
-        exerciseRepo.storeSetRecord(record)
+  fun addExercise(workout: String, day: String, exerciseId: String, description: String? = null) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.addCustomExercise(workout, day, exerciseId, description)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error adding custom exercise", ex)
+        exercisesError = "There was an error adding the exercise"
       }
-    } catch (ex: Throwable) {
-      log.e(TAG, "error storing set record", ex)
-      exercisesError = "There was an error storing the set record"
+    }
+  }
+
+  fun updateCustomExerciseSetTargets(
+    workout: String,
+    day: String,
+    step: String,
+    sets: Int,
+    reps: Int,
+    rest: Int,
+    repsRange: Int
+  ) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.updateCustomExerciseSet(workout, day, step, sets, reps, rest, repsRange)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error updating custom exercise set targets", ex)
+        exercisesError = "There was an error updating the exercise"
+      }
+    }
+  }
+
+  fun deleteExercise(workout: String, day: String, step: String) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.deleteCustomExerciseSet(workout, day, step)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error deleting custom exercise set", ex)
+        exercisesError = "There was an error removing the exercise"
+      }
+    }
+  }
+
+  fun updateCustomExerciseSetNote(workout: String, day: String, step: String, note: String) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.updateCustomExerciseSetNote(workout, day, step, note)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error updating custom exercise set note", ex)
+        exercisesError = "There was an error updating the exercise's instructions"
+      }
+    }
+  }
+
+  // Add-exercise picker (muscle group browsing) - local matches are live; remote matches are
+  // fetched per-workout on demand since browsing shouldn't pull every accessible plan's catalog.
+  val accessibleWorkoutNames = workoutPlanRepo.accessibleWorkoutNames
+
+  fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> = exerciseRepo.exercisesByMuscle(muscle)
+
+  // Keyed by (workout, muscle) - not workout alone - so switching muscle within one session
+  // never shows a stale result cached under the same workout for a different muscle.
+  val remoteExercisesByWorkout: SnapshotStateMap<Pair<String, String>, List<Exercise>> = mutableStateMapOf()
+  val loadingWorkouts: SnapshotStateMap<Pair<String, String>, Boolean> = mutableStateMapOf()
+
+  fun loadRemoteExercises(workout: String, muscle: String) {
+    val key = workout to muscle
+    if (loadingWorkouts[key] == true) return
+    loadingWorkouts[key] = true
+    viewModelScope.launch {
+      try {
+        remoteExercisesByWorkout[key] = exerciseRepo.loadRemoteExercisesByMuscle(workout, muscle)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error loading remote exercises for $workout/$muscle", ex)
+        exercisesError = "There was an error loading exercises"
+      } finally {
+        loadingWorkouts[key] = false
+      }
+    }
+  }
+
+  fun saveExercise(record: SetRecord) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.storeSetRecord(record)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error storing set record", ex)
+        exercisesError = "There was an error storing the set record"
+      }
     }
   }
 

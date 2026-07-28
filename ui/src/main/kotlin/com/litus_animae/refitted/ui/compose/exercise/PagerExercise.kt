@@ -4,16 +4,27 @@ package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.Button
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -21,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -58,13 +70,31 @@ fun PagerExerciseView(
   setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
-  onSetSaved: () -> Unit = {}
+  onSetSaved: () -> Unit = {},
+  editing: Boolean = false,
+  onAddExercise: () -> Unit = {},
+  scrollToExerciseName: String? = null
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
   val setRecords = recordsByExerciseId(allRecords = allRecords)
 
   val instructions by model.exercises.collectAsState(initial = emptyList(), Dispatchers.IO)
   val pagerState = rememberPagerState(pageCount = { instructions.size })
+
+  // Land on an exercise just added from the add-exercise flow instead of wherever the pager
+  // otherwise starts - fires once the newly-inserted row has actually loaded, then clears
+  // itself so later unrelated recompositions of `instructions` don't re-trigger the scroll.
+  var pendingScrollTarget by remember { mutableStateOf(scrollToExerciseName) }
+  LaunchedEffect(instructions, pendingScrollTarget) {
+    val target = pendingScrollTarget ?: return@LaunchedEffect
+    val targetIndex = instructions.indexOfFirst { instruction ->
+      instruction.sets.any { it.exerciseName == target }
+    }
+    if (targetIndex >= 0) {
+      pagerState.scrollToPage(targetIndex)
+      pendingScrollTarget = null
+    }
+  }
   // While a finger is down the index holds at the settled page — releasing is what
   // commits the change. Once released (fling included), targetPage knows the
   // destination immediately, so the bottom half doesn't wait out the coast animation.
@@ -80,7 +110,6 @@ fun PagerExerciseView(
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
-  val maxRestSeconds by model.maxRestSeconds.collectAsState(initial = 0)
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
@@ -89,7 +118,11 @@ fun PagerExerciseView(
     currentSetRecord?.allSets?.let { setHistoryList(it) }
   }
 
-  val showRefreshIndicator = isRefreshing || exerciseSet == null || currentSetRecord == null
+  // A genuinely empty day (no instructions, e.g. a fresh custom day) never resolves an
+  // exerciseSet/currentSetRecord - only treat those as "still loading" when there's an
+  // instruction they should eventually resolve against.
+  val showRefreshIndicator = isRefreshing ||
+    (instructions.isNotEmpty() && (exerciseSet == null || currentSetRecord == null))
   val pullRefreshState =
     rememberPullRefreshState(
       refreshing = showRefreshIndicator,
@@ -108,37 +141,89 @@ fun PagerExerciseView(
         .align(Alignment.TopCenter)
         .zIndex(100f)
     )
-    Column {
-      PagerDetailView(
-        instructions = instructions,
-        pagerState = pagerState,
-        activeSetWithRecord = currentSetRecord,
-        displayedPage = displayedPage,
-        globalAlternate = workoutPlan?.globalAlternate,
-        setRecords = setRecords,
-        maxRestSeconds = maxRestSeconds,
-        timerStateByExerciseId = model.timerStateByExerciseId,
-        restOverrideByExerciseId = model.restOverrideByExerciseId,
-        onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
-        onRestOverrideChange = { id, secs -> model.setRestOverride(id, secs) },
-        onSave = { updatedRecord ->
-          val savedRecord = updatedRecord.copy(stored = true)
-          currentSetRecord!!.saveRecordInState(savedRecord)
-          model.saveExercise(
-            SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
-          )
-          onSetSaved()
-          // Superset auto-advance
-          instruction?.offsetToNextSuperSet?.let { offset ->
-            val isChallengeSet = exerciseSet!!.sets < 0
-            val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
-            val isLastExerciseInSuperset = offset <= 0
-            if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
-              pagerState.requestScrollToPage(pagerState.settledPage + offset)
-          }
-        },
-        onStartEditWeight = onStartEditWeight
-      )
+    if (workoutPlan?.isCustom == true && instructions.isEmpty() && !isRefreshing) {
+      EmptyCustomDay(onAddExercise = if (editing) onAddExercise else null)
+    } else {
+      Column {
+        PagerDetailView(
+          instructions = instructions,
+          pagerState = pagerState,
+          activeSetWithRecord = currentSetRecord,
+          displayedPage = displayedPage,
+          globalAlternate = workoutPlan?.globalAlternate,
+          setRecords = setRecords,
+          timerStateByExerciseId = model.timerStateByExerciseId,
+          onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
+          editing = editing,
+          onUpdateCustomTargets = { workout, day, step, sets, reps, rest, repsRange ->
+            model.updateCustomExerciseSetTargets(workout, day, step, sets, reps, rest, repsRange)
+          },
+          onDeleteExercise = { workout, day, step -> model.deleteExercise(workout, day, step) },
+          onEditNote = { workout, day, step, note ->
+            model.updateCustomExerciseSetNote(workout, day, step, note)
+          },
+          onSave = { updatedRecord ->
+            val savedRecord = updatedRecord.copy(stored = true)
+            currentSetRecord!!.saveRecordInState(savedRecord)
+            model.saveExercise(
+              SetRecord(savedRecord.weight, savedRecord.reps, savedRecord.set)
+            )
+            onSetSaved()
+            // Superset auto-advance
+            instruction?.offsetToNextSuperSet?.let { offset ->
+              val isChallengeSet = exerciseSet!!.sets < 0
+              val isLastSet = currentSetRecord.numCompleted >= exerciseSet!!.sets - 1
+              val isLastExerciseInSuperset = offset <= 0
+              if (isChallengeSet || !isLastSet || !isLastExerciseInSuperset)
+                pagerState.requestScrollToPage(pagerState.settledPage + offset)
+            }
+          },
+          onStartEditWeight = onStartEditWeight
+        )
+      }
+    }
+  }
+}
+
+// A null onAddExercise means this day was opened outside edit mode - exercises can only be added
+// from the edit-mode calendar, so the button (and its prompt) is left off entirely.
+@Composable
+private fun EmptyCustomDay(onAddExercise: (() -> Unit)?, modifier: Modifier = Modifier) {
+  Column(
+    modifier
+      .fillMaxSize()
+      .padding(32.dp),
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally
+  ) {
+    Icon(
+      Icons.Default.FitnessCenter,
+      // TODO localize
+      contentDescription = null,
+      modifier = Modifier.size(56.dp),
+      tint = MaterialTheme.colors.onSurface.copy(alpha = 0.26f)
+    )
+    Spacer(Modifier.height(12.dp))
+    // TODO localize
+    Text("No exercises yet", style = MaterialTheme.typography.h5, textAlign = TextAlign.Center)
+    Spacer(Modifier.height(8.dp))
+    Text(
+      // TODO localize
+      if (onAddExercise != null)
+        "Build this day as you train. There are no set limits the first time — targets fill in from what you complete."
+      else
+        "Open this day from edit mode on the calendar to add exercises.",
+      style = MaterialTheme.typography.body2,
+      textAlign = TextAlign.Center
+    )
+    if (onAddExercise != null) {
+      Spacer(Modifier.height(16.dp))
+      Button(onClick = onAddExercise) {
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        // TODO localize
+        Text("Add exercise")
+      }
     }
   }
 }
@@ -153,13 +238,16 @@ fun PagerDetailView(
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
-  maxRestSeconds: Int = 0,
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
-  restOverrideByExerciseId: Map<String, Int> = emptyMap(),
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
-  onRestOverrideChange: (id: String, seconds: Int) -> Unit = { _, _ -> },
   onSave: (Record) -> Unit,
-  onStartEditWeight: (Weight) -> Unit
+  onStartEditWeight: (Weight) -> Unit,
+  editing: Boolean = false,
+  onUpdateCustomTargets: (
+    workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int, repsRange: Int
+  ) -> Unit = { _, _, _, _, _, _, _ -> },
+  onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> },
+  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> }
 ) {
   val scope = rememberCoroutineScope()
   val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
@@ -173,7 +261,7 @@ fun PagerDetailView(
   // Ring shows the running timer's rest duration; +/- controls apply to the settled exercise
   val ringRestSeconds = when {
     activeRunningTimerState != null -> activeRunningTimerState.restSeconds
-    exerciseSetId != null -> restOverrideByExerciseId[exerciseSetId] ?: activeSetWithRecord.exerciseSet.rest
+    exerciseSetId != null -> activeSetWithRecord.exerciseSet.rest
     else -> 0
   }
 
@@ -188,7 +276,7 @@ fun PagerDetailView(
   val nextRestSeconds = when {
     activeSetWithRecord?.exerciseIncomplete == false -> null
     isViewingDifferentExerciseThanRunning ->
-      exerciseSetId?.let { restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest }
+      exerciseSetId?.let { activeSetWithRecord.exerciseSet.rest }
     displayedExerciseHasRecordToday -> ringRestSeconds
     else -> null
   }
@@ -202,7 +290,10 @@ fun PagerDetailView(
         instructions = instructions,
         pagerState = pagerState,
         alternateIndex = globalAlternate,
-        setRecords = setRecords
+        setRecords = setRecords,
+        editing = editing,
+        onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
+        onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
       )
     },
     second = {
@@ -233,15 +324,40 @@ fun PagerDetailView(
                 onTimerToggle(activeRunningEntry.key, false, 0)
               } else {
                 // Start a timer for the settled exercise
-                val restSecs = restOverrideByExerciseId[it] ?: activeSetWithRecord.exerciseSet.rest
-                onTimerToggle(it, true, restSecs)
+                onTimerToggle(it, true, activeSetWithRecord.exerciseSet.rest)
               }
             }
           },
-          maxRestSeconds = maxRestSeconds.coerceAtLeast(activeSetWithRecord.exerciseSet.rest),
           restOverride = ringRestSeconds,
-          onRestOverrideChange = null,   // rest adjustment not exposed in pager path for now
-          nextRestSeconds = nextRestSeconds
+          // Rest is freely adjustable in edit mode only - unconditionally, not gated on
+          // completion state - and writes straight through to the persisted set, same path
+          // as the sets/reps target editor. Outside edit mode the prescribed rest is fixed.
+          onRestOverrideChange = if (editing && exerciseSetId != null) {
+            { secs: Int ->
+              onUpdateCustomTargets(
+                activeSetWithRecord.exerciseSet.workout,
+                activeSetWithRecord.exerciseSet.day,
+                activeSetWithRecord.exerciseSet.step,
+                activeSetWithRecord.exerciseSet.sets,
+                activeSetWithRecord.exerciseSet.reps,
+                secs,
+                activeSetWithRecord.exerciseSet.repsRange
+              )
+            }
+          } else null,
+          nextRestSeconds = nextRestSeconds,
+          editing = editing,
+          onUpdateCustomTargets = { sets, reps, repsRange ->
+            onUpdateCustomTargets(
+              activeSetWithRecord.exerciseSet.workout,
+              activeSetWithRecord.exerciseSet.day,
+              activeSetWithRecord.exerciseSet.step,
+              sets,
+              reps,
+              activeSetWithRecord.exerciseSet.rest,
+              repsRange
+            )
+          }
         )
       }
     }
@@ -274,7 +390,6 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
           setRecords = records,
           allSets = emptyFlow()
         ),
-        maxRestSeconds = 90,
         onSave = { },
         onStartEditWeight = {}
       )

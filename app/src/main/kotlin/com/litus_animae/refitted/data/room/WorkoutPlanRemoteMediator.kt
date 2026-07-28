@@ -55,7 +55,7 @@ class WorkoutPlanRemoteMediator(
     val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
     database.withTransaction {
       val currentPlansByName = workoutPlanDao.getAll().map { it.toDomain() }.associateBy { it.workout }
-      workoutPlanDao.clearAll()
+      workoutPlanDao.clearServerPlans()
       val upsertPlans = plans.map { newPlan ->
         val existingPlan = currentPlansByName[newPlan.workout] ?: return@map RoomWorkoutPlan.fromDomain(newPlan)
         RoomWorkoutPlan.fromDomain(existingPlan.copy(

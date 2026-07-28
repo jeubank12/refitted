@@ -7,6 +7,7 @@ import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.room.RefittedRoom
@@ -18,6 +19,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.emptyFlow
@@ -332,6 +334,224 @@ class RoomCacheExerciseRepositoryTest {
 
       // Then
       coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(newRecord)) }
+    }
+  }
+
+  @Nested
+  @DisplayName("addCustomExercise")
+  inner class AddCustomExercise {
+    @Test
+    fun `adds an open set at the next step`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 2
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
+      val storedExercise = slot<RoomExercise>()
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery {
+        exerciseDao.storeExerciseAndSet(capture(storedExercise), capture(storedSet))
+      } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up")
+
+      // Then - the id is stored as-is, whether it's a fresh "{muscleGroup}_{name}" id or an
+      // existing catalog exercise's id being reused for shared record history.
+      assertThat(storedExercise.captured).isEqualTo(RoomExercise(workout = workoutName, id = "Chest_Push-Up"))
+      assertThat(storedSet.captured.day).isEqualTo("2")
+      assertThat(storedSet.captured.step).isEqualTo("3")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(3)
+      assertThat(storedSet.captured.name).isEqualTo("Chest_Push-Up")
+      // No set limit yet - targets fill in as the user logs, same convention as challenge sets
+      assertThat(storedSet.captured.sets).isEqualTo(-1)
+      assertThat(storedSet.captured.reps).isEqualTo(-1)
+      assertThat(storedSet.captured.rest).isEqualTo(90)
+    }
+
+    @Test
+    fun `starts at step 1 for an empty day`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("1", workoutName) } returns 0
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseAndSet(any(), capture(storedSet)) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "1", "Chest_Push-Up")
+
+      // Then
+      assertThat(storedSet.captured.step).isEqualTo("1")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(1)
+    }
+
+    @Test
+    fun `carries the source exercise's description across`() = runTest {
+      // Given
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 0
+      val storedExercise = slot<RoomExercise>()
+      coEvery { exerciseDao.storeExerciseAndSet(capture(storedExercise), any()) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up", description = "Keep your core tight")
+
+      // Then
+      assertThat(storedExercise.captured.description).isEqualTo("Keep your core tight")
+    }
+
+    @Test
+    fun `falls back to the existing stored description when none is passed`() = runTest {
+      // Given - e.g. re-adding an exercise the picker didn't have a cached description for
+      coEvery { exerciseDao.getMaxPrimaryStep("2", workoutName) } returns 0
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns
+        flowOf(RoomExercise(workout = workoutName, id = "Chest_Push-Up", description = "Existing description"))
+      val storedExercise = slot<RoomExercise>()
+      coEvery { exerciseDao.storeExerciseAndSet(capture(storedExercise), any()) } returns Unit
+
+      // When
+      subject.addCustomExercise(workoutName, "2", "Chest_Push-Up", description = null)
+
+      // Then - never clobbered by a blank incoming description
+      assertThat(storedExercise.captured.description).isEqualTo("Existing description")
+    }
+  }
+
+  @Nested
+  @DisplayName("updateCustomExerciseSet")
+  inner class UpdateCustomExerciseSet {
+    @Test
+    fun `overwrites the existing set's targets, keeping other fields`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns simpleRoomSet.copy(day = "2", step = "3")
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseSet(capture(storedSet)) } returns Unit
+
+      // When
+      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45, repsRange = 2)
+
+      // Then
+      assertThat(storedSet.captured.sets).isEqualTo(4)
+      assertThat(storedSet.captured.reps).isEqualTo(12)
+      assertThat(storedSet.captured.rest).isEqualTo(45)
+      assertThat(storedSet.captured.repsRange).isEqualTo(2)
+      assertThat(storedSet.captured.name).isEqualTo(simpleRoomSet.name)
+    }
+
+    @Test
+    fun `does nothing when the set doesn't exist`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns null
+
+      // When
+      subject.updateCustomExerciseSet(workoutName, "2", "3", sets = 4, reps = 12, rest = 45, repsRange = 0)
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.storeExerciseSet(any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("deleteCustomExerciseSet")
+  inner class DeleteCustomExerciseSet {
+    @Test
+    fun `deletes the set by day, workout, and step`() = runTest {
+      // Given
+      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, "3") } returns Unit
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      coVerify { exerciseDao.deleteExerciseSet("2", workoutName, "3") }
+    }
+  }
+
+  @Nested
+  @DisplayName("updateCustomExerciseSetNote")
+  inner class UpdateCustomExerciseSetNote {
+    @Test
+    fun `overwrites the existing set's note, keeping other fields`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns simpleRoomSet.copy(day = "2", step = "3")
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseSet(capture(storedSet)) } returns Unit
+
+      // When
+      subject.updateCustomExerciseSetNote(workoutName, "2", "3", note = "Keep elbows tucked")
+
+      // Then
+      assertThat(storedSet.captured.note).isEqualTo("Keep elbows tucked")
+      assertThat(storedSet.captured.reps).isEqualTo(simpleRoomSet.reps)
+    }
+
+    @Test
+    fun `does nothing when the set doesn't exist`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadExerciseSet("2", workoutName, "3") } returns null
+
+      // When
+      subject.updateCustomExerciseSetNote(workoutName, "2", "3", note = "Keep elbows tucked")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.storeExerciseSet(any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("exercisesByMuscle")
+  inner class ExercisesByMuscle {
+    @Test
+    fun `queries every prefix mapped to the muscle group, including Compound, and merges results`() = runTest {
+      // Given - "Chest" maps to just itself, but every category also queries the shared
+      // Compound bucket (see MuscleGroup.prefixesFor)
+      val roomExercise = RoomExercise(workout = workoutName, id = "Chest_Push-Up")
+      val compoundExercise = RoomExercise(workout = workoutName, id = "Compound_Burpees")
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Chest_") } returns flowOf(listOf(roomExercise))
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Compound_") } returns flowOf(listOf(compoundExercise))
+
+      // When / Then
+      subject.exercisesByMuscle("Chest").test {
+        assertThat(awaitItem()).containsExactly(roomExercise.toDomain(), compoundExercise.toDomain())
+        awaitComplete()
+      }
+    }
+
+    @Test
+    fun `queries every stored spelling variant for a multi-prefix category`() = runTest {
+      // Given - "Quads" also covers the "Quadricep" spelling some admin programs use
+      val quadsExercise = RoomExercise(workout = workoutName, id = "Quads_Barbell Squats")
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Quads_") } returns flowOf(listOf(quadsExercise))
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Quadricep_") } returns flowOf(emptyList())
+      coEvery { exerciseDao.getExercisesByMusclePrefix("Compound_") } returns flowOf(emptyList())
+
+      // When / Then
+      subject.exercisesByMuscle("Quads").test {
+        assertThat(awaitItem()).containsExactly(quadsExercise.toDomain())
+        awaitComplete()
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("loadRemoteExercisesByMuscle")
+  inner class LoadRemoteExercisesByMuscle {
+    @Test
+    fun `fans out to every mapped prefix, caches results, and merges them`() = runTest {
+      // Given
+      val remoteExercise = Exercise(workoutName, "Chest_Cable Fly")
+      val compoundExercise = Exercise(workoutName, "Compound_Burpees")
+      coEvery { networkService.getExercisesByMuscle(workoutName, "Chest") } returns listOf(remoteExercise)
+      coEvery { networkService.getExercisesByMuscle(workoutName, "Compound") } returns listOf(compoundExercise)
+      coEvery { exerciseDao.storeExercises(any()) } returns Unit
+
+      // When
+      val result = subject.loadRemoteExercisesByMuscle(workoutName, "Chest")
+
+      // Then
+      assertThat(result).containsExactly(remoteExercise, compoundExercise)
+      coVerify {
+        exerciseDao.storeExercises(
+          listOf(RoomExercise.fromDomain(remoteExercise), RoomExercise.fromDomain(compoundExercise))
+        )
+      }
     }
   }
 }

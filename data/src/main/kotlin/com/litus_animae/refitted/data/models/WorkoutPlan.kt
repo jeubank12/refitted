@@ -14,7 +14,8 @@ data class WorkoutPlan(
   val restDays: List<Int> = emptyList(),
   val description: String = "",
   val globalAlternateLabels: List<String> = emptyList(),
-  val globalAlternate: Int? = null
+  val globalAlternate: Int? = null,
+  val isCustom: Boolean = false
 )
 
 /**

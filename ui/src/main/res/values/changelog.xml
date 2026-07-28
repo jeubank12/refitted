@@ -2,7 +2,9 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**v1.3.1</item>
+        <item>**v1.4.0</item>
+        <item>Build your own workout: create a custom plan, then add your own days and exercises</item>
+        <item>Edit mode lets you adjust sets, reps, rest, and notes on a custom workout</item>
         <item>Calendar now aligns to real dates</item>
         <item>**v1.3.0</item>
         <item>Updated Exercise UI</item>
