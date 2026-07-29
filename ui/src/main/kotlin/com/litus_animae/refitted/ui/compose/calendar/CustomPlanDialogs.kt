@@ -47,14 +47,14 @@ fun NewCustomWorkoutDialog(
     text = {
       Column {
         Text(
-          "Name your workout. You will add days and exercises from the calendar as you go.",
+          "You're creating your own workout plan from scratch. Give it a name — you'll add days and exercises from the calendar as you go.",
           style = MaterialTheme.typography.body2
         )
         Spacer(Modifier.height(16.dp))
         TextField(
           value = name,
           onValueChange = { name = it },
-          label = { Text("Name") },
+          label = { Text("Plan name") },
           singleLine = true,
           modifier = Modifier.fillMaxWidth()
         )

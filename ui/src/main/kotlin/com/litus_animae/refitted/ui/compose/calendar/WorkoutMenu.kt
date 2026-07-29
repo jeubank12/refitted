@@ -158,11 +158,11 @@ fun ColumnScope.WorkoutPlanMenu(
             .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.Add, "create your own", tint = MaterialTheme.colors.primary)
+          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colors.primary)
           Spacer(Modifier.width(8.dp))
           // TODO localize
           Text(
-            "Create your own",
+            "Create your own plan",
             color = MaterialTheme.colors.primary,
             style = MaterialTheme.typography.button
           )
