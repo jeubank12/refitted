@@ -14,12 +14,16 @@ import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.TestLogUtil
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -48,7 +52,20 @@ class RoomCacheWorkoutPlanRepositoryTest {
     every { workoutPlanDao.update(any()) } returns Unit
     every { workoutPlanDao.getServerPlans() } returns emptyFlow()
 
+    // withTransaction is a top-level Room extension, not a RefittedRoom member - static-mock it
+    // to just run the block directly, since these tests care about which DAO calls happen and
+    // in what order, not Room's real transaction machinery.
+    mockkStatic("androidx.room.RoomDatabaseKt")
+    coEvery { roomDatabase.withTransaction<Unit>(any()) } coAnswers {
+      secondArg<suspend () -> Unit>().invoke()
+    }
+
     subject = RoomCacheWorkoutPlanRepository(roomProvider, networkService, log)
+  }
+
+  @AfterEach
+  fun tearDown() {
+    unmockkStatic("androidx.room.RoomDatabaseKt")
   }
 
   @Nested
@@ -239,6 +256,72 @@ class RoomCacheWorkoutPlanRepositoryTest {
       // Then
       coVerify { workoutPlanDao.update(existingPlan.copy(restDays = emptyList())) }
       coVerify(exactly = 0) { exerciseDao.clearDay(any(), any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("renameCustomPlan")
+  inner class RenameCustomPlan {
+    private val newName = "My Renamed Plan"
+
+    @Test
+    fun `renames the plan and cascades to exercises, sets, and records`() = runTest {
+      // Given
+      coEvery { workoutPlanDao.getByName(newName) } returns null
+      coEvery { workoutPlanDao.renamePlan(workoutName, newName) } returns Unit
+      coEvery { exerciseDao.renameExerciseWorkout(workoutName, newName) } returns Unit
+      coEvery { exerciseDao.renameExerciseSetWorkout(workoutName, newName) } returns Unit
+      coEvery { exerciseDao.renameSetRecordWorkout(workoutName, newName) } returns Unit
+
+      // When
+      val result = subject.renameCustomPlan(workoutName, newName)
+
+      // Then
+      assertThat(result.isSuccess).isTrue()
+      coVerify { workoutPlanDao.renamePlan(workoutName, newName) }
+      coVerify { exerciseDao.renameExerciseWorkout(workoutName, newName) }
+      coVerify { exerciseDao.renameExerciseSetWorkout(workoutName, newName) }
+      coVerify { exerciseDao.renameSetRecordWorkout(workoutName, newName) }
+    }
+
+    @Test
+    fun `fails without renaming when the new name is already taken`() = runTest {
+      // Given
+      coEvery { workoutPlanDao.getByName(newName) } returns RoomWorkoutPlan(workout = newName)
+
+      // When
+      val result = subject.renameCustomPlan(workoutName, newName)
+
+      // Then
+      assertThat(result.isFailure).isTrue()
+      coVerify(exactly = 0) { workoutPlanDao.renamePlan(any(), any()) }
+      coVerify(exactly = 0) { exerciseDao.renameExerciseWorkout(any(), any()) }
+      coVerify(exactly = 0) { exerciseDao.renameExerciseSetWorkout(any(), any()) }
+      coVerify(exactly = 0) { exerciseDao.renameSetRecordWorkout(any(), any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("deleteCustomPlan")
+  inner class DeleteCustomPlan {
+    @Test
+    fun `deletes exercise sets, set records, exercises, and the plan row, in that order`() = runTest {
+      // Given
+      coEvery { exerciseDao.deleteExerciseSetsForWorkout(workoutName) } returns Unit
+      coEvery { exerciseDao.deleteSetRecordsForWorkout(workoutName) } returns Unit
+      coEvery { exerciseDao.deleteExercisesForWorkout(workoutName) } returns Unit
+      coEvery { workoutPlanDao.deletePlan(workoutName) } returns Unit
+
+      // When
+      subject.deleteCustomPlan(workoutName)
+
+      // Then - children before the FK-referenced Exercise row, plan row last
+      coVerifyOrder {
+        exerciseDao.deleteExerciseSetsForWorkout(workoutName)
+        exerciseDao.deleteSetRecordsForWorkout(workoutName)
+        exerciseDao.deleteExercisesForWorkout(workoutName)
+        workoutPlanDao.deletePlan(workoutName)
+      }
     }
   }
 }

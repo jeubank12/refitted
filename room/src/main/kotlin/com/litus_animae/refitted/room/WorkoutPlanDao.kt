@@ -43,4 +43,10 @@ interface WorkoutPlanDao {
      */
     @Query("DELETE FROM workouts where `isCustom` = 0")
     suspend fun clearServerPlans()
+
+    @Query("UPDATE workouts SET workout = :newName WHERE workout = :oldName")
+    suspend fun renamePlan(oldName: String, newName: String)
+
+    @Query("DELETE FROM workouts WHERE workout = :name")
+    suspend fun deletePlan(name: String)
 }

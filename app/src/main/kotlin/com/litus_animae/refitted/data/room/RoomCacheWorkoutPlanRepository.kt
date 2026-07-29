@@ -5,6 +5,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import androidx.room.withTransaction
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
@@ -128,6 +129,30 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         workoutPlanDao.update(currentPlan.copy(restDays = newRestDays))
         if (isRest) {
             database.getExerciseDao().clearDay(day.toString(), workoutPlan.workout)
+        }
+    }
+
+    override suspend fun renameCustomPlan(oldName: String, newName: String): Result<Unit> {
+        if (workoutPlanDao.getByName(newName) != null) {
+            return Result.failure(IllegalStateException("A plan named \"$newName\" already exists."))
+        }
+        val exerciseDao = database.getExerciseDao()
+        database.withTransaction {
+            workoutPlanDao.renamePlan(oldName, newName)
+            exerciseDao.renameExerciseWorkout(oldName, newName)
+            exerciseDao.renameExerciseSetWorkout(oldName, newName)
+            exerciseDao.renameSetRecordWorkout(oldName, newName)
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteCustomPlan(name: String) {
+        val exerciseDao = database.getExerciseDao()
+        database.withTransaction {
+            exerciseDao.deleteExerciseSetsForWorkout(name)
+            exerciseDao.deleteSetRecordsForWorkout(name)
+            exerciseDao.deleteExercisesForWorkout(name)
+            workoutPlanDao.deletePlan(name)
         }
     }
 }

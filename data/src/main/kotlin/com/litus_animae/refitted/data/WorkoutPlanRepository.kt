@@ -55,4 +55,15 @@ interface WorkoutPlanRepository {
    * exercises.
    */
   suspend fun setCustomDayRest(workoutPlan: WorkoutPlan, day: Int, isRest: Boolean)
+
+  /**
+   * Renames a user-authored plan across all of its days, exercises, and history. Fails without
+   * making any changes if [newName] is already taken by another plan.
+   */
+  suspend fun renameCustomPlan(oldName: String, newName: String): Result<Unit>
+
+  /**
+   * Deletes a user-authored plan and all of its days, exercises, and completion history.
+   */
+  suspend fun deleteCustomPlan(name: String)
 }

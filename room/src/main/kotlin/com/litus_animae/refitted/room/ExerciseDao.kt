@@ -147,6 +147,24 @@ interface ExerciseDao {
   )
   fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
 
+  @Query("UPDATE Exercise SET exercise_workout = :newName WHERE exercise_workout = :oldName")
+  suspend fun renameExerciseWorkout(oldName: String, newName: String)
+
+  @Query("UPDATE exerciseset SET workout = :newName WHERE workout = :oldName")
+  suspend fun renameExerciseSetWorkout(oldName: String, newName: String)
+
+  @Query("UPDATE SetRecord SET workout = :newName WHERE workout = :oldName")
+  suspend fun renameSetRecordWorkout(oldName: String, newName: String)
+
+  @Query("DELETE FROM Exercise WHERE exercise_workout = :name")
+  suspend fun deleteExercisesForWorkout(name: String)
+
+  @Query("DELETE FROM exerciseset WHERE workout = :name")
+  suspend fun deleteExerciseSetsForWorkout(name: String)
+
+  @Query("DELETE FROM SetRecord WHERE workout = :name")
+  suspend fun deleteSetRecordsForWorkout(name: String)
+
   data class ExerciseCompletionRecord(
     @ColumnInfo(name = "latest_completion") val latestCompletion: Instant,
     @ColumnInfo(name = "target_set") val dayAndSet: String
