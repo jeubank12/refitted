@@ -20,10 +20,12 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -73,6 +75,7 @@ fun PagerExerciseView(
   onOpenHistory: () -> Unit = {},
   editing: Boolean = false,
   onAddExercise: () -> Unit = {},
+  onAddAlternate: (ExerciseSet) -> Unit = {},
   scrollToExerciseName: String? = null
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
@@ -91,6 +94,14 @@ fun PagerExerciseView(
       instruction.sets.any { it.exerciseName == target }
     }
     if (targetIndex >= 0) {
+      // A just-added alternate joins an existing card rather than making its own, so landing on
+      // the card isn't enough - surface the alternate itself. indexOfLast picks the newest, since
+      // alternates sort after their base.
+      val targetInstruction = instructions[targetIndex]
+      val alternateIndex = targetInstruction.sets.indexOfLast { it.exerciseName == target }
+      if (targetInstruction.hasAlternate && alternateIndex >= 0) {
+        targetInstruction.activateAlternate(alternateIndex)
+      }
       pagerState.scrollToPage(targetIndex)
       pendingScrollTarget = null
     }
@@ -114,7 +125,19 @@ fun PagerExerciseView(
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
-    setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
+    setContextMenu {
+      // Rendered here rather than in the top bar itself because this is where the displayed
+      // exercise is known - it lands next to the add-exercise icon either way.
+      if (editing && workoutPlan?.isCustom == true) {
+        exerciseSet?.let { set ->
+          IconButton({ onAddAlternate(set) }) {
+            // TODO localize
+            Icon(Icons.Default.AltRoute, "add alternate for ${set.exerciseName}")
+          }
+        }
+      }
+      instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) }
+    }
     currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 

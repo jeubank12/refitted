@@ -214,6 +214,23 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
+  fun addAlternateExercise(
+    workout: String,
+    day: String,
+    baseStep: String,
+    exerciseId: String,
+    description: String? = null
+  ) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.addAlternateExercise(workout, day, baseStep, exerciseId, description)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error adding alternate exercise", ex)
+        exercisesError = "There was an error adding the alternate"
+      }
+    }
+  }
+
   fun updateCustomExerciseSetTargets(
     workout: String,
     day: String,

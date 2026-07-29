@@ -77,7 +77,9 @@ private val muscleGroups = MuscleGroup.displayNames()
 fun MuscleGroupPickerScreen(
   onContinue: (String) -> Unit,
   onClose: () -> Unit,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  // TODO localize
+  title: String = "Add exercise"
 ) {
   var selected by rememberSaveable { mutableStateOf(muscleGroups.first()) }
   Scaffold(
@@ -85,8 +87,7 @@ fun MuscleGroupPickerScreen(
     modifier = modifier,
     topBar = {
       TopAppBar(
-        // TODO localize
-        title = { Text("Add exercise") },
+        title = { Text(title) },
         windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
           WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
         ),

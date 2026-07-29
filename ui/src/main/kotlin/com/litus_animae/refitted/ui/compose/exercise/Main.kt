@@ -41,6 +41,7 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
+import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +58,7 @@ fun Exercise(
   exerciseModel: ExerciseViewModel = viewModel(),
   workoutModel: WorkoutViewModel = viewModel(),
   onAddExercise: () -> Unit = {},
+  onAddAlternate: (ExerciseSet) -> Unit = {},
   scrollToExerciseName: String? = null
 ) {
   val title = stringResource(id = R.string.app_name)
@@ -141,6 +143,7 @@ fun Exercise(
         onOpenHistory = { scaffoldScope.launch { scaffoldState.drawerState.open() } },
         editing = editing,
         onAddExercise = onAddExercise,
+        onAddAlternate = onAddAlternate,
         scrollToExerciseName = scrollToExerciseName)
     }
   }
