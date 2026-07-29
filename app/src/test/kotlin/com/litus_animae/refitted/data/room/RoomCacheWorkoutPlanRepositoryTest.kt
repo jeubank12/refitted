@@ -1,5 +1,8 @@
 package com.litus_animae.refitted.data.room
 
+import androidx.room.withTransaction
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
@@ -40,6 +43,8 @@ class RoomCacheWorkoutPlanRepositoryTest {
   private val roomDatabase: RefittedRoom = mockk()
   private val workoutPlanDao: WorkoutPlanDao = mockk()
   private val exerciseDao: ExerciseDao = mockk()
+  private val sqliteOpenHelper: SupportSQLiteOpenHelper = mockk()
+  private val writableDatabase: SupportSQLiteDatabase = mockk()
   private val log: LogUtil = TestLogUtil
 
   private val workoutName = "My Custom Plan"
@@ -51,13 +56,16 @@ class RoomCacheWorkoutPlanRepositoryTest {
     every { roomDatabase.getExerciseDao() } returns exerciseDao
     every { workoutPlanDao.update(any()) } returns Unit
     every { workoutPlanDao.getServerPlans() } returns emptyFlow()
+    every { roomDatabase.openHelper } returns sqliteOpenHelper
+    every { sqliteOpenHelper.writableDatabase } returns writableDatabase
+    every { writableDatabase.execSQL(any()) } returns Unit
 
     // withTransaction is a top-level Room extension, not a RefittedRoom member - static-mock it
     // to just run the block directly, since these tests care about which DAO calls happen and
     // in what order, not Room's real transaction machinery.
     mockkStatic("androidx.room.RoomDatabaseKt")
-    coEvery { roomDatabase.withTransaction<Unit>(any()) } coAnswers {
-      secondArg<suspend () -> Unit>().invoke()
+    coEvery { roomDatabase.withTransaction<Any?>(any()) } coAnswers {
+      secondArg<suspend () -> Any?>().invoke()
     }
 
     subject = RoomCacheWorkoutPlanRepository(roomProvider, networkService, log)

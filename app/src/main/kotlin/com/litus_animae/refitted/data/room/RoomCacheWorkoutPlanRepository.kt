@@ -133,17 +133,24 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
     }
 
     override suspend fun renameCustomPlan(oldName: String, newName: String): Result<Unit> {
-        if (workoutPlanDao.getByName(newName) != null) {
-            return Result.failure(IllegalStateException("A plan named \"$newName\" already exists."))
-        }
         val exerciseDao = database.getExerciseDao()
-        database.withTransaction {
+        return database.withTransaction {
+            // Checked inside the transaction, not before it, so a concurrent write can't insert
+            // or rename a plan to newName between the check and the rename below.
+            if (workoutPlanDao.getByName(newName) != null) {
+                return@withTransaction Result.failure(IllegalStateException("A plan named \"$newName\" already exists."))
+            }
+            // exerciseset has a FK to Exercise on (name, workout) with no onUpdate action, and
+            // Room runs with PRAGMA foreign_keys=ON, so renaming either side alone trips an
+            // immediate FK violation - defer all FK checks in this transaction until commit,
+            // when both sides are consistent again.
+            database.openHelper.writableDatabase.execSQL("PRAGMA defer_foreign_keys = ON")
             workoutPlanDao.renamePlan(oldName, newName)
             exerciseDao.renameExerciseWorkout(oldName, newName)
             exerciseDao.renameExerciseSetWorkout(oldName, newName)
             exerciseDao.renameSetRecordWorkout(oldName, newName)
+            Result.success(Unit)
         }
-        return Result.success(Unit)
     }
 
     override suspend fun deleteCustomPlan(name: String) {
