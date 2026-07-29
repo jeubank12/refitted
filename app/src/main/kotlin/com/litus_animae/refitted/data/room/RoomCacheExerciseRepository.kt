@@ -244,6 +244,51 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
+  override suspend fun addAlternateExercise(
+    workout: String,
+    day: String,
+    baseStep: String,
+    exerciseId: String,
+    description: String?
+  ) {
+    withContext(Dispatchers.IO) {
+      val exerciseDao = refittedRoom.getExerciseDao()
+      val daySets = exerciseDao.loadDayExerciseSets(day, workout)
+      val baseSet = daySets.firstOrNull { it.step == baseStep }
+      if (baseSet == null) {
+        log.w(TAG, "cannot add alternate: $workout day $day has no step $baseStep")
+        return@withContext
+      }
+      // ExerciseSet.primaryStep only strips a single trailing letter, so alternates past "z" would
+      // group as their own instruction rather than joining this one.
+      val siblingRegex = "^${Regex.escape(baseStep)}\\.([a-z])$".toRegex()
+      val nextLetter = daySets
+        .mapNotNull { siblingRegex.find(it.step)?.groupValues?.get(1)?.first() }
+        .maxOrNull()?.inc() ?: 'a'
+      if (nextLetter > 'z') {
+        log.w(TAG, "cannot add alternate: $workout day $day step $baseStep has no free suffix")
+        return@withContext
+      }
+      val step = "$baseStep.$nextLetter"
+      log.d(TAG, "adding alternate $exerciseId to $workout day $day, step $step")
+      val resolvedDescription = description?.takeIf { it.isNotBlank() }
+        ?: exerciseDao.getExercise(exerciseId, workout).first()?.description
+      exerciseDao.storeExerciseAndSet(
+        RoomExercise(workout = workout, id = exerciseId, description = resolvedDescription),
+        // Sort columns are derived from the day-prefixed id, not the step - see RoomExerciseSet.
+        baseSet.copy(
+          step = step,
+          primaryStep = RoomExerciseSet.parsePrimaryStep("$day.$step"),
+          superSetStep = RoomExerciseSet.parseSuperSetStep("$day.$step"),
+          alternateStep = nextLetter.toString(),
+          name = exerciseId,
+          // The prescription carries over, but the base's notes are about the base exercise.
+          note = ""
+        )
+      )
+    }
+  }
+
   override suspend fun updateCustomExerciseSet(
     workout: String,
     day: String,
