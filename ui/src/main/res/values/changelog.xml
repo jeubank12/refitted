@@ -3,6 +3,7 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.1</item>
+        <item>Rename or delete your custom plans from the calendar menu, or by long-pressing/swiping a plan in the list</item>
         <item>Clearer guidance when creating your own workout plan</item>
         <item>**v1.4.0</item>
         <item>Build your own workout: create a custom plan, then add your own days and exercises</item>

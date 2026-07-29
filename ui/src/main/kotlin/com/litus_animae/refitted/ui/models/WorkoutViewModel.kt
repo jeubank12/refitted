@@ -211,7 +211,12 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
-  fun renameCustomWorkout(oldName: String, newName: String, onError: (String) -> Unit) {
+  fun renameCustomWorkout(
+    oldName: String,
+    newName: String,
+    onSuccess: () -> Unit = {},
+    onError: (String) -> Unit = {}
+  ) {
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Renaming custom workout $oldName to $newName")
       workoutPlanRepo.renameCustomPlan(oldName, newName).fold(
@@ -221,6 +226,7 @@ class WorkoutViewModel @Inject constructor(
             savedStateRepo.setState(selectedPlan, newName)
             workoutPlanRepo.workoutByName(newName).first()?.let { _currentWorkout.value = it }
           }
+          onSuccess()
         },
         onFailure = { e -> onError(e.message ?: "Rename failed") }
       )

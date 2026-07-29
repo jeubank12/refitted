@@ -72,6 +72,92 @@ fun NewCustomWorkoutDialog(
 }
 
 /**
+ * Renames a custom plan. [errorMessage] surfaces a rejected rename (e.g. name already taken)
+ * inline without dismissing the dialog, so the user can just edit and retry.
+ */
+@Composable
+fun RenamePlanDialog(
+  currentName: String,
+  errorMessage: String?,
+  onDismissRequest: () -> Unit,
+  onRename: (newName: String) -> Unit
+) {
+  var name by rememberSaveable { mutableStateOf(currentName) }
+  AlertDialog(
+    onDismissRequest = onDismissRequest,
+    // TODO localize
+    title = { Text("Rename Plan") },
+    text = {
+      Column {
+        TextField(
+          value = name,
+          onValueChange = { name = it },
+          label = { Text("Plan name") },
+          singleLine = true,
+          isError = errorMessage != null,
+          modifier = Modifier.fillMaxWidth()
+        )
+        if (errorMessage != null) {
+          Spacer(Modifier.height(4.dp))
+          Text(
+            errorMessage,
+            color = MaterialTheme.colors.error,
+            style = MaterialTheme.typography.caption
+          )
+        }
+      }
+    },
+    confirmButton = {
+      Button(
+        onClick = { onRename(name.trim()) },
+        enabled = name.isNotBlank() && name.trim() != currentName
+      ) {
+        // TODO localize
+        Text("Rename")
+      }
+    },
+    dismissButton = {
+      Button(onClick = onDismissRequest) {
+        // TODO localize
+        Text("Cancel")
+      }
+    }
+  )
+}
+
+/**
+ * Confirms deletion of a custom plan - deletion is irreversible (unlike resetting workout
+ * completion), so this warns explicitly that all days, exercises, and history are removed.
+ */
+@Composable
+fun DeletePlanConfirmDialog(
+  planName: String,
+  onDismissRequest: () -> Unit,
+  onConfirm: () -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismissRequest,
+    // TODO localize
+    title = { Text("Delete Plan") },
+    text = {
+      Text("This permanently deletes \"$planName\" - all of its days, exercises, and completion history. This cannot be undone.")
+    },
+    confirmButton = {
+      Button(onClick = onConfirm) {
+        // TODO localize
+        Text("Delete")
+      }
+    },
+    dismissButton = {
+      Button(onClick = onDismissRequest) {
+        // TODO localize
+        Text("Cancel")
+      }
+    }
+  )
+}
+
+/**
  * Copy-day dialog (design 1e, minus the per-exercise preview list, Move day, and the
  * append/overwrite choice - copy is always non-destructive and always appends a new day). Lets
  * the user pick which existing day to copy from.

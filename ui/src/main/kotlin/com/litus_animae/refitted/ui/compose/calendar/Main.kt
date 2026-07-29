@@ -75,6 +75,11 @@ fun Calendar(
   var showCopyDayDialog by rememberSaveable { mutableStateOf(false) }
   var showAddMenu by rememberSaveable { mutableStateOf(false) }
   var editMode by rememberSaveable { mutableStateOf(false) }
+  // Rename/delete dialog targets, shared between the calendar overflow menu and the plan-list
+  // row's long-press/swipe actions - transient dialog state, not worth surviving process death.
+  var renameTarget by remember { mutableStateOf<String?>(null) }
+  var renameError by remember { mutableStateOf<String?>(null) }
+  var deleteTarget by remember { mutableStateOf<String?>(null) }
 
   val selectedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
@@ -151,6 +156,31 @@ fun Calendar(
                     .fillMaxWidth()
                     .clickable {
                       editMode = true
+                      setExpanded(false)
+                    }
+                    .padding(start = 5.dp, end = 15.dp)
+                    .padding(vertical = 5.dp))
+              }
+              if (selectedWorkoutPlan?.isCustom == true) {
+                // TODO localize
+                Text(
+                  "Rename plan",
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                      renameTarget = selectedWorkoutPlan!!.workout
+                      renameError = null
+                      setExpanded(false)
+                    }
+                    .padding(start = 5.dp, end = 15.dp)
+                    .padding(vertical = 5.dp))
+                // TODO localize
+                Text(
+                  "Delete plan",
+                  Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                      deleteTarget = selectedWorkoutPlan!!.workout
                       setExpanded(false)
                     }
                     .padding(start = 5.dp, end = 15.dp)
@@ -288,7 +318,12 @@ fun Calendar(
         onCreateCustom = {
           scaffoldScope.launch { scaffoldState.drawerState.close() }
           showCreateCustomDialog = true
-        }
+        },
+        onRenameRequest = {
+          renameTarget = it.workout
+          renameError = null
+        },
+        onDeleteRequest = { deleteTarget = it.workout }
       )
       Row(
         Modifier
@@ -394,6 +429,40 @@ fun Calendar(
       onCopy = { fromDay ->
         workoutModel.copyDay(selectedWorkoutPlan!!, fromDay)
         showCopyDayDialog = false
+      }
+    )
+  }
+
+  renameTarget?.let { target ->
+    RenamePlanDialog(
+      currentName = target,
+      errorMessage = renameError,
+      onDismissRequest = {
+        renameTarget = null
+        renameError = null
+      },
+      onRename = { newName ->
+        renameError = null
+        workoutModel.renameCustomWorkout(
+          target,
+          newName,
+          onSuccess = { renameTarget = null },
+          onError = { message -> renameError = message }
+        )
+      }
+    )
+  }
+
+  deleteTarget?.let { target ->
+    DeletePlanConfirmDialog(
+      planName = target,
+      onDismissRequest = { deleteTarget = null },
+      onConfirm = {
+        workoutModel.deleteCustomWorkout(target)
+        if (selectedWorkoutPlan?.workout == target) {
+          editMode = false
+        }
+        deleteTarget = null
       }
     )
   }
