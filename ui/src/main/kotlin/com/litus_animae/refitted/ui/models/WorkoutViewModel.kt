@@ -211,6 +211,33 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
+  fun renameCustomWorkout(oldName: String, newName: String, onError: (String) -> Unit) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Renaming custom workout $oldName to $newName")
+      workoutPlanRepo.renameCustomPlan(oldName, newName).fold(
+        onSuccess = {
+          if (_currentWorkout.value?.workout == oldName) {
+            savedStateHandle[selectedPlan] = newName
+            savedStateRepo.setState(selectedPlan, newName)
+            workoutPlanRepo.workoutByName(newName).first()?.let { _currentWorkout.value = it }
+          }
+        },
+        onFailure = { e -> onError(e.message ?: "Rename failed") }
+      )
+    }
+  }
+
+  fun deleteCustomWorkout(name: String) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Deleting custom workout $name")
+      workoutPlanRepo.deleteCustomPlan(name)
+      if (_currentWorkout.value?.workout == name) {
+        _currentWorkout.value = null
+        savedStateRepo.clearState(selectedPlan)
+      }
+    }
+  }
+
   fun addDay(workout: WorkoutPlan) {
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Adding day to custom plan ${workout.workout}")
