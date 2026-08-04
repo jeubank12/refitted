@@ -26,6 +26,19 @@ data class EffortConfig(
   val maxExtrapolationDays: Long = 14,
   val shrinkToMean: Boolean = true,
   val maxAbsZ: Double = 6.0,
+  // Rest-gap credit. Sets taken closer together demonstrate more than the same weight and reps
+  // taken far apart, and for bodyweight work it's the only lever left once reps stop being
+  // practical. Deliberately a bonus and never a penalty: training slowly, or getting
+  // interrupted, isn't a failure, and completion stamps are too noisy to punish anyone over.
+  // Full credit at or under restCreditFloorSeconds, tapering to nothing at
+  // restReferenceSeconds. Gaps outside [restImplausibleFloorSeconds, restNeutralSeconds] score
+  // neutral rather than extrapolating - under the floor is bulk logging or several unsaved sets
+  // sharing one Instant.now(), over the ceiling is a break rather than a rest.
+  val restReferenceSeconds: Double = 180.0,
+  val restCreditFloorSeconds: Double = 30.0,
+  val restImplausibleFloorSeconds: Double = 10.0,
+  val restNeutralSeconds: Double = 900.0,
+  val densityBonusMax: Double = 0.07,
   // Only consulted by EffortModel.scoreWithBootstrap - how many individual sets are needed
   // before its coarser, strip-only stand-in trend can render at all. Mirrors
   // minPriorSessions' role for the real fit.

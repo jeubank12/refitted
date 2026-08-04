@@ -400,6 +400,96 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("rest-gap density credit")
+  inner class Density {
+    private fun session(at: Instant, restSeconds: Long, count: Int = 3) =
+      (0 until count).map { EffortSet(at.plusSeconds(it * restSeconds), 100.0, 8) }
+
+    private fun capacitiesAfterFirst(sets: List<EffortSet>) =
+      EffortModel.score(sets).sets.drop(1).map { it.capacity }
+
+    @Test
+    fun `sets taken close together demonstrate more than the same sets taken far apart`() {
+      val dense = capacitiesAfterFirst(session(day(0), restSeconds = 30))
+      val sparse = capacitiesAfterFirst(session(day(0), restSeconds = 300))
+
+      dense.zip(sparse).forEach { (d, s) -> assertThat(d).isGreaterThan(s) }
+    }
+
+    @Test
+    fun `credit tapers off as rest grows and is gone by the reference rest`() {
+      val short = capacitiesAfterFirst(session(day(0), restSeconds = 60))
+      val medium = capacitiesAfterFirst(session(day(0), restSeconds = 120))
+      val reference = capacitiesAfterFirst(
+        session(day(0), restSeconds = EffortConfig.Default.restReferenceSeconds.toLong())
+      )
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(short.first()).isGreaterThan(medium.first())
+      assertThat(medium.first()).isGreaterThan(reference.first())
+      assertThat(reference.first()).isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `a long break is neutral, never a penalty`() {
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 1800)).first())
+        .isWithin(1e-9).of(bare)
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 7200)).first())
+        .isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `implausibly short gaps claim no credit`() {
+      // The strip stamps every not-yet-persisted record with the same Instant.now(), so
+      // near-zero gaps mean "logged in a burst", not "rested for no time at all".
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 0)).first())
+        .isWithin(1e-9).of(bare)
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 5)).first())
+        .isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `the credit is capped at the configured bonus`() {
+      val bare = EffortModel.capacity(100.0, 8)
+      val backToBack = capacitiesAfterFirst(session(day(0), restSeconds = 12)).first()
+
+      assertThat(backToBack / bare)
+        .isWithin(1e-9).of(1.0 + EffortConfig.Default.densityBonusMax)
+    }
+
+    @Test
+    fun `the first set of a session is never credited - nothing preceded it`() {
+      val sets = session(day(0), restSeconds = 15)
+
+      assertThat(EffortModel.score(sets).sets.first().capacity)
+        .isWithin(1e-9).of(EffortModel.capacity(100.0, 8))
+    }
+
+    @Test
+    fun `bodyweight work can show progress on rest alone`() {
+      // Same weight (none) and same reps every session - the only thing that improves is how
+      // tightly the sets are packed, which for unloadable work is the whole story.
+      val loose = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 240L), 0.0, 12) }
+      }
+      val tightening = (0..5).flatMap { s ->
+        val rest = (240L - s * 40L).coerceAtLeast(30L)
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * rest), 0.0, 12) }
+      }
+
+      val looseLast = EffortModel.score(loose).sets.last()
+      val tighteningLast = EffortModel.score(tightening).sets.last()
+
+      assertThat(tighteningLast.capacity).isGreaterThan(looseLast.capacity)
+      assertThat(tighteningLast.z!!).isGreaterThan(looseLast.z!!)
+    }
+  }
+
+  @Nested
   @DisplayName("scoreWithBootstrap")
   inner class Bootstrap {
     @Test

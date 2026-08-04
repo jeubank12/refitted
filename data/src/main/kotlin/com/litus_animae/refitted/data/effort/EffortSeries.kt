@@ -19,6 +19,10 @@ enum class ExpectationSource { SESSION, BOOTSTRAP }
  * left implicit so a chart can build whichever x-domain it needs (calendar time, day-exploded,
  * or plain set index) without re-deriving session structure from raw [EffortSet]s.
  *
+ * [capacity] is what the model scores on, so it includes the rest-gap credit a set earned for
+ * following closely on the one before it - it is not the bare [EffortModel.capacity] of the
+ * weight and reps alone.
+ *
  * [expectedWeight] is [expectation] expressed at the fit's typical reps, the same conversion
  * [TrendPoint] carries. It's per-set rather than per-session so a chart plotting one point per
  * set can draw a trend that moves across a session instead of stepping once per day.

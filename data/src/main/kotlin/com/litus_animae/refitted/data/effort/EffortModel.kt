@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.data.effort
 
+import java.time.Duration
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -96,11 +97,18 @@ object EffortModel {
    * the regression's own domain and is the only field that differs between grains.
    */
   private data class FitSession(
-    val sets: List<EffortSet>,
+    val sets: List<TimedSet>,
     val sessionIndex: Int,
     val dayOffset: Long,
     val x: Double
   )
+
+  /**
+   * A set paired with how long the lifter rested before it, in seconds - null for the first set
+   * of a calendar day, which has nothing before it to rest from. Measured once at day grain so
+   * both grains see the same rest, however they go on to group the sets.
+   */
+  private data class TimedSet(val set: EffortSet, val restSeconds: Double?)
 
   /** Calendar-day grain: one fit session per day, regressed on day-offset. */
   private fun daySessions(sets: List<EffortSet>, zone: ZoneId): List<FitSession> {
@@ -111,9 +119,39 @@ object EffortModel {
     val firstDay = byDay.firstKey()
     return byDay.entries.mapIndexed { index, (day, sessionSets) ->
       val dayOffset = ChronoUnit.DAYS.between(firstDay, day)
-      FitSession(sessionSets, index, dayOffset, dayOffset.toDouble())
+      val timed = sessionSets.mapIndexed { setIndex, set ->
+        val rest = if (setIndex == 0) {
+          null
+        } else {
+          Duration.between(sessionSets[setIndex - 1].completed, set.completed).toMillis() / 1000.0
+        }
+        TimedSet(set, rest)
+      }
+      FitSession(timed, index, dayOffset, dayOffset.toDouble())
     }
   }
+
+  /**
+   * How much credit a set earns for how little rest preceded it. Bonus only, capped at
+   * [EffortConfig.densityBonusMax] - see the config for why this never subtracts.
+   */
+  private fun densityFactor(restSeconds: Double?, config: EffortConfig): Double = when {
+    restSeconds == null -> 1.0
+    restSeconds < config.restImplausibleFloorSeconds -> 1.0
+    restSeconds > config.restNeutralSeconds -> 1.0
+    else -> {
+      val span = config.restReferenceSeconds - config.restCreditFloorSeconds
+      val credit = if (span <= 0.0) {
+        0.0
+      } else {
+        ((config.restReferenceSeconds - restSeconds) / span).coerceIn(0.0, 1.0)
+      }
+      1.0 + config.densityBonusMax * credit
+    }
+  }
+
+  private fun effectiveCapacity(timed: TimedSet, config: EffortConfig): Double =
+    capacity(timed.set.weight, timed.set.reps, config) * densityFactor(timed.restSeconds, config)
 
   /**
    * Set grain: every set is its own fit session, regressed on a running set-sequence counter.
@@ -128,8 +166,8 @@ object EffortModel {
   private fun explodedSessions(sets: List<EffortSet>, zone: ZoneId): List<FitSession> {
     var x = 0.0
     return daySessions(sets, zone).flatMap { day ->
-      day.sets.map { set ->
-        FitSession(listOf(set), day.sessionIndex, day.dayOffset, x++)
+      day.sets.map { timed ->
+        FitSession(listOf(timed), day.sessionIndex, day.dayOffset, x++)
       }
     }
   }
@@ -193,11 +231,11 @@ object EffortModel {
     sessions.forEach { session ->
       val sessionSets = session.sets
 
-      var bestCapacity = capacity(sessionSets[0].weight, sessionSets[0].reps, config)
-      var bestReps = effectiveReps(sessionSets[0].reps, config)
+      var bestCapacity = effectiveCapacity(sessionSets[0], config)
+      var bestReps = effectiveReps(sessionSets[0].set.reps, config)
       for (i in 1 until sessionSets.size) {
-        val c = capacity(sessionSets[i].weight, sessionSets[i].reps, config)
-        val r = effectiveReps(sessionSets[i].reps, config)
+        val c = effectiveCapacity(sessionSets[i], config)
+        val r = effectiveReps(sessionSets[i].set.reps, config)
         if (c > bestCapacity || (c == bestCapacity && r > bestReps)) {
           bestCapacity = c
           bestReps = r
@@ -236,7 +274,7 @@ object EffortModel {
           TrendPoint(
             sessionIndex = session.sessionIndex,
             dayOffset = session.dayOffset,
-            at = sessionSets.first().completed,
+            at = sessionSets.first().set.completed,
             expectedCapacity = cHat,
             typicalReps = rHat,
             expectedWeight = wHat
@@ -244,14 +282,14 @@ object EffortModel {
         )
       }
 
-      sessionSets.forEachIndexed { setIndex, effortSet ->
-        val c = capacity(effortSet.weight, effortSet.reps, config)
+      sessionSets.forEachIndexed { setIndex, timed ->
+        val c = effectiveCapacity(timed, config)
         val z = expectedCapacity?.let {
           ((c - it) / (residualScale ?: 1.0)).coerceIn(-config.maxAbsZ, config.maxAbsZ)
         }
         scoredSets.add(
           ScoredSet(
-            source = effortSet,
+            source = timed.set,
             sessionIndex = session.sessionIndex,
             setIndexInSession = setIndex,
             setsInSession = sessionSets.size,
