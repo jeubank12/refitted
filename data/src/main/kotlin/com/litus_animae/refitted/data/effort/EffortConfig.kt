@@ -39,6 +39,14 @@ data class EffortConfig(
   val restImplausibleFloorSeconds: Double = 10.0,
   val restNeutralSeconds: Double = 900.0,
   val densityBonusMax: Double = 0.07,
+  // How much a session that fades away from its best set is discounted when it feeds the trend.
+  // Session value used to be the plain best, so three sets at the same weight and a single top
+  // set followed by two lighter ones pushed the curve up by exactly the same amount. Only sets
+  // at or after the peak count toward holding - a ramp up to a top set is a warm-up, not a fade.
+  // A discount off the best rather than a bonus above it, so session values stay on the same
+  // scale as the individual set capacities they're compared against.
+  val sustainTolerance: Double = 0.95,
+  val sustainPenaltyMax: Double = 0.08,
   // Only consulted by EffortModel.scoreWithBootstrap - how many individual sets are needed
   // before its coarser, strip-only stand-in trend can render at all. Mirrors
   // minPriorSessions' role for the real fit.

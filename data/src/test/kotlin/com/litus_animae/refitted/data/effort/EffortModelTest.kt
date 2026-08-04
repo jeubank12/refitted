@@ -490,6 +490,82 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("sustained load")
+  inner class SustainedLoad {
+    // Rest held constant across every shape so only the shape itself moves the numbers.
+    private fun sessionsOf(shape: List<Pair<Double, Int>>, count: Int = 5) =
+      (0 until count).flatMap { s ->
+        shape.mapIndexed { i, (weight, reps) ->
+          EffortSet(day(s * 7L).plusSeconds(i * 180L), weight, reps)
+        }
+      }
+
+    private fun expectationAfter(shape: List<Pair<Double, Int>>): Double =
+      EffortModel.score(sessionsOf(shape)).sets.last().expectation!!
+
+    @Test
+    fun `holding the same weight beats fading down from it`() {
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+      val faded = expectationAfter(listOf(100.0 to 8, 80.0 to 8, 60.0 to 8))
+
+      assertThat(held).isGreaterThan(faded)
+    }
+
+    @Test
+    fun `holding reps beats fading reps at the same weight`() {
+      val held = expectationAfter(listOf(100.0 to 10, 100.0 to 10, 100.0 to 10))
+      val faded = expectationAfter(listOf(100.0 to 10, 100.0 to 8, 100.0 to 6))
+
+      assertThat(held).isGreaterThan(faded)
+    }
+
+    @Test
+    fun `a weight fade is discounted harder than a rep fade`() {
+      val repFade = expectationAfter(listOf(100.0 to 10, 100.0 to 8, 100.0 to 6))
+      val weightFade = expectationAfter(listOf(100.0 to 10, 80.0 to 10, 60.0 to 10))
+
+      assertThat(weightFade).isLessThan(repFade)
+    }
+
+    @Test
+    fun `ramping up to a top set is warm-up, not fade`() {
+      val ramped = expectationAfter(listOf(60.0 to 8, 80.0 to 8, 100.0 to 8))
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+
+      assertThat(ramped).isWithin(1e-9).of(held)
+    }
+
+    @Test
+    fun `a single-set session is never discounted`() {
+      val single = expectationAfter(listOf(100.0 to 8))
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+
+      assertThat(single).isWithin(1e-9).of(held)
+    }
+
+    @Test
+    fun `the discount is bounded by the configured maximum`() {
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+      val collapsed = expectationAfter(listOf(100.0 to 8, 20.0 to 1, 20.0 to 1))
+
+      assertThat(collapsed).isAtLeast(held * (1 - EffortConfig.Default.sustainPenaltyMax) - 1e-9)
+    }
+
+    @Test
+    fun `the session value never rises above the session's best set`() {
+      // A discount off the best, not a bonus above it - otherwise the trend line drifts above
+      // every set that produced it and everything reads BELOW.
+      val series = EffortModel.score(sessionsOf(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8)))
+      val lastSessionIndex = series.sets.last().sessionIndex
+      val bestBefore = series.sets
+        .filter { it.sessionIndex < lastSessionIndex }
+        .maxOf { it.capacity }
+
+      assertThat(series.sets.last().expectation!!).isAtMost(bestBefore + 1e-9)
+    }
+  }
+
+  @Nested
   @DisplayName("scoreWithBootstrap")
   inner class Bootstrap {
     @Test

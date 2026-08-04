@@ -154,6 +154,41 @@ object EffortModel {
     capacity(timed.set.weight, timed.set.reps, config) * densityFactor(timed.restSeconds, config)
 
   /**
+   * How much of its best a session actually held, as a multiplier on the value it feeds the
+   * trend. Three sets at the same weight keep all of it; a top set followed by two lighter ones
+   * gives some back.
+   *
+   * Only sets from [peakIndex] onward count. Ramping up to a top set is warm-up, not fade, and
+   * a session that ends on its best never faded at all - so a lone top single, and a session of
+   * one set, are both left alone. This is deliberately a discount off [bestCapacity] rather
+   * than a bonus above it: session values have to stay on the same scale as the individual set
+   * capacities they get compared against, or the whole trend drifts above every real set.
+   *
+   * Aggregate only. Individual bubbles already show a fade on their own - the lighter sets
+   * score lower against the session's expectation - so crediting it per set would count it
+   * twice.
+   */
+  private fun sustainFactor(
+    capacities: List<Double>,
+    peakIndex: Int,
+    bestCapacity: Double,
+    config: EffortConfig
+  ): Double {
+    val tail = capacities.subList(peakIndex, capacities.size)
+    if (tail.size <= 1 || bestCapacity <= 0.0) return 1.0
+    val tolerance = config.sustainTolerance
+    val span = 1.0 - tolerance
+    val holdRatio = tail.sumOf { c ->
+      if (span <= 0.0) {
+        if (c >= bestCapacity) 1.0 else 0.0
+      } else {
+        ((c / bestCapacity - tolerance) / span).coerceIn(0.0, 1.0)
+      }
+    } / tail.size
+    return 1.0 - config.sustainPenaltyMax * (1.0 - holdRatio)
+  }
+
+  /**
    * Set grain: every set is its own fit session, regressed on a running set-sequence counter.
    *
    * The x-domain stays set-sequence rather than fractional days on purpose. A day's sets span
@@ -231,16 +266,20 @@ object EffortModel {
     sessions.forEach { session ->
       val sessionSets = session.sets
 
-      var bestCapacity = effectiveCapacity(sessionSets[0], config)
+      val capacities = sessionSets.map { effectiveCapacity(it, config) }
+      var peakIndex = 0
+      var bestCapacity = capacities[0]
       var bestReps = effectiveReps(sessionSets[0].set.reps, config)
       for (i in 1 until sessionSets.size) {
-        val c = effectiveCapacity(sessionSets[i], config)
+        val c = capacities[i]
         val r = effectiveReps(sessionSets[i].set.reps, config)
         if (c > bestCapacity || (c == bestCapacity && r > bestReps)) {
+          peakIndex = i
           bestCapacity = c
           bestReps = r
         }
       }
+      val sessionValue = bestCapacity * sustainFactor(capacities, peakIndex, bestCapacity, config)
 
       var expectedCapacity: Double? = null
       var expectedWeight: Double? = null
@@ -309,8 +348,8 @@ object EffortModel {
       // explicit: a set far under what the lifter has already shown is a warm-up, and folding it
       // in as if it were a session outcome yanks the recency-weighted line down hard enough to
       // make the very next working set read IMPLAUSIBLE.
-      val isWarmUp = skipWarmUps && bestCapacity < config.workingSetFraction * runningBest
-      runningBest = max(runningBest, bestCapacity)
+      val isWarmUp = skipWarmUps && sessionValue < config.workingSetFraction * runningBest
+      runningBest = max(runningBest, sessionValue)
       if (isWarmUp) return@forEach
 
       // Fold this session in *after* using it for prediction/scoring, so a session's
@@ -322,15 +361,15 @@ object EffortModel {
       val x = session.x
       sumW += 1.0
       sumWx += x
-      sumWy += bestCapacity
+      sumWy += sessionValue
       sumWxx += x * x
-      sumWxy += x * bestCapacity
+      sumWxy += x * sessionValue
 
       sumRepsW += 1.0
       sumRepsWr += bestReps
 
       if (expectedCapacity != null) {
-        val e = bestCapacity - expectedCapacity
+        val e = sessionValue - expectedCapacity
         sumResidualW += 1.0
         sumResidualWe2 += e * e
       }
