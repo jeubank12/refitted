@@ -224,16 +224,23 @@ fun SetTrendStrip(
   }
 }
 
-private fun previewSets(daysAgo: List<Long>, setsPerDay: Int): List<SetRecord> {
+private fun previewSets(
+  daysAgo: List<Long>,
+  setsPerDay: Int,
+  weight: (daysAgo: Long) -> Double = { 95.0 + it },
+  reps: Int = 8,
+  restSeconds: Long = 120L
+): List<SetRecord> {
   val base = Instant.now().minus(Duration.ofDays(daysAgo.max()))
   return daysAgo.flatMap { day ->
     (0 until setsPerDay).map { setIndex ->
       SetRecord(
-        weight = 95.0 + day,
-        reps = 8,
+        weight = weight(day),
+        reps = reps,
         workout = exampleExerciseSet.workout,
         targetSet = exampleExerciseSet.id,
-        completed = base.plus(Duration.ofDays(daysAgo.max() - day)).plusSeconds(setIndex * 120L),
+        completed = base.plus(Duration.ofDays(daysAgo.max() - day))
+          .plusSeconds(setIndex * restSeconds),
         exercise = exampleExerciseSet.exerciseName
       )
     }
@@ -269,6 +276,61 @@ private fun PreviewSetTrendStripRealTrend() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
     history = flowOf(previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)),
+    todaysRecords = emptyList()
+  )
+}
+
+/** Back after four months at 75% of the old weight: the cooled-down curve reads this on-curve. */
+@Preview
+@Composable
+private fun PreviewSetTrendStripComeback() {
+  SetTrendStrip(
+    Modifier.width(300.dp).height(88.dp),
+    history = flowOf(
+      previewSets(
+        daysAgo = listOf(141L, 134L, 127L, 120L, 0L),
+        setsPerDay = 3,
+        weight = { if (it == 0L) 75.0 else 100.0 }
+      )
+    ),
+    todaysRecords = emptyList()
+  )
+}
+
+/** Bodyweight, 30s between sets - compare against the sparse preview below. */
+@Preview
+@Composable
+private fun PreviewSetTrendStripBodyweightDense() {
+  SetTrendStrip(
+    Modifier.width(300.dp).height(88.dp),
+    history = flowOf(
+      previewSets(
+        daysAgo = (0L..5L).map { it * 3 }.reversed(),
+        setsPerDay = 3,
+        weight = { 0.0 },
+        reps = 12,
+        restSeconds = 30L
+      )
+    ),
+    todaysRecords = emptyList()
+  )
+}
+
+/** The same bodyweight work spread out: identical weight and reps, smaller bubbles. */
+@Preview
+@Composable
+private fun PreviewSetTrendStripBodyweightSparse() {
+  SetTrendStrip(
+    Modifier.width(300.dp).height(88.dp),
+    history = flowOf(
+      previewSets(
+        daysAgo = (0L..5L).map { it * 3 }.reversed(),
+        setsPerDay = 3,
+        weight = { 0.0 },
+        reps = 12,
+        restSeconds = 300L
+      )
+    ),
     todaysRecords = emptyList()
   )
 }
