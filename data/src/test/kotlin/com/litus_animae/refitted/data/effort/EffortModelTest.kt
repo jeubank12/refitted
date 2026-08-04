@@ -820,6 +820,29 @@ class EffortModelTest {
     }
 
     @Test
+    fun `how many warm-ups get skipped does not move the next working set`() {
+      // Skipped sets still advance the fit's x while lastPriorX stays put, so the gap the
+      // extrapolation clamp sees tracks set *volume*. Bounding it with maxExtrapolationDays - a
+      // calendar quantity - meant 15 skipped warm-ups tripped a clamp meant for long layoffs.
+      // Past the set-denominated bound, skipping more must make no difference at all.
+      fun withWarmUps(count: Int): Double {
+        // Three rising working sets so the fit has a slope worth extrapolating, then a run of
+        // warm-ups that all get skipped, then the working set whose expectation is measured -
+        // the only set whose x sits far past the last one the fit actually folded.
+        val sets = mutableListOf(
+          EffortSet(day(0), 200.0, 8),
+          EffortSet(day(0).plusSeconds(200), 205.0, 8),
+          EffortSet(day(0).plusSeconds(400), 210.0, 8)
+        )
+        repeat(count) { sets.add(EffortSet(day(0).plusSeconds(600L + it * 200L), 60.0, 8)) }
+        sets.add(EffortSet(day(0).plusSeconds(600L + count * 200L), 210.0, 8))
+        return EffortModel.scoreWithBootstrap(sets).sets.last().expectation!!
+      }
+
+      assertThat(withWarmUps(25)).isWithin(1e-9).of(withWarmUps(5))
+    }
+
+    @Test
     fun `empty input returns the shared Empty instance`() {
       assertThat(EffortModel.scoreWithBootstrap(emptyList())).isSameInstanceAs(EffortSeries.Empty)
     }

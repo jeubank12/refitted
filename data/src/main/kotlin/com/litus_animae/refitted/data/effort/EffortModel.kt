@@ -253,7 +253,7 @@ object EffortModel {
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
     if (sets.isEmpty()) return EffortSeries.Empty
-    return scoreSessions(daySessions(sets, zone), config)
+    return scoreSessions(daySessions(sets, zone), config, config.maxExtrapolationDays.toDouble())
   }
 
   /**
@@ -265,6 +265,7 @@ object EffortModel {
   private fun scoreSessions(
     sessions: List<FitSession>,
     config: EffortConfig,
+    maxExtrapolation: Double,
     skipWarmUps: Boolean = false
   ): EffortSeries {
     if (sessions.isEmpty()) return EffortSeries.Empty
@@ -316,7 +317,7 @@ object EffortModel {
       var residualScale: Double? = null
 
       if (priorSessionCount >= config.minPriorSessions) {
-        val xEff = min(session.x, lastPriorX + config.maxExtrapolationDays)
+        val xEff = min(session.x, lastPriorX + maxExtrapolation)
         val den = sumW * sumWxx - sumWx * sumWx
         val meanY = sumWy / sumW
         val raw = if (abs(den) < 1e-9) {
@@ -446,6 +447,10 @@ object EffortModel {
     val exploded = scoreSessions(
       explodedSessions(sets, zone),
       config.copy(minPriorSessions = config.minPriorSetsForBootstrap),
+      // Set-sequence x, so the bound has to be denominated in sets - maxExtrapolationDays is a
+      // calendar quantity and means nothing in this domain. Skipped warm-ups don't advance
+      // lastPriorX while session.x keeps counting, so the gap here tracks set volume, not time.
+      maxExtrapolation = config.maxExtrapolationSets,
       skipWarmUps = true
     )
 

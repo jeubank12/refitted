@@ -38,6 +38,11 @@ data class EffortConfig(
   val minPriorSessions: Int = 3,
   val residualScaleFloorFraction: Double = 0.05,
   val maxExtrapolationDays: Long = 14,
+  // The same bound for the set-grain bootstrap fit, whose x is a set-sequence counter rather
+  // than a day offset - the two are not interchangeable. Consecutive folded sets sit 1 apart so
+  // this normally never binds; it exists for the case where a run of warm-ups is skipped and the
+  // next working set would otherwise be evaluated well past the last x the fit has data at.
+  val maxExtrapolationSets: Double = 3.0,
   val shrinkToMean: Boolean = true,
   val maxAbsZ: Double = 6.0,
   // Rest-gap credit. Sets taken closer together demonstrate more than the same weight and reps
