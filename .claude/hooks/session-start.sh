@@ -9,8 +9,9 @@ fi
 # google-services Gradle plugin (app/build.gradle). CI falls back to this
 # same dummy config when the real Firebase secret isn't available; reuse
 # it here so Gradle builds can configure in a remote session too.
-if [ ! -f app/google-services.json ]; then
-  cat > app/google-services.json << 'EOF'
+target="$CLAUDE_PROJECT_DIR/app/google-services.json"
+if [ ! -f "$target" ]; then
+  cat > "$target" << 'EOF'
 {
   "project_info": {
     "project_number": "000000000000",
