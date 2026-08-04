@@ -3,6 +3,10 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.1</item>
+        <item>Effort chart expects less after a long break, so coming back reads as progress instead of a slump</item>
+        <item>Sets done back-to-back now count for more, giving bodyweight and light work a way to show progress</item>
+        <item>Holding the same weight across your sets counts for more than fading down</item>
+        <item>High-rep sets keep earning credit past 15 reps</item>
         <item>**v1.4.0</item>
         <item>Build your own workout: create a custom plan, then add your own days and exercises</item>
         <item>Edit mode lets you adjust sets, reps, rest, and notes on a custom workout</item>
