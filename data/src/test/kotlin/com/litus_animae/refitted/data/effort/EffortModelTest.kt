@@ -341,14 +341,28 @@ class EffortModelTest {
   @DisplayName("scoreWithBootstrap")
   inner class Bootstrap {
     @Test
-    fun `a first-ever session is all COLD no matter how many sets it has`() {
-      val firstSession = (0 until 6).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+    fun `the first sets ever are COLD - nothing prior exists to compare them to`() {
+      val firstSession = (0 until 3).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
       val series = EffortModel.scoreWithBootstrap(firstSession)
 
       assertThat(series.trend).isEmpty()
       series.sets.forEach {
         assertThat(it.expectationSource).isNull()
         assertThat(it.zone).isEqualTo(EffortZone.COLD)
+      }
+    }
+
+    @Test
+    fun `a first-ever session warms up from its own earlier sets`() {
+      val firstSession = (0 until 6).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+      val series = EffortModel.scoreWithBootstrap(firstSession)
+
+      val (cold, warm) = series.sets.partition { it.expectationSource == null }
+      assertThat(cold).hasSize(EffortConfig.Default.minPriorSetsForBootstrap)
+      assertThat(warm).isNotEmpty()
+      warm.forEach {
+        assertThat(it.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP)
+        assertThat(it.zone).isNotEqualTo(EffortZone.COLD)
       }
     }
 
@@ -402,6 +416,77 @@ class EffortModelTest {
       assertThat(bootstrappedFourth.map { it.expectation }).isEqualTo(realFourth.map { it.expectation })
       assertThat(bootstrappedFourth.map { it.z }).isEqualTo(realFourth.map { it.z })
       bootstrappedFourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.SESSION) }
+    }
+
+    @Test
+    fun `the bootstrap output stays 1 to 1 and in order with score's`() {
+      val sets = (0..2).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0, 8) }
+      }
+      val real = EffortModel.score(sets)
+      val bootstrapped = EffortModel.scoreWithBootstrap(sets)
+
+      assertThat(bootstrapped.sets.map { it.source }).isEqualTo(real.sets.map { it.source })
+      assertThat(bootstrapped.sets.map { it.sessionIndex }).isEqualTo(real.sets.map { it.sessionIndex })
+    }
+
+    @Test
+    fun `the trend does not jump at the handoff to the real fit`() {
+      val sets = (0..5).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session * 2, 8) }
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+
+      val lastBootstrap = series.sets.last { it.expectationSource == ExpectationSource.BOOTSTRAP }
+      val firstReal = series.sets.first { it.expectationSource == ExpectationSource.SESSION }
+
+      // Different grains, so the numbers won't match exactly - but on a steady history the line
+      // has to stay continuous where the strip switches from the dashed stand-in to the real
+      // fit, rather than stepping to a visibly different level.
+      assertThat(firstReal.expectation!!)
+        .isWithin(0.1 * lastBootstrap.expectation!!).of(lastBootstrap.expectation!!)
+      assertThat(firstReal.expectedWeight!!)
+        .isWithin(0.1 * lastBootstrap.expectedWeight!!).of(lastBootstrap.expectedWeight!!)
+    }
+
+    @Test
+    fun `a warm-up set never drags the bootstrap fit down onto the working set behind it`() {
+      // A set-granularity fit has no session-best to hide warm-ups behind: folding the 60 lb
+      // opener in as if it were a session outcome used to pull the expectation under 100 and
+      // make the 102 lb top set that followed it read IMPLAUSIBLE.
+      val sets = (0..2).flatMap { session ->
+        listOf(
+          EffortSet(day(session * 7L), 60.0, 10),
+          EffortSet(day(session * 7L).plusSeconds(200), 100.0 + session * 2, 8),
+          EffortSet(day(session * 7L).plusSeconds(400), 95.0 + session * 2, 7)
+        )
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+      val working = series.sets.filter { it.source.weight >= 90.0 && it.expectation != null }
+
+      assertThat(working).isNotEmpty()
+      working.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.IMPLAUSIBLE) }
+      // Monotone: each warm-up is skipped rather than yanking the line backwards.
+      series.sets.mapNotNull { it.expectation }.zipWithNext().forEach { (a, b) ->
+        assertThat(b).isAtLeast(a)
+      }
+    }
+
+    @Test
+    fun `every scored set carries the expected weight its expectation implies`() {
+      val sets = (0..4).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session, 8) }
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+
+      series.sets.forEach {
+        if (it.expectation == null) {
+          assertThat(it.expectedWeight).isNull()
+        } else {
+          assertThat(it.expectedWeight!!).isGreaterThan(0.0)
+          assertThat(it.expectedWeight!!).isLessThan(it.expectation!!)
+        }
+      }
     }
 
     @Test

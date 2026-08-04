@@ -133,22 +133,26 @@ fun SetTrendStrip(
     // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
     // beneath trend, so the dash itself is the only signal a segment is the coarser,
     // strip-only stand-in rather than the real session-based fit.
-    val realTrend = remember(windowed, series) {
-      val expectedWeightBySession = series.trend
-        .filter { it.expectationSource == ExpectationSource.SESSION }
-        .associateBy({ it.sessionIndex }, { it.expectedWeight })
+    //
+    // Built from each set's own expectedWeight rather than a per-session lookup: the bootstrap
+    // fit runs at set granularity, so its expectation genuinely moves set to set, and keying
+    // off sessionIndex would flatten that into one step per day.
+    val realTrend = remember(windowed) {
       buildTrendRuns(
-        windowed.mapIndexed { index, scored -> index.toFloat() to scored.sessionIndex },
-        expectedWeightBySession
+        windowed.mapIndexed { index, scored ->
+          index.toFloat() to scored.expectedWeight.takeIf {
+            scored.expectationSource == ExpectationSource.SESSION
+          }
+        }
       )
     }
-    val bootstrapTrend = remember(windowed, series) {
-      val expectedWeightBySession = series.trend
-        .filter { it.expectationSource == ExpectationSource.BOOTSTRAP }
-        .associateBy({ it.sessionIndex }, { it.expectedWeight })
+    val bootstrapTrend = remember(windowed) {
       buildTrendRuns(
-        windowed.mapIndexed { index, scored -> index.toFloat() to scored.sessionIndex },
-        expectedWeightBySession
+        windowed.mapIndexed { index, scored ->
+          index.toFloat() to scored.expectedWeight.takeIf {
+            scored.expectationSource == ExpectationSource.BOOTSTRAP
+          }
+        }
       )
     }
 

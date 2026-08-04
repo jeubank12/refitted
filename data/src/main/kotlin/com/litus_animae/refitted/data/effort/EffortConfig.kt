@@ -19,10 +19,14 @@ data class EffortConfig(
   val maxExtrapolationDays: Long = 14,
   val shrinkToMean: Boolean = true,
   val maxAbsZ: Double = 6.0,
-  // Only consulted by EffortModel.scoreWithBootstrap - how many individual sets from
-  // strictly prior sessions are needed before its coarser, strip-only stand-in trend can
-  // render at all. Mirrors minPriorSessions' role for the real fit.
-  val minPriorSetsForBootstrap: Int = 3
+  // Only consulted by EffortModel.scoreWithBootstrap - how many individual sets are needed
+  // before its coarser, strip-only stand-in trend can render at all. Mirrors
+  // minPriorSessions' role for the real fit.
+  val minPriorSetsForBootstrap: Int = 3,
+  // Also bootstrap-only: the fraction of already-demonstrated capacity a set has to reach
+  // before it counts as working rather than warm-up. The session-best fit gets this for free
+  // by aggregating; a set-granularity fit has to say it out loud.
+  val workingSetFraction: Double = 0.85
 ) {
   companion object {
     val Default = EffortConfig()
