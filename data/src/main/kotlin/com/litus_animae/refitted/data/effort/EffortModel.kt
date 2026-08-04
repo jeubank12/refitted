@@ -95,12 +95,19 @@ object EffortModel {
    * at set granularity, so everything downstream (session gap marks, x-axis labels) keeps
    * reading the same session structure regardless of which grain produced the numbers. [x] is
    * the regression's own domain and is the only field that differs between grains.
+   *
+   * [layoffDays] is the calendar gap to the previous day the lifter trained, so every fit
+   * session inside one day shares it. [agingDays] is that same gap charged once per day rather
+   * than once per fit session - at set grain, letting each of five sets bill a 90-day layoff
+   * separately would age the history by 450 days.
    */
   private data class FitSession(
     val sets: List<TimedSet>,
     val sessionIndex: Int,
     val dayOffset: Long,
-    val x: Double
+    val x: Double,
+    val layoffDays: Double,
+    val agingDays: Double
   )
 
   /**
@@ -117,8 +124,11 @@ object EffortModel {
       .groupBy { it.completed.atZone(zone).toLocalDate() }
       .toSortedMap()
     val firstDay = byDay.firstKey()
+    var previousDayOffset: Long? = null
     return byDay.entries.mapIndexed { index, (day, sessionSets) ->
       val dayOffset = ChronoUnit.DAYS.between(firstDay, day)
+      val layoffDays = previousDayOffset?.let { (dayOffset - it).toDouble() } ?: 0.0
+      previousDayOffset = dayOffset
       val timed = sessionSets.mapIndexed { setIndex, set ->
         val rest = if (setIndex == 0) {
           null
@@ -127,8 +137,19 @@ object EffortModel {
         }
         TimedSet(set, rest)
       }
-      FitSession(timed, index, dayOffset, dayOffset.toDouble())
+      FitSession(timed, index, dayOffset, dayOffset.toDouble(), layoffDays, layoffDays)
     }
+  }
+
+  /**
+   * How far the expectation is cut back for time away. Ordinary rest days and a missed week sit
+   * inside the grace period and cost nothing; past that it decays on its own half-life and
+   * floors well short of zero.
+   */
+  private fun detrainFactor(layoffDays: Double, config: EffortConfig): Double {
+    val excess = (layoffDays - config.detrainGraceDays).coerceAtLeast(0.0)
+    if (excess <= 0.0 || config.detrainHalfLifeDays <= 0.0) return 1.0
+    return 0.5.pow(excess / config.detrainHalfLifeDays).coerceAtLeast(config.detrainFloor)
   }
 
   /**
@@ -201,8 +222,17 @@ object EffortModel {
   private fun explodedSessions(sets: List<EffortSet>, zone: ZoneId): List<FitSession> {
     var x = 0.0
     return daySessions(sets, zone).flatMap { day ->
-      day.sets.map { timed ->
-        FitSession(listOf(timed), day.sessionIndex, day.dayOffset, x++)
+      day.sets.mapIndexed { setIndex, timed ->
+        FitSession(
+          sets = listOf(timed),
+          sessionIndex = day.sessionIndex,
+          dayOffset = day.dayOffset,
+          x = x++,
+          layoffDays = day.layoffDays,
+          // Charged once for the day, on its first set, so a five-set comeback session doesn't
+          // age the history by five layoffs.
+          agingDays = if (setIndex == 0) day.agingDays else 0.0
+        )
       }
     }
   }
@@ -239,7 +269,7 @@ object EffortModel {
   ): EffortSeries {
     if (sessions.isEmpty()) return EffortSeries.Empty
 
-    val decay = 0.5.pow(1.0 / config.halfLifeSessions)
+    val sessionDecay = 0.5.pow(1.0 / config.halfLifeSessions)
 
     // Regression accumulators (recency-weighted sums of x, y=session-best capacity).
     var sumW = 0.0
@@ -300,7 +330,10 @@ object EffortModel {
         // recency-weighted mean until enough sessions have accumulated to trust the slope.
         val lambda = ((priorSessionCount - 2) / 4.0).coerceIn(0.0, 1.0)
         val shrunk = if (config.shrinkToMean) lambda * raw + (1 - lambda) * meanY else raw
-        val cHat = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
+        // The extrapolation clamp above bounds how far the *slope* can run after a gap; this
+        // bounds the *level*, which nothing did before - the curve used to freeze where it was
+        // left, so coming back from months off read BELOW on every set until it was clawed back.
+        val cHat = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY) * detrainFactor(session.layoffDays, config)
         expectedCapacity = cHat
 
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
@@ -354,6 +387,7 @@ object EffortModel {
 
       // Fold this session in *after* using it for prediction/scoring, so a session's
       // outcome (a PR or a bad day) never influences its own expectation.
+      val decay = sessionDecay * 0.5.pow(session.agingDays / config.halfLifeDays)
       sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
       sumResidualW *= decay; sumResidualWe2 *= decay
       sumRepsW *= decay; sumRepsWr *= decay

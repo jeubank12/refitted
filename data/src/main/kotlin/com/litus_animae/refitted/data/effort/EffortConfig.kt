@@ -21,6 +21,20 @@ data class EffortConfig(
   val repSoftCapMax: Double = 40.0,
   val epleyDivisor: Double = 30.0,
   val halfLifeSessions: Double = 9.0,
+  // History ages by calendar time as well as by session count. Without this, nine sessions
+  // spread over three weeks weigh exactly the same as nine spread over two years. A normal
+  // 3-day cadence costs about 2%, so regular training is untouched; a 90-day gap halves
+  // everything before it, which is what lets the comeback session dominate the refit.
+  val halfLifeDays: Double = 90.0,
+  // Detraining. maxExtrapolationDays freezes the curve's level after a layoff but never lowers
+  // it, so coming back from months off meant every set read BELOW until the old numbers were
+  // clawed back. The expectation now decays with time away, past a grace period that ordinary
+  // rest days and a missed week fall inside, and floors well short of zero - time off costs
+  // something, not everything. Applied to the prediction only: the comeback session still folds
+  // in at its true capacity, so the curve re-anchors to reality rather than to the haircut.
+  val detrainGraceDays: Double = 10.0,
+  val detrainHalfLifeDays: Double = 60.0,
+  val detrainFloor: Double = 0.6,
   val minPriorSessions: Int = 3,
   val residualScaleFloorFraction: Double = 0.05,
   val maxExtrapolationDays: Long = 14,
@@ -44,8 +58,11 @@ data class EffortConfig(
   // set followed by two lighter ones pushed the curve up by exactly the same amount. Only sets
   // at or after the peak count toward holding - a ramp up to a top set is a warm-up, not a fade.
   // A discount off the best rather than a bonus above it, so session values stay on the same
-  // scale as the individual set capacities they're compared against.
-  val sustainTolerance: Double = 0.95,
+  // scale as the individual set capacities they're compared against. The tolerance is wide
+  // enough to grade a fade rather than just detect one: a normal rep drop-off (10/8/6 at one
+  // weight) gives back about 2%, while dropping the weight itself gives back the better part of
+  // the maximum. A narrow band collapses both to the same discount.
+  val sustainTolerance: Double = 0.80,
   val sustainPenaltyMax: Double = 0.08,
   // Only consulted by EffortModel.scoreWithBootstrap - how many individual sets are needed
   // before its coarser, strip-only stand-in trend can render at all. Mirrors

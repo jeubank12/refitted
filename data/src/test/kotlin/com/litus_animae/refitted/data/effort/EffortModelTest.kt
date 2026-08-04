@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.math.abs
 
 private val BASE: Instant = Instant.parse("2024-01-01T12:00:00Z")
 private fun day(n: Long): Instant = BASE.plus(Duration.ofDays(n))
@@ -486,6 +487,107 @@ class EffortModelTest {
 
       assertThat(tighteningLast.capacity).isGreaterThan(looseLast.capacity)
       assertThat(tighteningLast.z!!).isGreaterThan(looseLast.z!!)
+    }
+  }
+
+  @Nested
+  @DisplayName("cooldown after time away")
+  inner class Cooldown {
+    /** A steady weekly block, then a gap of [layoffDays], then one more session. */
+    private fun comeback(layoffDays: Long, comebackWeight: Double = 100.0): EffortSeries {
+      val block = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+      val after = (0 until 3).map {
+        EffortSet(day(35 + layoffDays).plusSeconds(it * 180L), comebackWeight, 8)
+      }
+      return EffortModel.score(block + after)
+    }
+
+    private fun comebackExpectation(layoffDays: Long) = comeback(layoffDays).sets.last().expectation!!
+
+    @Test
+    fun `a normal training cadence is left alone`() {
+      // Inside the grace period, so nothing about an ordinary week changes.
+      assertThat(comebackExpectation(7)).isWithin(1e-9).of(comebackExpectation(3))
+    }
+
+    @Test
+    fun `the longer the layoff, the lower the bar on return`() {
+      val week = comebackExpectation(7)
+      val threeWeeks = comebackExpectation(21)
+      val sixWeeks = comebackExpectation(40)
+
+      assertThat(threeWeeks).isLessThan(week)
+      assertThat(sixWeeks).isLessThan(threeWeeks)
+    }
+
+    @Test
+    fun `time off costs something, not everything`() {
+      val week = comebackExpectation(7)
+      val quarter = comebackExpectation(90)
+
+      assertThat(quarter).isAtLeast(week * EffortConfig.Default.detrainFloor)
+      // Past the point the floor binds, more time away costs nothing further.
+      assertThat(comebackExpectation(365)).isWithin(1e-9).of(quarter)
+      assertThat(comebackExpectation(3650)).isWithin(1e-9).of(quarter)
+    }
+
+    @Test
+    fun `the first session back is not slammed for being off the old pace`() {
+      val straightOn = comeback(layoffDays = 7, comebackWeight = 60.0)
+      val afterMonths = comeback(layoffDays = 120, comebackWeight = 60.0)
+
+      val straightOnZ = straightOn.sets.last { it.sessionIndex == 6 }.z!!
+      val afterMonthsZ = afterMonths.sets.last { it.sessionIndex == 6 }.z!!
+      assertThat(afterMonthsZ).isGreaterThan(straightOnZ)
+    }
+
+    @Test
+    fun `coming back lighter after months off reads as effort, not failure`() {
+      // The whole point: the curve used to freeze where it was left, so a comeback at anything
+      // under the old numbers read BELOW no matter how hard it was.
+      val comeback = comeback(layoffDays = 120, comebackWeight = 75.0)
+      val lastSession = comeback.sets.filter { it.sessionIndex == comeback.sets.last().sessionIndex }
+
+      assertThat(lastSession).isNotEmpty()
+      lastSession.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.BELOW) }
+    }
+
+    @Test
+    fun `stale history stops outweighing what happened since`() {
+      // Identical session counts and identical numbers either way - only the calendar distance
+      // between the old block and the recent one differs. When that distance ages the old block
+      // out, the curve settles on what the lifter is doing now; when it doesn't, the abandoned
+      // level is still dragging the fit around four sessions later.
+      fun settledExpectation(gapDays: Long): Double {
+        val old = (0..5).map { EffortSet(day(it * 7L), 200.0, 8) }
+        val recent = (0..3).map { EffortSet(day(35 + gapDays + it * 7L), 100.0, 8) }
+        return EffortModel.score(old + recent).sets.last().expectation!!
+      }
+
+      val recentLevel = EffortModel.capacity(100.0, 8)
+      val stale = abs(settledExpectation(gapDays = 500) - recentLevel)
+      val contiguous = abs(settledExpectation(gapDays = 7) - recentLevel)
+
+      assertThat(stale).isLessThan(contiguous)
+    }
+
+    @Test
+    fun `a layoff is charged once, not once per set`() {
+      // The exploded fit sees one fit session per set, so a five-set comeback must not age the
+      // history by five layoffs.
+      val many = (0 until 5).map { EffortSet(day(200).plusSeconds(it * 180L), 100.0, 8) }
+      val few = listOf(EffortSet(day(200), 100.0, 8))
+      val block = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+
+      val withMany = EffortModel.scoreWithBootstrap(block + many)
+      val withFew = EffortModel.scoreWithBootstrap(block + few)
+
+      assertThat(withMany.sets.first { it.sessionIndex == 6 }.expectation!!)
+        .isWithin(1e-9).of(withFew.sets.first { it.sessionIndex == 6 }.expectation!!)
     }
   }
 
