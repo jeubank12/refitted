@@ -28,9 +28,14 @@ class EffortModelTest {
     }
 
     @Test
-    fun `clamps reps at the configured cap`() {
-      assertThat(EffortModel.capacity(100.0, 20)).isWithin(1e-9)
-        .of(EffortModel.capacity(100.0, 15))
+    fun `reps past the cap keep counting, with diminishing returns`() {
+      val atCap = EffortModel.capacity(100.0, 15)
+      val past = EffortModel.capacity(100.0, 20)
+      val further = EffortModel.capacity(100.0, 25)
+
+      assertThat(past).isGreaterThan(atCap)
+      assertThat(further).isGreaterThan(past)
+      assertThat(further - past).isLessThan(past - atCap)
     }
 
     @Test
@@ -56,6 +61,63 @@ class EffortModelTest {
     @Test
     fun `the bodyweight floor stops applying once real weight is logged`() {
       assertThat(EffortModel.capacity(5.0, 8)).isGreaterThan(EffortModel.capacity(0.0, 8))
+    }
+  }
+
+  @Nested
+  @DisplayName("effectiveReps")
+  inner class RepSoftCap {
+    @Test
+    fun `is the identity at and below the cap`() {
+      (0..EffortConfig.Default.repCap).forEach {
+        assertThat(EffortModel.effectiveReps(it)).isWithin(1e-9).of(it.toDouble())
+      }
+    }
+
+    @Test
+    fun `is continuous and smooth across the cap`() {
+      val cap = EffortConfig.Default.repCap
+      assertThat(EffortModel.effectiveReps(cap)).isWithin(1e-9).of(cap.toDouble())
+      // Matching first derivative: the first rep past the cap is still worth ~a whole rep.
+      assertThat(EffortModel.effectiveReps(cap + 1) - EffortModel.effectiveReps(cap))
+        .isWithin(0.06).of(1.0)
+    }
+
+    @Test
+    fun `is strictly increasing with strictly shrinking gains past the cap`() {
+      val steps = (15..60).map { EffortModel.effectiveReps(it) }
+      steps.zipWithNext().forEach { (a, b) -> assertThat(b).isGreaterThan(a) }
+      steps.zipWithNext { a, b -> b - a }.zipWithNext().forEach { (first, second) ->
+        assertThat(second).isLessThan(first)
+      }
+    }
+
+    @Test
+    fun `a zero scale restores the old hard clamp`() {
+      val hardCapped = EffortConfig.Default.copy(repSoftCapScale = 0.0)
+      assertThat(EffortModel.effectiveReps(40, hardCapped))
+        .isWithin(1e-9).of(EffortConfig.Default.repCap.toDouble())
+    }
+
+    @Test
+    fun `the fit's typical reps are no longer pinned at the cap`() {
+      val cap = EffortConfig.Default.repCap.toDouble()
+      val highRep = (0..5).map { EffortSet(day(it * 7L), 0.0, 30) }
+
+      val trend = EffortModel.score(highRep).trend
+      assertThat(trend).isNotEmpty()
+      trend.forEach { assertThat(it.typicalReps).isGreaterThan(cap) }
+    }
+
+    @Test
+    fun `bodyweight progress keeps registering past the cap`() {
+      val plateaued = (0..5).map { EffortSet(day(it * 7L), 0.0, 20) }
+      val improving = (0..5).map { EffortSet(day(it * 7L), 0.0, 20 + it * 3) }
+
+      val plateauedLast = EffortModel.score(plateaued).sets.last()
+      val improvingLast = EffortModel.score(improving).sets.last()
+      assertThat(improvingLast.capacity).isGreaterThan(plateauedLast.capacity)
+      assertThat(improvingLast.z!!).isGreaterThan(plateauedLast.z!!)
     }
   }
 

@@ -3,6 +3,7 @@ package com.litus_animae.refitted.data.effort
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -42,9 +43,25 @@ object EffortModel {
    * this tiny floor doesn't distort anything - it just keeps reps the driver until real
    * weight gets logged, at which point the floor stops applying.
    */
-  fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double {
-    val clampedReps = reps.coerceIn(0, config.repCap)
-    return max(weight, 1.0) * (1 + clampedReps.toDouble() / config.epleyDivisor)
+  fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
+    max(weight, 1.0) * (1 + effectiveReps(reps, config) / config.epleyDivisor)
+
+  /**
+   * Reps as the capacity scale counts them: linear up to [EffortConfig.repCap], then
+   * log-compressed so a higher rep count always scores higher with diminishing returns.
+   *
+   * Continuous at the cap and with a matching first derivative there, so nothing about sets at
+   * or under it changes - the compression only decides how much a 16th rep and beyond is worth.
+   * A hard clamp scored 25 reps exactly like 15, which is fine for loadable lifts and useless
+   * for bodyweight work, where reps are the only thing that can go up.
+   */
+  fun effectiveReps(reps: Int, config: EffortConfig = EffortConfig.Default): Double {
+    val clamped = reps.coerceAtLeast(0)
+    if (clamped <= config.repCap || config.repSoftCapScale <= 0.0) {
+      return min(clamped, config.repCap).toDouble()
+    }
+    val excess = (clamped - config.repCap).toDouble()
+    return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
   }
 
   fun bubbleSize(z: Double?): Float {
@@ -177,10 +194,10 @@ object EffortModel {
       val sessionSets = session.sets
 
       var bestCapacity = capacity(sessionSets[0].weight, sessionSets[0].reps, config)
-      var bestReps = sessionSets[0].reps.coerceIn(0, config.repCap)
+      var bestReps = effectiveReps(sessionSets[0].reps, config)
       for (i in 1 until sessionSets.size) {
         val c = capacity(sessionSets[i].weight, sessionSets[i].reps, config)
-        val r = sessionSets[i].reps.coerceIn(0, config.repCap)
+        val r = effectiveReps(sessionSets[i].reps, config)
         if (c > bestCapacity || (c == bestCapacity && r > bestReps)) {
           bestCapacity = c
           bestReps = r
@@ -212,7 +229,7 @@ object EffortModel {
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
         residualScale = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
 
-        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repCap.toDouble())
+        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
         val wHat = cHat / (1 + rHat / config.epleyDivisor)
         expectedWeight = wHat
         trendPoints.add(
@@ -272,7 +289,7 @@ object EffortModel {
       sumWxy += x * bestCapacity
 
       sumRepsW += 1.0
-      sumRepsWr += bestReps.toDouble()
+      sumRepsWr += bestReps
 
       if (expectedCapacity != null) {
         val e = bestCapacity - expectedCapacity

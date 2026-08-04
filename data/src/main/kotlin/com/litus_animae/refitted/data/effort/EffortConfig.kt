@@ -12,6 +12,13 @@ package com.litus_animae.refitted.data.effort
  */
 data class EffortConfig(
   val repCap: Int = 15,
+  // Reps past repCap keep earning credit, just log-compressed. A hard clamp meant a 25-rep set
+  // scored identically to a 15-rep one, which left bodyweight and other unloadable work with no
+  // progression lever at all once it cleared 15. Scale sets how fast the compression bites:
+  // at 10.0, 20 reps counts as 19.1 and 25 as 21.9. Zero restores the hard clamp.
+  val repSoftCapScale: Double = 10.0,
+  // Upper bound on the fit's typical-reps estimate, which the hard clamp used to supply.
+  val repSoftCapMax: Double = 40.0,
   val epleyDivisor: Double = 30.0,
   val halfLifeSessions: Double = 9.0,
   val minPriorSessions: Int = 3,
