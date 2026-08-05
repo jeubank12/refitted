@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.math.abs
 
 private val BASE: Instant = Instant.parse("2024-01-01T12:00:00Z")
 private fun day(n: Long): Instant = BASE.plus(Duration.ofDays(n))
@@ -28,9 +29,14 @@ class EffortModelTest {
     }
 
     @Test
-    fun `clamps reps at the configured cap`() {
-      assertThat(EffortModel.capacity(100.0, 20)).isWithin(1e-9)
-        .of(EffortModel.capacity(100.0, 15))
+    fun `reps past the cap keep counting, with diminishing returns`() {
+      val atCap = EffortModel.capacity(100.0, 15)
+      val past = EffortModel.capacity(100.0, 20)
+      val further = EffortModel.capacity(100.0, 25)
+
+      assertThat(past).isGreaterThan(atCap)
+      assertThat(further).isGreaterThan(past)
+      assertThat(further - past).isLessThan(past - atCap)
     }
 
     @Test
@@ -56,6 +62,63 @@ class EffortModelTest {
     @Test
     fun `the bodyweight floor stops applying once real weight is logged`() {
       assertThat(EffortModel.capacity(5.0, 8)).isGreaterThan(EffortModel.capacity(0.0, 8))
+    }
+  }
+
+  @Nested
+  @DisplayName("effectiveReps")
+  inner class RepSoftCap {
+    @Test
+    fun `is the identity at and below the cap`() {
+      (0..EffortConfig.Default.repCap).forEach {
+        assertThat(EffortModel.effectiveReps(it)).isWithin(1e-9).of(it.toDouble())
+      }
+    }
+
+    @Test
+    fun `is continuous and smooth across the cap`() {
+      val cap = EffortConfig.Default.repCap
+      assertThat(EffortModel.effectiveReps(cap)).isWithin(1e-9).of(cap.toDouble())
+      // Matching first derivative: the first rep past the cap is still worth ~a whole rep.
+      assertThat(EffortModel.effectiveReps(cap + 1) - EffortModel.effectiveReps(cap))
+        .isWithin(0.06).of(1.0)
+    }
+
+    @Test
+    fun `is strictly increasing with strictly shrinking gains past the cap`() {
+      val steps = (15..60).map { EffortModel.effectiveReps(it) }
+      steps.zipWithNext().forEach { (a, b) -> assertThat(b).isGreaterThan(a) }
+      steps.zipWithNext { a, b -> b - a }.zipWithNext().forEach { (first, second) ->
+        assertThat(second).isLessThan(first)
+      }
+    }
+
+    @Test
+    fun `a zero scale restores the old hard clamp`() {
+      val hardCapped = EffortConfig.Default.copy(repSoftCapScale = 0.0)
+      assertThat(EffortModel.effectiveReps(40, hardCapped))
+        .isWithin(1e-9).of(EffortConfig.Default.repCap.toDouble())
+    }
+
+    @Test
+    fun `the fit's typical reps are no longer pinned at the cap`() {
+      val cap = EffortConfig.Default.repCap.toDouble()
+      val highRep = (0..5).map { EffortSet(day(it * 7L), 0.0, 30) }
+
+      val trend = EffortModel.score(highRep).trend
+      assertThat(trend).isNotEmpty()
+      trend.forEach { assertThat(it.typicalReps).isGreaterThan(cap) }
+    }
+
+    @Test
+    fun `bodyweight progress keeps registering past the cap`() {
+      val plateaued = (0..5).map { EffortSet(day(it * 7L), 0.0, 20) }
+      val improving = (0..5).map { EffortSet(day(it * 7L), 0.0, 20 + it * 3) }
+
+      val plateauedLast = EffortModel.score(plateaued).sets.last()
+      val improvingLast = EffortModel.score(improving).sets.last()
+      assertThat(improvingLast.capacity).isGreaterThan(plateauedLast.capacity)
+      assertThat(improvingLast.z!!).isGreaterThan(plateauedLast.z!!)
     }
   }
 
@@ -338,17 +401,298 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("rest-gap density credit")
+  inner class Density {
+    private fun session(at: Instant, restSeconds: Long, count: Int = 3) =
+      (0 until count).map { EffortSet(at.plusSeconds(it * restSeconds), 100.0, 8) }
+
+    private fun capacitiesAfterFirst(sets: List<EffortSet>) =
+      EffortModel.score(sets).sets.drop(1).map { it.capacity }
+
+    @Test
+    fun `sets taken close together demonstrate more than the same sets taken far apart`() {
+      val dense = capacitiesAfterFirst(session(day(0), restSeconds = 30))
+      val sparse = capacitiesAfterFirst(session(day(0), restSeconds = 300))
+
+      dense.zip(sparse).forEach { (d, s) -> assertThat(d).isGreaterThan(s) }
+    }
+
+    @Test
+    fun `credit tapers off as rest grows and is gone by the reference rest`() {
+      val short = capacitiesAfterFirst(session(day(0), restSeconds = 60))
+      val medium = capacitiesAfterFirst(session(day(0), restSeconds = 120))
+      val reference = capacitiesAfterFirst(
+        session(day(0), restSeconds = EffortConfig.Default.restReferenceSeconds.toLong())
+      )
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(short.first()).isGreaterThan(medium.first())
+      assertThat(medium.first()).isGreaterThan(reference.first())
+      assertThat(reference.first()).isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `a long break is neutral, never a penalty`() {
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 1800)).first())
+        .isWithin(1e-9).of(bare)
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 7200)).first())
+        .isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `implausibly short gaps claim no credit`() {
+      // The strip stamps every not-yet-persisted record with the same Instant.now(), so
+      // near-zero gaps mean "logged in a burst", not "rested for no time at all".
+      val bare = EffortModel.capacity(100.0, 8)
+
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 0)).first())
+        .isWithin(1e-9).of(bare)
+      assertThat(capacitiesAfterFirst(session(day(0), restSeconds = 5)).first())
+        .isWithin(1e-9).of(bare)
+    }
+
+    @Test
+    fun `the credit is capped at the configured bonus`() {
+      val bare = EffortModel.capacity(100.0, 8)
+      val backToBack = capacitiesAfterFirst(session(day(0), restSeconds = 12)).first()
+
+      assertThat(backToBack / bare)
+        .isWithin(1e-9).of(1.0 + EffortConfig.Default.densityBonusMax)
+    }
+
+    @Test
+    fun `the first set of a session is never credited - nothing preceded it`() {
+      val sets = session(day(0), restSeconds = 15)
+
+      assertThat(EffortModel.score(sets).sets.first().capacity)
+        .isWithin(1e-9).of(EffortModel.capacity(100.0, 8))
+    }
+
+    @Test
+    fun `bodyweight work can show progress on rest alone`() {
+      // Same weight (none) and same reps every session - the only thing that improves is how
+      // tightly the sets are packed, which for unloadable work is the whole story.
+      val loose = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 240L), 0.0, 12) }
+      }
+      val tightening = (0..5).flatMap { s ->
+        val rest = (240L - s * 40L).coerceAtLeast(30L)
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * rest), 0.0, 12) }
+      }
+
+      val looseLast = EffortModel.score(loose).sets.last()
+      val tighteningLast = EffortModel.score(tightening).sets.last()
+
+      assertThat(tighteningLast.capacity).isGreaterThan(looseLast.capacity)
+      assertThat(tighteningLast.z!!).isGreaterThan(looseLast.z!!)
+    }
+  }
+
+  @Nested
+  @DisplayName("cooldown after time away")
+  inner class Cooldown {
+    /** A steady weekly block, then a gap of [layoffDays], then one more session. */
+    private fun comeback(layoffDays: Long, comebackWeight: Double = 100.0): EffortSeries {
+      val block = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+      val after = (0 until 3).map {
+        EffortSet(day(35 + layoffDays).plusSeconds(it * 180L), comebackWeight, 8)
+      }
+      return EffortModel.score(block + after)
+    }
+
+    private fun comebackExpectation(layoffDays: Long) = comeback(layoffDays).sets.last().expectation!!
+
+    @Test
+    fun `a normal training cadence is left alone`() {
+      // Inside the grace period, so nothing about an ordinary week changes.
+      assertThat(comebackExpectation(7)).isWithin(1e-9).of(comebackExpectation(3))
+    }
+
+    @Test
+    fun `the longer the layoff, the lower the bar on return`() {
+      val week = comebackExpectation(7)
+      val threeWeeks = comebackExpectation(21)
+      val sixWeeks = comebackExpectation(40)
+
+      assertThat(threeWeeks).isLessThan(week)
+      assertThat(sixWeeks).isLessThan(threeWeeks)
+    }
+
+    @Test
+    fun `time off costs something, not everything`() {
+      val week = comebackExpectation(7)
+      val quarter = comebackExpectation(90)
+
+      assertThat(quarter).isAtLeast(week * EffortConfig.Default.detrainFloor)
+      // Past the point the floor binds, more time away costs nothing further.
+      assertThat(comebackExpectation(365)).isWithin(1e-9).of(quarter)
+      assertThat(comebackExpectation(3650)).isWithin(1e-9).of(quarter)
+    }
+
+    @Test
+    fun `the first session back is not slammed for being off the old pace`() {
+      val straightOn = comeback(layoffDays = 7, comebackWeight = 60.0)
+      val afterMonths = comeback(layoffDays = 120, comebackWeight = 60.0)
+
+      val straightOnZ = straightOn.sets.last { it.sessionIndex == 6 }.z!!
+      val afterMonthsZ = afterMonths.sets.last { it.sessionIndex == 6 }.z!!
+      assertThat(afterMonthsZ).isGreaterThan(straightOnZ)
+    }
+
+    @Test
+    fun `coming back lighter after months off reads as effort, not failure`() {
+      // The whole point: the curve used to freeze where it was left, so a comeback at anything
+      // under the old numbers read BELOW no matter how hard it was.
+      val comeback = comeback(layoffDays = 120, comebackWeight = 75.0)
+      val lastSession = comeback.sets.filter { it.sessionIndex == comeback.sets.last().sessionIndex }
+
+      assertThat(lastSession).isNotEmpty()
+      lastSession.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.BELOW) }
+    }
+
+    @Test
+    fun `stale history stops outweighing what happened since`() {
+      // Identical session counts and identical numbers either way - only the calendar distance
+      // between the old block and the recent one differs. When that distance ages the old block
+      // out, the curve settles on what the lifter is doing now; when it doesn't, the abandoned
+      // level is still dragging the fit around four sessions later.
+      fun settledExpectation(gapDays: Long): Double {
+        val old = (0..5).map { EffortSet(day(it * 7L), 200.0, 8) }
+        val recent = (0..3).map { EffortSet(day(35 + gapDays + it * 7L), 100.0, 8) }
+        return EffortModel.score(old + recent).sets.last().expectation!!
+      }
+
+      val recentLevel = EffortModel.capacity(100.0, 8)
+      val stale = abs(settledExpectation(gapDays = 500) - recentLevel)
+      val contiguous = abs(settledExpectation(gapDays = 7) - recentLevel)
+
+      assertThat(stale).isLessThan(contiguous)
+    }
+
+    @Test
+    fun `a layoff is charged once, not once per set`() {
+      // The exploded fit sees one fit session per set, so a five-set comeback must not age the
+      // history by five layoffs.
+      val many = (0 until 5).map { EffortSet(day(200).plusSeconds(it * 180L), 100.0, 8) }
+      val few = listOf(EffortSet(day(200), 100.0, 8))
+      val block = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+
+      val withMany = EffortModel.scoreWithBootstrap(block + many)
+      val withFew = EffortModel.scoreWithBootstrap(block + few)
+
+      assertThat(withMany.sets.first { it.sessionIndex == 6 }.expectation!!)
+        .isWithin(1e-9).of(withFew.sets.first { it.sessionIndex == 6 }.expectation!!)
+    }
+  }
+
+  @Nested
+  @DisplayName("sustained load")
+  inner class SustainedLoad {
+    // Rest held constant across every shape so only the shape itself moves the numbers.
+    private fun sessionsOf(shape: List<Pair<Double, Int>>, count: Int = 5) =
+      (0 until count).flatMap { s ->
+        shape.mapIndexed { i, (weight, reps) ->
+          EffortSet(day(s * 7L).plusSeconds(i * 180L), weight, reps)
+        }
+      }
+
+    private fun expectationAfter(shape: List<Pair<Double, Int>>): Double =
+      EffortModel.score(sessionsOf(shape)).sets.last().expectation!!
+
+    @Test
+    fun `holding the same weight beats fading down from it`() {
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+      val faded = expectationAfter(listOf(100.0 to 8, 80.0 to 8, 60.0 to 8))
+
+      assertThat(held).isGreaterThan(faded)
+    }
+
+    @Test
+    fun `holding reps beats fading reps at the same weight`() {
+      val held = expectationAfter(listOf(100.0 to 10, 100.0 to 10, 100.0 to 10))
+      val faded = expectationAfter(listOf(100.0 to 10, 100.0 to 8, 100.0 to 6))
+
+      assertThat(held).isGreaterThan(faded)
+    }
+
+    @Test
+    fun `a weight fade is discounted harder than a rep fade`() {
+      val repFade = expectationAfter(listOf(100.0 to 10, 100.0 to 8, 100.0 to 6))
+      val weightFade = expectationAfter(listOf(100.0 to 10, 80.0 to 10, 60.0 to 10))
+
+      assertThat(weightFade).isLessThan(repFade)
+    }
+
+    @Test
+    fun `ramping up to a top set is warm-up, not fade`() {
+      val ramped = expectationAfter(listOf(60.0 to 8, 80.0 to 8, 100.0 to 8))
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+
+      assertThat(ramped).isWithin(1e-9).of(held)
+    }
+
+    @Test
+    fun `a single-set session is never discounted`() {
+      val single = expectationAfter(listOf(100.0 to 8))
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+
+      assertThat(single).isWithin(1e-9).of(held)
+    }
+
+    @Test
+    fun `the discount is bounded by the configured maximum`() {
+      val held = expectationAfter(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8))
+      val collapsed = expectationAfter(listOf(100.0 to 8, 20.0 to 1, 20.0 to 1))
+
+      assertThat(collapsed).isAtLeast(held * (1 - EffortConfig.Default.sustainPenaltyMax) - 1e-9)
+    }
+
+    @Test
+    fun `the session value never rises above the session's best set`() {
+      // A discount off the best, not a bonus above it - otherwise the trend line drifts above
+      // every set that produced it and everything reads BELOW.
+      val series = EffortModel.score(sessionsOf(listOf(100.0 to 8, 100.0 to 8, 100.0 to 8)))
+      val lastSessionIndex = series.sets.last().sessionIndex
+      val bestBefore = series.sets
+        .filter { it.sessionIndex < lastSessionIndex }
+        .maxOf { it.capacity }
+
+      assertThat(series.sets.last().expectation!!).isAtMost(bestBefore + 1e-9)
+    }
+  }
+
+  @Nested
   @DisplayName("scoreWithBootstrap")
   inner class Bootstrap {
     @Test
-    fun `a first-ever session is all COLD no matter how many sets it has`() {
-      val firstSession = (0 until 6).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+    fun `the first sets ever are COLD - nothing prior exists to compare them to`() {
+      val firstSession = (0 until 3).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
       val series = EffortModel.scoreWithBootstrap(firstSession)
 
       assertThat(series.trend).isEmpty()
       series.sets.forEach {
         assertThat(it.expectationSource).isNull()
         assertThat(it.zone).isEqualTo(EffortZone.COLD)
+      }
+    }
+
+    @Test
+    fun `a first-ever session warms up from its own earlier sets`() {
+      val firstSession = (0 until 6).map { EffortSet(day(0).plusSeconds(it * 60L), 100.0, 8) }
+      val series = EffortModel.scoreWithBootstrap(firstSession)
+
+      val (cold, warm) = series.sets.partition { it.expectationSource == null }
+      assertThat(cold).hasSize(EffortConfig.Default.minPriorSetsForBootstrap)
+      assertThat(warm).isNotEmpty()
+      warm.forEach {
+        assertThat(it.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP)
+        assertThat(it.zone).isNotEqualTo(EffortZone.COLD)
       }
     }
 
@@ -402,6 +746,100 @@ class EffortModelTest {
       assertThat(bootstrappedFourth.map { it.expectation }).isEqualTo(realFourth.map { it.expectation })
       assertThat(bootstrappedFourth.map { it.z }).isEqualTo(realFourth.map { it.z })
       bootstrappedFourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.SESSION) }
+    }
+
+    @Test
+    fun `the bootstrap output stays 1 to 1 and in order with score's`() {
+      val sets = (0..2).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0, 8) }
+      }
+      val real = EffortModel.score(sets)
+      val bootstrapped = EffortModel.scoreWithBootstrap(sets)
+
+      assertThat(bootstrapped.sets.map { it.source }).isEqualTo(real.sets.map { it.source })
+      assertThat(bootstrapped.sets.map { it.sessionIndex }).isEqualTo(real.sets.map { it.sessionIndex })
+    }
+
+    @Test
+    fun `the trend does not jump at the handoff to the real fit`() {
+      val sets = (0..5).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session * 2, 8) }
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+
+      val lastBootstrap = series.sets.last { it.expectationSource == ExpectationSource.BOOTSTRAP }
+      val firstReal = series.sets.first { it.expectationSource == ExpectationSource.SESSION }
+
+      // Different grains, so the numbers won't match exactly - but on a steady history the line
+      // has to stay continuous where the strip switches from the dashed stand-in to the real
+      // fit, rather than stepping to a visibly different level.
+      assertThat(firstReal.expectation!!)
+        .isWithin(0.1 * lastBootstrap.expectation!!).of(lastBootstrap.expectation!!)
+      assertThat(firstReal.expectedWeight!!)
+        .isWithin(0.1 * lastBootstrap.expectedWeight!!).of(lastBootstrap.expectedWeight!!)
+    }
+
+    @Test
+    fun `a warm-up set never drags the bootstrap fit down onto the working set behind it`() {
+      // A set-granularity fit has no session-best to hide warm-ups behind: folding the 60 lb
+      // opener in as if it were a session outcome used to pull the expectation under 100 and
+      // make the 102 lb top set that followed it read IMPLAUSIBLE.
+      val sets = (0..2).flatMap { session ->
+        listOf(
+          EffortSet(day(session * 7L), 60.0, 10),
+          EffortSet(day(session * 7L).plusSeconds(200), 100.0 + session * 2, 8),
+          EffortSet(day(session * 7L).plusSeconds(400), 95.0 + session * 2, 7)
+        )
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+      val working = series.sets.filter { it.source.weight >= 90.0 && it.expectation != null }
+
+      assertThat(working).isNotEmpty()
+      working.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.IMPLAUSIBLE) }
+      // Monotone: each warm-up is skipped rather than yanking the line backwards.
+      series.sets.mapNotNull { it.expectation }.zipWithNext().forEach { (a, b) ->
+        assertThat(b).isAtLeast(a)
+      }
+    }
+
+    @Test
+    fun `every scored set carries the expected weight its expectation implies`() {
+      val sets = (0..4).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session, 8) }
+      }
+      val series = EffortModel.scoreWithBootstrap(sets)
+
+      series.sets.forEach {
+        if (it.expectation == null) {
+          assertThat(it.expectedWeight).isNull()
+        } else {
+          assertThat(it.expectedWeight!!).isGreaterThan(0.0)
+          assertThat(it.expectedWeight!!).isLessThan(it.expectation!!)
+        }
+      }
+    }
+
+    @Test
+    fun `how many warm-ups get skipped does not move the next working set`() {
+      // Skipped sets still advance the fit's x while lastPriorX stays put, so the gap the
+      // extrapolation clamp sees tracks set *volume*. Bounding it with maxExtrapolationDays - a
+      // calendar quantity - meant 15 skipped warm-ups tripped a clamp meant for long layoffs.
+      // Past the set-denominated bound, skipping more must make no difference at all.
+      fun withWarmUps(count: Int): Double {
+        // Three rising working sets so the fit has a slope worth extrapolating, then a run of
+        // warm-ups that all get skipped, then the working set whose expectation is measured -
+        // the only set whose x sits far past the last one the fit actually folded.
+        val sets = mutableListOf(
+          EffortSet(day(0), 200.0, 8),
+          EffortSet(day(0).plusSeconds(200), 205.0, 8),
+          EffortSet(day(0).plusSeconds(400), 210.0, 8)
+        )
+        repeat(count) { sets.add(EffortSet(day(0).plusSeconds(600L + it * 200L), 60.0, 8)) }
+        sets.add(EffortSet(day(0).plusSeconds(600L + count * 200L), 210.0, 8))
+        return EffortModel.scoreWithBootstrap(sets).sets.last().expectation!!
+      }
+
+      assertThat(withWarmUps(25)).isWithin(1e-9).of(withWarmUps(5))
     }
 
     @Test
