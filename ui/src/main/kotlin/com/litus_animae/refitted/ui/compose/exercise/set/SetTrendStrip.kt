@@ -301,14 +301,11 @@ private fun PreviewSetTrendStripRealTrend() {
 private fun PreviewSetTrendStripComeback() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = listOf(141L, 134L, 127L, 120L, 0L),
-        setsPerDay = 3,
-        weight = { if (it == 0L) 75.0 else 100.0 }
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = listOf(141L, 134L, 127L, 120L, 0L),
+      setsPerDay = 3,
+      weight = { if (it == 0L) 75.0 else 100.0 }
+    ).map { it.toEffortSet() }
   )
 }
 
@@ -318,16 +315,13 @@ private fun PreviewSetTrendStripComeback() {
 private fun PreviewSetTrendStripBodyweightDense() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = (0L..5L).map { it * 3 }.reversed(),
-        setsPerDay = 3,
-        weight = { 0.0 },
-        reps = 12,
-        restSeconds = 30L
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = (0L..5L).map { it * 3 }.reversed(),
+      setsPerDay = 3,
+      weight = { 0.0 },
+      reps = 12,
+      restSeconds = 30L
+    ).map { it.toEffortSet() }
   )
 }
 
@@ -337,15 +331,12 @@ private fun PreviewSetTrendStripBodyweightDense() {
 private fun PreviewSetTrendStripBodyweightSparse() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = (0L..5L).map { it * 3 }.reversed(),
-        setsPerDay = 3,
-        weight = { 0.0 },
-        reps = 12,
-        restSeconds = 300L
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = (0L..5L).map { it * 3 }.reversed(),
+      setsPerDay = 3,
+      weight = { 0.0 },
+      reps = 12,
+      restSeconds = 300L
+    ).map { it.toEffortSet() }
   )
 }
