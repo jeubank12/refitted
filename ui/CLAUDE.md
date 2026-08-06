@@ -60,6 +60,12 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
   handoff happen in the same composition pass. See `settledSet`/`swap` in
   `PagerExerciseInstructions`.
 
+- **`ModalBottomSheetLayout`'s `sheetContent` is always composed, even while hidden** — it's
+  measured for the sheet's own animation regardless of visibility. Don't assume hidden sheet
+  content is absent from composition: gate any expensive collection or side-effects inside it
+  behind the sheet's own `sheetState.isVisible`, or they run continuously any time the host
+  screen is on-screen. See the add-exercise sheet in `exercise/Main.kt`.
+
 ## Testing
 
 ```bash

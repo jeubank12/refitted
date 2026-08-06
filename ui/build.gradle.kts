@@ -69,6 +69,7 @@ dependencies {
 
     // Core Android
     implementation(libs.androidx.lifecycle.runtime.compose.android)
+    implementation(libs.androidx.activity.compose) // BackHandler
 
     // Paging (exposed as api - ViewModels expose Flow<PagingData<T>>)
     api(libs.androidx.paging.compose)
