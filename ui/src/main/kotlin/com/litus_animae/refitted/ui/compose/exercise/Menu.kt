@@ -32,8 +32,8 @@ import com.litus_animae.refitted.data.models.WorkoutPlan
 import kotlinx.coroutines.FlowPreview
 
 /**
- * Names the alternate a tap would land on if you kept cycling, as a peek at the likely choice —
- * the dialog it opens is where you actually choose among all of them.
+ * With a single alternate, tapping swaps straight to it — a binary toggle doesn't need a picker.
+ * With more than one, tapping opens the dialog to choose among all of them.
  */
 @OptIn(FlowPreview::class)
 @Composable
@@ -54,19 +54,22 @@ fun AlternateChip(
       instruction.activeIndex(workoutPlan?.globalAlternate)
     }
     val activeIndex by activeIndexFlow.collectAsState(0)
-    val nextIndex = (activeIndex + 1) % instruction.alternateCount
-    val nextName = workoutPlan?.globalAlternateLabels?.getOrNull(nextIndex)
-      ?: instruction.sets.getOrElse(nextIndex) { instruction.sets.head }.exerciseName
     val label = if (instruction.alternateCount > 2) {
-      "$nextName · ${nextIndex + 1}/${instruction.alternateCount}"
+      // TODO localize
+      "Alternates"
     } else {
-      nextName
+      val nextIndex = (activeIndex + 1) % instruction.alternateCount
+      workoutPlan?.globalAlternateLabels?.getOrNull(nextIndex)
+        ?: instruction.sets.getOrElse(nextIndex) { instruction.sets.head }.exerciseName
     }
 
     Row(
       Modifier
         .clip(RoundedCornerShape(4.dp))
-        .clickable { showPicker = true }
+        .clickable {
+          if (instruction.alternateCount > 2) showPicker = true
+          else onAlternateChange(instruction.activateNextAlternate())
+        }
         .padding(horizontal = 4.dp, vertical = 2.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
