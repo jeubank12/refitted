@@ -136,7 +136,6 @@ fun PagerExerciseView(
           }
         }
       }
-      instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) }
     }
   }
   // Split from the effect above and keyed on allSets (not currentSetRecord, which rebuilds every
@@ -179,6 +178,8 @@ fun PagerExerciseView(
           activeSetWithRecord = currentSetRecord,
           displayedPage = displayedPage,
           globalAlternate = workoutPlan?.globalAlternate,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
           setRecords = setRecords,
           timerStateByExerciseId = model.timerStateByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
@@ -266,6 +267,9 @@ fun PagerDetailView(
   displayedPage: Int = pagerState.settledPage,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
+  /** Source of `globalAlternate` and any plan-wide alternate name overrides for the card's chip. */
+  workoutPlan: WorkoutPlan? = null,
+  onAlternateChange: (Int) -> Unit = {},
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
@@ -320,6 +324,8 @@ fun PagerDetailView(
         instructions = instructions,
         pagerState = pagerState,
         alternateIndex = globalAlternate,
+        workoutPlan = workoutPlan,
+        onAlternateChange = onAlternateChange,
         setRecords = setRecords,
         editing = editing,
         onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },

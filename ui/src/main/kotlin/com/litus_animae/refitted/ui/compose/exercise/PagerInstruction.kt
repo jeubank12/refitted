@@ -73,6 +73,7 @@ import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,6 +97,9 @@ fun PagerExerciseInstructions(
   instructions: List<ExerciseViewModel.ExerciseInstruction>,
   pagerState: PagerState,
   alternateIndex: Int?,
+  /** Source of `alternateIndex` and any plan-wide alternate name overrides for the card's chip. */
+  workoutPlan: WorkoutPlan? = null,
+  onAlternateChange: (Int) -> Unit = {},
   /**
    * Records keyed by exercise-set ID. Each card looks up its own numCompleted so all
    * pre-composed pages have correct data without waiting for the parent to re-pass it.
@@ -167,6 +171,8 @@ fun PagerExerciseInstructions(
               // pager owns that for the settled page) — never worth animating a swap here.
               isActivePage = false,
               pageFocus = pageFocus,
+              workoutPlan = workoutPlan,
+              onAlternateChange = onAlternateChange,
               editing = editing,
               onDeleteExercise = onDeleteExercise,
               onEditNote = onEditNote,
@@ -233,6 +239,8 @@ fun PagerExerciseInstructions(
           // bleeding through on top of whatever the user is actually looking at.
           isActivePage = pagesFromCurrent == 0,
           pageFocus = pageFocus,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
           editing = editing,
           onDeleteExercise = onDeleteExercise,
           onEditNote = onEditNote,
@@ -344,6 +352,8 @@ private fun CardContent(
   isActivePage: Boolean,
   /** Continuous 0..1 distance-from-center, in pages — 0 for deck cards, which never focus. */
   pageFocus: Float = 0f,
+  workoutPlan: WorkoutPlan? = null,
+  onAlternateChange: (Int) -> Unit = {},
   modifier: Modifier = Modifier,
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
@@ -443,6 +453,9 @@ private fun CardContent(
           ExerciseInstructions(
             targetSet,
             setRecords[targetSet?.id]?.numCompleted ?: 0,
+            instruction = instruction,
+            workoutPlan = workoutPlan,
+            onAlternateChange = onAlternateChange,
             editing = editing,
             onDeleteExercise = onDeleteExercise,
             onEditNote = onEditNote
@@ -496,12 +509,38 @@ private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExercisePr
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(FlowPreview::class)
+@Preview(showBackground = true, widthDp = 400, heightDp = 400)
+@Preview(showBackground = true, widthDp = 300, heightDp = 300)
+@Composable
+private fun PreviewPagerExerciseInstructionsWithAlternate() {
+  MaterialTheme(Theme.darkColors) {
+    val pagerState = rememberPagerState { 1 }
+    val alternateSet = exampleExerciseSet.copy(step = "1.a", name = "B_Dumbbell Press")
+    PagerExerciseInstructions(
+      instructions = listOf(
+        ExerciseViewModel.ExerciseInstruction(
+          nonEmptyListOf(exampleExerciseSet, alternateSet),
+          null,
+          MutableStateFlow(0)
+        )
+      ),
+      pagerState,
+      null,
+      editing = true,
+    )
+  }
+}
+
+@OptIn(ExperimentalFoundationApi::class, FlowPreview::class)
 @Composable
 private fun ExerciseInstructions(
   exerciseSet: ExerciseSet?,
   /** Defaults to 0 so the progress line always occupies space from first paint — no layout jump. */
   numCompleted: Int = 0,
+  instruction: ExerciseViewModel.ExerciseInstruction? = null,
+  workoutPlan: WorkoutPlan? = null,
+  onAlternateChange: (Int) -> Unit = {},
   editing: Boolean = false,
   onDeleteExercise: (ExerciseSet) -> Unit = {},
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
@@ -577,17 +616,34 @@ private fun ExerciseInstructions(
         )
     )
 
-    // Set progress pinned to the bottom of the card — always occupies space, no layout jump
-    if (exerciseSet != null && exerciseSet.sets > 0) {
-      val allSetsComplete = numCompleted >= exerciseSet.sets
-      Text(
-        text = if (allSetsComplete) "All sets complete" else "Set ${numCompleted + 1} of ${exerciseSet.sets}",
-        style = MaterialTheme.typography.caption,
-        color = MaterialTheme.colors.primary,
-        modifier = Modifier
-          .align(Alignment.BottomCenter)
-          .padding(bottom = 12.dp)
-      )
+    // Alternate chip and set progress share the bottom row so the counter only shifts off
+    // center when a chip is actually present, rather than reserving space for one that isn't.
+    Row(
+      Modifier
+        .align(Alignment.BottomCenter)
+        .fillMaxWidth()
+        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      if (instruction != null) {
+        AlternateChip(
+          instruction = instruction,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
+          modifier = Modifier.weight(1f, fill = false)
+        )
+      }
+      if (exerciseSet != null && exerciseSet.sets > 0) {
+        val allSetsComplete = numCompleted >= exerciseSet.sets
+        Box(Modifier.weight(1f)) {
+          Text(
+            text = if (allSetsComplete) "All sets complete" else "Set ${numCompleted + 1} of ${exerciseSet.sets}",
+            style = MaterialTheme.typography.caption,
+            color = MaterialTheme.colors.primary,
+            modifier = Modifier.align(Alignment.Center)
+          )
+        }
+      }
     }
 
     // Anchored to the Box, not inside the LazyColumn, so it stays put regardless of scroll.

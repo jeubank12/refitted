@@ -78,7 +78,6 @@ fun ExerciseView(
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
-    setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
     currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
