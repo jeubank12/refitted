@@ -40,6 +40,11 @@ class ExerciseViewModel @Inject constructor(
   val records = exerciseRepo.records
     .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
 
+  // Which alternate is selected per step, keyed by primaryStep. Held here rather than on
+  // ExerciseInstruction so a user's choice survives the list rebuild that any edit on the day
+  // triggers - ExerciseInstruction instances are recreated wholesale on every such rebuild.
+  private val alternateSelections = mutableMapOf<String, AlternateSelection>()
+
   // Instructions are rebuilt only when the exercise list itself changes; record updates flow
   // through each instruction's initialSetIndex instead of recreating instruction state.
   // stateIn shares one instance across all collectors (pager cards, timer, menu).
@@ -56,20 +61,24 @@ class ExerciseViewModel @Inject constructor(
             // resubscribing card gets the cached index immediately with no repo round-trip
             val mostRecentAlternateStep = getLastCompletedAlternateIndex(thisSets)
               .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), -1)
+            val selection = alternateSelections.getOrPut(thisSets.head.primaryStep) {
+              AlternateSelection()
+            }
 
             if (thisSets.head.isSuperSet) {
               val nextSet = nextSets?.head
               if (nextSet?.isSuperSet == true && nextSet.superStep == thisSets.head.superStep) {
-                ExerciseInstruction(thisSets, 1, mostRecentAlternateStep)
+                ExerciseInstruction(thisSets, 1, mostRecentAlternateStep, selection)
               } else {
                 ExerciseInstruction(
                   thisSets,
                   thisSets.head.superSetStep?.let { it * -1 },
-                  mostRecentAlternateStep
+                  mostRecentAlternateStep,
+                  selection
                 )
               }
             } else {
-              ExerciseInstruction(thisSets, null, mostRecentAlternateStep)
+              ExerciseInstruction(thisSets, null, mostRecentAlternateStep, selection)
             }
           }
         if (instructions.isNotEmpty()) {
@@ -136,18 +145,24 @@ class ExerciseViewModel @Inject constructor(
 
   data class LatestRecord(val targetSet: ExerciseSet, val completed: Instant)
 
+  // Holds a step's alternate choice outside any single ExerciseInstruction instance, so it
+  // survives the wholesale instance rebuild that an edit anywhere on the day triggers.
+  class AlternateSelection {
+    val activeIndex = MutableStateFlow(-1)
+    val viewedIndex = MutableStateFlow(0)
+  }
+
   data class ExerciseInstruction(
     val sets: NonEmptyList<ExerciseSet>,
     val offsetToNextSuperSet: Int?,
-    val initialSetIndex: Flow<Int>
+    val initialSetIndex: Flow<Int>,
+    private val selection: AlternateSelection
   ) {
     val hasAlternate = sets.size > 1
     val alternateCount = sets.size
-    private val _activeIndex = MutableStateFlow(-1)
-    private val _viewedIndex = MutableStateFlow(0)
 
     fun activeIndex(overrideIndex: Int? = null): Flow<Int> {
-      return _activeIndex
+      return selection.activeIndex
         .combine(initialSetIndex.onStart { emit(-1) }) { idx, lastCompletedIdx ->
           val currentIndex =
             overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
@@ -157,24 +172,24 @@ class ExerciseViewModel @Inject constructor(
             "Resolved alternate for step ${sets.head.primaryStep} to index $currentIndex " +
               "(planOverride=$overrideIndex, userSelected=$idx, lastCompleted=$lastCompletedIdx)"
           )
-          _viewedIndex.value = currentIndex
+          selection.viewedIndex.value = currentIndex
           currentIndex
         }.distinctUntilChanged()
     }
 
     fun activateNextAlternate(): Int {
-      val currentValue = _viewedIndex.value
+      val currentValue = selection.viewedIndex.value
       val updatedValue = if (currentValue < alternateCount - 1) {
         currentValue.coerceAtLeast(0) + 1
       } else {
         0
       }
-      _activeIndex.value = updatedValue
+      selection.activeIndex.value = updatedValue
       return updatedValue
     }
 
     fun activateAlternate(index: Int) {
-      _activeIndex.value = index.coerceIn(0, alternateCount - 1)
+      selection.activeIndex.value = index.coerceIn(0, alternateCount - 1)
     }
 
     fun set(overrideIndex: Int? = null): Flow<ExerciseSet> {
@@ -182,7 +197,8 @@ class ExerciseViewModel @Inject constructor(
     }
 
     override fun toString(): String {
-      return "Instruction:${sets.head.primaryStep}(sets: $sets, activeIndex:${_activeIndex.value})"
+      return "Instruction:${sets.head.primaryStep}(sets: $sets, " +
+        "activeIndex:${selection.activeIndex.value})"
     }
   }
 

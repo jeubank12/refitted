@@ -147,12 +147,14 @@ fun PagerExerciseInstructions(
   val scope = rememberCoroutineScope()
 
   val activeInstruction = instructions.getOrNull(pagerState.currentPage)
-  val activeInstructionId = activeInstruction?.sets?.head?.id
-  // Keyed on the instruction's stable identity, not the instruction object itself - every edit
-  // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
-  // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
-  // across reloads), so keying on `instruction` would recreate this flow - and reset the
-  // collected state to null for a frame - on every unrelated edit, not just this card's own.
+  // Keyed on the instruction's stable identity (every set id it currently covers), not the
+  // instruction object itself - every edit anywhere rebuilds the whole instructions list into
+  // fresh ExerciseInstruction/ExerciseSet objects (each carrying a newly-queried
+  // `exercise: Flow<Exercise?>` field that's never equal across reloads), so keying on
+  // `instruction` would recreate this flow - and reset the collected state to null for a frame -
+  // on every unrelated edit, not just this card's own. The full set-id list (not just the head
+  // id) is used so adding or removing an alternate on *this* step still invalidates the key.
+  val activeInstructionId = activeInstruction?.sets?.map { it.id }
   val activeSetFlow = remember(activeInstructionId, alternateIndex) {
     activeInstruction?.set(alternateIndex)
   }
@@ -489,12 +491,14 @@ private fun CardContent(
   onDeleteExercise: (ExerciseSet) -> Unit = {},
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
-  // Keyed on the instruction's stable identity, not the instruction object itself - every edit
-  // anywhere rebuilds the whole instructions list into fresh ExerciseInstruction/ExerciseSet
-  // objects (each carrying a newly-queried `exercise: Flow<Exercise?>` field that's never equal
-  // across reloads), so keying on `instruction` would recreate this flow - and reset the
-  // collected state to null for a frame - on every unrelated edit, not just this card's own.
-  val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
+  // Keyed on the instruction's stable identity (every set id it currently covers), not the
+  // instruction object itself - every edit anywhere rebuilds the whole instructions list into
+  // fresh ExerciseInstruction/ExerciseSet objects (each carrying a newly-queried
+  // `exercise: Flow<Exercise?>` field that's never equal across reloads), so keying on
+  // `instruction` would recreate this flow - and reset the collected state to null for a frame -
+  // on every unrelated edit, not just this card's own. The full set-id list (not just the head
+  // id) is used so adding or removing an alternate on *this* step still invalidates the key.
+  val exerciseSetFlow = remember(instruction?.sets?.map { it.id }, alternateIndex) {
     instruction?.set(alternateIndex)
   }
   val ownExerciseSet by exerciseSetFlow
@@ -570,7 +574,8 @@ private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExercisePr
         ExerciseViewModel.ExerciseInstruction(
           nonEmptyListOf(exerciseSet),
           null,
-          MutableStateFlow(0)
+          MutableStateFlow(0),
+          ExerciseViewModel.AlternateSelection()
         )
       },
       pagerState,
@@ -592,7 +597,8 @@ private fun PreviewPagerExerciseInstructionsWithAlternate() {
         ExerciseViewModel.ExerciseInstruction(
           nonEmptyListOf(exampleExerciseSet, alternateSet),
           null,
-          MutableStateFlow(0)
+          MutableStateFlow(0),
+          ExerciseViewModel.AlternateSelection()
         )
       ),
       pagerState,

@@ -452,7 +452,8 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
           ExerciseViewModel.ExerciseInstruction(
             nonEmptyListOf(exerciseSet),
             null,
-            MutableStateFlow(0)
+            MutableStateFlow(0),
+            ExerciseViewModel.AlternateSelection()
           )
         },
         pagerState = pagerState,
