@@ -138,6 +138,11 @@ fun PagerExerciseView(
       }
       instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) }
     }
+  }
+  // Split from the effect above and keyed on allSets (not currentSetRecord, which rebuilds every
+  // completed set): currentSetRecord can resolve after exerciseSet, and keying only on
+  // exerciseSet let that race latch the previous exercise's SetHistory permanently.
+  LaunchedEffect(currentSetRecord?.allSets) {
     currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
