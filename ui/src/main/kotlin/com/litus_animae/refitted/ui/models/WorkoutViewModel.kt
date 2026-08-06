@@ -248,6 +248,10 @@ class WorkoutViewModel @Inject constructor(
       if (_currentWorkout.value?.workout == name) {
         _currentWorkout.value = null
         _clearedPlanName.value = name
+        savedStateHandle.remove<String>(selectedPlan)
+        savedStateHandle.remove<Int>(selectedPlanDays)
+        savedStateHandle.remove<Int>(lastDay)
+        savedStateHandle.remove<Long>(selectedPlanStartDate)
         savedStateRepo.clearState(selectedPlan)
       }
     }
