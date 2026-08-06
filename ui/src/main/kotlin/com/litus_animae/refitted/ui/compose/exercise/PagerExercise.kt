@@ -3,12 +3,14 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
@@ -18,13 +20,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -32,6 +40,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -40,6 +49,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.nonEmptyListOf
+import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
@@ -66,13 +76,15 @@ fun PagerExerciseView(
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
   setHistoryList: (SetHistory) -> Unit,
-  setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
+  /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
+  setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   onSetSaved: () -> Unit = {},
   onOpenHistory: () -> Unit = {},
   editing: Boolean = false,
   onAddExercise: () -> Unit = {},
+  onAddAlternate: (ExerciseSet) -> Unit = {},
   scrollToExerciseName: String? = null
 ) {
   val allRecords by model.records.collectAsState(initial = emptyList())
@@ -91,6 +103,14 @@ fun PagerExerciseView(
       instruction.sets.any { it.exerciseName == target }
     }
     if (targetIndex >= 0) {
+      // A just-added alternate joins an existing card rather than making its own, so landing on
+      // the card isn't enough - surface the alternate itself. indexOfLast picks the newest, since
+      // alternates sort after their base.
+      val targetInstruction = instructions[targetIndex]
+      val alternateIndex = targetInstruction.sets.indexOfLast { it.exerciseName == target }
+      if (targetInstruction.hasAlternate && alternateIndex >= 0) {
+        targetInstruction.activateAlternate(alternateIndex)
+      }
       pagerState.scrollToPage(targetIndex)
       pendingScrollTarget = null
     }
@@ -114,7 +134,50 @@ fun PagerExerciseView(
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
-    setContextMenu { instruction?.let { ExerciseContextMenu(it, workoutPlan, onAlternateChange) } }
+    setContextMenu { collapsed ->
+      // Rendered here rather than in the top bar itself because this is where the displayed
+      // exercise is known - it lands next to the add-exercise icon either way.
+      if (editing && workoutPlan?.isCustom == true) {
+        exerciseSet?.let { set ->
+          if (collapsed) {
+            var expanded by remember { mutableStateOf(false) }
+            IconButton({ expanded = true }) {
+              // TODO localize
+              Icon(Icons.Default.MoreVert, "more actions")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+              Text(
+                stringResource(id = R.string.add_alternate_exercise),
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    expanded = false
+                    onAddAlternate(set)
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp)
+              )
+            }
+          } else {
+            // Default textButtonColors resolve to colors.primary, which is the top bar's own
+            // background - take the bar's content color instead.
+            TextButton(
+              { onAddAlternate(set) },
+              colors = ButtonDefaults.textButtonColors(
+                contentColor = LocalContentColor.current
+              )
+            ) {
+              Text(stringResource(id = R.string.alternate))
+            }
+          }
+        }
+      }
+    }
+  }
+  // Split from the effect above and keyed on allSets (not currentSetRecord, which rebuilds every
+  // completed set): currentSetRecord can resolve after exerciseSet, and keying only on
+  // exerciseSet let that race latch the previous exercise's SetHistory permanently.
+  LaunchedEffect(currentSetRecord?.allSets) {
     currentSetRecord?.let { setHistoryList(SetHistory(it.allSets)) }
   }
 
@@ -151,6 +214,8 @@ fun PagerExerciseView(
           activeSetWithRecord = currentSetRecord,
           displayedPage = displayedPage,
           globalAlternate = workoutPlan?.globalAlternate,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
           setRecords = setRecords,
           timerStateByExerciseId = model.timerStateByExerciseId,
           onTimerToggle = { id, running, restSecs -> model.setTimerRunning(id, running, restSecs) },
@@ -238,6 +303,9 @@ fun PagerDetailView(
   displayedPage: Int = pagerState.settledPage,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
+  /** Source of `globalAlternate` and any plan-wide alternate name overrides for the card's chip. */
+  workoutPlan: WorkoutPlan? = null,
+  onAlternateChange: (Int) -> Unit = {},
   setRecords: Map<String, ExerciseSetWithRecord> = emptyMap(),
   timerStateByExerciseId: Map<String, ExerciseViewModel.TimerState> = emptyMap(),
   onTimerToggle: (id: String, running: Boolean, restSeconds: Int) -> Unit = { _, _, _ -> },
@@ -292,6 +360,8 @@ fun PagerDetailView(
         instructions = instructions,
         pagerState = pagerState,
         alternateIndex = globalAlternate,
+        workoutPlan = workoutPlan,
+        onAlternateChange = onAlternateChange,
         setRecords = setRecords,
         editing = editing,
         onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
@@ -382,7 +452,8 @@ private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::cl
           ExerciseViewModel.ExerciseInstruction(
             nonEmptyListOf(exerciseSet),
             null,
-            MutableStateFlow(0)
+            MutableStateFlow(0),
+            ExerciseViewModel.AlternateSelection()
           )
         },
         pagerState = pagerState,

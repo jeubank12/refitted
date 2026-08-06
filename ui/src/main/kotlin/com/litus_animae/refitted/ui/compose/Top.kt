@@ -13,9 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.credentials.CustomCredential
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -29,6 +31,14 @@ import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+
+private val alternateToArg = listOf(
+  navArgument("alternateTo") {
+    type = NavType.StringType
+    nullable = true
+    defaultValue = null
+  }
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @FlowPreview
@@ -64,19 +74,31 @@ fun Top() {
           exerciseModel = exerciseModel,
           workoutModel = workoutModel,
           onAddExercise = { controller.navigate("add-exercise/$workoutId/$day") },
+          onAddAlternate = { set ->
+            controller.navigate(
+              "add-exercise/$workoutId/$day?alternateTo=${Uri.encode(set.primaryStep)}"
+            )
+          },
           scrollToExerciseName = scrollToExerciseName
         )
       } else {
         controller.navigate("calendar")
       }
     }
-    composable("add-exercise/{workout}/{day}") {
+    // A non-null "alternateTo" carries the base step the picked exercise should become an
+    // alternate of - the picker itself is identical either way, only the commit differs.
+    composable("add-exercise/{workout}/{day}?alternateTo={alternateTo}", arguments = alternateToArg) {
       val workoutId = it.arguments?.getString("workout")
       val day = it.arguments?.getString("day")
+      val alternateTo = it.arguments?.getString("alternateTo")?.let(Uri::decode)
       if (workoutId != null && day != null) {
         MuscleGroupPickerScreen(
+          // TODO localize
+          title = if (alternateTo != null) "Add alternate" else "Add exercise",
           onContinue = { muscle ->
-            controller.navigate("add-exercise/$workoutId/$day/${Uri.encode(muscle)}")
+            val alternateQuery =
+              if (alternateTo != null) "?alternateTo=${Uri.encode(alternateTo)}" else ""
+            controller.navigate("add-exercise/$workoutId/$day/${Uri.encode(muscle)}$alternateQuery")
           },
           onClose = { controller.popBackStack() }
         )
@@ -84,13 +106,17 @@ fun Top() {
         controller.navigate("calendar")
       }
     }
-    composable("add-exercise/{workout}/{day}/{muscle}") {
+    composable(
+      "add-exercise/{workout}/{day}/{muscle}?alternateTo={alternateTo}",
+      arguments = alternateToArg
+    ) {
       val exerciseModel: ExerciseViewModel = hiltViewModel(it)
       val workoutModel: WorkoutViewModel = hiltViewModel(it)
       val userModel: UserViewModel = hiltViewModel(it)
       val workoutId = it.arguments?.getString("workout")
       val day = it.arguments?.getString("day")
       val muscle = it.arguments?.getString("muscle")?.let(Uri::decode)
+      val alternateTo = it.arguments?.getString("alternateTo")?.let(Uri::decode)
       if (workoutId != null && day != null && muscle != null) {
         val localExercises by remember(muscle) { exerciseModel.exercisesByMuscle(muscle) }
           .collectAsStateWithLifecycle(initialValue = emptyList())
@@ -121,7 +147,13 @@ fun Top() {
           loadingWorkouts = exerciseModel.loadingWorkouts,
           onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, muscle) },
           onPick = { exercise ->
-            exerciseModel.addExercise(workoutId, day, exercise.id, exercise.description)
+            if (alternateTo != null) {
+              exerciseModel.addAlternateExercise(
+                workoutId, day, alternateTo, exercise.id, exercise.description
+              )
+            } else {
+              exerciseModel.addExercise(workoutId, day, exercise.id, exercise.description)
+            }
             controller.getBackStackEntry("exercise/{workout}/{day}/{editing}")
               .savedStateHandle["justAddedExercise"] = exercise.name
             // Pop the whole add-exercise sub-flow at once, back to the day screen.

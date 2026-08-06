@@ -18,6 +18,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
@@ -244,6 +245,47 @@ class RoomCacheExerciseRepository @Inject constructor(
     }
   }
 
+  override suspend fun addAlternateExercise(
+    workout: String,
+    day: String,
+    baseStep: String,
+    exerciseId: String,
+    description: String?
+  ) {
+    withContext(Dispatchers.IO) {
+      val exerciseDao = refittedRoom.getExerciseDao()
+      val daySets = exerciseDao.loadDayExerciseSets(day, workout)
+      val baseSet = daySets.firstOrNull { it.step == baseStep }
+        ?: error("cannot add alternate: $workout day $day has no step $baseStep")
+      // ExerciseSet.primaryStep only strips a single trailing letter, so alternates past "z" would
+      // group as their own instruction rather than joining this one.
+      val siblingRegex = "^${Regex.escape(baseStep)}\\.([a-z])$".toRegex()
+      val nextLetter = daySets
+        .mapNotNull { siblingRegex.find(it.step)?.groupValues?.get(1)?.first() }
+        .maxOrNull()?.inc() ?: 'a'
+      if (nextLetter > 'z') {
+        error("cannot add alternate: $workout day $day step $baseStep has no free suffix")
+      }
+      val step = "$baseStep.$nextLetter"
+      log.d(TAG, "adding alternate $exerciseId to $workout day $day, step $step")
+      val resolvedDescription = description?.takeIf { it.isNotBlank() }
+        ?: exerciseDao.getExercise(exerciseId, workout).first()?.description
+      exerciseDao.storeExerciseAndSet(
+        RoomExercise(workout = workout, id = exerciseId, description = resolvedDescription),
+        // Sort columns are derived from the day-prefixed id, not the step - see RoomExerciseSet.
+        baseSet.copy(
+          step = step,
+          primaryStep = RoomExerciseSet.parsePrimaryStep("$day.$step"),
+          superSetStep = RoomExerciseSet.parseSuperSetStep("$day.$step"),
+          alternateStep = nextLetter.toString(),
+          name = exerciseId,
+          // The prescription carries over, but the base's notes are about the base exercise.
+          note = ""
+        )
+      )
+    }
+  }
+
   override suspend fun updateCustomExerciseSet(
     workout: String,
     day: String,
@@ -291,7 +333,41 @@ class RoomCacheExerciseRepository @Inject constructor(
       current.filterNot { it.workout == workout && it.day == day && it.step == step }
     }
     withContext(Dispatchers.IO) {
-      refittedRoom.getExerciseDao().deleteExerciseSet(day, workout, step)
+      val exerciseDao = refittedRoom.getExerciseDao()
+      exerciseDao.deleteExerciseSet(day, workout, step)
+      promoteNextAlternate(exerciseDao, workout, day, step)
+    }
+  }
+
+  // Deleting a group's base step (e.g. "3") must not leave the group anchorless: addAlternateExercise
+  // and the pager's card grouping both key off a bare-step row existing, so the lowest surviving
+  // alternate ("3.a") takes its place.
+  private suspend fun promoteNextAlternate(
+    exerciseDao: ExerciseDao,
+    workout: String,
+    day: String,
+    baseStep: String
+  ) {
+    val siblingRegex = "^${Regex.escape(baseStep)}\\.[a-z]$".toRegex()
+    val nextAlternate = exerciseDao.loadDayExerciseSets(day, workout)
+      .filter { siblingRegex.matches(it.step) }
+      .minByOrNull { it.step }
+      ?: return
+    exerciseDao.moveExerciseSet(
+      nextAlternate,
+      nextAlternate.copy(
+        step = baseStep,
+        primaryStep = RoomExerciseSet.parsePrimaryStep("$day.$baseStep"),
+        superSetStep = RoomExerciseSet.parseSuperSetStep("$day.$baseStep"),
+        alternateStep = null
+      )
+    )
+    exerciseState.update { current ->
+      current.map { set ->
+        if (set.workout == workout && set.day == day && set.step == nextAlternate.step) {
+          set.copy(step = baseStep)
+        } else set
+      }
     }
   }
 

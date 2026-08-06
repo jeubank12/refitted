@@ -33,6 +33,33 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
 - `api(libs.androidx.paging.*)` - Exposed as api for ViewModels
 - Jetpack Compose, Hilt, Firebase (types only)
 
+## Compose Gotchas
+
+- `Flow.collectAsState()` delegates to `produceState`, whose backing `mutableStateOf` is
+  **unkeyed** — only the collector coroutine restarts when the flow instance changes. If a
+  composable slot is reused across different data sources (e.g. a pager's single detail pane
+  swapping which exercise it shows), the state keeps the *previous* source's last value until
+  the new flow's first emission arrives. Key the state yourself
+  (`remember(flow) { mutableStateOf(...) }` + `LaunchedEffect(flow) { flow.collect { ... } } }`)
+  when a stale read during that gap would be visibly wrong. See `SetTrendStrip.kt`'s
+  `rememberEffortSets` for the pattern.
+
+- **Don't reach for `Popup` to escape a clip.** A `Popup` is a real `WindowManager` window, and
+  adding/removing one lands on exactly the frames an animation can least afford — the start and
+  the end. Before using one, check whether an ancestor already provides unclipped space: `Box`,
+  `Column`, and `Row` do not clip, so only a genuinely clipping ancestor (`LazyLayout`, and
+  therefore `HorizontalPager`, or an explicit `clipToBounds`/`clip`) is a real constraint.
+  Hosting an overlay in the nearest unclipped ancestor gets the same reach for free.
+  `PagerInstruction.kt`'s `AlternateSwapOverlay` is the worked example.
+
+- **Derive transient animation state, don't set it from an effect.** State written in a
+  `LaunchedEffect` lands a frame after the composition that triggered it, so a UI that both
+  mounts an animation and hides what it replaces gets one frame showing the new content
+  unanimated. Keep a "settled" value in state that only an effect advances, and compute the
+  in-flight transition as a pure derivation of settled-vs-current — then both sides of the
+  handoff happen in the same composition pass. See `settledSet`/`swap` in
+  `PagerExerciseInstructions`.
+
 ## Testing
 
 ```bash

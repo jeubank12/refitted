@@ -28,6 +28,21 @@ interface ExerciseRepository {
   suspend fun addCustomExercise(workout: String, day: String, exerciseId: String, description: String? = null)
 
   /**
+   * Adds [exerciseId] as an alternate of the set at [baseStep] - an [ExerciseSet.primaryStep], so
+   * either a plain step ("3") or a superset member ("2.3"). The new set takes the next free "a".."z"
+   * suffix (e.g. "3.b") and inherits the base set's prescription, since an alternate substitutes for
+   * the same slot. [description] behaves as in [addCustomExercise]. Throws when [baseStep] has no
+   * set on this day, or when all 26 suffixes are taken.
+   */
+  suspend fun addAlternateExercise(
+    workout: String,
+    day: String,
+    baseStep: String,
+    exerciseId: String,
+    description: String? = null
+  )
+
+  /**
    * Updates a custom (BYO) exercise set's prescription - target [sets], [reps], [rest], and
    * [repsRange] (an offset above [reps]; e.g. reps=10/repsRange=2 prescribes "10-12") - in place,
    * keyed by [workout]/[day]/[step]. No-op if the set doesn't exist (e.g. admin content).

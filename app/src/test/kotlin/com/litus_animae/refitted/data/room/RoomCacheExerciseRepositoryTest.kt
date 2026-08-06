@@ -15,6 +15,7 @@ import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.TestLogUtil
+import io.mockk.CapturingSlot
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -456,6 +457,131 @@ class RoomCacheExerciseRepositoryTest {
   }
 
   @Nested
+  @DisplayName("addAlternateExercise")
+  inner class AddAlternateExercise {
+    private val baseSet = simpleRoomSet.copy(day = "2", step = "3", primaryStep = 3)
+
+    private fun givenDaySets(vararg sets: RoomExerciseSet): CapturingSlot<RoomExerciseSet> {
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns sets.toList()
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
+      val storedSet = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseAndSet(any(), capture(storedSet)) } returns Unit
+      return storedSet
+    }
+
+    @Test
+    fun `adds the first alternate as suffix a`() = runTest {
+      // Given
+      val storedSet = givenDaySets(baseSet)
+
+      // When
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+
+      // Then
+      assertThat(storedSet.captured.step).isEqualTo("3.a")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(3)
+      assertThat(storedSet.captured.superSetStep).isNull()
+      assertThat(storedSet.captured.alternateStep).isEqualTo("a")
+      assertThat(storedSet.captured.name).isEqualTo("Chest_Push-Up")
+    }
+
+    @Test
+    fun `takes the next free suffix after the existing alternates`() = runTest {
+      // Given
+      val storedSet = givenDaySets(
+        baseSet,
+        baseSet.copy(step = "3.a", alternateStep = "a"),
+        // "3.1" is a different primary step's superset member, not an alternate of "3"
+        baseSet.copy(step = "3.1", superSetStep = 1)
+      )
+
+      // When
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+
+      // Then
+      assertThat(storedSet.captured.step).isEqualTo("3.b")
+      assertThat(storedSet.captured.alternateStep).isEqualTo("b")
+    }
+
+    @Test
+    fun `keeps a superset member's position when adding its alternate`() = runTest {
+      // Given
+      val storedSet = givenDaySets(baseSet.copy(step = "2.3", primaryStep = 2, superSetStep = 3))
+
+      // When
+      subject.addAlternateExercise(workoutName, "2", "2.3", "Chest_Push-Up")
+
+      // Then - the alternate has to sort inside the same superset slot as its base
+      assertThat(storedSet.captured.step).isEqualTo("2.3.a")
+      assertThat(storedSet.captured.primaryStep).isEqualTo(2)
+      assertThat(storedSet.captured.superSetStep).isEqualTo(3)
+      assertThat(storedSet.captured.alternateStep).isEqualTo("a")
+    }
+
+    @Test
+    fun `inherits the base set's prescription`() = runTest {
+      // Given
+      val storedSet = givenDaySets(
+        baseSet.copy(sets = 4, reps = 8, rest = 120, repsRange = 2, note = "Base exercise cue")
+      )
+
+      // When
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+
+      // Then - an alternate substitutes for the same slot, so it starts on the same targets
+      assertThat(storedSet.captured.sets).isEqualTo(4)
+      assertThat(storedSet.captured.reps).isEqualTo(8)
+      assertThat(storedSet.captured.rest).isEqualTo(120)
+      assertThat(storedSet.captured.repsRange).isEqualTo(2)
+      // ...but not the base's instructions, which describe a different exercise
+      assertThat(storedSet.captured.note).isEmpty()
+    }
+
+    @Test
+    fun `carries the source exercise's description across`() = runTest {
+      // Given
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns listOf(baseSet)
+      val storedExercise = slot<RoomExercise>()
+      coEvery { exerciseDao.storeExerciseAndSet(capture(storedExercise), any()) } returns Unit
+
+      // When
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up", "Keep your core tight")
+
+      // Then
+      assertThat(storedExercise.captured.description).isEqualTo("Keep your core tight")
+    }
+
+    @Test
+    fun `throws when the base step is missing`() = runTest {
+      // Given
+      givenDaySets(baseSet.copy(step = "1", primaryStep = 1))
+
+      // When
+      val result = runCatching { subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up") }
+
+      // Then
+      assertThat(result.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+      coVerify(exactly = 0) { exerciseDao.storeExerciseAndSet(any(), any()) }
+    }
+
+    @Test
+    fun `throws once every suffix is taken`() = runTest {
+      // Given - primaryStep only strips a single letter, so there's no "3.aa"
+      givenDaySets(
+        baseSet,
+        *('a'..'z').map { baseSet.copy(step = "3.$it", alternateStep = it.toString()) }.toTypedArray()
+      )
+
+      // When
+      val result = runCatching { subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up") }
+
+      // Then
+      assertThat(result.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+      coVerify(exactly = 0) { exerciseDao.storeExerciseAndSet(any(), any()) }
+    }
+  }
+
+  @Nested
   @DisplayName("updateCustomExerciseSet")
   inner class UpdateCustomExerciseSet {
     @Test
@@ -492,16 +618,112 @@ class RoomCacheExerciseRepositoryTest {
   @Nested
   @DisplayName("deleteCustomExerciseSet")
   inner class DeleteCustomExerciseSet {
+    private val baseSet = simpleRoomSet.copy(day = "2", step = "3", primaryStep = 3)
+
+    private fun givenRemainingDaySets(
+      vararg sets: RoomExerciseSet,
+      deletedStep: String = "3"
+    ): CapturingSlot<RoomExerciseSet> {
+      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, deletedStep) } returns Unit
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns sets.toList()
+      val moved = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.moveExerciseSet(any(), capture(moved)) } returns Unit
+      return moved
+    }
+
     @Test
     fun `deletes the set by day, workout, and step`() = runTest {
       // Given
-      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, "3") } returns Unit
+      givenRemainingDaySets()
 
       // When
       subject.deleteCustomExerciseSet(workoutName, "2", "3")
 
       // Then
       coVerify { exerciseDao.deleteExerciseSet("2", workoutName, "3") }
+    }
+
+    @Test
+    fun `promotes the lowest surviving alternate into the deleted base's step`() = runTest {
+      // Given - base "3" deleted, "3.a" and "3.b" remain
+      val moved = givenRemainingDaySets(
+        baseSet.copy(step = "3.a", alternateStep = "a"),
+        baseSet.copy(step = "3.b", alternateStep = "b")
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      assertThat(moved.captured.step).isEqualTo("3")
+      assertThat(moved.captured.primaryStep).isEqualTo(3)
+      assertThat(moved.captured.superSetStep).isNull()
+      assertThat(moved.captured.alternateStep).isNull()
+    }
+
+    @Test
+    fun `keeps a promoted superset member in its superset slot`() = runTest {
+      // Given - base "2.3" deleted, "2.3.a" remains
+      val moved = givenRemainingDaySets(
+        baseSet.copy(step = "2.3.a", primaryStep = 2, superSetStep = 3, alternateStep = "a"),
+        deletedStep = "2.3"
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "2.3")
+
+      // Then
+      assertThat(moved.captured.step).isEqualTo("2.3")
+      assertThat(moved.captured.primaryStep).isEqualTo(2)
+      assertThat(moved.captured.superSetStep).isEqualTo(3)
+      assertThat(moved.captured.alternateStep).isNull()
+    }
+
+    @Test
+    fun `does not promote when the deleted step was itself an alternate`() = runTest {
+      // Given - "3.a" deleted, base "3" and "3.b" remain
+      givenRemainingDaySets(
+        baseSet, baseSet.copy(step = "3.b", alternateStep = "b"),
+        deletedStep = "3.a"
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3.a")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.moveExerciseSet(any(), any()) }
+    }
+
+    @Test
+    fun `does not promote when the deleted exercise had no alternates`() = runTest {
+      // Given
+      givenRemainingDaySets()
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.moveExerciseSet(any(), any()) }
+    }
+
+    @Test
+    fun `an alternate can be added again after the base is promoted away`() = runTest {
+      // Given - base "3" deleted, "3.a" survives and is promoted to "3"
+      givenRemainingDaySets(baseSet.copy(step = "3.a", alternateStep = "a"))
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // When - the promoted set now sits at "3", so the anchor lookup succeeds again
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns listOf(
+        baseSet.copy(alternateStep = null)
+      )
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
+      val stored = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseAndSet(any(), capture(stored)) } returns Unit
+
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+
+      // Then
+      assertThat(stored.captured.step).isEqualTo("3.a")
     }
   }
 

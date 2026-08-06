@@ -19,9 +19,11 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.effort.EffortModel
+import com.litus_animae.refitted.data.effort.EffortSet
 import com.litus_animae.refitted.data.effort.EffortZone
 import com.litus_animae.refitted.data.effort.ExpectationSource
 import com.litus_animae.refitted.data.effort.toEffortSet
@@ -44,7 +47,7 @@ import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -56,39 +59,53 @@ private const val MIN_WINDOW = 5
 private const val MAX_WINDOW = 14
 
 /**
- * Compact effort trend for the most recent sets, sized to however many bubbles actually fit
- * legibly in [modifier]'s measured width rather than a fixed count.
- *
- * [history] is the bounded recentSets flow; [todaysRecords] are the in-memory sets completed
- * this session so a just-finished set appears immediately instead of waiting on Room's
- * write/invalidation round-trip to reach [history]. [onClick] opens the full set-history
- * drawer - this strip is a glance, not the place to read the whole history.
+ * `null` until [history] has emitted for this exercise. Keyed on the flow instance so an
+ * exercise change resets to `null` rather than serving the previous exercise's sets (see
+ * ui/CLAUDE.md's Compose Gotchas). [todaysRecords] are this session's in-memory sets, applied
+ * ahead of Room's write round-trip reaching [history].
  */
 @Composable
-fun SetTrendStrip(
-  modifier: Modifier = Modifier,
+fun rememberEffortSets(
   history: Flow<List<SetRecord>>,
-  todaysRecords: List<Record>,
-  onClick: () -> Unit = {}
-) {
-  val recorded by history.collectAsState(initial = emptyList(), Dispatchers.IO)
+  todaysRecords: List<Record>
+): List<EffortSet>? {
+  val recorded = remember(history) { mutableStateOf<List<SetRecord>?>(null) }
+  LaunchedEffect(history) {
+    withContext(Dispatchers.IO) {
+      history.collect { recorded.value = it }
+    }
+  }
+  val recordedValue = recorded.value
 
   // Record.completed on an in-memory set can be stale (copied from the last stored record,
   // possibly a prior day) while the SetRecord Room eventually persists stamps Instant.now() -
   // so today's sets are matched by position against however many of today's history rows have
   // already round-tripped back through recentSets, never by comparing timestamps.
-  val merged = remember(recorded, todaysRecords) {
+  return remember(recordedValue, todaysRecords) {
+    if (recordedValue == null) return@remember null
     val zone = ZoneId.systemDefault()
     val today = LocalDate.now(zone)
-    val historyToday = recorded.count { it.completed.atZone(zone).toLocalDate() == today }
+    val historyToday = recordedValue.count { it.completed.atZone(zone).toLocalDate() == today }
     val unseen = if (todaysRecords.size > historyToday) {
       todaysRecords.drop(historyToday).map { it.toEffortSet().copy(completed = Instant.now()) }
     } else {
       emptyList()
     }
-    recorded.map { it.toEffortSet() } + unseen
+    recordedValue.map { it.toEffortSet() } + unseen
   }
+}
 
+/**
+ * Compact effort trend for the most recent sets, sized to however many bubbles actually fit
+ * legibly in [modifier]'s measured width rather than a fixed count. [onClick] opens the full
+ * set-history drawer - this strip is a glance, not the place to read the whole history.
+ */
+@Composable
+fun SetTrendStrip(
+  modifier: Modifier = Modifier,
+  merged: List<EffortSet>,
+  onClick: () -> Unit = {}
+) {
   BoxWithConstraints(modifier) {
     val window = if (maxWidth != Dp.Infinity) {
       (((maxWidth - 12.dp).value / MinSlotWidth.value).toInt()).coerceIn(MIN_WINDOW, MAX_WINDOW)
@@ -253,8 +270,7 @@ private fun previewSets(
 private fun PreviewSetTrendStripFirstSession() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(previewSets(daysAgo = listOf(0L), setsPerDay = 5)),
-    todaysRecords = emptyList()
+    merged = previewSets(daysAgo = listOf(0L), setsPerDay = 5).map { it.toEffortSet() }
   )
 }
 
@@ -264,8 +280,7 @@ private fun PreviewSetTrendStripFirstSession() {
 private fun PreviewSetTrendStripBootstrap() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(previewSets(daysAgo = listOf(7L, 0L), setsPerDay = 3)),
-    todaysRecords = emptyList()
+    merged = previewSets(daysAgo = listOf(7L, 0L), setsPerDay = 3).map { it.toEffortSet() }
   )
 }
 
@@ -275,8 +290,8 @@ private fun PreviewSetTrendStripBootstrap() {
 private fun PreviewSetTrendStripRealTrend() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)),
-    todaysRecords = emptyList()
+    merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
+      .map { it.toEffortSet() }
   )
 }
 
@@ -286,14 +301,11 @@ private fun PreviewSetTrendStripRealTrend() {
 private fun PreviewSetTrendStripComeback() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = listOf(141L, 134L, 127L, 120L, 0L),
-        setsPerDay = 3,
-        weight = { if (it == 0L) 75.0 else 100.0 }
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = listOf(141L, 134L, 127L, 120L, 0L),
+      setsPerDay = 3,
+      weight = { if (it == 0L) 75.0 else 100.0 }
+    ).map { it.toEffortSet() }
   )
 }
 
@@ -303,16 +315,13 @@ private fun PreviewSetTrendStripComeback() {
 private fun PreviewSetTrendStripBodyweightDense() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = (0L..5L).map { it * 3 }.reversed(),
-        setsPerDay = 3,
-        weight = { 0.0 },
-        reps = 12,
-        restSeconds = 30L
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = (0L..5L).map { it * 3 }.reversed(),
+      setsPerDay = 3,
+      weight = { 0.0 },
+      reps = 12,
+      restSeconds = 30L
+    ).map { it.toEffortSet() }
   )
 }
 
@@ -322,15 +331,12 @@ private fun PreviewSetTrendStripBodyweightDense() {
 private fun PreviewSetTrendStripBodyweightSparse() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
-    history = flowOf(
-      previewSets(
-        daysAgo = (0L..5L).map { it * 3 }.reversed(),
-        setsPerDay = 3,
-        weight = { 0.0 },
-        reps = 12,
-        restSeconds = 300L
-      )
-    ),
-    todaysRecords = emptyList()
+    merged = previewSets(
+      daysAgo = (0L..5L).map { it * 3 }.reversed(),
+      setsPerDay = 3,
+      weight = { 0.0 },
+      reps = 12,
+      restSeconds = 300L
+    ).map { it.toEffortSet() }
   )
 }
