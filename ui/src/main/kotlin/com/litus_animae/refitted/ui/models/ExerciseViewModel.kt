@@ -14,6 +14,7 @@ import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
+import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
@@ -293,6 +294,15 @@ class ExerciseViewModel @Inject constructor(
   val accessibleWorkouts = workoutPlanRepo.accessibleWorkouts
 
   fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> = exerciseRepo.exercisesByMuscle(muscle)
+
+  // Scoped to this ViewModel's nav back-stack entry (the day being edited) - carries over
+  // between successive add-exercise sheet opens, resets once the day screen itself is left.
+  private val _selectedMuscle = MutableStateFlow(MuscleGroup.displayNames().first())
+  val selectedMuscle: StateFlow<String> = _selectedMuscle.asStateFlow()
+
+  fun selectMuscle(muscle: String) {
+    _selectedMuscle.value = muscle
+  }
 
   // Keyed by (workout, muscle) - not workout alone - so switching muscle within one session
   // never shows a stale result cached under the same workout for a different muscle.
