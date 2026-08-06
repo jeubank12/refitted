@@ -115,13 +115,16 @@ fun Exercise(
           ),
           backgroundColor = MaterialTheme.colors.primary,
           actions = {
+            // Expanded, the labelled action reads as a peer of + and sits ahead of it;
+            // collapsed, it is an overflow menu and belongs last instead.
+            if (!collapsed) contextMenu(false)
             if (showAddExercise) {
               IconButton(onAddExercise) {
                 // TODO localize
                 Icon(Icons.Default.Add, "add exercise")
               }
             }
-            contextMenu(collapsed)
+            if (collapsed) contextMenu(true)
           },
           navigationIcon = {
             IconButton({

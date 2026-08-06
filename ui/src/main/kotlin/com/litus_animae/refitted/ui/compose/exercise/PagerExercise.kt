@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenu
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -157,7 +159,14 @@ fun PagerExerciseView(
               )
             }
           } else {
-            TextButton({ onAddAlternate(set) }) {
+            // Default textButtonColors resolve to colors.primary, which is the top bar's own
+            // background - take the bar's content color instead.
+            TextButton(
+              { onAddAlternate(set) },
+              colors = ButtonDefaults.textButtonColors(
+                contentColor = LocalContentColor.current
+              )
+            ) {
               Text(stringResource(id = R.string.alternate))
             }
           }
