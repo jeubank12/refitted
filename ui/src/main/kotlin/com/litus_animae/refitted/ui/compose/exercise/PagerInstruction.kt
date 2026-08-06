@@ -169,13 +169,13 @@ fun PagerExerciseInstructions(
   // `activeSet` changes in, with no frame where the new content shows unanimated.
   // Reset per instruction so swiping to another card neither inherits its predecessor's set as a
   // swap origin nor leaves a stale swap running against a card that is no longer on top.
-  var settledSet by remember(activeInstructionId) { mutableStateOf<ExerciseSet?>(null) }
+  var settledSet by remember(activeInstructionDataKey) { mutableStateOf<ExerciseSet?>(null) }
   // The first set to land in a card slot should just appear - only a real set replacing another
   // real set is an alternate switch.
   val swap = settledSet?.let { from ->
     activeSet?.takeIf { it.id != from.id }?.let { to -> AlternateSwap(from, to) }
   }
-  LaunchedEffect(activeInstructionId, activeSet?.id) {
+  LaunchedEffect(activeInstructionDataKey, activeSet?.id) {
     if (swap == null) settledSet = activeSet
   }
 
