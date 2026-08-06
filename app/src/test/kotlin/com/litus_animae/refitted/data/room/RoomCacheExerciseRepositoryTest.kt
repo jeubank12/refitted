@@ -552,19 +552,20 @@ class RoomCacheExerciseRepositoryTest {
     }
 
     @Test
-    fun `stores nothing when the base step is missing`() = runTest {
+    fun `throws when the base step is missing`() = runTest {
       // Given
       givenDaySets(baseSet.copy(step = "1", primaryStep = 1))
 
       // When
-      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+      val result = runCatching { subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up") }
 
       // Then
+      assertThat(result.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
       coVerify(exactly = 0) { exerciseDao.storeExerciseAndSet(any(), any()) }
     }
 
     @Test
-    fun `stores nothing once every suffix is taken`() = runTest {
+    fun `throws once every suffix is taken`() = runTest {
       // Given - primaryStep only strips a single letter, so there's no "3.aa"
       givenDaySets(
         baseSet,
@@ -572,9 +573,10 @@ class RoomCacheExerciseRepositoryTest {
       )
 
       // When
-      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+      val result = runCatching { subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up") }
 
       // Then
+      assertThat(result.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
       coVerify(exactly = 0) { exerciseDao.storeExerciseAndSet(any(), any()) }
     }
   }

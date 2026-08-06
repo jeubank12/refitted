@@ -31,8 +31,8 @@ interface ExerciseRepository {
    * Adds [exerciseId] as an alternate of the set at [baseStep] - an [ExerciseSet.primaryStep], so
    * either a plain step ("3") or a superset member ("2.3"). The new set takes the next free "a".."z"
    * suffix (e.g. "3.b") and inherits the base set's prescription, since an alternate substitutes for
-   * the same slot. [description] behaves as in [addCustomExercise]. No-op when [baseStep] has no set
-   * on this day, or when all 26 suffixes are taken.
+   * the same slot. [description] behaves as in [addCustomExercise]. Throws when [baseStep] has no
+   * set on this day, or when all 26 suffixes are taken.
    */
   suspend fun addAlternateExercise(
     workout: String,

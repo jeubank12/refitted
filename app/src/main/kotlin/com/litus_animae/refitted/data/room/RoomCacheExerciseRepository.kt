@@ -256,10 +256,7 @@ class RoomCacheExerciseRepository @Inject constructor(
       val exerciseDao = refittedRoom.getExerciseDao()
       val daySets = exerciseDao.loadDayExerciseSets(day, workout)
       val baseSet = daySets.firstOrNull { it.step == baseStep }
-      if (baseSet == null) {
-        log.w(TAG, "cannot add alternate: $workout day $day has no step $baseStep")
-        return@withContext
-      }
+        ?: error("cannot add alternate: $workout day $day has no step $baseStep")
       // ExerciseSet.primaryStep only strips a single trailing letter, so alternates past "z" would
       // group as their own instruction rather than joining this one.
       val siblingRegex = "^${Regex.escape(baseStep)}\\.([a-z])$".toRegex()
@@ -267,8 +264,7 @@ class RoomCacheExerciseRepository @Inject constructor(
         .mapNotNull { siblingRegex.find(it.step)?.groupValues?.get(1)?.first() }
         .maxOrNull()?.inc() ?: 'a'
       if (nextLetter > 'z') {
-        log.w(TAG, "cannot add alternate: $workout day $day step $baseStep has no free suffix")
-        return@withContext
+        error("cannot add alternate: $workout day $day step $baseStep has no free suffix")
       }
       val step = "$baseStep.$nextLetter"
       log.d(TAG, "adding alternate $exerciseId to $workout day $day, step $step")
