@@ -55,8 +55,7 @@ interface ExerciseDao {
 
   /**
    * Deletes a single exercise set. Leaves gaps in [RoomExerciseSet.primaryStep] rather than
-   * renumbering - completed [RoomSetRecord]s are keyed by the literal "day.step" string with no
-   * FK back to exerciseset, so shifting steps would orphan their history.
+   * renumbering every other step on the day.
    */
   @Query("delete from exerciseset where day = :day and workout = :workout and step = :step")
   suspend fun deleteExerciseSet(day: String, workout: String, step: String)
@@ -91,6 +90,16 @@ interface ExerciseDao {
 
   @Delete
   suspend fun clearExerciseSets(vararg exerciseSets: RoomExerciseSet)
+
+  /**
+   * Moves [from] to [to] ((day, step, workout) is the primary key, so this is a delete +
+   * reinsert rather than an update) - used to promote an alternate into a deleted base's step.
+   */
+  @Transaction
+  suspend fun moveExerciseSet(from: RoomExerciseSet, to: RoomExerciseSet) {
+    clearExerciseSets(from)
+    storeExerciseSet(to)
+  }
 
   @Transaction
   suspend fun storeExercisesAndSets(dayAndWorkout: DayAndWorkout, exercise: List<RoomExercise>, exerciseSet: List<RoomExerciseSet>) {
