@@ -29,3 +29,25 @@ fun buildTrendRuns(
   }
   return runs
 }
+
+/**
+ * Same run-breaking semantics as the session-keyed overload, for callers that already carry a
+ * per-point expected weight and so don't need the session-index indirection. A null expectation
+ * breaks the polyline.
+ */
+fun buildTrendRuns(points: List<Pair<Float, Double?>>): List<List<Pair<Float, Float>>> {
+  val runs = mutableListOf<MutableList<Pair<Float, Float>>>()
+  var current: MutableList<Pair<Float, Float>>? = null
+  points.forEach { (x, expectedWeight) ->
+    if (expectedWeight == null) {
+      current = null
+    } else {
+      val run = current ?: mutableListOf<Pair<Float, Float>>().also {
+        current = it
+        runs.add(it)
+      }
+      run.add(x to expectedWeight.toFloat())
+    }
+  }
+  return runs
+}
