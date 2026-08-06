@@ -18,6 +18,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
@@ -336,7 +337,41 @@ class RoomCacheExerciseRepository @Inject constructor(
       current.filterNot { it.workout == workout && it.day == day && it.step == step }
     }
     withContext(Dispatchers.IO) {
-      refittedRoom.getExerciseDao().deleteExerciseSet(day, workout, step)
+      val exerciseDao = refittedRoom.getExerciseDao()
+      exerciseDao.deleteExerciseSet(day, workout, step)
+      promoteNextAlternate(exerciseDao, workout, day, step)
+    }
+  }
+
+  // Deleting a group's base step (e.g. "3") must not leave the group anchorless: addAlternateExercise
+  // and the pager's card grouping both key off a bare-step row existing, so the lowest surviving
+  // alternate ("3.a") takes its place.
+  private suspend fun promoteNextAlternate(
+    exerciseDao: ExerciseDao,
+    workout: String,
+    day: String,
+    baseStep: String
+  ) {
+    val siblingRegex = "^${Regex.escape(baseStep)}\\.[a-z]$".toRegex()
+    val nextAlternate = exerciseDao.loadDayExerciseSets(day, workout)
+      .filter { siblingRegex.matches(it.step) }
+      .minByOrNull { it.step }
+      ?: return
+    exerciseDao.moveExerciseSet(
+      nextAlternate,
+      nextAlternate.copy(
+        step = baseStep,
+        primaryStep = RoomExerciseSet.parsePrimaryStep("$day.$baseStep"),
+        superSetStep = RoomExerciseSet.parseSuperSetStep("$day.$baseStep"),
+        alternateStep = null
+      )
+    )
+    exerciseState.update { current ->
+      current.map { set ->
+        if (set.workout == workout && set.day == day && set.step == nextAlternate.step) {
+          set.copy(step = baseStep)
+        } else set
+      }
     }
   }
 

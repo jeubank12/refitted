@@ -616,16 +616,112 @@ class RoomCacheExerciseRepositoryTest {
   @Nested
   @DisplayName("deleteCustomExerciseSet")
   inner class DeleteCustomExerciseSet {
+    private val baseSet = simpleRoomSet.copy(day = "2", step = "3", primaryStep = 3)
+
+    private fun givenRemainingDaySets(
+      vararg sets: RoomExerciseSet,
+      deletedStep: String = "3"
+    ): CapturingSlot<RoomExerciseSet> {
+      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, deletedStep) } returns Unit
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns sets.toList()
+      val moved = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.moveExerciseSet(any(), capture(moved)) } returns Unit
+      return moved
+    }
+
     @Test
     fun `deletes the set by day, workout, and step`() = runTest {
       // Given
-      coEvery { exerciseDao.deleteExerciseSet("2", workoutName, "3") } returns Unit
+      givenRemainingDaySets()
 
       // When
       subject.deleteCustomExerciseSet(workoutName, "2", "3")
 
       // Then
       coVerify { exerciseDao.deleteExerciseSet("2", workoutName, "3") }
+    }
+
+    @Test
+    fun `promotes the lowest surviving alternate into the deleted base's step`() = runTest {
+      // Given - base "3" deleted, "3.a" and "3.b" remain
+      val moved = givenRemainingDaySets(
+        baseSet.copy(step = "3.a", alternateStep = "a"),
+        baseSet.copy(step = "3.b", alternateStep = "b")
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      assertThat(moved.captured.step).isEqualTo("3")
+      assertThat(moved.captured.primaryStep).isEqualTo(3)
+      assertThat(moved.captured.superSetStep).isNull()
+      assertThat(moved.captured.alternateStep).isNull()
+    }
+
+    @Test
+    fun `keeps a promoted superset member in its superset slot`() = runTest {
+      // Given - base "2.3" deleted, "2.3.a" remains
+      val moved = givenRemainingDaySets(
+        baseSet.copy(step = "2.3.a", primaryStep = 2, superSetStep = 3, alternateStep = "a"),
+        deletedStep = "2.3"
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "2.3")
+
+      // Then
+      assertThat(moved.captured.step).isEqualTo("2.3")
+      assertThat(moved.captured.primaryStep).isEqualTo(2)
+      assertThat(moved.captured.superSetStep).isEqualTo(3)
+      assertThat(moved.captured.alternateStep).isNull()
+    }
+
+    @Test
+    fun `does not promote when the deleted step was itself an alternate`() = runTest {
+      // Given - "3.a" deleted, base "3" and "3.b" remain
+      givenRemainingDaySets(
+        baseSet, baseSet.copy(step = "3.b", alternateStep = "b"),
+        deletedStep = "3.a"
+      )
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3.a")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.moveExerciseSet(any(), any()) }
+    }
+
+    @Test
+    fun `does not promote when the deleted exercise had no alternates`() = runTest {
+      // Given
+      givenRemainingDaySets()
+
+      // When
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.moveExerciseSet(any(), any()) }
+    }
+
+    @Test
+    fun `an alternate can be added again after the base is promoted away`() = runTest {
+      // Given - base "3" deleted, "3.a" survives and is promoted to "3"
+      givenRemainingDaySets(baseSet.copy(step = "3.a", alternateStep = "a"))
+      subject.deleteCustomExerciseSet(workoutName, "2", "3")
+
+      // When - the promoted set now sits at "3", so the anchor lookup succeeds again
+      coEvery { exerciseDao.loadDayExerciseSets("2", workoutName) } returns listOf(
+        baseSet.copy(alternateStep = null)
+      )
+      coEvery { exerciseDao.getExercise("Chest_Push-Up", workoutName) } returns flowOf(null)
+      val stored = slot<RoomExerciseSet>()
+      coEvery { exerciseDao.storeExerciseAndSet(any(), capture(stored)) } returns Unit
+
+      subject.addAlternateExercise(workoutName, "2", "3", "Chest_Push-Up")
+
+      // Then
+      assertThat(stored.captured.step).isEqualTo("3.a")
     }
   }
 
