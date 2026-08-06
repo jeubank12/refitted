@@ -24,6 +24,12 @@ jobs:
           filters: |
             android:
               - 'app/**'
+              - 'dynamo/**'
+              - 'data/**'
+              - 'identity/**'
+              - 'room/**'
+              - 'ui/**'
+              - 'util/**'
               - '*gradle*'
               - '.github/workflows/*'
               - 'gradle/**'
