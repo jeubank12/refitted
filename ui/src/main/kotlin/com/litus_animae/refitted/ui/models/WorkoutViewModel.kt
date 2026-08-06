@@ -78,14 +78,20 @@ class WorkoutViewModel @Inject constructor(
   var savedStateLoading by mutableStateOf(savedStateLastWorkoutPlan == null)
     private set
   private val _currentWorkout by lazy { MutableStateFlow(savedStateLastWorkoutPlan) }
+  // storedStateLastWorkoutPlan can't emit a "cleared" value (see below), so a deletion
+  // is tracked here and used to stop a stale `saved` from overriding the deletion.
+  private val _clearedPlanName = MutableStateFlow<String?>(null)
   private val savedWorkout = flow {
     val savedPlan = savedStateLastWorkoutPlan
     savedStateLoading = savedPlan == null
     emit(savedStateLastWorkoutPlan)
+    // mapNotNull: workoutByName briefly emits null while the plan is still syncing from
+    // the network, and a bare key-cleared transition goes through emptyFlow() below rather
+    // than emitting null - so nulls here are never a genuine "no plan selected" signal.
     emitAll(storedStateLastWorkoutPlan.mapNotNull { it })
   }.distinctUntilChanged()
-  val currentWorkout = combine(_currentWorkout, savedWorkout) { current, saved ->
-    saved ?: current
+  val currentWorkout = combine(_currentWorkout, savedWorkout, _clearedPlanName) { current, saved, cleared ->
+    if (saved?.workout != null && saved.workout == cleared) current else (saved ?: current)
   }.distinctUntilChanged()
 
   private fun hydratePlan(
@@ -239,6 +245,7 @@ class WorkoutViewModel @Inject constructor(
       workoutPlanRepo.deleteCustomPlan(name)
       if (_currentWorkout.value?.workout == name) {
         _currentWorkout.value = null
+        _clearedPlanName.value = name
         savedStateRepo.clearState(selectedPlan)
       }
     }
