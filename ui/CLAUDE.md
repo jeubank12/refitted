@@ -44,6 +44,22 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
   when a stale read during that gap would be visibly wrong. See `SetTrendStrip.kt`'s
   `rememberEffortSets` for the pattern.
 
+- **Don't reach for `Popup` to escape a clip.** A `Popup` is a real `WindowManager` window, and
+  adding/removing one lands on exactly the frames an animation can least afford — the start and
+  the end. Before using one, check whether an ancestor already provides unclipped space: `Box`,
+  `Column`, and `Row` do not clip, so only a genuinely clipping ancestor (`LazyLayout`, and
+  therefore `HorizontalPager`, or an explicit `clipToBounds`/`clip`) is a real constraint.
+  Hosting an overlay in the nearest unclipped ancestor gets the same reach for free.
+  `PagerInstruction.kt`'s `AlternateSwapOverlay` is the worked example.
+
+- **Derive transient animation state, don't set it from an effect.** State written in a
+  `LaunchedEffect` lands a frame after the composition that triggered it, so a UI that both
+  mounts an animation and hides what it replaces gets one frame showing the new content
+  unanimated. Keep a "settled" value in state that only an effect advances, and compute the
+  in-flight transition as a pure derivation of settled-vs-current — then both sides of the
+  handoff happen in the same composition pass. See `settledSet`/`swap` in
+  `PagerExerciseInstructions`.
+
 ## Testing
 
 ```bash
