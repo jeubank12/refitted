@@ -108,7 +108,7 @@ dependencies {
     api(libs.androidx.lifecycle.viewmodel.savedstate)
 
     // Credentials (exposed as api - used in public APIs)
-    implementation(libs.androidx.credentials)
+    api(libs.androidx.credentials)
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 

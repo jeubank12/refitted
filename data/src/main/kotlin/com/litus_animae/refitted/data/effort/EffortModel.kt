@@ -1,8 +1,10 @@
 package com.litus_animae.refitted.data.effort
 
+import java.time.Duration
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -42,9 +44,25 @@ object EffortModel {
    * this tiny floor doesn't distort anything - it just keeps reps the driver until real
    * weight gets logged, at which point the floor stops applying.
    */
-  fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double {
-    val clampedReps = reps.coerceIn(0, config.repCap)
-    return max(weight, 1.0) * (1 + clampedReps.toDouble() / config.epleyDivisor)
+  fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
+    max(weight, 1.0) * (1 + effectiveReps(reps, config) / config.epleyDivisor)
+
+  /**
+   * Reps as the capacity scale counts them: linear up to [EffortConfig.repCap], then
+   * log-compressed so a higher rep count always scores higher with diminishing returns.
+   *
+   * Continuous at the cap and with a matching first derivative there, so nothing about sets at
+   * or under it changes - the compression only decides how much a 16th rep and beyond is worth.
+   * A hard clamp scored 25 reps exactly like 15, which is fine for loadable lifts and useless
+   * for bodyweight work, where reps are the only thing that can go up.
+   */
+  fun effectiveReps(reps: Int, config: EffortConfig = EffortConfig.Default): Double {
+    val clamped = reps.coerceAtLeast(0)
+    if (clamped <= config.repCap || config.repSoftCapScale <= 0.0) {
+      return min(clamped, config.repCap).toDouble()
+    }
+    val excess = (clamped - config.repCap).toDouble()
+    return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
   }
 
   fun bubbleSize(z: Double?): Float {
@@ -71,6 +89,155 @@ object EffortModel {
   }
 
   /**
+   * One unit the regression treats as a "session".
+   *
+   * [sessionIndex] and [dayOffset] are always calendar-day facts even when the fit is running
+   * at set granularity, so everything downstream (session gap marks, x-axis labels) keeps
+   * reading the same session structure regardless of which grain produced the numbers. [x] is
+   * the regression's own domain and is the only field that differs between grains.
+   *
+   * [layoffDays] is the calendar gap to the previous day the lifter trained, so every fit
+   * session inside one day shares it. [agingDays] is that same gap charged once per day rather
+   * than once per fit session - at set grain, letting each of five sets bill a 90-day layoff
+   * separately would age the history by 450 days.
+   */
+  private data class FitSession(
+    val sets: List<TimedSet>,
+    val sessionIndex: Int,
+    val dayOffset: Long,
+    val x: Double,
+    val layoffDays: Double,
+    val agingDays: Double
+  )
+
+  /**
+   * A set paired with how long the lifter rested before it, in seconds - null for the first set
+   * of a calendar day, which has nothing before it to rest from. Measured once at day grain so
+   * both grains see the same rest, however they go on to group the sets.
+   */
+  private data class TimedSet(val set: EffortSet, val restSeconds: Double?)
+
+  /** Calendar-day grain: one fit session per day, regressed on day-offset. */
+  private fun daySessions(sets: List<EffortSet>, zone: ZoneId): List<FitSession> {
+    val byDay = sets
+      .sortedBy { it.completed }
+      .groupBy { it.completed.atZone(zone).toLocalDate() }
+      .toSortedMap()
+    val firstDay = byDay.firstKey()
+    var previousDayOffset: Long? = null
+    return byDay.entries.mapIndexed { index, (day, sessionSets) ->
+      val dayOffset = ChronoUnit.DAYS.between(firstDay, day)
+      val layoffDays = previousDayOffset?.let { (dayOffset - it).toDouble() } ?: 0.0
+      previousDayOffset = dayOffset
+      val timed = sessionSets.mapIndexed { setIndex, set ->
+        val rest = if (setIndex == 0) {
+          null
+        } else {
+          Duration.between(sessionSets[setIndex - 1].completed, set.completed).toMillis() / 1000.0
+        }
+        TimedSet(set, rest)
+      }
+      FitSession(timed, index, dayOffset, dayOffset.toDouble(), layoffDays, layoffDays)
+    }
+  }
+
+  /**
+   * How far the expectation is cut back for time away. Ordinary rest days and a missed week sit
+   * inside the grace period and cost nothing; past that it decays on its own half-life and
+   * floors well short of zero.
+   */
+  private fun detrainFactor(layoffDays: Double, config: EffortConfig): Double {
+    val excess = (layoffDays - config.detrainGraceDays).coerceAtLeast(0.0)
+    if (excess <= 0.0 || config.detrainHalfLifeDays <= 0.0) return 1.0
+    return 0.5.pow(excess / config.detrainHalfLifeDays).coerceAtLeast(config.detrainFloor)
+  }
+
+  /**
+   * How much credit a set earns for how little rest preceded it. Bonus only, capped at
+   * [EffortConfig.densityBonusMax] - see the config for why this never subtracts.
+   */
+  private fun densityFactor(restSeconds: Double?, config: EffortConfig): Double = when {
+    restSeconds == null -> 1.0
+    restSeconds < config.restImplausibleFloorSeconds -> 1.0
+    restSeconds > config.restNeutralSeconds -> 1.0
+    else -> {
+      val span = config.restReferenceSeconds - config.restCreditFloorSeconds
+      val credit = if (span <= 0.0) {
+        0.0
+      } else {
+        ((config.restReferenceSeconds - restSeconds) / span).coerceIn(0.0, 1.0)
+      }
+      1.0 + config.densityBonusMax * credit
+    }
+  }
+
+  private fun effectiveCapacity(timed: TimedSet, config: EffortConfig): Double =
+    capacity(timed.set.weight, timed.set.reps, config) * densityFactor(timed.restSeconds, config)
+
+  /**
+   * How much of its best a session actually held, as a multiplier on the value it feeds the
+   * trend. Three sets at the same weight keep all of it; a top set followed by two lighter ones
+   * gives some back.
+   *
+   * Only sets from [peakIndex] onward count. Ramping up to a top set is warm-up, not fade, and
+   * a session that ends on its best never faded at all - so a lone top single, and a session of
+   * one set, are both left alone. This is deliberately a discount off [bestCapacity] rather
+   * than a bonus above it: session values have to stay on the same scale as the individual set
+   * capacities they get compared against, or the whole trend drifts above every real set.
+   *
+   * Aggregate only. Individual bubbles already show a fade on their own - the lighter sets
+   * score lower against the session's expectation - so crediting it per set would count it
+   * twice.
+   */
+  private fun sustainFactor(
+    capacities: List<Double>,
+    peakIndex: Int,
+    bestCapacity: Double,
+    config: EffortConfig
+  ): Double {
+    val tail = capacities.subList(peakIndex, capacities.size)
+    if (tail.size <= 1 || bestCapacity <= 0.0) return 1.0
+    val tolerance = config.sustainTolerance
+    val span = 1.0 - tolerance
+    val holdRatio = tail.sumOf { c ->
+      if (span <= 0.0) {
+        if (c >= bestCapacity) 1.0 else 0.0
+      } else {
+        ((c / bestCapacity - tolerance) / span).coerceIn(0.0, 1.0)
+      }
+    } / tail.size
+    return 1.0 - config.sustainPenaltyMax * (1.0 - holdRatio)
+  }
+
+  /**
+   * Set grain: every set is its own fit session, regressed on a running set-sequence counter.
+   *
+   * The x-domain stays set-sequence rather than fractional days on purpose. A day's sets span
+   * about 0.02 days, so a fractional-day fit over them is near-degenerate, and extrapolating
+   * that slope a full day forward to the next session runs straight into the `1.5 * meanY`
+   * clamp. Set-sequence x is well conditioned, and it's the domain the strip already plots
+   * against. The time-aware terms read [EffortSet.completed] deltas directly, so they behave
+   * identically either way.
+   */
+  private fun explodedSessions(sets: List<EffortSet>, zone: ZoneId): List<FitSession> {
+    var x = 0.0
+    return daySessions(sets, zone).flatMap { day ->
+      day.sets.mapIndexed { setIndex, timed ->
+        FitSession(
+          sets = listOf(timed),
+          sessionIndex = day.sessionIndex,
+          dayOffset = day.dayOffset,
+          x = x++,
+          layoffDays = day.layoffDays,
+          // Charged once for the day, on its first set, so a five-set comeback session doesn't
+          // age the history by five layoffs.
+          agingDays = if (setIndex == 0) day.agingDays else 0.0
+        )
+      }
+    }
+  }
+
+  /**
    * Groups [sets] into calendar-day sessions (in [zone]) and scores every set against a
    * recency-weighted linear regression of session-best capacity, fit only on sessions
    * strictly before it (causal / one-step-ahead).
@@ -86,18 +253,26 @@ object EffortModel {
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
     if (sets.isEmpty()) return EffortSeries.Empty
+    return scoreSessions(daySessions(sets, zone), config, config.maxExtrapolationDays.toDouble())
+  }
 
-    val sessions = sets
-      .sortedBy { it.completed }
-      .groupBy { it.completed.atZone(zone).toLocalDate() }
-      .toSortedMap()
-      .values
-      .toList()
+  /**
+   * The shared fit. Walks [sessions] in order, predicting each from the ones strictly before it
+   * and folding it in only afterwards, so a session's outcome never influences its own
+   * expectation. Both grains run this same code - the only difference is what a "session" is
+   * and what [FitSession.x] means.
+   */
+  private fun scoreSessions(
+    sessions: List<FitSession>,
+    config: EffortConfig,
+    maxExtrapolation: Double,
+    skipWarmUps: Boolean = false
+  ): EffortSeries {
+    if (sessions.isEmpty()) return EffortSeries.Empty
 
-    val firstDay = sessions.first().first().completed.atZone(zone).toLocalDate()
-    val decay = 0.5.pow(1.0 / config.halfLifeSessions)
+    val sessionDecay = 0.5.pow(1.0 / config.halfLifeSessions)
 
-    // Regression accumulators (recency-weighted sums of x=dayOffset, y=session-best capacity).
+    // Regression accumulators (recency-weighted sums of x, y=session-best capacity).
     var sumW = 0.0
     var sumWx = 0.0
     var sumWy = 0.0
@@ -113,31 +288,36 @@ object EffortModel {
     var sumRepsWr = 0.0
 
     var priorSessionCount = 0
-    var lastPriorDayOffset = 0L
+    var lastPriorX = 0.0
+    var runningBest = 0.0
 
     val scoredSets = mutableListOf<ScoredSet>()
     val trendPoints = mutableListOf<TrendPoint>()
 
-    sessions.forEachIndexed { sessionIndex, sessionSets ->
-      val day = sessionSets.first().completed.atZone(zone).toLocalDate()
-      val dayOffset = ChronoUnit.DAYS.between(firstDay, day)
+    sessions.forEach { session ->
+      val sessionSets = session.sets
 
-      var bestCapacity = capacity(sessionSets[0].weight, sessionSets[0].reps, config)
-      var bestReps = sessionSets[0].reps.coerceIn(0, config.repCap)
+      val capacities = sessionSets.map { effectiveCapacity(it, config) }
+      var peakIndex = 0
+      var bestCapacity = capacities[0]
+      var bestReps = effectiveReps(sessionSets[0].set.reps, config)
       for (i in 1 until sessionSets.size) {
-        val c = capacity(sessionSets[i].weight, sessionSets[i].reps, config)
-        val r = sessionSets[i].reps.coerceIn(0, config.repCap)
+        val c = capacities[i]
+        val r = effectiveReps(sessionSets[i].set.reps, config)
         if (c > bestCapacity || (c == bestCapacity && r > bestReps)) {
+          peakIndex = i
           bestCapacity = c
           bestReps = r
         }
       }
+      val sessionValue = bestCapacity * sustainFactor(capacities, peakIndex, bestCapacity, config)
 
       var expectedCapacity: Double? = null
+      var expectedWeight: Double? = null
       var residualScale: Double? = null
 
       if (priorSessionCount >= config.minPriorSessions) {
-        val xEff = min(dayOffset, lastPriorDayOffset + config.maxExtrapolationDays).toDouble()
+        val xEff = min(session.x, lastPriorX + maxExtrapolation)
         val den = sumW * sumWxx - sumWx * sumWx
         val meanY = sumWy / sumW
         val raw = if (abs(den) < 1e-9) {
@@ -151,19 +331,23 @@ object EffortModel {
         // recency-weighted mean until enough sessions have accumulated to trust the slope.
         val lambda = ((priorSessionCount - 2) / 4.0).coerceIn(0.0, 1.0)
         val shrunk = if (config.shrinkToMean) lambda * raw + (1 - lambda) * meanY else raw
-        val cHat = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
+        // The extrapolation clamp above bounds how far the *slope* can run after a gap; this
+        // bounds the *level*, which nothing did before - the curve used to freeze where it was
+        // left, so coming back from months off read BELOW on every set until it was clawed back.
+        val cHat = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY) * detrainFactor(session.layoffDays, config)
         expectedCapacity = cHat
 
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
         residualScale = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
 
-        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repCap.toDouble())
+        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
         val wHat = cHat / (1 + rHat / config.epleyDivisor)
+        expectedWeight = wHat
         trendPoints.add(
           TrendPoint(
-            sessionIndex = sessionIndex,
-            dayOffset = dayOffset,
-            at = sessionSets.first().completed,
+            sessionIndex = session.sessionIndex,
+            dayOffset = session.dayOffset,
+            at = sessionSets.first().set.completed,
             expectedCapacity = cHat,
             typicalReps = rHat,
             expectedWeight = wHat
@@ -171,20 +355,21 @@ object EffortModel {
         )
       }
 
-      sessionSets.forEachIndexed { setIndex, effortSet ->
-        val c = capacity(effortSet.weight, effortSet.reps, config)
+      sessionSets.forEachIndexed { setIndex, timed ->
+        val c = effectiveCapacity(timed, config)
         val z = expectedCapacity?.let {
           ((c - it) / (residualScale ?: 1.0)).coerceIn(-config.maxAbsZ, config.maxAbsZ)
         }
         scoredSets.add(
           ScoredSet(
-            source = effortSet,
-            sessionIndex = sessionIndex,
+            source = timed.set,
+            sessionIndex = session.sessionIndex,
             setIndexInSession = setIndex,
             setsInSession = sessionSets.size,
-            dayOffset = dayOffset,
+            dayOffset = session.dayOffset,
             capacity = c,
             expectation = expectedCapacity,
+            expectedWeight = expectedWeight,
             z = z,
             size = bubbleSize(z),
             zone = zoneOf(z)
@@ -192,51 +377,64 @@ object EffortModel {
         )
       }
 
+      // At day grain, taking the session best already means a warm-up can never drag the fit.
+      // At set grain there is no aggregation to hide behind, so the same protection has to be
+      // explicit: a set far under what the lifter has already shown is a warm-up, and folding it
+      // in as if it were a session outcome yanks the recency-weighted line down hard enough to
+      // make the very next working set read IMPLAUSIBLE.
+      val isWarmUp = skipWarmUps && sessionValue < config.workingSetFraction * runningBest
+      runningBest = max(runningBest, sessionValue)
+      if (isWarmUp) return@forEach
+
       // Fold this session in *after* using it for prediction/scoring, so a session's
       // outcome (a PR or a bad day) never influences its own expectation.
+      val decay = sessionDecay * 0.5.pow(session.agingDays / config.halfLifeDays)
       sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
       sumResidualW *= decay; sumResidualWe2 *= decay
       sumRepsW *= decay; sumRepsWr *= decay
 
-      val x = dayOffset.toDouble()
+      val x = session.x
       sumW += 1.0
       sumWx += x
-      sumWy += bestCapacity
+      sumWy += sessionValue
       sumWxx += x * x
-      sumWxy += x * bestCapacity
+      sumWxy += x * sessionValue
 
       sumRepsW += 1.0
-      sumRepsWr += bestReps.toDouble()
+      sumRepsWr += bestReps
 
       if (expectedCapacity != null) {
-        val e = bestCapacity - expectedCapacity
+        val e = sessionValue - expectedCapacity
         sumResidualW += 1.0
         sumResidualWe2 += e * e
       }
 
       priorSessionCount += 1
-      lastPriorDayOffset = dayOffset
+      lastPriorX = x
     }
 
     return EffortSeries(scoredSets, trendPoints)
   }
 
   /**
-   * Strip-only augmentation of [score]: for a session still COLD under the real, session-best
-   * fit (fewer than [EffortConfig.minPriorSessions] prior sessions), fits a second, coarser
-   * regression over individual set capacities from strictly prior sessions instead of
-   * session-bests, so a chart with too little history to trust a session-best fit still has
-   * something real to show rather than a screen of neutral grey. [score] itself is untouched
-   * by this - the doc spec's cold-start rule and every session at or past
-   * [EffortConfig.minPriorSessions] behave identically to calling [score] directly, just
-   * tagged [ExpectationSource.SESSION] instead of left `null`.
+   * Strip-only augmentation of [score]: where the real, session-best fit is still COLD (fewer
+   * than [EffortConfig.minPriorSessions] prior calendar-day sessions), fills in from a second
+   * run of the very same fit at set granularity - every set treated as its own session - so a
+   * chart with too little history to trust a session-best fit still has something real to show
+   * rather than a screen of neutral grey.
    *
-   * Gated on [EffortConfig.minPriorSetsForBootstrap] sets accumulated from sessions strictly
-   * before the one being scored - never the current session's own sets, so logging a set never
-   * moves that same set's own comparison value (the same causal, fold-in-after-scoring
-   * discipline [score] uses for sessions, just at set granularity). Concretely: a first-ever
-   * session is always all-COLD no matter how many sets it has, since no prior session exists
-   * yet to bootstrap from.
+   * Running the identical machinery at a finer grain, rather than a separate hand-rolled
+   * regression, is what keeps the two comparable: both shrink toward the recency-weighted mean
+   * and both derive a *fitted* residual scale rather than always falling back to the floor. The
+   * floor-only stand-in this replaced produced systematically larger |z| than the real fit, so
+   * bubble sizes and zones visibly jumped at the handoff for identical work.
+   *
+   * [score] itself is untouched - the drawer still sees only the session-best fit. Sets the
+   * real fit already covers are passed through tagged [ExpectationSource.SESSION]; sets the
+   * exploded fit covers are tagged [ExpectationSource.BOOTSTRAP]; anything neither covers stays
+   * COLD. The exploded fit is causal at set grain, so it needs
+   * [EffortConfig.minPriorSetsForBootstrap] strictly-prior sets - which the current session's
+   * own earlier sets can supply, so a brand-new exercise warms up within its first session.
    */
   fun scoreWithBootstrap(
     sets: List<EffortSet>,
@@ -246,114 +444,64 @@ object EffortModel {
     val real = score(sets, zone, config)
     if (real.sets.isEmpty()) return real
 
-    val sessions = sets
-      .sortedBy { it.completed }
-      .groupBy { it.completed.atZone(zone).toLocalDate() }
-      .toSortedMap()
-      .values
-      .toList()
+    val exploded = scoreSessions(
+      explodedSessions(sets, zone),
+      config.copy(minPriorSessions = config.minPriorSetsForBootstrap),
+      // Set-sequence x, so the bound has to be denominated in sets - maxExtrapolationDays is a
+      // calendar quantity and means nothing in this domain. Skipped warm-ups don't advance
+      // lastPriorX while session.x keeps counting, so the gap here tracks set volume, not time.
+      maxExtrapolation = config.maxExtrapolationSets,
+      skipWarmUps = true
+    )
 
-    val decay = 0.5.pow(1.0 / config.halfLifeSessions)
-
-    // Recency-weighted causal regression over individual prior-session set capacities - same
-    // shrink-to-mean shape as score()'s session-best regression, just keyed by a running
-    // set-sequence x instead of day-offset, and fit only on sets from sessions strictly
-    // before the one it predicts for.
-    var sumW = 0.0
-    var sumWx = 0.0
-    var sumWy = 0.0
-    var sumWxx = 0.0
-    var sumWxy = 0.0
-    var sumRepsW = 0.0
-    var sumRepsWr = 0.0
-    var priorSetCount = 0
-    var x = 0.0
-
-    var realIndex = 0
-    val scoredSets = mutableListOf<ScoredSet>()
-    val trendPoints = mutableListOf<TrendPoint>()
-
-    sessions.forEach { sessionSets ->
-      val firstReal = real.sets[realIndex]
-      val useBootstrap = firstReal.expectation == null &&
-        priorSetCount >= config.minPriorSetsForBootstrap
-
-      if (useBootstrap) {
-        val meanY = sumWy / sumW
-        val den = sumW * sumWxx - sumWx * sumWx
-        val cHat = if (abs(den) < 1e-9) {
-          meanY
-        } else {
-          val slope = (sumW * sumWxy - sumWx * sumWy) / den
-          val intercept = (sumWy - slope * sumWx) / sumW
-          (intercept + slope * x).coerceIn(0.5 * meanY, 1.5 * meanY)
-        }
-        // No fitted residual pass here - too little data yet to trust one - always the floor.
-        val residualScale = max(config.residualScaleFloorFraction * cHat, 1e-6)
-        val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repCap.toDouble())
-        val wHat = cHat / (1 + rHat / config.epleyDivisor)
-
-        trendPoints.add(
-          TrendPoint(
-            sessionIndex = firstReal.sessionIndex,
-            dayOffset = firstReal.dayOffset,
-            at = sessionSets.first().completed,
-            expectedCapacity = cHat,
-            typicalReps = rHat,
-            expectedWeight = wHat,
-            expectationSource = ExpectationSource.BOOTSTRAP
-          )
-        )
-
-        sessionSets.forEach { effortSet ->
-          val c = capacity(effortSet.weight, effortSet.reps, config)
-          val z = ((c - cHat) / residualScale).coerceIn(-config.maxAbsZ, config.maxAbsZ)
-          scoredSets.add(
-            real.sets[realIndex].copy(
-              expectation = cHat,
-              z = z,
-              size = bubbleSize(z),
-              zone = zoneOf(z),
+    // Both grains walk the same completed-sorted sets in the same order, so the two set lists
+    // line up 1:1 and can be zipped by position.
+    val scoredSets = real.sets.mapIndexed { index, scored ->
+      when {
+        scored.expectation != null -> scored.copy(expectationSource = ExpectationSource.SESSION)
+        else -> {
+          val fallback = exploded.sets[index]
+          if (fallback.expectation == null) {
+            scored
+          } else {
+            scored.copy(
+              expectation = fallback.expectation,
+              expectedWeight = fallback.expectedWeight,
+              z = fallback.z,
+              size = fallback.size,
+              zone = fallback.zone,
               expectationSource = ExpectationSource.BOOTSTRAP
             )
-          )
-          realIndex++
+          }
         }
-      } else {
-        sessionSets.forEach { _ ->
-          val scored = real.sets[realIndex]
-          scoredSets.add(
-            if (scored.expectation != null) {
-              scored.copy(expectationSource = ExpectationSource.SESSION)
-            } else {
-              scored
-            }
-          )
-          realIndex++
-        }
-        real.trend.firstOrNull { it.sessionIndex == firstReal.sessionIndex }?.let {
-          trendPoints.add(it.copy(expectationSource = ExpectationSource.SESSION))
-        }
-      }
-
-      // Fold in after scoring, same discipline as score() - a session's own sets never move
-      // its own bootstrap value.
-      sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
-      sumRepsW *= decay; sumRepsWr *= decay
-      sessionSets.forEach { effortSet ->
-        val c = capacity(effortSet.weight, effortSet.reps, config)
-        sumW += 1.0
-        sumWx += x
-        sumWy += c
-        sumWxx += x * x
-        sumWxy += x * c
-        sumRepsW += 1.0
-        sumRepsWr += effortSet.reps.coerceIn(0, config.repCap).toDouble()
-        priorSetCount += 1
-        x += 1.0
       }
     }
 
-    return EffortSeries(scoredSets, trendPoints.sortedBy { it.sessionIndex })
+    // One trend point per calendar session either way - per-set detail rides on each
+    // ScoredSet.expectedWeight instead, which is what lets the strip draw a line that moves
+    // within a session rather than stepping once per day.
+    val realBySession = real.trend.associateBy { it.sessionIndex }
+    val trendPoints = scoredSets
+      .filter { it.expectationSource != null }
+      .groupBy { it.sessionIndex }
+      .toSortedMap()
+      .map { (sessionIndex, sessionScored) ->
+        realBySession[sessionIndex]?.copy(expectationSource = ExpectationSource.SESSION)
+          ?: sessionScored.first().let { first ->
+            val cHat = first.expectation!!
+            val wHat = first.expectedWeight!!
+            TrendPoint(
+              sessionIndex = sessionIndex,
+              dayOffset = first.dayOffset,
+              at = first.source.completed,
+              expectedCapacity = cHat,
+              typicalReps = (cHat / wHat - 1) * config.epleyDivisor,
+              expectedWeight = wHat,
+              expectationSource = ExpectationSource.BOOTSTRAP
+            )
+          }
+      }
+
+    return EffortSeries(scoredSets, trendPoints)
   }
 }
