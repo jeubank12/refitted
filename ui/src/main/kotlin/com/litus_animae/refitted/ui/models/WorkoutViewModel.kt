@@ -130,6 +130,7 @@ class WorkoutViewModel @Inject constructor(
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Setting currentWorkout $workout")
       _currentWorkout.value = workout
+      _clearedPlanName.value = null
       log.d(TAG, "Saving selected plan $workout")
       savedStateHandle[selectedPlan] = workout.workout
       savedStateHandle[selectedPlanDays] = workout.totalDays
@@ -231,6 +232,7 @@ class WorkoutViewModel @Inject constructor(
             savedStateHandle[selectedPlan] = newName
             savedStateRepo.setState(selectedPlan, newName)
             workoutPlanRepo.workoutByName(newName).first()?.let { _currentWorkout.value = it }
+            _clearedPlanName.value = null
           }
           onSuccess()
         },
