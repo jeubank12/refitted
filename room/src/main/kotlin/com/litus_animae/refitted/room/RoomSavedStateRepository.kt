@@ -28,4 +28,8 @@ class RoomSavedStateRepository @Inject constructor(private val roomProvider: Ref
   override suspend fun setState(key: String, value: String) {
     refittedRoom.last().getSavedStateDao().insert(RoomSavedState.fromDomain(SavedState(key, value)))
   }
+
+  override suspend fun clearState(key: String) {
+    refittedRoom.last().getSavedStateDao().clear(key)
+  }
 }

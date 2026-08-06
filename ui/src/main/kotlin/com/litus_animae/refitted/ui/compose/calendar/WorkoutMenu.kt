@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -53,7 +54,8 @@ fun ColumnScope.WorkoutPlanMenu(
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
   onSelect: (WorkoutPlan) -> Unit,
-  onCreateCustom: () -> Unit = {}
+  onCreateCustom: () -> Unit = {},
+  onRenameRequest: (WorkoutPlan) -> Unit = {}
 ) {
   LazyColumn(modifier) {
     item {
@@ -139,13 +141,10 @@ fun ColumnScope.WorkoutPlanMenu(
               style = MaterialTheme.typography.overline
             )
           }
-          Text(
-            plan.workout,
-            Modifier
-              .fillMaxWidth()
-              .clickable { onSelect(plan) }
-              .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-            style = MaterialTheme.typography.button
+          WorkoutPlanRow(
+            plan = plan,
+            onSelect = onSelect,
+            onRenameRequest = onRenameRequest
           )
           Divider()
         }
@@ -158,16 +157,51 @@ fun ColumnScope.WorkoutPlanMenu(
             .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.Add, "create your own", tint = MaterialTheme.colors.primary)
+          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colors.primary)
           Spacer(Modifier.width(8.dp))
           // TODO localize
           Text(
-            "Create your own",
+            "Create your own plan",
             color = MaterialTheme.colors.primary,
             style = MaterialTheme.typography.button
           )
         }
         Divider()
+      }
+    }
+  }
+}
+
+/**
+ * A server plan row is just a click target. A custom plan row additionally gets a trailing
+ * pencil button - a visible, discoverable affordance beats a hidden gesture (long-press and
+ * swipe were both tried here first and dropped: neither was discoverable, and a real swipe
+ * gesture should act on release rather than just reveal a button). The pencil opens
+ * [RenamePlanDialog], which now holds both Rename and Delete.
+ */
+@Composable
+private fun WorkoutPlanRow(
+  plan: WorkoutPlan,
+  onSelect: (WorkoutPlan) -> Unit,
+  onRenameRequest: (WorkoutPlan) -> Unit
+) {
+  Row(
+    Modifier
+      .fillMaxWidth()
+      .clickable { onSelect(plan) },
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(
+      plan.workout,
+      Modifier
+        .weight(1f)
+        .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
+      style = MaterialTheme.typography.button
+    )
+    if (plan.isCustom) {
+      IconButton(onClick = { onRenameRequest(plan) }) {
+        // TODO localize
+        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colors.primary)
       }
     }
   }

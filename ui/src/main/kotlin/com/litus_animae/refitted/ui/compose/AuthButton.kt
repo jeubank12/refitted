@@ -52,7 +52,8 @@ internal fun AuthButton(
   handleAuthFailure: (GetCredentialException) -> Unit,
   handleDeAuth: () -> Unit,
   authedEmail: String?,
-  webClientId: String
+  webClientId: String,
+  ctaText: String = "Sign in for more workouts"
 ) {
   val context: Context = LocalContext.current
   val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -85,7 +86,7 @@ internal fun AuthButton(
       ) {
         if (it == null) {
           Text(
-            "Sign in for more workouts",
+            ctaText,
             Modifier
               .fillMaxWidth()
               .padding(end = 10.dp),

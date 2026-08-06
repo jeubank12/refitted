@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -61,10 +62,13 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialException
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.PlanKind
 import com.litus_animae.refitted.data.models.WorkoutPlan
+import com.litus_animae.refitted.ui.compose.AuthButton
 
 private val muscleGroups = MuscleGroup.displayNames()
 
@@ -165,6 +169,11 @@ fun ExercisePickerList(
   /** Re-syncs [accessibleWorkouts] itself (new/removed plans) - separate from a section's own onLoadWorkout, which only refreshes that plan's exercises. */
   onRefreshWorkouts: () -> Unit,
   isRefreshingWorkouts: Boolean,
+  /** Null when signed out - shows a "sign in for more exercises" CTA below the list. */
+  authedEmail: String?,
+  onSignInSuccess: (GetCredentialResponse) -> Unit,
+  onSignInFailure: (GetCredentialException) -> Unit,
+  webClientId: String,
   modifier: Modifier = Modifier
 ) {
   val accessibleNames = accessibleWorkouts.map { it.workout }.toSet()
@@ -209,6 +218,21 @@ fun ExercisePickerList(
           }
         }
       )
+    },
+    bottomBar = {
+      if (authedEmail == null) {
+        AuthButton(
+          Modifier
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
+            .padding(16.dp),
+          handleAuthSuccess = onSignInSuccess,
+          handleAuthFailure = onSignInFailure,
+          handleDeAuth = {},
+          authedEmail = null,
+          webClientId = webClientId,
+          ctaText = "Sign in for more exercises"
+        )
+      }
     }
   ) { contentPadding ->
     LazyColumn(Modifier.padding(contentPadding).fillMaxSize()) {
@@ -509,7 +533,11 @@ private fun PreviewExercisePickerList() {
       onPick = {},
       onBack = {},
       onRefreshWorkouts = {},
-      isRefreshingWorkouts = false
+      isRefreshingWorkouts = false,
+      authedEmail = null,
+      onSignInSuccess = {},
+      onSignInFailure = {},
+      webClientId = ""
     )
   }
 }

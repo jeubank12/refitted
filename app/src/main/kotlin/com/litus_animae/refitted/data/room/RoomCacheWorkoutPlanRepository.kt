@@ -5,6 +5,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import androidx.room.withTransaction
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.network.WorkoutPlanNetworkService
 import com.litus_animae.refitted.data.models.WorkoutPlan
@@ -128,6 +129,37 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         workoutPlanDao.update(currentPlan.copy(restDays = newRestDays))
         if (isRest) {
             database.getExerciseDao().clearDay(day.toString(), workoutPlan.workout)
+        }
+    }
+
+    override suspend fun renameCustomPlan(oldName: String, newName: String): Result<Unit> {
+        val exerciseDao = database.getExerciseDao()
+        return database.withTransaction {
+            // Checked inside the transaction, not before it, so a concurrent write can't insert
+            // or rename a plan to newName between the check and the rename below.
+            if (workoutPlanDao.getByName(newName) != null) {
+                return@withTransaction Result.failure(IllegalStateException("A plan named \"$newName\" already exists."))
+            }
+            // exerciseset has a FK to Exercise on (name, workout) with no onUpdate action, and
+            // Room runs with PRAGMA foreign_keys=ON, so renaming either side alone trips an
+            // immediate FK violation - defer all FK checks in this transaction until commit,
+            // when both sides are consistent again.
+            database.openHelper.writableDatabase.execSQL("PRAGMA defer_foreign_keys = ON")
+            workoutPlanDao.renamePlan(oldName, newName)
+            exerciseDao.renameExerciseWorkout(oldName, newName)
+            exerciseDao.renameExerciseSetWorkout(oldName, newName)
+            exerciseDao.renameSetRecordWorkout(oldName, newName)
+            Result.success(Unit)
+        }
+    }
+
+    override suspend fun deleteCustomPlan(name: String) {
+        val exerciseDao = database.getExerciseDao()
+        database.withTransaction {
+            exerciseDao.deleteExerciseSetsForWorkout(name)
+            exerciseDao.deleteSetRecordsForWorkout(name)
+            exerciseDao.deleteExercisesForWorkout(name)
+            workoutPlanDao.deletePlan(name)
         }
     }
 }
