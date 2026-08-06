@@ -39,6 +39,7 @@
     <string name="weight">Weight:</string>
     <string name="lbs">lbs</string>
     <string name="alternate">Alternate</string>
+    <string name="add_alternate_exercise">Add alternate exercise</string>
     <string name="history">History</string>
     <string name="colon">:</string>
     <string name="day">Day</string>

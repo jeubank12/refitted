@@ -3,12 +3,14 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
@@ -18,15 +20,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
+import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -34,6 +38,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -42,6 +47,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.nonEmptyListOf
+import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
@@ -68,7 +74,8 @@ fun PagerExerciseView(
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
   setHistoryList: (SetHistory) -> Unit,
-  setContextMenu: (@Composable RowScope.() -> Unit) -> Unit,
+  /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
+  setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
   onAlternateChange: (Int) -> Unit,
   onStartEditWeight: (Weight) -> Unit,
   onSetSaved: () -> Unit = {},
@@ -125,14 +132,34 @@ fun PagerExerciseView(
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
   LaunchedEffect(exerciseSet) {
-    setContextMenu {
+    setContextMenu { collapsed ->
       // Rendered here rather than in the top bar itself because this is where the displayed
       // exercise is known - it lands next to the add-exercise icon either way.
       if (editing && workoutPlan?.isCustom == true) {
         exerciseSet?.let { set ->
-          IconButton({ onAddAlternate(set) }) {
-            // TODO localize
-            Icon(Icons.Default.AltRoute, "add alternate for ${set.exerciseName}")
+          if (collapsed) {
+            var expanded by remember { mutableStateOf(false) }
+            IconButton({ expanded = true }) {
+              // TODO localize
+              Icon(Icons.Default.MoreVert, "more actions")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+              Text(
+                stringResource(id = R.string.add_alternate_exercise),
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    expanded = false
+                    onAddAlternate(set)
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp)
+              )
+            }
+          } else {
+            TextButton({ onAddAlternate(set) }) {
+              Text(stringResource(id = R.string.alternate))
+            }
           }
         }
       }

@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose.exercise
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -34,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.ui.R
@@ -75,7 +78,7 @@ fun Exercise(
   LaunchedEffect(day, workoutId) {
     exerciseModel.loadExercises(day, workoutId)
   }
-  var contextMenu by remember { mutableStateOf<@Composable RowScope.() -> Unit>({}) }
+  var contextMenu by remember { mutableStateOf<@Composable RowScope.(Boolean) -> Unit>({}) }
   val (historyList, setHistoryList) = remember {
     mutableStateOf(SetHistory())
   }
@@ -84,36 +87,58 @@ fun Exercise(
     // landscape — the two-pane exercise layout then splits content right up against it.
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     topBar = {
-      TopAppBar(
-        title = { Text("$title: $workoutId $dayWord $day") },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-        ),
-        backgroundColor = MaterialTheme.colors.primary,
-        actions = {
-          if (loadedWorkoutPlan?.isCustom == true && editing) {
-            IconButton(onAddExercise) {
-              // TODO localize
-              Icon(Icons.Default.Add, "add exercise")
-            }
-          }
-          contextMenu()
-        },
-        navigationIcon = {
-          IconButton({
-            scaffoldScope.launch {
-              if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-              else scaffoldState.drawerState.close()
-            }
-          }) {
-            Icon(
-              Icons.Default.History,
-              // TODO localize
-              "history"
-            )
-          }
+      val barTitle = "$title: $workoutId $dayWord $day"
+      val showAddExercise = loadedWorkoutPlan?.isCustom == true && editing
+      BoxWithConstraints {
+        val textMeasurer = rememberTextMeasurer()
+        val titleStyle = MaterialTheme.typography.h6
+        val buttonStyle = MaterialTheme.typography.button
+        val alternateLabel = stringResource(id = R.string.alternate)
+        val density = LocalDensity.current
+        val availablePx = with(density) { maxWidth.toPx() }
+        // Navigation icon plus the add-exercise icon, both 48dp touch targets, and the
+        // TextButton's own horizontal content padding.
+        val fixedPx = with(density) {
+          (48.dp + (if (showAddExercise) 48.dp else 0.dp) + 16.dp).toPx()
         }
-      )
+        val titlePx = remember(barTitle, titleStyle) {
+          textMeasurer.measure(barTitle, titleStyle).size.width
+        }
+        val alternatePx = remember(alternateLabel, buttonStyle) {
+          textMeasurer.measure(alternateLabel, buttonStyle).size.width
+        }
+        val collapsed = titlePx + alternatePx + fixedPx > availablePx
+        TopAppBar(
+          title = { Text(barTitle) },
+          windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          ),
+          backgroundColor = MaterialTheme.colors.primary,
+          actions = {
+            if (showAddExercise) {
+              IconButton(onAddExercise) {
+                // TODO localize
+                Icon(Icons.Default.Add, "add exercise")
+              }
+            }
+            contextMenu(collapsed)
+          },
+          navigationIcon = {
+            IconButton({
+              scaffoldScope.launch {
+                if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
+                else scaffoldState.drawerState.close()
+              }
+            }) {
+              Icon(
+                Icons.Default.History,
+                // TODO localize
+                "history"
+              )
+            }
+          }
+        )
+      }
     },
     scaffoldState = scaffoldState,
     drawerContent = { SetRecordList(history = historyList) }
