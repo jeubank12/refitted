@@ -322,8 +322,7 @@ fun Calendar(
         onRenameRequest = {
           renameTarget = it.workout
           renameError = null
-        },
-        onDeleteRequest = { deleteTarget = it.workout }
+        }
       )
       Row(
         Modifier
@@ -449,6 +448,11 @@ fun Calendar(
           onSuccess = { renameTarget = null },
           onError = { message -> renameError = message }
         )
+      },
+      onDelete = {
+        renameTarget = null
+        renameError = null
+        deleteTarget = target
       }
     )
   }

@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -65,22 +69,24 @@ fun NewCustomWorkoutDialog(
         Text("Create")
       }
     },
-    dismissButton = {
-      Button(onClick = onDismissRequest) { Text("Cancel") }
-    }
+    dismissButton = { DialogCancelButton(onDismissRequest) }
   )
 }
 
 /**
- * Renames a custom plan. [errorMessage] surfaces a rejected rename (e.g. name already taken)
- * inline without dismissing the dialog, so the user can just edit and retry.
+ * Edits a custom plan: rename, or delete it outright. [errorMessage] surfaces a rejected rename
+ * (e.g. name already taken) inline without dismissing the dialog, so the user can edit and retry.
+ *
+ * Delete sits apart from the Cancel/Rename pair and is the only error-colored control here -
+ * it's destructive, and [onDelete] only opens the confirmation, it never deletes directly.
  */
 @Composable
 fun RenamePlanDialog(
   currentName: String,
   errorMessage: String?,
   onDismissRequest: () -> Unit,
-  onRename: (newName: String) -> Unit
+  onRename: (newName: String) -> Unit,
+  onDelete: () -> Unit
 ) {
   var name by rememberSaveable { mutableStateOf(currentName) }
   AlertDialog(
@@ -107,19 +113,30 @@ fun RenamePlanDialog(
         }
       }
     },
-    confirmButton = {
-      Button(
-        onClick = { onRename(name.trim()) },
-        enabled = name.isNotBlank() && name.trim() != currentName
+    buttons = {
+      Row(
+        Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
       ) {
-        // TODO localize
-        Text("Rename")
-      }
-    },
-    dismissButton = {
-      Button(onClick = onDismissRequest) {
-        // TODO localize
-        Text("Cancel")
+        TextButton(
+          onClick = onDelete,
+          colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+        ) {
+          // TODO localize
+          Text("Delete")
+        }
+        Spacer(Modifier.weight(1f))
+        DialogCancelButton(onDismissRequest)
+        Spacer(Modifier.width(8.dp))
+        Button(
+          onClick = { onRename(name.trim()) },
+          enabled = name.isNotBlank() && name.trim() != currentName
+        ) {
+          // TODO localize
+          Text("Rename")
+        }
       }
     }
   )
@@ -127,7 +144,8 @@ fun RenamePlanDialog(
 
 /**
  * Confirms deletion of a custom plan - deletion is irreversible (unlike resetting workout
- * completion), so this warns explicitly that all days, exercises, and history are removed.
+ * completion), so this warns explicitly that all days, exercises, and history are removed, and
+ * the confirm button is error-colored rather than the usual primary.
  */
 @Composable
 fun DeletePlanConfirmDialog(
@@ -143,18 +161,36 @@ fun DeletePlanConfirmDialog(
       Text("This permanently deletes \"$planName\" - all of its days, exercises, and completion history. This cannot be undone.")
     },
     confirmButton = {
-      Button(onClick = onConfirm) {
+      Button(
+        onClick = onConfirm,
+        colors = ButtonDefaults.buttonColors(
+          backgroundColor = MaterialTheme.colors.error,
+          contentColor = MaterialTheme.colors.onError
+        )
+      ) {
         // TODO localize
         Text("Delete")
       }
     },
-    dismissButton = {
-      Button(onClick = onDismissRequest) {
-        // TODO localize
-        Text("Cancel")
-      }
-    }
+    dismissButton = { DialogCancelButton(onDismissRequest) }
   )
+}
+
+/**
+ * Cancel/dismiss control for the plan dialogs - low-emphasis by design, so it doesn't compete
+ * with the affirmative (or destructive) action next to it.
+ */
+@Composable
+private fun DialogCancelButton(onClick: () -> Unit) {
+  TextButton(
+    onClick = onClick,
+    colors = ButtonDefaults.textButtonColors(
+      contentColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+    )
+  ) {
+    // TODO localize
+    Text("Cancel")
+  }
 }
 
 /**
@@ -199,9 +235,7 @@ fun CopyDayDialog(
         Text("Copy")
       }
     },
-    dismissButton = {
-      Button(onClick = onDismissRequest) { Text("Cancel") }
-    }
+    dismissButton = { DialogCancelButton(onDismissRequest) }
   )
 }
 

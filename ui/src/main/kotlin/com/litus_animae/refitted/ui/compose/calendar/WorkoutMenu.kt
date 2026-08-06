@@ -1,30 +1,18 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.PagingData
@@ -35,8 +23,6 @@ import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.ui.compose.util.Theme
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @Preview(showBackground = true, widthDp = 200, heightDp = 400)
 @Composable
@@ -69,8 +55,7 @@ fun ColumnScope.WorkoutPlanMenu(
   workoutPlanError: String?,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit = {},
-  onRenameRequest: (WorkoutPlan) -> Unit = {},
-  onDeleteRequest: (WorkoutPlan) -> Unit = {}
+  onRenameRequest: (WorkoutPlan) -> Unit = {}
 ) {
   LazyColumn(modifier) {
     item {
@@ -159,8 +144,7 @@ fun ColumnScope.WorkoutPlanMenu(
           WorkoutPlanRow(
             plan = plan,
             onSelect = onSelect,
-            onRenameRequest = onRenameRequest,
-            onDeleteRequest = onDeleteRequest
+            onRenameRequest = onRenameRequest
           )
           Divider()
         }
@@ -189,105 +173,35 @@ fun ColumnScope.WorkoutPlanMenu(
 }
 
 /**
- * A server plan row is just a click target. A custom plan row additionally supports long-press
- * (opens a Rename/Delete menu) and swipe (reveals a delete icon behind the row) - swipe is
- * delete-only, it never renames, and neither gesture deletes without going through the caller's
- * confirmation dialog first.
+ * A server plan row is just a click target. A custom plan row additionally gets a trailing
+ * pencil button - a visible, discoverable affordance beats a hidden gesture (long-press and
+ * swipe were both tried here first and dropped: neither was discoverable, and a real swipe
+ * gesture should act on release rather than just reveal a button). The pencil opens
+ * [RenamePlanDialog], which now holds both Rename and Delete.
  */
 @Composable
 private fun WorkoutPlanRow(
   plan: WorkoutPlan,
   onSelect: (WorkoutPlan) -> Unit,
-  onRenameRequest: (WorkoutPlan) -> Unit,
-  onDeleteRequest: (WorkoutPlan) -> Unit
+  onRenameRequest: (WorkoutPlan) -> Unit
 ) {
-  if (!plan.isCustom) {
+  Row(
+    Modifier
+      .fillMaxWidth()
+      .clickable { onSelect(plan) },
+    verticalAlignment = Alignment.CenterVertically
+  ) {
     Text(
       plan.workout,
       Modifier
-        .fillMaxWidth()
-        .clickable { onSelect(plan) }
+        .weight(1f)
         .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
       style = MaterialTheme.typography.button
     )
-    return
-  }
-
-  var showRowMenu by remember { mutableStateOf(false) }
-  val density = LocalDensity.current
-  val revealPx = remember(density) { with(density) { 72.dp.toPx() } }
-  val offsetX = remember { Animatable(0f) }
-  val scope = rememberCoroutineScope()
-
-  Box(Modifier.fillMaxWidth()) {
-    Row(
-      Modifier
-        .matchParentSize()
-        .background(MaterialTheme.colors.error),
-      horizontalArrangement = Arrangement.End,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      IconButton(onClick = {
-        scope.launch { offsetX.animateTo(0f) }
-        onDeleteRequest(plan)
-      }) {
+    if (plan.isCustom) {
+      IconButton(onClick = { onRenameRequest(plan) }) {
         // TODO localize
-        Icon(Icons.Default.Delete, "delete plan", tint = MaterialTheme.colors.onError)
-      }
-    }
-    Box(
-      Modifier
-        .fillMaxWidth()
-        .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-        .background(MaterialTheme.colors.surface)
-        .draggable(
-          orientation = Orientation.Horizontal,
-          state = rememberDraggableState { delta ->
-            scope.launch {
-              offsetX.snapTo((offsetX.value + delta).coerceIn(-revealPx, 0f))
-            }
-          },
-          onDragStopped = {
-            offsetX.animateTo(if (offsetX.value < -revealPx / 2) -revealPx else 0f)
-          }
-        )
-        .combinedClickable(
-          onClick = { onSelect(plan) },
-          onLongClick = { showRowMenu = true }
-        )
-    ) {
-      Text(
-        plan.workout,
-        Modifier
-          .fillMaxWidth()
-          .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-        style = MaterialTheme.typography.button
-      )
-      DropdownMenu(expanded = showRowMenu, onDismissRequest = { showRowMenu = false }) {
-        // TODO localize
-        Text(
-          "Rename",
-          Modifier
-            .fillMaxWidth()
-            .clickable {
-              showRowMenu = false
-              onRenameRequest(plan)
-            }
-            .padding(start = 5.dp, end = 15.dp)
-            .padding(vertical = 5.dp)
-        )
-        // TODO localize
-        Text(
-          "Delete",
-          Modifier
-            .fillMaxWidth()
-            .clickable {
-              showRowMenu = false
-              onDeleteRequest(plan)
-            }
-            .padding(start = 5.dp, end = 15.dp)
-            .padding(vertical = 5.dp)
-        )
+        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colors.primary)
       }
     }
   }
