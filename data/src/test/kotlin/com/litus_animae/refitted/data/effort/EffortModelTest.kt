@@ -774,9 +774,9 @@ class EffortModelTest {
       // has to stay continuous where the strip switches from the dashed stand-in to the real
       // fit, rather than stepping to a visibly different level.
       assertThat(firstReal.expectation!!)
-        .isWithin(0.1 * lastBootstrap.expectation!!).of(lastBootstrap.expectation!!)
+        .isWithin(0.1 * lastBootstrap.expectation!!).of(lastBootstrap.expectation)
       assertThat(firstReal.expectedWeight!!)
-        .isWithin(0.1 * lastBootstrap.expectedWeight!!).of(lastBootstrap.expectedWeight!!)
+        .isWithin(0.1 * lastBootstrap.expectedWeight!!).of(lastBootstrap.expectedWeight)
     }
 
     @Test
@@ -814,7 +814,7 @@ class EffortModelTest {
           assertThat(it.expectedWeight).isNull()
         } else {
           assertThat(it.expectedWeight!!).isGreaterThan(0.0)
-          assertThat(it.expectedWeight!!).isLessThan(it.expectation!!)
+          assertThat(it.expectedWeight).isLessThan(it.expectation)
         }
       }
     }
