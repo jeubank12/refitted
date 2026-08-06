@@ -70,7 +70,7 @@ fun AlternateChip(
           if (instruction.alternateCount > 2) showPicker = true
           else onAlternateChange(instruction.activateNextAlternate())
         }
-        .padding(horizontal = 4.dp, vertical = 2.dp),
+        .padding(horizontal = 8.dp, vertical = 6.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       Icon(
