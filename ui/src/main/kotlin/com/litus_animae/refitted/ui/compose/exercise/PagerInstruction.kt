@@ -276,6 +276,10 @@ fun PagerExerciseInstructions(
           // The swap overlay renders this card while it is in flight; this slot stays composed
           // (the pager still needs it for layout and gestures) but yields the pixels.
           hidden = swap != null && pagesFromCurrent == 0,
+          // Share the same resolved set as the overlay for the settled, front-and-center page -
+          // see the parameter doc on CardContent for why.
+          resolvedSet = activeSet,
+          hasResolvedSet = pagesFromCurrent == 0,
           pageFocus = pageFocus,
           workoutPlan = workoutPlan,
           onAlternateChange = onAlternateChange,
@@ -468,6 +472,16 @@ private fun CardContent(
   pageFocus: Float = 0f,
   /** Yields the pixels to the swap overlay without giving up the slot's layout or gesture area. */
   hidden: Boolean = false,
+  /**
+   * The active page passes the same set the overlay animates in, rather than resolving its own
+   * copy - two independently-timed subscriptions to the same data can settle a frame apart,
+   * which shows as the card's content reverting right as [hidden] clears. `hasResolvedSet` (not
+   * just null-checking [resolvedSet]) distinguishes "the parent resolved this to null" from
+   * "no override was passed" for the deck's and other pages' own copies, which still resolve
+   * their own set below.
+   */
+  resolvedSet: ExerciseSet? = null,
+  hasResolvedSet: Boolean = false,
   workoutPlan: WorkoutPlan? = null,
   onAlternateChange: (Int) -> Unit = {},
   modifier: Modifier = Modifier,
@@ -483,9 +497,10 @@ private fun CardContent(
   val exerciseSetFlow = remember(instruction?.sets?.head?.id, alternateIndex) {
     instruction?.set(alternateIndex)
   }
-  val exerciseSet by exerciseSetFlow
+  val ownExerciseSet by exerciseSetFlow
     ?.collectAsStateWithLifecycle(initialValue = null)
     ?: remember { mutableStateOf(null) }
+  val exerciseSet = if (hasResolvedSet) resolvedSet else ownExerciseSet
 
   ExerciseCard(
     exerciseSet = exerciseSet,
