@@ -11,7 +11,11 @@
       "Bash(npx tsc *)",
       "Bash(xargs cat:*)"
     ],
-    "deny": [],
+    "deny": [
+      "mcp__github__add_issue_comment",
+      "mcp__github__add_reply_to_pull_request_comment",
+      "mcp__github__pull_request_review_write"
+    ],
     "ask": []
   },
   "hooks": {

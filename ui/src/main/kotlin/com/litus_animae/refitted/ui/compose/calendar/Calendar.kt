@@ -146,7 +146,11 @@ fun WorkoutCalendar(
     }
     item {
       AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
-        EditModeBanner(onDone = onExitEdit, modifier = Modifier.padding(bottom = 12.dp))
+        EditModeBanner(
+          isEmpty = plan.totalDays == 0,
+          onDone = onExitEdit,
+          modifier = Modifier.padding(bottom = 12.dp)
+        )
       }
     }
     item {
@@ -238,7 +242,7 @@ fun WorkoutCalendar(
 }
 
 @Composable
-private fun EditModeBanner(onDone: () -> Unit, modifier: Modifier = Modifier) {
+private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modifier = Modifier) {
   Surface(
     modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
@@ -254,7 +258,11 @@ private fun EditModeBanner(onDone: () -> Unit, modifier: Modifier = Modifier) {
       verticalAlignment = Alignment.CenterVertically
     ) {
       // TODO localize
-      Text("Editing plan — tap a day to change it", fontSize = 13.sp)
+      Text(
+        if (isEmpty) "This is your new plan — tap + below to add your first day"
+        else "Editing plan — tap a day to change it",
+        fontSize = 13.sp
+      )
       Button(onClick = onDone) {
         // TODO localize
         Text("Done")

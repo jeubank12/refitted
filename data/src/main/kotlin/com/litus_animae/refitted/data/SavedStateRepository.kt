@@ -9,4 +9,5 @@ import kotlinx.coroutines.flow.Flow
 interface SavedStateRepository {
   fun getState(key: String): Flow<SavedState?>
   suspend fun setState(key: String, value: String)
+  suspend fun clearState(key: String)
 }
