@@ -33,6 +33,17 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
 - `api(libs.androidx.paging.*)` - Exposed as api for ViewModels
 - Jetpack Compose, Hilt, Firebase (types only)
 
+## Compose Gotchas
+
+- `Flow.collectAsState()` delegates to `produceState`, whose backing `mutableStateOf` is
+  **unkeyed** — only the collector coroutine restarts when the flow instance changes. If a
+  composable slot is reused across different data sources (e.g. a pager's single detail pane
+  swapping which exercise it shows), the state keeps the *previous* source's last value until
+  the new flow's first emission arrives. Key the state yourself
+  (`remember(flow) { mutableStateOf(...) }` + `LaunchedEffect(flow) { flow.collect { ... } } }`)
+  when a stale read during that gap would be visibly wrong. See `SetTrendStrip.kt`'s
+  `rememberEffortSets` for the pattern.
+
 ## Testing
 
 ```bash

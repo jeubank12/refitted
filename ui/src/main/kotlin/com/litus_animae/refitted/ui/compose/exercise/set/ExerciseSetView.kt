@@ -1,11 +1,19 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +26,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -33,6 +42,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.data.effort.EffortSet
 import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.LocalFeatures
@@ -63,6 +73,10 @@ private val EditStepperCardHeight = 80.dp
 // Raised from 72/48.dp to fit the strip's title + zone-label header row on top of the chart.
 private val StripPreferredHeight = 88.dp
 private val StripMinHeight = 64.dp
+
+// Crossfade key - only ever holds a resolved, non-empty trend, so a swap fades between two
+// real exercises' data rather than through a blank or merged frame.
+private data class ShownTrend(val exerciseId: String, val sets: List<EffortSet>)
 
 /**
  * Wrapper overload that puts [ExerciseSetView] in its own [Column].
@@ -232,19 +246,46 @@ fun ColumnScope.ExerciseSetView(
       val showStrip = stripHeight != null &&
         LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort"
 
+      val effortSets = if (showStrip) {
+        rememberEffortSets(setWithRecord.recentSets, setWithRecord.setRecords)
+      } else {
+        null
+      }
+      // Held across an exercise change so the strip doesn't collapse/re-expand while the next
+      // exercise's history round-trips through Room - same high-water-mark shape as
+      // compose/state/SetsRecords.kt's numCompletedHighWaterMark.
+      val lastHadTrend = remember { mutableStateOf(false) }
+      val hasTrend = effortSets?.isNotEmpty() ?: lastHadTrend.value
+      SideEffect { if (effortSets != null) lastHadTrend.value = effortSets.isNotEmpty() }
+
+      val shownTrend = remember { mutableStateOf<ShownTrend?>(null) }
+      SideEffect {
+        if (!effortSets.isNullOrEmpty()) shownTrend.value = ShownTrend(exerciseSet.id, effortSets)
+      }
+
+      val stripVisible = showStrip && hasTrend
+
       // Wraps its content instead of filling the row's height (which the Weight/Reps
       // stack next to it doesn't fully occupy either) so it floats centered rather than
       // stretching to an arbitrary bottom edge that never quite matched theirs.
-      Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showStrip) {
-          SetTrendStrip(
-            Modifier
-              .fillMaxWidth()
-              .height(stripHeight),
-            history = setWithRecord.recentSets,
-            todaysRecords = setWithRecord.setRecords,
-            onClick = onOpenHistory
-          )
+      Column(Modifier.fillMaxWidth()) {
+        AnimatedVisibility(
+          stripVisible,
+          enter = fadeIn() + expandVertically(),
+          exit = fadeOut() + shrinkVertically()
+        ) {
+          Column {
+            Crossfade(shownTrend.value, animationSpec = tween(180), label = "effortStrip") { trend ->
+              SetTrendStrip(
+                Modifier
+                  .fillMaxWidth()
+                  .height(stripHeight ?: StripPreferredHeight),
+                merged = trend?.sets.orEmpty(),
+                onClick = onOpenHistory
+              )
+            }
+            Spacer(Modifier.height(8.dp))
+          }
         }
         if (stepperShown) {
           Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = 2.dp) {
@@ -257,6 +298,7 @@ fun ColumnScope.ExerciseSetView(
               )
             }
           }
+          Spacer(Modifier.height(8.dp))
         }
         Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
           CircularRestTimer(
@@ -453,4 +495,11 @@ private fun PreviewExerciseSetDetailsStripOmitted() {
 @Composable
 private fun PreviewExerciseSetDetailsEditing() {
   PreviewExerciseSetDetails(heightDp = 400, editing = true)
+}
+
+/** No history yet: the strip stays collapsed and the rest timer sits centered, gap-free. */
+@Preview(heightDp = 400, apiLevel = 36)
+@Composable
+private fun PreviewExerciseSetDetailsNoHistory() {
+  PreviewExerciseSetDetails(heightDp = 400, recentSets = emptyList())
 }
