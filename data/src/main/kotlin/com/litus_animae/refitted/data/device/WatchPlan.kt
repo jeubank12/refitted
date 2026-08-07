@@ -16,7 +16,18 @@ data class WatchExercise(
   val timeLimitMillis: Int?
 )
 
-data class WatchPlan(val workout: String, val day: String, val exercises: List<WatchExercise>)
+/**
+ * [ids] is the source `ExerciseSet.id` per entry in [exercises], same order/index - phone-side
+ * bookkeeping only, never sent over the wire (`WatchProtocol.encodePlan` only reads [exercises]).
+ * It lets the phone resolve an incoming `SET_DONE`'s `exerciseIndex` back into a `SetRecord`
+ * without polluting [WatchExercise], which round-trips through the wire format as-is.
+ */
+data class WatchPlan(
+  val workout: String,
+  val day: String,
+  val exercises: List<WatchExercise>,
+  val ids: List<String>
+)
 
 /**
  * Maps one already-resolved [ExerciseSet] per instruction into [WatchPlan]. Callers do the
@@ -43,5 +54,6 @@ fun buildWatchPlan(
       repsSequence = set.repsSequence,
       timeLimitMillis = set.timeLimitMilliseconds
     )
-  }
+  },
+  ids = resolvedSets.map { it.id }
 )
