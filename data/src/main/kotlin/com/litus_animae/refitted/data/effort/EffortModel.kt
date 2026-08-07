@@ -434,6 +434,12 @@ object EffortModel {
         val z = expectedCapacity?.let {
           ((c - it) / (residualScale ?: 1.0)).coerceIn(-config.maxAbsZ, config.maxAbsZ)
         }
+        // What one pound is worth to *this* set - its reps and the rest it followed, together.
+        // Dividing the expectation by it converts a capacity into the weight that would meet it
+        // at exactly this set's terms, which is the only version a chart plotting raw weight can
+        // compare a dot against. The session-wide, typical-reps conversion misplaces every set
+        // whose reps differ from the average, which is most of them.
+        val setScale = c / max(timed.set.weight, 1.0)
         scoredSets.add(
           ScoredSet(
             source = timed.set,
@@ -443,7 +449,9 @@ object EffortModel {
             dayOffset = session.dayOffset,
             capacity = c,
             expectation = expectedCapacity,
-            expectedWeight = expectedWeight,
+            expectedWeight = expectedCapacity?.let { it / setScale },
+            residualScale = residualScale,
+            weightScale = setScale,
             z = z,
             size = bubbleSize(z),
             zone = zoneOf(z)
@@ -586,6 +594,7 @@ object EffortModel {
             scored.copy(
               expectation = fallback.expectation,
               expectedWeight = fallback.expectedWeight,
+              residualScale = fallback.residualScale,
               z = fallback.z,
               size = fallback.size,
               zone = fallback.zone,
@@ -608,14 +617,18 @@ object EffortModel {
         realBySession[sessionIndex]?.copy(expectationSource = ExpectationSource.SESSION)
           ?: sessionScored.first().let { first ->
             val cHat = first.expectation!!
-            val wHat = first.expectedWeight!!
+            // Read the reps straight off the set rather than inverting its expectedWeight:
+            // that conversion now also carries the set's rest credit, so backing reps out of
+            // it would report a densely-packed session as having done more reps than it did.
+            // TrendPoint stays a typical-reps quantity, so its own reconstruction still holds.
+            val rHat = effectiveReps(first.source.reps, config)
             TrendPoint(
               sessionIndex = sessionIndex,
               dayOffset = first.dayOffset,
               at = first.source.completed,
               expectedCapacity = cHat,
-              typicalReps = (cHat / wHat - 1) * config.epleyDivisor,
-              expectedWeight = wHat,
+              typicalReps = rHat,
+              expectedWeight = cHat / (1 + rHat / config.epleyDivisor),
               expectationSource = ExpectationSource.BOOTSTRAP
             )
           }

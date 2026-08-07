@@ -23,9 +23,24 @@ enum class ExpectationSource { SESSION, BOOTSTRAP }
  * following closely on the one before it - it is not the bare [EffortModel.capacity] of the
  * weight and reps alone.
  *
- * [expectedWeight] is [expectation] expressed at the fit's typical reps, the same conversion
- * [TrendPoint] carries. It's per-set rather than per-session so a chart plotting one point per
- * set can draw a trend that moves across a session instead of stepping once per day.
+ * [expectedWeight] is [expectation] converted into weight *on this set's own terms* - its rep
+ * count and the rest that preceded it - not at the fit's session-wide typical reps the way
+ * [TrendPoint] does it. A chart whose y-axis is raw weight can only compare a dot against a
+ * line drawn this way; against a typical-reps line, every set whose reps differ from the
+ * average is misplaced, and a set can render below the line while scoring above it.
+ *
+ * [weightScale] is the conversion that produced it - what one pound of this set is worth in
+ * capacity - exposed so a caller can put [residualScale] into the same units:
+ *
+ * ```
+ * (source.weight - expectedWeight) / (residualScale / weightScale) == z
+ * ```
+ *
+ * exactly, for any set at or above 1 lb whose [z] is not clamped. That identity is what lets a
+ * band drawn at the zone thresholds *be* the zone boundaries rather than a decoration beside
+ * them. Bodyweight sets are the exception by construction: [EffortModel.capacity] floors weight
+ * at 1.0 so rep progress still registers, so a set logged at 0 plots below a line that cannot
+ * reach it.
  */
 data class ScoredSet(
   val source: EffortSet,
@@ -36,6 +51,8 @@ data class ScoredSet(
   val capacity: Double,
   val expectation: Double?,
   val expectedWeight: Double? = null,
+  val residualScale: Double? = null,
+  val weightScale: Double = 1.0,
   val z: Double?,
   val size: Float,
   val zone: EffortZone,

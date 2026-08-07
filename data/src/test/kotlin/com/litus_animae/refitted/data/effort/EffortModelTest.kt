@@ -374,6 +374,42 @@ class EffortModelTest {
     }
 
     @Test
+    fun `a set's distance from its own expected weight, in bands, is exactly its z`() {
+      // The identity a cone drawn at the zone thresholds rests on: if this does not hold
+      // exactly, a dot can sit below the line while scoring above it, which is what the
+      // session-wide typical-reps conversion used to do to every set with off-average reps.
+      val sets = (0 until 10).flatMap { i ->
+        listOf(
+          EffortSet(day(i * 3L), 100.0 + i * 2, 12),
+          EffortSet(day(i * 3L).plusSeconds(180), 110.0 + i * 2, 8),
+          EffortSet(day(i * 3L).plusSeconds(420), 115.0 + i * 2, 5)
+        )
+      }
+      val scored = EffortModel.score(sets).sets
+        .filter { it.z != null && abs(it.z!!) < EffortConfig.Default.maxAbsZ }
+
+      assertThat(scored).isNotEmpty()
+      scored.forEach {
+        val band = it.residualScale!! / it.weightScale
+        assertThat((it.source.weight - it.expectedWeight!!) / band).isWithin(1e-9).of(it.z!!)
+      }
+    }
+
+    @Test
+    fun `sets in one session expect different weights when their reps differ`() {
+      val sets = (0 until 8).flatMap { i ->
+        listOf(
+          EffortSet(day(i * 3L), 100.0, 12),
+          EffortSet(day(i * 3L).plusSeconds(180), 100.0, 6)
+        )
+      }
+      val last = EffortModel.score(sets).sets.takeLast(2)
+
+      // Same weight, half the reps - the bar for the low-rep set has to be higher.
+      assertThat(last[1].expectedWeight!!).isGreaterThan(last[0].expectedWeight!!)
+    }
+
+    @Test
     fun `typical reps tracks the top set, ignoring warm-up reps`() {
       val sets = (0 until 6).flatMap { i ->
         listOf(
