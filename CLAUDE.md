@@ -125,6 +125,8 @@ The Android app uses **modular architecture** with clear separation of concerns.
 ├── :dynamo (Network)
 │   ├── :data
 │   └── :util
+├── :garmin (Connect IQ watch bridge)
+│   └── :data
 └── :identity
 ```
 
@@ -132,6 +134,7 @@ The Android app uses **modular architecture** with clear separation of concerns.
 - `data/CLAUDE.md` - Domain models and repository interfaces
 - `room/CLAUDE.md` - Room database, entities, DAOs
 - `dynamo/CLAUDE.md` - DynamoDB network services
+- `garmin/CLAUDE.md` - Connect IQ Mobile SDK bridge to the watch app
 - `util/CLAUDE.md` - Shared utility functions
 - `identity/CLAUDE.md` - Firebase Auth, Config, Crashlytics
 - `ui/CLAUDE.md` - ViewModels, Jetpack Compose UI
@@ -149,6 +152,7 @@ The Android app uses **modular architecture** with clear separation of concerns.
 2. **Data Sources**
    - **:room module**: Local SQLite cache with Room database, extensive migration history
    - **:dynamo module**: Network access via AWS DynamoDB services
+   - **:garmin module**: Connect IQ Mobile SDK bridge to a paired Garmin watch app
    - **:identity module**: Firebase Auth, Remote Config, Crashlytics
 
 3. **Repository Implementations** (`:app` module - glue layer)
@@ -200,6 +204,7 @@ ViewModels in `:ui` use `@HiltViewModel` with constructor injection. Application
 - **Domain Models** (`:data`): Core business models shared across all modules
 - **Persistence** (`:room`): Local SQLite storage with extensive migration history
 - **Network** (`:dynamo`): Remote DynamoDB storage
+- **Watch Bridge** (`:garmin`): Connect IQ Mobile SDK link to the paired watch app
 - **Identity** (`:identity`): Firebase Auth, Remote Config, Crashlytics
 
 See module-specific CLAUDE.md files for detailed information.
@@ -217,6 +222,7 @@ The Android app is organized into the following Gradle modules:
 
 - **:room** - Room database for local persistence (SQLite)
 - **:dynamo** - DynamoDB network services for remote storage
+- **:garmin** - Connect IQ Mobile SDK bridge to a paired Garmin watch app
 - **:identity** - Firebase integration (Auth, Remote Config, Crashlytics)
 
 ### Presentation Module
@@ -227,12 +233,13 @@ The Android app is organized into the following Gradle modules:
 
 - **:app** - Application entry point, Hilt DI configuration, repository implementations
 
-**Dependency Flow**: `:app` coordinates all modules. `:data` is the foundation with no dependencies. `:ui`, `:room`, and `:dynamo` depend on `:data`. `:app` bridges `:room` and `:dynamo` to implement offline-first repositories.
+**Dependency Flow**: `:app` coordinates all modules. `:data` is the foundation with no dependencies. `:ui`, `:room`, `:dynamo`, and `:garmin` depend on `:data`. `:app` bridges `:room`, `:dynamo`, and `:garmin` to implement offline-first repositories and the watch link.
 
 **For detailed documentation on each module, see the respective `CLAUDE.md` files:**
 - `data/CLAUDE.md`
 - `room/CLAUDE.md`
 - `dynamo/CLAUDE.md`
+- `garmin/CLAUDE.md`
 - `util/CLAUDE.md`
 - `identity/CLAUDE.md`
 - `ui/CLAUDE.md`
@@ -252,6 +259,7 @@ The Android app is organized into the following Gradle modules:
 | Navigation | :ui | `ui/.../compose/Top.kt` |
 | DAOs | :room | `room/.../*Dao.kt` |
 | Network Services | :dynamo | `dynamo/.../Dynamo*NetworkService.kt` |
+| Watch Service | :garmin | `garmin/.../GarminConnection.kt`, `GarminWatchService.kt` |
 | Firebase Providers | :identity | `identity/.../*Provider.kt` |
 | In-app changelog | :ui | `ui/src/main/res/values/changelog.xml`, `ui/.../compose/Changelog.kt` |
 
@@ -314,7 +322,7 @@ GitHub Actions workflows (`.github/workflows/build.yml`):
 This repository contains three separate applications:
 
 1. **Android App** (multi-module Kotlin + Compose)
-   - Modules: `:app`, `:ui`, `:data`, `:room`, `:dynamo`, `:util`, `:identity`
+   - Modules: `:app`, `:ui`, `:data`, `:room`, `:dynamo`, `:garmin`, `:util`, `:identity`
    - See module-specific `CLAUDE.md` files for details
 
 2. **web/** - Next.js web interface (TypeScript + React + Redux + Material-UI)
