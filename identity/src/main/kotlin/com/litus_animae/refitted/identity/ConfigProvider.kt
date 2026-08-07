@@ -28,7 +28,8 @@ class ConfigProvider @Inject constructor(
     private const val TAG = "ConfigProvider"
 
     enum class Feature(val flag: String) {
-      RECORD_CHART_TYPE("record_chart_type")
+      RECORD_CHART_TYPE("record_chart_type"),
+      WATCH_SYNC("watch_sync")
     }
 
     private val featureKeys = Feature.entries.map { it.flag }.toSet()
