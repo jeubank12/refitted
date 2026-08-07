@@ -14,26 +14,11 @@ import kotlin.math.sqrt
 /**
  * Scores each completed set's demonstrated capacity (weight x reps, Epley-style) against an
  * adaptive, causally-fit expectation of what a session "should" look like given training
- * history - never a static baseline, and a session's own outcome never judges itself. A set
- * scores larger (see [bubbleSize]) the closer it lands to or just above that expectation,
- * and shrinks again once it's implausibly far above - a likely fluke or typo, still worth
- * showing but not the target to chase.
+ * history - never a static baseline, and a session's own outcome never judges itself. How far
+ * a set landed from that expectation, in units of how well the model knows it, is [ScoredSet.z];
+ * [zoneOf] names the bands that value falls into.
  */
 object EffortModel {
-
-  const val NEUTRAL_SIZE = 0.45f
-
-  // z -> bubble size anchors. Piecewise-linear rather than smoothstep so "slightly above
-  // the curve" (z around 0.2-0.5) stays visually distinct from "on the curve" (z = 0).
-  private val HUMP_ANCHORS = listOf(
-    -2.0 to 0.00,
-    -1.0 to 0.30,
-    0.0 to 0.60,
-    0.5 to 0.85,
-    1.0 to 1.00,
-    1.5 to 0.90,
-    2.5 to 0.40
-  )
 
   /**
    * Epley-style estimated 1RM, the single scale weight×reps sets are compared on.
@@ -83,21 +68,6 @@ object EffortModel {
     }
     val excess = (clamped - config.repCap).toDouble()
     return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
-  }
-
-  fun bubbleSize(z: Double?): Float {
-    if (z == null) return NEUTRAL_SIZE
-    if (z <= HUMP_ANCHORS.first().first) return HUMP_ANCHORS.first().second.toFloat()
-    if (z >= HUMP_ANCHORS.last().first) return HUMP_ANCHORS.last().second.toFloat()
-    for (i in 0 until HUMP_ANCHORS.size - 1) {
-      val (x0, y0) = HUMP_ANCHORS[i]
-      val (x1, y1) = HUMP_ANCHORS[i + 1]
-      if (z <= x1) {
-        val t = (z - x0) / (x1 - x0)
-        return (y0 + t * (y1 - y0)).toFloat()
-      }
-    }
-    return HUMP_ANCHORS.last().second.toFloat()
   }
 
   /** z below which a set reads as under its trend rather than on it. */
@@ -521,7 +491,6 @@ object EffortModel {
             residualScale = residualScale,
             weightScale = setScale,
             z = z,
-            size = bubbleSize(z),
             zone = zoneOf(z)
           )
         )
@@ -674,7 +643,6 @@ object EffortModel {
               expectedWeight = fallback.expectedWeight,
               residualScale = fallback.residualScale,
               z = fallback.z,
-              size = fallback.size,
               zone = fallback.zone,
               expectationSource = ExpectationSource.BOOTSTRAP
             )

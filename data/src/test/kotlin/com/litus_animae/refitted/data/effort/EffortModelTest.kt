@@ -136,107 +136,61 @@ class EffortModelTest {
   }
 
   @Nested
-  @DisplayName("bubbleSize")
-  inner class Hump {
-    @Test
-    fun `hits every anchor exactly`() {
-      assertThat(EffortModel.bubbleSize(-2.0)).isEqualTo(0.00f)
-      assertThat(EffortModel.bubbleSize(-1.0)).isEqualTo(0.30f)
-      assertThat(EffortModel.bubbleSize(0.0)).isEqualTo(0.60f)
-      assertThat(EffortModel.bubbleSize(0.5)).isEqualTo(0.85f)
-      assertThat(EffortModel.bubbleSize(1.0)).isEqualTo(1.00f)
-      assertThat(EffortModel.bubbleSize(1.5)).isEqualTo(0.90f)
-      assertThat(EffortModel.bubbleSize(2.5)).isEqualTo(0.40f)
-    }
-
-    @Test
-    fun `clamps flat below -2 and above 2_5`() {
-      assertThat(EffortModel.bubbleSize(-5.0)).isEqualTo(0.00f)
-      assertThat(EffortModel.bubbleSize(50.0)).isEqualTo(0.40f)
-    }
-
-    @Test
-    fun `rises monotonically from -2 to the peak at +1`() {
-      val samples = generateSequence(-2.0) { it + 0.1 }.takeWhile { it <= 1.0 }.toList()
-      val sizes = samples.map { EffortModel.bubbleSize(it) }
-      assertThat(sizes).isInOrder()
-    }
-
-    @Test
-    fun `falls monotonically from the peak at +1 to +2_5`() {
-      val samples = generateSequence(1.0) { it + 0.1 }.takeWhile { it <= 2.5 }.toList()
-      val sizes = samples.map { EffortModel.bubbleSize(it) }
-      assertThat(sizes).isInOrder(compareByDescending<Float> { it })
-    }
-
-    @Test
-    fun `null z is neutral, not zero`() {
-      assertThat(EffortModel.bubbleSize(null)).isEqualTo(EffortModel.NEUTRAL_SIZE)
-    }
-  }
-
-  @Nested
   @DisplayName("worked examples (spec table, curve at ĉ=133, s=10)")
   inner class WorkedExamples {
-    private fun sizeFor(weight: Double, reps: Int): Float {
-      val c = EffortModel.capacity(weight, reps)
-      val z = (c - 133.0) / 10.0
-      return EffortModel.bubbleSize(z)
+    private fun zoneFor(weight: Double, reps: Int): EffortZone =
+      EffortModel.zoneOf((EffortModel.capacity(weight, reps) - 133.0) / 10.0)
+
+    @Test
+    fun `80 lb x 15 - somewhat below`() {
+      assertThat(zoneFor(80.0, 15)).isEqualTo(EffortZone.BELOW)
     }
 
     @Test
-    fun `80 lb x 15 - somewhat below - smallish`() {
-      assertThat(sizeFor(80.0, 15).toDouble()).isWithin(1e-3).of(0.21)
+    fun `90 lb x 15 - slightly above, still on the curve`() {
+      assertThat(zoneFor(90.0, 15)).isEqualTo(EffortZone.ON_CURVE)
     }
 
     @Test
-    fun `90 lb x 15 - slightly above - larger than on-curve`() {
-      val size = sizeFor(90.0, 15)
-      assertThat(size.toDouble()).isWithin(1e-3).of(0.70)
-      assertThat(size).isGreaterThan(EffortModel.bubbleSize(0.0))
+    fun `130 lb x 3 - above`() {
+      assertThat(zoneFor(130.0, 3)).isEqualTo(EffortZone.GROWTH)
     }
 
     @Test
-    fun `130 lb x 3 - above - peak`() {
-      assertThat(sizeFor(130.0, 3)).isEqualTo(1.00f)
+    fun `100 lb x 2 - well below`() {
+      assertThat(zoneFor(100.0, 2)).isEqualTo(EffortZone.BELOW)
     }
 
     @Test
-    fun `100 lb x 2 - well below - minimum`() {
-      assertThat(sizeFor(100.0, 2)).isEqualTo(0.00f)
+    fun `100 lb x 10 - on the curve`() {
+      assertThat(zoneFor(100.0, 10)).isEqualTo(EffortZone.ON_CURVE)
     }
 
     @Test
-    fun `100 lb x 10 - on-just above - large`() {
-      assertThat(sizeFor(100.0, 10).toDouble()).isWithin(1e-3).of(0.617)
+    fun `100 lb x 12 - above`() {
+      assertThat(zoneFor(100.0, 12)).isEqualTo(EffortZone.GROWTH)
     }
 
     @Test
-    fun `100 lb x 12 - on-just above - near peak`() {
-      assertThat(sizeFor(100.0, 12).toDouble()).isWithin(1e-3).of(0.91)
-    }
-
-    @Test
-    fun `180 lb x 5 - far above - punished`() {
-      assertThat(sizeFor(180.0, 5)).isEqualTo(0.40f)
+    fun `180 lb x 5 - far above`() {
+      assertThat(zoneFor(180.0, 5)).isEqualTo(EffortZone.IMPLAUSIBLE)
     }
 
     @Test
     fun `ordering matches the spec table`() {
-      val below = sizeFor(100.0, 2)
-      val somewhatBelow = sizeFor(80.0, 15)
-      val onCurve = EffortModel.bubbleSize(0.0)
-      val slightlyAbove = sizeFor(90.0, 15)
-      val peakA = sizeFor(130.0, 3)
-      val peakB = sizeFor(100.0, 12)
-      val punished = sizeFor(180.0, 5)
+      // The table is a ladder, so read it back as one: the same inputs in the same order have
+      // to give z values that only ever climb.
+      val ladder = listOf(
+        100.0 to 2,
+        80.0 to 15,
+        100.0 to 10,
+        90.0 to 15,
+        100.0 to 12,
+        130.0 to 3,
+        180.0 to 5
+      ).map { (w, r) -> (EffortModel.capacity(w, r) - 133.0) / 10.0 }
 
-      assertThat(below).isLessThan(somewhatBelow)
-      assertThat(somewhatBelow).isLessThan(onCurve)
-      assertThat(onCurve).isLessThan(slightlyAbove)
-      assertThat(slightlyAbove).isLessThan(peakB)
-      assertThat(peakB).isLessThan(peakA)
-      assertThat(punished).isLessThan(slightlyAbove)
+      assertThat(ladder).isInOrder()
     }
   }
 
@@ -295,7 +249,7 @@ class EffortModelTest {
       series.sets.forEach {
         assertThat(it.expectation).isNull()
         assertThat(it.z).isNull()
-        assertThat(it.size).isEqualTo(EffortModel.NEUTRAL_SIZE)
+        assertThat(it.zone).isEqualTo(EffortZone.COLD)
         assertThat(it.zone).isEqualTo(EffortZone.COLD)
       }
     }
@@ -365,9 +319,9 @@ class EffortModelTest {
       val probeScored = session3.first { it.source.weight == c * 1.05 }
 
       assertThat(onCurveScored.z!!).isWithin(1e-6).of(0.0)
-      assertThat(onCurveScored.size.toDouble()).isWithin(1e-3).of(0.60)
+      assertThat(onCurveScored.zone).isEqualTo(EffortZone.ON_CURVE)
       assertThat(probeScored.z!!).isWithin(1e-6).of(1.0)
-      assertThat(probeScored.size).isEqualTo(1.00f)
+      assertThat(probeScored.zone).isEqualTo(EffortZone.GROWTH)
     }
   }
 

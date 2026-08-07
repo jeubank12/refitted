@@ -54,7 +54,6 @@ data class ScoredSet(
   val residualScale: Double? = null,
   val weightScale: Double = 1.0,
   val z: Double?,
-  val size: Float,
   val zone: EffortZone,
   val expectationSource: ExpectationSource? = null
 )
