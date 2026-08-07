@@ -554,6 +554,96 @@ class EffortModelTest {
       lastSession.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.BELOW) }
     }
 
+    /** A block of [count] identical sessions spaced [cadenceDays] apart - a flat plateau. */
+    private fun plateau(cadenceDays: Long, count: Int = 12) = (0 until count).flatMap { s ->
+      (0 until 3).map { EffortSet(day(s * cadenceDays).plusSeconds(it * 180L), 100.0, 10) }
+    }
+
+    @Test
+    fun `an exercise trained on a rotation is not treated as detrained`() {
+      // The point of the whole chart: zero progress must not read as growth. A fixed calendar
+      // grace made anything slower than 10 days permanently detrained, so the lowered bar
+      // turned a flat plateau into GROWTH on every set.
+      listOf(7L, 14L, 21L, 28L).forEach { cadence ->
+        val scored = EffortModel.score(plateau(cadence)).sets.filter { it.z != null }
+
+        assertThat(scored).isNotEmpty()
+        scored.forEach {
+          assertThat(it.zone).isEqualTo(EffortZone.ON_CURVE)
+          assertThat(it.z!!).isWithin(1e-9).of(0.0)
+        }
+      }
+    }
+
+    @Test
+    fun `identical progress scores the same however often the exercise comes round`() {
+      fun lastZ(cadenceDays: Long): Double {
+        val sets = (0 until 12).flatMap { s ->
+          (0 until 3).map {
+            EffortSet(day(s * cadenceDays).plusSeconds(it * 180L), 100.0 + s * 2.5, 10)
+          }
+        }
+        return EffortModel.score(sets).sets.last().z!!
+      }
+
+      // Same gain per exposure either way - only the calendar spacing differs, and spacing is
+      // exactly what must not be scored.
+      val weekly = lastZ(7)
+      assertThat(lastZ(14)).isWithin(0.25).of(weekly)
+      assertThat(lastZ(28)).isWithin(0.25).of(weekly)
+    }
+
+    @Test
+    fun `a gap abnormal for the exercise still detrains, whatever the cadence`() {
+      fun comebackZ(cadenceDays: Long): Double {
+        val block = plateau(cadenceDays, count = 10)
+        val back = (0 until 2).map {
+          EffortSet(day(cadenceDays * 9 + 730).plusSeconds(it * 180L), 75.0, 10)
+        }
+        return EffortModel.score(block + back).sets.last().z!!
+      }
+
+      // Two years off is two years off whether the exercise came round every 3 days or every 28.
+      val fast = comebackZ(3)
+      assertThat(comebackZ(14)).isWithin(1e-6).of(fast)
+      assertThat(comebackZ(28)).isWithin(1e-6).of(fast)
+    }
+
+    @Test
+    fun `one long break does not redefine what a normal gap is`() {
+      // The layoff must not feed the cadence average it is measured against, or a single
+      // two-year break makes "normal for this exercise" years wide and every later gap free.
+      val block = plateau(cadenceDays = 4, count = 10)
+      val back = (0 until 3).map { EffortSet(day(36 + 730).plusSeconds(it * 180L), 75.0, 10) }
+      val laterGap = (0 until 3).map {
+        EffortSet(day(36 + 730 + 200).plusSeconds(it * 180L), 75.0, 10)
+      }
+
+      val series = EffortModel.score(block + back + laterGap)
+      val comeback = series.sets.first { it.sessionIndex == 10 }
+      val afterSecondBreak = series.sets.first { it.sessionIndex == 11 }
+
+      // A 200-day gap on an exercise trained every 4 days is still a layoff the second time.
+      assertThat(comeback.expectation!!).isLessThan(comeback.capacity)
+      assertThat(afterSecondBreak.expectation!!)
+        .isLessThan(afterSecondBreak.capacity)
+    }
+
+    @Test
+    fun `the cadence is measured once per day, not once per set`() {
+      // At set grain every set of a day shares that day's layoff; billing each of them would
+      // report a five-set session as five gaps and inflate the cadence the grace comes from.
+      val block = (0 until 8).flatMap { s ->
+        (0 until 5).map { EffortSet(day(s * 14L).plusSeconds(it * 180L), 100.0, 10) }
+      }
+      val lean = (0 until 8).map { s -> EffortSet(day(s * 14L), 100.0, 10) }
+
+      val many = EffortModel.scoreWithBootstrap(block).sets.last { it.sessionIndex == 7 }
+      val few = EffortModel.scoreWithBootstrap(lean).sets.last { it.sessionIndex == 7 }
+
+      assertThat(many.expectation!!).isWithin(1e-9).of(few.expectation!!)
+    }
+
     @Test
     fun `a comeback is not implausible for landing near the detrained bar`() {
       // Two years off, back at a fraction of the old numbers - the single most ordinary thing a

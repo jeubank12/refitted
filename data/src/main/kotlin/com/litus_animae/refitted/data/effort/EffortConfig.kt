@@ -33,6 +33,13 @@ data class EffortConfig(
   // something, not everything. Applied to the prediction only: the comeback session still folds
   // in at its true capacity, so the curve re-anchors to reality rather than to the haircut.
   val detrainGraceDays: Double = 10.0,
+  // The grace above is a floor, not the whole story: it also scales with the cadence this
+  // exercise is actually trained on. A flat calendar constant made an exercise's own rotation
+  // look like detraining - alternating pull-ups and pull-downs leaves 14 days between sessions
+  // of each, so both sat permanently past a 10-day grace and a *flat plateau* on that rotation
+  // scored GROWTH. At 1.5x, a 14-day rotation gets 21 days free and a 28-day one gets 42, while
+  // a gap genuinely abnormal for the exercise still detrains. Zero restores the flat constant.
+  val cadenceGraceMultiple: Double = 1.5,
   val detrainHalfLifeDays: Double = 60.0,
   val detrainFloor: Double = 0.6,
   // How much of that haircut is also charged as uncertainty. Cutting the expectation without

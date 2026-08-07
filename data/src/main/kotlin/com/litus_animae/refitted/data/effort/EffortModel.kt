@@ -4,6 +4,7 @@ import java.time.Duration
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
@@ -142,12 +143,29 @@ object EffortModel {
   }
 
   /**
-   * How far the expectation is cut back for time away. Ordinary rest days and a missed week sit
-   * inside the grace period and cost nothing; past that it decays on its own half-life and
-   * floors well short of zero.
+   * How long a gap has to be, for this exercise, before it counts as time away at all.
+   *
+   * A flat calendar constant treats an exercise's own rotation as detraining: alternating
+   * pull-ups and pull-downs puts every session 14 days after the last, so both were permanently
+   * scored as partly detrained and a *flat plateau* on that rotation read GROWTH - zero progress
+   * reported as growth, which defeats the point of the chart. Scaling the grace by the cadence
+   * the lifter has actually established makes a normal-for-you gap free while a gap that is
+   * abnormal *for this exercise* still detrains.
    */
-  private fun detrainFactor(layoffDays: Double, config: EffortConfig): Double {
-    val excess = (layoffDays - config.detrainGraceDays).coerceAtLeast(0.0)
+  private fun graceDays(typicalGapDays: Double, config: EffortConfig): Double =
+    max(config.detrainGraceDays, config.cadenceGraceMultiple * typicalGapDays)
+
+  /**
+   * How far the expectation is cut back for time away. Ordinary rest days, a missed week, and
+   * anything inside this exercise's own rhythm sit within [graceDays] and cost nothing; past
+   * that it decays on its own half-life and floors well short of zero.
+   */
+  private fun detrainFactor(
+    layoffDays: Double,
+    typicalGapDays: Double,
+    config: EffortConfig
+  ): Double {
+    val excess = (layoffDays - graceDays(typicalGapDays, config)).coerceAtLeast(0.0)
     if (excess <= 0.0 || config.detrainHalfLifeDays <= 0.0) return 1.0
     return 0.5.pow(excess / config.detrainHalfLifeDays).coerceAtLeast(config.detrainFloor)
   }
@@ -287,6 +305,19 @@ object EffortModel {
     var sumRepsW = 0.0
     var sumRepsWr = 0.0
 
+    // Typical-gap accumulators, so the detrain grace can scale with the cadence this exercise
+    // is actually trained on. The very first session has nothing before it and contributes no
+    // gap, which is why this is weighted separately from the regression's own sumW.
+    //
+    // Accumulated in log space, so the estimate is a geometric mean. Two reasons: gaps are a
+    // ratio quantity (twice as long is the meaningful step, not a day longer), and a single
+    // enormous outlier has to not swallow the estimate - ten 4-day gaps and one 730-day one
+    // average arithmetically to 70 days, and geometrically to 6.4. That robustness is what
+    // lets the layoff itself stay in the average instead of needing to be classified out,
+    // which is circular: the classification is what the average is for.
+    var sumGapW = 0.0
+    var sumGapWlog = 0.0
+
     var priorSessionCount = 0
     var lastPriorX = 0.0
     var runningBest = 0.0
@@ -312,6 +343,12 @@ object EffortModel {
       }
       val sessionValue = bestCapacity * sustainFactor(capacities, peakIndex, bestCapacity, config)
 
+      // Hoisted out of the prediction block: the fold-in below needs the same verdict on
+      // whether this gap was time away or just this exercise's rhythm.
+      val typicalGapDays = if (sumGapW > 0.0) exp(sumGapWlog / sumGapW) else 0.0
+      val detrain = detrainFactor(session.layoffDays, typicalGapDays, config)
+      val followedLayoff = detrain < 1.0
+
       var expectedCapacity: Double? = null
       var expectedWeight: Double? = null
       var residualScale: Double? = null
@@ -335,7 +372,7 @@ object EffortModel {
         // bounds the *level*, which nothing did before - the curve used to freeze where it was
         // left, so coming back from months off read BELOW on every set until it was clawed back.
         val undetrained = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
-        val cHat = undetrained * detrainFactor(session.layoffDays, config)
+        val cHat = undetrained * detrain
         expectedCapacity = cHat
 
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
@@ -400,6 +437,11 @@ object EffortModel {
       sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
       sumResidualW *= decay; sumResidualWe2 *= decay
       sumRepsW *= decay; sumRepsWr *= decay
+      // Session-count decay only, deliberately skipping the calendar term the others carry.
+      // Cadence is a per-exposure property, and aging it by the very gap being judged is
+      // self-defeating: a two-year break would age away the rhythm it needs to be measured
+      // against, leaving the break itself as the only sample and its own new "normal".
+      sumGapW *= sessionDecay; sumGapWlog *= sessionDecay
 
       val x = session.x
       sumW += 1.0
@@ -410,6 +452,16 @@ object EffortModel {
 
       sumRepsW += 1.0
       sumRepsWr += bestReps
+
+      // Read off agingDays rather than layoffDays so the gap is charged once per calendar day
+      // at either grain - at set granularity every set of a day shares the day's layoff, and
+      // billing each of them would report a five-set comeback as five gaps and inflate the
+      // cadence the grace is derived from. Zero means "no day preceded this", never a real gap:
+      // distinct sorted days are always at least one apart.
+      if (session.agingDays > 0.0) {
+        sumGapW += 1.0
+        sumGapWlog += ln(session.agingDays)
+      }
 
       if (expectedCapacity != null) {
         val e = sessionValue - expectedCapacity

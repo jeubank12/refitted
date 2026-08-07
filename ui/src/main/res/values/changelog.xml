@@ -3,6 +3,7 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.2</item>
+        <item>Effort chart learns how often you train each exercise, so alternating between two of them no longer looks like time off</item>
         <item>Effort chart no longer flags your first session back after a long break as an outlier</item>
         <item>**v1.4.1</item>
         <item>Give any exercise in a custom workout an alternate, then swap between them as you train</item>
