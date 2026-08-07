@@ -110,4 +110,18 @@ module WatchProtocol {
     function encodeEnd() as Array {
         return [PROTOCOL_VERSION, TYPE_END, []];
     }
+
+    // Mirrors data/.../device/WatchProtocol.kt's encodeSetDone exactly - both ends ship this
+    // shape together. seq bounds the offline-buffer ack window (Phase 4); elapsedMs is what the
+    // phone turns into the record's timestamp, since the watch never sends a wall-clock time.
+    function encodeSetDone(
+        seq as Number, exerciseIndex as Number, setNumber as Number,
+        reps as Number, weightCenti as Number, elapsedMs as Number
+    ) as Array {
+        return [
+            PROTOCOL_VERSION,
+            TYPE_SET_DONE,
+            [seq, exerciseIndex, setNumber, reps, weightCenti, elapsedMs]
+        ];
+    }
 }
