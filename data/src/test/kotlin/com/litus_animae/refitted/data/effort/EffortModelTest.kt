@@ -421,6 +421,56 @@ class EffortModelTest {
     }
 
     @Test
+    fun `projecting to the reps a set actually did returns its own expected weight`() {
+      val sets = (0 until 10).flatMap { i ->
+        listOf(
+          EffortSet(day(i * 3L), 100.0 + i, 12),
+          EffortSet(day(i * 3L).plusSeconds(150), 110.0 + i, 6)
+        )
+      }
+
+      EffortModel.score(sets).sets.filter { it.expectedWeight != null }.forEach {
+        assertThat(it.expectedWeightAt(it.source.reps)!!).isWithin(1e-9).of(it.expectedWeight!!)
+      }
+    }
+
+    @Test
+    fun `asking for more reps asks for less weight`() {
+      val sets = (0 until 10).map { EffortSet(day(it * 3L), 100.0 + it, 8) }
+      val last = EffortModel.score(sets).sets.last()
+
+      val heavy = last.expectedWeightAt(6)!!
+      val target = last.expectedWeightAt(10)!!
+      val light = last.expectedWeightAt(15)!!
+
+      assertThat(target).isLessThan(heavy)
+      assertThat(light).isLessThan(target)
+      // The band travels with it, so a rep count that lowers the bar narrows the miss too.
+      assertThat(last.bandHalfWidthAt(15)!!).isLessThan(last.bandHalfWidthAt(6)!!)
+    }
+
+    @Test
+    fun `a prescribed rep count never changes what a completed set scored`() {
+      // The projection is weight-space only. Exceeding the target is progress, not a miss, so
+      // nothing about the target may reach the capacity a set is judged on.
+      val sets = (0 until 10).map { EffortSet(day(it * 3L), 100.0 + it, 8) }
+      val last = EffortModel.score(sets).sets.last()
+      val before = last.z
+
+      last.expectedWeightAt(20)
+      assertThat(last.z).isEqualTo(before)
+      assertThat(last.expectation).isEqualTo(EffortModel.score(sets).sets.last().expectation)
+    }
+
+    @Test
+    fun `projection stays in added-weight terms on unloadable work`() {
+      val last = EffortModel.score(bodyweightClimb()).sets.last()
+
+      // Fewer reps than the lifter has been doing needs weight adding; far more does not.
+      assertThat(last.expectedWeightAt(5)!!).isGreaterThan(last.expectedWeightAt(25)!!)
+    }
+
+    @Test
     fun `sets in one session expect different weights when their reps differ`() {
       val sets = (0 until 8).flatMap { i ->
         listOf(

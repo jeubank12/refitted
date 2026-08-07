@@ -267,6 +267,27 @@ fun EffortChart(
     // describes, so the prediction is coloured on the same scale as the dots sitting in it.
     fun drawBand(run: List<EffortBand>, dashed: Boolean) {
       if (run.isEmpty()) return
+      // A lone slice is the target for a set not done yet, so there is no ribbon to fill -
+      // draw it as the upright bar it is, with a tick at the weight being aimed at.
+      if (run.size == 1) {
+        val b = run.single()
+        val tint = repColor(b.reps, minReps, maxReps)
+        val barWidth = maxPx / 3f
+        drawLine(
+          tint.copy(alpha = 0.35f),
+          Offset(px(b.x), py(b.upper)),
+          Offset(px(b.x), py(b.lower)),
+          strokeWidth = barWidth,
+          cap = StrokeCap.Round
+        )
+        drawLine(
+          tint,
+          Offset(px(b.x) - barWidth / 2f, py(b.center)),
+          Offset(px(b.x) + barWidth / 2f, py(b.center)),
+          strokeWidth = trendPx
+        )
+        return
+      }
       if (run.size >= 2) {
         val area = Path().apply {
           run.forEachIndexed { index, b ->

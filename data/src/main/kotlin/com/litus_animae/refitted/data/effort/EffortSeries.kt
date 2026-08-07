@@ -59,6 +59,40 @@ data class ScoredSet(
 )
 
 /**
+ * The same expectation this set was scored against, re-expressed as the weight that would meet
+ * it at [reps] instead of the reps this set actually used - the question a lifter about to load
+ * a bar is asking, when the program prescribes a rep count they have not done yet.
+ *
+ * The rest that preceded this set is assumed to repeat, since the next set is normally taken on
+ * the same clock. `null` whenever this set has no expectation.
+ *
+ * Strictly a weight-space conversion: [expectation] itself is untouched, because a set is scored
+ * on the capacity it actually demonstrated and a program's target has no business changing that.
+ * Doing more reps than prescribed is progress, not a miss.
+ */
+fun ScoredSet.expectedWeightAt(reps: Int, config: EffortConfig = EffortConfig.Default): Double? {
+  val expectedCapacity = expectation ?: return null
+  val here = expectedWeight ?: return null
+  // weightScale bundles this set's rep multiplier with the rest credit it earned. Dividing the
+  // rep part back out leaves the density factor on its own, so only the reps are re-stated.
+  val repPart = 1 + EffortModel.effectiveReps(source.reps, config) / config.epleyDivisor
+  val density = weightScale / repPart
+  // expectedWeight is an added weight, so whatever the movement already carries is the gap
+  // between it and the unadjusted conversion - see EffortConfig.bodyweightBaselineLoad.
+  val baselineLoad = expectedCapacity / weightScale - here
+  val target = (1 + EffortModel.effectiveReps(reps, config) / config.epleyDivisor) * density
+  return expectedCapacity / target - baselineLoad
+}
+
+/** [residualScale] in the weight units [expectedWeightAt] returns for the same [reps]. */
+fun ScoredSet.bandHalfWidthAt(reps: Int, config: EffortConfig = EffortConfig.Default): Double? {
+  val scale = residualScale ?: return null
+  val repPart = 1 + EffortModel.effectiveReps(source.reps, config) / config.epleyDivisor
+  val density = weightScale / repPart
+  return scale / ((1 + EffortModel.effectiveReps(reps, config) / config.epleyDivisor) * density)
+}
+
+/**
  * The fitted expectation for one session, in both capacity and weight-at-typical-reps form.
  *
  * [expectedWeight] is *added* weight, on the same axis the sets are logged and plotted on, so

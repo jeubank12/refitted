@@ -3,6 +3,8 @@ package com.litus_animae.refitted.ui.compose.charts
 import com.litus_animae.refitted.data.effort.EffortModel
 import com.litus_animae.refitted.data.effort.ExpectationSource
 import com.litus_animae.refitted.data.effort.ScoredSet
+import com.litus_animae.refitted.data.effort.bandHalfWidthAt
+import com.litus_animae.refitted.data.effort.expectedWeightAt
 
 /**
  * This set's slice of the expectation band, in weight, or `null` if it has no expectation yet.
@@ -21,6 +23,33 @@ fun ScoredSet.bandAt(x: Float): EffortBand? {
     center = center.toFloat(),
     upper = (center + EffortModel.OVER_EDGE_Z * half).toFloat(),
     reps = source.reps
+  )
+}
+
+/**
+ * The band for a set not yet done, at the rep count the program is asking for.
+ *
+ * Where a history band is one rep count with uncertainty either side, this one is the envelope
+ * over the whole prescribed range: [upper] is the weight you would be over the curve at if you
+ * only managed [targetReps], [lower] the weight you would be under it at even taking the full
+ * [targetRepsHigh]. Anything landing between them is on the curve for *some* rep count you were
+ * asked for, which is the actual question - "what do I load next?" - and it collapses back to an
+ * ordinary band when the program prescribes a single number.
+ *
+ * Evaluated at the target rather than at whatever reps the last set happened to take: a history
+ * skewed to heavy triples would otherwise recommend a weight nobody can get ten reps with.
+ */
+fun ScoredSet.forwardBandAt(x: Float, targetReps: Int, targetRepsHigh: Int): EffortBand? {
+  val heavy = expectedWeightAt(targetReps) ?: return null
+  val light = expectedWeightAt(targetRepsHigh) ?: return null
+  val heavyHalf = bandHalfWidthAt(targetReps) ?: return null
+  val lightHalf = bandHalfWidthAt(targetRepsHigh) ?: return null
+  return EffortBand(
+    x = x,
+    lower = (light + EffortModel.UNDER_EDGE_Z * lightHalf).toFloat(),
+    center = heavy.toFloat(),
+    upper = (heavy + EffortModel.OVER_EDGE_Z * heavyHalf).toFloat(),
+    reps = targetReps
   )
 }
 

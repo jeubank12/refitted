@@ -41,6 +41,7 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.bandRuns
+import com.litus_animae.refitted.ui.compose.charts.forwardBandAt
 import com.litus_animae.refitted.ui.compose.charts.sizeStepDot
 import com.litus_animae.refitted.ui.compose.charts.sizeStepOf
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
@@ -55,7 +56,9 @@ import java.time.ZoneId
 import kotlin.math.roundToInt
 
 private val MinSlotWidth = 20.dp
-private const val MIN_WINDOW = 5
+// One higher than it used to be: the last slot now belongs to the set about to be done, and the
+// floor is about how much history stays readable, not how many slots exist.
+private const val MIN_WINDOW = 6
 private const val MAX_WINDOW = 14
 
 /**
@@ -104,6 +107,8 @@ fun rememberEffortSets(
 fun SetTrendStrip(
   modifier: Modifier = Modifier,
   merged: List<EffortSet>,
+  targetReps: Int? = null,
+  targetRepsHigh: Int? = null,
   onClick: () -> Unit = {}
 ) {
   BoxWithConstraints(modifier) {
@@ -120,7 +125,12 @@ fun SetTrendStrip(
     // all-COLD regardless of its own set count (no prior session exists yet to bootstrap
     // from).
     val series = remember(merged) { EffortModel.scoreWithBootstrap(merged) }
-    val windowed = remember(series, window) { series.sets.takeLast(window) }
+    // The set the user is about to do is worth more than the oldest one still on screen, and
+    // takeLast drops exactly that one. The whole history is a tap away in the drawer.
+    val forwardSlots = if (targetReps == null) 0 else 1
+    val windowed = remember(series, window, forwardSlots) {
+      series.sets.takeLast(window - forwardSlots)
+    }
     if (windowed.isEmpty()) return@BoxWithConstraints
 
     val points = remember(windowed) {
@@ -156,6 +166,23 @@ fun SetTrendStrip(
     // one step per day.
     val realBands = remember(windowed) { windowed.bandRuns(ExpectationSource.SESSION) }
     val bootstrapBands = remember(windowed) { windowed.bandRuns(ExpectationSource.BOOTSTRAP) }
+    // Its own run, so it is never joined to the history by a line implying a set happened
+    // between them. Rendered at the prescribed reps rather than at whatever the last set took.
+    val forwardBand = remember(windowed, targetReps, targetRepsHigh) {
+      if (targetReps == null) {
+        emptyList()
+      } else {
+        listOfNotNull(
+          windowed.last()
+            .forwardBandAt(
+              x = windowed.size.toFloat(),
+              targetReps = targetReps,
+              targetRepsHigh = targetRepsHigh ?: targetReps
+            )
+            ?.let(::listOf)
+        )
+      }
+    }
 
     Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = 2.dp) {
       Column(Modifier.fillMaxSize()) {
@@ -210,7 +237,7 @@ fun SetTrendStrip(
             .fillMaxWidth()
             .weight(1f),
           points = points,
-          bands = realBands,
+          bands = realBands + forwardBand,
           dashedBands = bootstrapBands,
           yLabels = yLabels,
           gapMarks = sessionGapMarks,
@@ -271,7 +298,22 @@ private fun PreviewSetTrendStripRealTrend() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
     merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
-      .map { it.toEffortSet() }
+      .map { it.toEffortSet() },
+    targetReps = 8,
+    targetRepsHigh = 10
+  )
+}
+
+/** The narrow case: MIN_WINDOW slots, one of them spent on the target for the next set. */
+@Preview
+@Composable
+private fun PreviewSetTrendStripNarrowWithTarget() {
+  SetTrendStrip(
+    Modifier.width(140.dp).height(88.dp),
+    merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
+      .map { it.toEffortSet() },
+    targetReps = 10,
+    targetRepsHigh = 12
   )
 }
 

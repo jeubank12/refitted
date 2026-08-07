@@ -281,6 +281,10 @@ fun ColumnScope.ExerciseSetView(
                   .fillMaxWidth()
                   .height(stripHeight ?: StripPreferredHeight),
                 merged = trend?.sets.orEmpty(),
+                // reps(numCompleted) rather than the bare field, so a sequenced scheme aims at
+                // the rep count this particular set is asking for.
+                targetReps = exerciseSet.reps(numCompleted),
+                targetRepsHigh = exerciseSet.reps(numCompleted) + exerciseSet.repsRange,
                 onClick = onOpenHistory
               )
             }
