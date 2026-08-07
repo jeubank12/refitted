@@ -21,6 +21,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -49,7 +51,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.nonEmptyListOf
+import com.litus_animae.refitted.data.device.WatchState
+import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.LocalFeatures
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
@@ -137,6 +142,31 @@ fun PagerExerciseView(
     setContextMenu { collapsed ->
       // Rendered here rather than in the top bar itself because this is where the displayed
       // exercise is known - it lands next to the add-exercise icon either way.
+      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.WATCH_SYNC] == "enabled") {
+        val watchState by model.watchState.collectAsStateWithLifecycle()
+        // NoDevice/Unsupported stay visible (this doubles as the connection-status affordance)
+        // but disabled - tapping send when there's nothing to send to silently no-oped before.
+        val watchConnected = watchState is WatchState.Idle || watchState is WatchState.Active
+        IconButton(
+          { model.sendPlanToWatch(workoutPlan?.globalAlternate) },
+          enabled = watchConnected
+        ) {
+          Icon(
+            Icons.Default.Watch,
+            tint = if (watchState is WatchState.Active) {
+              MaterialTheme.colors.secondary
+            } else {
+              LocalContentColor.current.copy(alpha = if (watchConnected) 1f else ContentAlpha.disabled)
+            },
+            // TODO localize
+            contentDescription = when (watchState) {
+              is WatchState.Active -> "watch connected"
+              is WatchState.Idle -> "send plan to watch"
+              else -> "no watch connected"
+            }
+          )
+        }
+      }
       if (editing && workoutPlan?.isCustom == true) {
         exerciseSet?.let { set ->
           if (collapsed) {
