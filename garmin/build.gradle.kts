@@ -35,6 +35,7 @@ extensions.configure<LibraryExtension> {
 dependencies {
   // Module dependencies
   api(project(":data"))
+  api(project(":util"))
 
   // Core dependencies
   api(libs.javax.inject)

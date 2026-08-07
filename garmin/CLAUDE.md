@@ -11,6 +11,7 @@ service; this module never touches `BluetoothAdapter` directly.
 - Owns the Connect IQ SDK's process-wide `initialize`/`shutdown` lifecycle (`GarminConnection`)
 - Implements `WatchService` from `:data` (`GarminWatchService`) - session start/end, connection state
 - Encodes/decodes the wire protocol via `WatchProtocol` (in `:data`, no SDK dependency)
+- Receives `SET_DONE` from the watch and writes it through `SetRecordSink` (in `:data`)
 
 ## Important Files
 
@@ -20,7 +21,12 @@ service; this module never touches `BluetoothAdapter` directly.
   (`VmPolicy.detectLeakedClosableObjects().penaltyDeath()`), so this pairing must stay exact.
 - `GarminWatchService.kt` - Implements `WatchService`. Maps every `InvalidStateException` /
   `ServiceUnavailableException` at the boundary onto `WatchState.NoDevice` / `WatchState.Unsupported`
-  - these must never escape into `:ui`, which has no way to name them.
+  - these must never escape into `:ui`, which has no way to name them. Registers
+  `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)` alongside device
+  events once a device is known; incoming messages are decoded via `WatchProtocol.decode` and, for
+  `SetDone`, resolved against the session's `WatchSessionState` (`toSetRecord`) and written through
+  `SetRecordSink` on a service-owned `CoroutineScope` - this class is `@Singleton`, so it can't rely
+  on a caller's scope living as long as an incoming message might arrive.
 
 ## Dependencies
 
