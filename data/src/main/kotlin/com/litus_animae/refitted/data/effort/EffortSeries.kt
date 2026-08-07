@@ -59,7 +59,13 @@ data class ScoredSet(
   val expectationSource: ExpectationSource? = null
 )
 
-/** The fitted expectation for one session, in both capacity and weight-at-typical-reps form. */
+/**
+ * The fitted expectation for one session, in both capacity and weight-at-typical-reps form.
+ *
+ * [expectedWeight] is *added* weight, on the same axis the sets are logged and plotted on, so
+ * on an unloadable movement it can legitimately be negative - the trend rising toward zero is
+ * how "you are not yet ready to hang a plate on this" looks.
+ */
 data class TrendPoint(
   val sessionIndex: Int,
   val dayOffset: Long,

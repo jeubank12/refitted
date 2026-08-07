@@ -63,6 +63,19 @@ class EffortModelTest {
     fun `the bodyweight floor stops applying once real weight is logged`() {
       assertThat(EffortModel.capacity(5.0, 8)).isGreaterThan(EffortModel.capacity(0.0, 8))
     }
+
+    @Test
+    fun `a baseline makes the first plate an increment, not a multiple`() {
+      val baseline = EffortConfig.Default.bodyweightBaselineLoad
+      val unweighted = EffortModel.capacity(0.0, 8, baselineLoad = baseline)
+      val firstPlate = EffortModel.capacity(5.0, 8, baselineLoad = baseline)
+
+      // Against the bare floor this step is 5x - hanging one dumbbell on a set of pull-ups
+      // reads as quintupling the load, which is why it used to score IMPLAUSIBLE.
+      assertThat(EffortModel.capacity(5.0, 8) / EffortModel.capacity(0.0, 8))
+        .isWithin(1e-9).of(5.0)
+      assertThat(firstPlate / unweighted).isLessThan(1.1)
+    }
   }
 
   @Nested
@@ -393,6 +406,64 @@ class EffortModelTest {
         val band = it.residualScale!! / it.weightScale
         assertThat((it.source.weight - it.expectedWeight!!) / band).isWithin(1e-9).of(it.z!!)
       }
+    }
+
+    /** Unloadable work: reps climbing at zero added weight, then a first plate. */
+    private fun bodyweightClimb(sessions: Int = 14) = (0 until sessions).flatMap { i ->
+      (0 until 3).map { EffortSet(day(i * 3L).plusSeconds(it * 180L), 0.0, 8 + i) }
+    }
+
+    @Test
+    fun `an unloadable movement expects added weight, rising through zero`() {
+      // What progression on bodyweight work looks like: you sit at the bottom of the band
+      // adding reps, while the weight the model expects you to be able to hang on climbs from
+      // below the axis toward the first increment you could actually load.
+      val expected = EffortModel.score(bodyweightClimb()).sets
+        .filter { it.setIndexInSession == 0 && it.expectedWeight != null }
+        .map { it.expectedWeight!! }
+
+      assertThat(expected).isNotEmpty()
+      assertThat(expected.first()).isLessThan(0.0)
+      assertThat(expected.last()).isGreaterThan(0.0)
+      // Monotone, so "the line is coming up to meet the next plate" is a readable claim.
+      expected.zipWithNext { a, b -> assertThat(b).isAtLeast(a) }
+    }
+
+    @Test
+    fun `adding a first plate to bodyweight work is not implausible`() {
+      // The exact transition the chart exists to encourage. Against the bare 1 lb floor this
+      // quadrupled demonstrated capacity and clamped z at the maximum.
+      val stepUp = bodyweightClimb(sessions = 6) +
+        (0 until 3).map { EffortSet(day(18).plusSeconds(it * 180L), 5.0, 13) }
+
+      EffortModel.score(stepUp).sets.takeLast(3).forEach {
+        assertThat(it.zone).isNotEqualTo(EffortZone.IMPLAUSIBLE)
+      }
+    }
+
+    @Test
+    fun `the distance-in-bands identity survives zero-weight sets`() {
+      val scored = EffortModel.score(bodyweightClimb()).sets
+        .filter { it.z != null && abs(it.z!!) < EffortConfig.Default.maxAbsZ }
+
+      assertThat(scored).isNotEmpty()
+      scored.forEach {
+        val band = it.residualScale!! / it.weightScale
+        assertThat((it.source.weight - it.expectedWeight!!) / band).isWithin(1e-9).of(it.z!!)
+      }
+    }
+
+    @Test
+    fun `a loadable exercise carries no baseline`() {
+      // The baseline keys off ever having logged an unweighted set, so ordinary barbell work
+      // has to be bit-for-bit unaffected by any of this.
+      val loaded = (0 until 10).flatMap { i ->
+        (0 until 3).map { EffortSet(day(i * 3L).plusSeconds(it * 180L), 100.0 + i * 2, 10) }
+      }
+      val last = EffortModel.score(loaded).sets.last()
+
+      assertThat(last.weightScale)
+        .isWithin(1e-9).of(last.capacity / last.source.weight)
     }
 
     @Test

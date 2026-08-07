@@ -38,15 +38,34 @@ object EffortModel {
   /**
    * Epley-style estimated 1RM, the single scale weight×reps sets are compared on.
    *
-   * Floored at 1.0, not 0.0 - a bodyweight-only set (no explicit "bodyweight" flag exists,
-   * so weight = 0 is how one is logged) would otherwise multiply out to 0 regardless of
-   * reps, making every bodyweight session score identically instead of tracking rep
-   * progress. z-scoring only cares about relative capacity changes session-to-session, so
-   * this tiny floor doesn't distort anything - it just keeps reps the driver until real
-   * weight gets logged, at which point the floor stops applying.
+   * [baselineLoad] is what the movement already carries before anything is added - see
+   * [EffortConfig.bodyweightBaselineLoad] and [baselineLoadOf]. Zero for loadable work, where
+   * the logged weight is the whole load.
+   *
+   * Still floored at 1.0 for the zero-baseline case: a bodyweight set (no explicit flag exists,
+   * so weight = 0 is how one is logged) would otherwise multiply out to 0 regardless of reps,
+   * scoring every such session identically instead of tracking rep progress. With a baseline
+   * the floor never binds, which is the point - a floor keeps reps meaningful but makes the
+   * first pound added look like doubling the load.
    */
-  fun capacity(weight: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
-    max(weight, 1.0) * (1 + effectiveReps(reps, config) / config.epleyDivisor)
+  fun capacity(
+    weight: Double,
+    reps: Int,
+    config: EffortConfig = EffortConfig.Default,
+    baselineLoad: Double = 0.0
+  ): Double =
+    max(weight + baselineLoad, 1.0) * (1 + effectiveReps(reps, config) / config.epleyDivisor)
+
+  /**
+   * Whether this exercise's logged weights are the whole load or only what was added to it.
+   *
+   * There is no bodyweight flag on a set, so a logged zero is the only evidence available: an
+   * exercise that has ever been done unweighted is one whose weights are increments on top of
+   * a body. Decided across the whole history rather than per set, or a movement would change
+   * scale underneath itself the session a first dumbbell appears.
+   */
+  private fun baselineLoadOf(sets: List<EffortSet>, config: EffortConfig): Double =
+    if (sets.any { it.weight <= 0.0 }) config.bodyweightBaselineLoad else 0.0
 
   /**
    * Reps as the capacity scale counts them: linear up to [EffortConfig.repCap], then
@@ -189,8 +208,13 @@ object EffortModel {
     }
   }
 
-  private fun effectiveCapacity(timed: TimedSet, config: EffortConfig): Double =
-    capacity(timed.set.weight, timed.set.reps, config) * densityFactor(timed.restSeconds, config)
+  private fun effectiveCapacity(
+    timed: TimedSet,
+    config: EffortConfig,
+    baselineLoad: Double
+  ): Double =
+    capacity(timed.set.weight, timed.set.reps, config, baselineLoad) *
+      densityFactor(timed.restSeconds, config)
 
   /**
    * How much of its best a session actually held, as a multiplier on the value it feeds the
@@ -271,7 +295,12 @@ object EffortModel {
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
     if (sets.isEmpty()) return EffortSeries.Empty
-    return scoreSessions(daySessions(sets, zone), config, config.maxExtrapolationDays.toDouble())
+    return scoreSessions(
+      daySessions(sets, zone),
+      config,
+      config.maxExtrapolationDays.toDouble(),
+      baselineLoad = baselineLoadOf(sets, config)
+    )
   }
 
   /**
@@ -284,6 +313,7 @@ object EffortModel {
     sessions: List<FitSession>,
     config: EffortConfig,
     maxExtrapolation: Double,
+    baselineLoad: Double,
     skipWarmUps: Boolean = false
   ): EffortSeries {
     if (sessions.isEmpty()) return EffortSeries.Empty
@@ -328,7 +358,7 @@ object EffortModel {
     sessions.forEach { session ->
       val sessionSets = session.sets
 
-      val capacities = sessionSets.map { effectiveCapacity(it, config) }
+      val capacities = sessionSets.map { effectiveCapacity(it, config, baselineLoad) }
       var peakIndex = 0
       var bestCapacity = capacities[0]
       var bestReps = effectiveReps(sessionSets[0].set.reps, config)
@@ -415,7 +445,7 @@ object EffortModel {
         residualScale = sqrt(fittedOrFloor * fittedOrFloor + layoffUncertainty * layoffUncertainty)
 
         val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
-        val wHat = cHat / (1 + rHat / config.epleyDivisor)
+        val wHat = cHat / (1 + rHat / config.epleyDivisor) - baselineLoad
         expectedWeight = wHat
         trendPoints.add(
           TrendPoint(
@@ -430,7 +460,7 @@ object EffortModel {
       }
 
       sessionSets.forEachIndexed { setIndex, timed ->
-        val c = effectiveCapacity(timed, config)
+        val c = effectiveCapacity(timed, config, baselineLoad)
         val z = expectedCapacity?.let {
           ((c - it) / (residualScale ?: 1.0)).coerceIn(-config.maxAbsZ, config.maxAbsZ)
         }
@@ -439,7 +469,7 @@ object EffortModel {
         // at exactly this set's terms, which is the only version a chart plotting raw weight can
         // compare a dot against. The session-wide, typical-reps conversion misplaces every set
         // whose reps differ from the average, which is most of them.
-        val setScale = c / max(timed.set.weight, 1.0)
+        val setScale = c / max(timed.set.weight + baselineLoad, 1.0)
         scoredSets.add(
           ScoredSet(
             source = timed.set,
@@ -449,7 +479,7 @@ object EffortModel {
             dayOffset = session.dayOffset,
             capacity = c,
             expectation = expectedCapacity,
-            expectedWeight = expectedCapacity?.let { it / setScale },
+            expectedWeight = expectedCapacity?.let { it / setScale - baselineLoad },
             residualScale = residualScale,
             weightScale = setScale,
             z = z,
@@ -570,6 +600,7 @@ object EffortModel {
   ): EffortSeries {
     val real = score(sets, zone, config)
     if (real.sets.isEmpty()) return real
+    val baselineLoad = baselineLoadOf(sets, config)
 
     val exploded = scoreSessions(
       explodedSessions(sets, zone),
@@ -578,6 +609,7 @@ object EffortModel {
       // calendar quantity and means nothing in this domain. Skipped warm-ups don't advance
       // lastPriorX while session.x keeps counting, so the gap here tracks set volume, not time.
       maxExtrapolation = config.maxExtrapolationSets,
+      baselineLoad = baselineLoad,
       skipWarmUps = true
     )
 
@@ -628,7 +660,7 @@ object EffortModel {
               at = first.source.completed,
               expectedCapacity = cHat,
               typicalReps = rHat,
-              expectedWeight = cHat / (1 + rHat / config.epleyDivisor),
+              expectedWeight = cHat / (1 + rHat / config.epleyDivisor) - baselineLoad,
               expectationSource = ExpectationSource.BOOTSTRAP
             )
           }

@@ -20,6 +20,19 @@ data class EffortConfig(
   // Upper bound on the fit's typical-reps estimate, which the hard clamp used to supply.
   val repSoftCapMax: Double = 40.0,
   val epleyDivisor: Double = 30.0,
+  // What an unloadable movement is already moving before anything is added to it. Capacity is
+  // multiplicative, so without this the floor in EffortModel.capacity made 0 lb and 5 lb read
+  // as 1 and 5: adding a first 5 lb dumbbell to a set of pull-ups quadrupled demonstrated
+  // capacity and scored IMPLAUSIBLE, which is precisely the progression the chart exists to
+  // encourage. It also pinned expectedWeight near 1 lb no matter how the reps went, so the
+  // trend line carried no information for bodyweight at all.
+  //
+  // Deliberately one constant rather than a per-movement table or a stored bodyweight: it
+  // largely cancels out of z, which compares a lifter to their own history, and what it really
+  // sets is how a rep trades against a pound - at 100 with 10 reps, roughly 3.3 lb per rep -
+  // which is what decides when adding load is justified rather than another rep. Applied only
+  // to exercises that have logged an unweighted set; everything else keeps a baseline of zero.
+  val bodyweightBaselineLoad: Double = 100.0,
   val halfLifeSessions: Double = 9.0,
   // History ages by calendar time as well as by session count. Without this, nine sessions
   // spread over three weeks weigh exactly the same as nine spread over two years. A normal
