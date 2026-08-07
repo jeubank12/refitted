@@ -917,21 +917,92 @@ class EffortModelTest {
       assertThat(stale).isLessThan(contiguous)
     }
 
-    @Test
-    fun `a layoff is charged once, not once per set`() {
-      // The exploded fit sees one fit session per set, so a five-set comeback must not age the
-      // history by five layoffs.
-      val many = (0 until 5).map { EffortSet(day(200).plusSeconds(it * 180L), 100.0, 8) }
-      val few = listOf(EffortSet(day(200), 100.0, 8))
+    /** Six weekly sessions, a year off, then a comeback whose sets are [comebackSets]. */
+    private fun comebackSession(vararg comebackSets: Pair<Double, Int>): List<EffortSet> {
       val block = (0..5).flatMap { s ->
         (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
       }
+      return block + comebackSets.mapIndexed { i, (w, r) ->
+        EffortSet(day(400).plusSeconds(i * 180L), w, r)
+      }
+    }
 
-      val withMany = EffortModel.scoreWithBootstrap(block + many)
-      val withFew = EffortModel.scoreWithBootstrap(block + few)
+    @Test
+    fun `a cautious first set back reads light once the working sets land`() {
+      // Exactly the live-strip story: open at a weight you are unsure of, and it looks fine
+      // against a guess the model admits it cannot make; find your real level on the next set
+      // and the opener is revealed as the feeler it was.
+      val alone = EffortModel.scoreWithBootstrap(comebackSession(75.0 to 8))
+      val settled = EffortModel.scoreWithBootstrap(
+        comebackSession(75.0 to 8, 95.0 to 8, 95.0 to 8)
+      )
 
-      assertThat(withMany.sets.first { it.sessionIndex == 6 }.expectation!!)
-        .isWithin(1e-9).of(withFew.sets.first { it.sessionIndex == 6 }.expectation!!)
+      val openerAlone = alone.sets.last { it.sessionIndex == 6 }
+      val openerSettled = settled.sets.first { it.sessionIndex == 6 }
+
+      assertThat(openerSettled.z!!).isLessThan(openerAlone.z!!)
+      assertThat(openerSettled.zone).isEqualTo(EffortZone.BELOW)
+    }
+
+    @Test
+    fun `the band closes as the guess becomes a measurement`() {
+      val oneSet = EffortModel.scoreWithBootstrap(comebackSession(95.0 to 8))
+        .sets.last { it.sessionIndex == 6 }
+      val threeSets = EffortModel.scoreWithBootstrap(
+        comebackSession(95.0 to 8, 95.0 to 8, 95.0 to 8)
+      ).sets.last { it.sessionIndex == 6 }
+
+      assertThat(threeSets.residualScale!!).isLessThan(oneSet.residualScale!!)
+    }
+
+    @Test
+    fun `the long-term history never recalibrates within a session`() {
+      // score() is what the drawer renders, and a dot that changes colour while you scroll is
+      // a different promise from a live strip that is telling you what to do next.
+      val sets = comebackSession(75.0 to 8, 95.0 to 8, 95.0 to 8)
+      val session = EffortModel.score(sets).sets.filter { it.sessionIndex == 6 }
+
+      assertThat(session).hasSize(3)
+      session.zipWithNext { a, b ->
+        assertThat(b.expectation!!).isWithin(1e-9).of(a.expectation!!)
+      }
+      // And that shared expectation is the time-based guess, untouched by the session itself.
+      assertThat(session.first().expectation!!)
+        .isLessThan(EffortModel.capacity(100.0, 8))
+    }
+
+    @Test
+    fun `recalibration does not leak into the fit's own error estimate`() {
+      // The residual accumulator measures prediction error. Feeding it a level this session
+      // helped set would report the fit as far more accurate than it is, and collapse the band
+      // for every session after it.
+      val sets = comebackSession(95.0 to 8, 95.0 to 8, 95.0 to 8) +
+        (0 until 3).map { EffortSet(day(407).plusSeconds(it * 180L), 95.0, 8) }
+
+      val viaStrip = EffortModel.scoreWithBootstrap(sets).sets.last().residualScale!!
+      val viaDrawer = EffortModel.score(sets).sets.last().residualScale!!
+
+      assertThat(viaStrip).isWithin(1e-9).of(viaDrawer)
+    }
+
+    @Test
+    fun `a layoff is charged once, not once per set`() {
+      // The exploded fit sees one fit session per set, so a five-set comeback must not age the
+      // history by five layoffs. Only two prior days, so the session fit is still cold here and
+      // the values under test are genuinely the set-grain ones.
+      val block = (0..1).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+      val comeback = (0 until 5).map { EffortSet(day(200).plusSeconds(it * 180L), 100.0, 8) }
+
+      val scored = EffortModel.scoreWithBootstrap(block + comeback)
+        .sets.filter { it.sessionIndex == 2 && it.expectation != null }
+
+      assertThat(scored).hasSize(5)
+      // Billing the gap per set decays the history by 0.5^(200/90) again on every one of them,
+      // so by the fifth set the expectation would have collapsed to a fraction of a percent.
+      val first = scored.first().expectation!!
+      scored.forEach { assertThat(it.expectation!!).isGreaterThan(first * 0.8) }
     }
   }
 

@@ -314,7 +314,8 @@ object EffortModel {
     config: EffortConfig,
     maxExtrapolation: Double,
     baselineLoad: Double,
-    skipWarmUps: Boolean = false
+    skipWarmUps: Boolean = false,
+    recalibrateWithinSession: Boolean = false
   ): EffortSeries {
     if (sessions.isEmpty()) return EffortSeries.Empty
 
@@ -410,6 +411,11 @@ object EffortModel {
       // The expectation before the detrain haircut - what the fit says you'd be at had you
       // never stopped. The fold-in measures the comeback against it to size the real handicap.
       var undetrainedCapacity: Double? = null
+      // What the fit predicted before this session was allowed to speak for itself. Kept apart
+      // from expectedCapacity because the residual accumulator measures *prediction error*, and
+      // feeding it a level that this session helped set would report the fit as far more
+      // accurate than it is and collapse everyone's band.
+      var blindExpectation: Double? = null
 
       if (priorSessionCount >= config.minPriorSessions) {
         val xEff = min(session.x, lastPriorX + maxExtrapolation)
@@ -432,7 +438,7 @@ object EffortModel {
         val undetrained = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
         undetrainedCapacity = undetrained
         val cHat = undetrained * detrain
-        expectedCapacity = cHat
+        blindExpectation = cHat
 
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
         val fittedOrFloor = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
@@ -442,17 +448,41 @@ object EffortModel {
         // the model had just admitted it couldn't predict. The haircut is itself the scale of what
         // isn't known, so it widens the band instead of narrowing it.
         val layoffUncertainty = config.layoffUncertaintyWeight * (undetrained - cHat)
-        residualScale = sqrt(fittedOrFloor * fittedOrFloor + layoffUncertainty * layoffUncertainty)
+        val blindScale = sqrt(fittedOrFloor * fittedOrFloor + layoffUncertainty * layoffUncertainty)
+
+        // Once the lifter is actually back, the sets in front of us say more about where they
+        // stand than any function of elapsed time can, so replace the time-based guess with what
+        // this session has demonstrated - weighted by how much of it has landed - and let the
+        // widened band close as the guess turns into a measurement.
+        //
+        // Deliberately not causal within the session: every set is scored against the same
+        // settled level, so a cautious opening set can turn out to have been light once the
+        // working sets land. That is the honest reading, and this path only ever renders the
+        // live strip, whose job is to say what to do next. score() never takes it, so the
+        // long-term history never reshuffles under the user.
+        if (recalibrateWithinSession && followedLayoff) {
+          val trust = min(1.0, capacities.size / 2.0)
+          val level = trust * capacities.average() + (1 - trust) * cHat
+          val floor = max(config.residualScaleFloorFraction * level, 1e-6)
+          val remainingDoubt =
+            config.layoffUncertaintyWeight * (undetrained - level) * (1 - trust)
+          expectedCapacity = level
+          residualScale = sqrt(floor * floor + remainingDoubt * remainingDoubt)
+        } else {
+          expectedCapacity = cHat
+          residualScale = blindScale
+        }
 
         val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
-        val wHat = cHat / (1 + rHat / config.epleyDivisor) - baselineLoad
+        val shownCapacity = expectedCapacity!!
+        val wHat = shownCapacity / (1 + rHat / config.epleyDivisor) - baselineLoad
         expectedWeight = wHat
         trendPoints.add(
           TrendPoint(
             sessionIndex = session.sessionIndex,
             dayOffset = session.dayOffset,
             at = sessionSets.first().set.completed,
-            expectedCapacity = cHat,
+            expectedCapacity = shownCapacity,
             typicalReps = rHat,
             expectedWeight = wHat
           )
@@ -560,8 +590,8 @@ object EffortModel {
         sumGapWlog += ln(session.agingDays)
       }
 
-      if (expectedCapacity != null) {
-        val e = sessionValue - expectedCapacity
+      if (blindExpectation != null) {
+        val e = sessionValue - blindExpectation
         sumResidualW += 1.0
         sumResidualWe2 += e * e
       }
@@ -598,9 +628,17 @@ object EffortModel {
     zone: ZoneId = ZoneId.systemDefault(),
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
-    val real = score(sets, zone, config)
-    if (real.sets.isEmpty()) return real
+    if (sets.isEmpty()) return EffortSeries.Empty
     val baselineLoad = baselineLoadOf(sets, config)
+    // Not score(): the strip takes the within-session recalibration and the drawer must not.
+    val real = scoreSessions(
+      daySessions(sets, zone),
+      config,
+      config.maxExtrapolationDays.toDouble(),
+      baselineLoad = baselineLoad,
+      recalibrateWithinSession = true
+    )
+    if (real.sets.isEmpty()) return real
 
     val exploded = scoreSessions(
       explodedSessions(sets, zone),
