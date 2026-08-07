@@ -30,6 +30,7 @@ jobs:
               - 'room/**'
               - 'ui/**'
               - 'util/**'
+              - 'garmin/**'
               - '*gradle*'
               - '.github/workflows/*'
               - 'gradle/**'
