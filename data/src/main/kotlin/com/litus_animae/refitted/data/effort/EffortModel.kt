@@ -100,11 +100,19 @@ object EffortModel {
     return HUMP_ANCHORS.last().second.toFloat()
   }
 
+  /** z below which a set reads as under its trend rather than on it. */
+  const val UNDER_EDGE_Z = -1.0
+
+  /** z at or above which a set reads as over its trend rather than on it. */
+  const val OVER_EDGE_Z = 0.5
+
+  private const val IMPLAUSIBLE_EDGE_Z = 2.0
+
   fun zoneOf(z: Double?): EffortZone = when {
     z == null -> EffortZone.COLD
-    z < -1.0 -> EffortZone.BELOW
-    z < 0.5 -> EffortZone.ON_CURVE
-    z < 2.0 -> EffortZone.GROWTH
+    z < UNDER_EDGE_Z -> EffortZone.BELOW
+    z < OVER_EDGE_Z -> EffortZone.ON_CURVE
+    z < IMPLAUSIBLE_EDGE_Z -> EffortZone.GROWTH
     else -> EffortZone.IMPLAUSIBLE
   }
 

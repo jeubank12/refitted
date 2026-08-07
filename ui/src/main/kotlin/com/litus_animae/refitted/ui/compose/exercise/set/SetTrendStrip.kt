@@ -40,11 +40,11 @@ import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
-import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
-import com.litus_animae.refitted.ui.compose.charts.zoneColor
+import com.litus_animae.refitted.ui.compose.charts.bandRuns
+import com.litus_animae.refitted.ui.compose.charts.sizeStepDot
+import com.litus_animae.refitted.ui.compose.charts.sizeStepOf
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
-import com.litus_animae.refitted.ui.compose.util.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -128,7 +128,7 @@ fun SetTrendStrip(
         EffortPoint(
           index.toFloat(),
           scored.source.weight.toFloat(),
-          scored.size,
+          scored.source.reps,
           scored.zone,
           emphasized = index == windowed.lastIndex
         )
@@ -147,36 +147,20 @@ fun SetTrendStrip(
       val maxWeight = points.maxOf { it.weight }
       listOf(minWeight, maxWeight).distinct().map { it to it.roundToInt().toString() }
     }
-    // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
-    // beneath trend, so the dash itself is the only signal a segment is the coarser,
+    // Split by source rather than text-labeling the two - EffortChart draws the dashed band
+    // beneath the solid one, so the dash itself is the only signal a segment is the coarser,
     // strip-only stand-in rather than the real session-based fit.
     //
-    // Built from each set's own expectedWeight rather than a per-session lookup: the bootstrap
-    // fit runs at set granularity, so its expectation genuinely moves set to set, and keying
-    // off sessionIndex would flatten that into one step per day.
-    val realTrend = remember(windowed) {
-      buildTrendRuns(
-        windowed.mapIndexed { index, scored ->
-          index.toFloat() to scored.expectedWeight.takeIf {
-            scored.expectationSource == ExpectationSource.SESSION
-          }
-        }
-      )
-    }
-    val bootstrapTrend = remember(windowed) {
-      buildTrendRuns(
-        windowed.mapIndexed { index, scored ->
-          index.toFloat() to scored.expectedWeight.takeIf {
-            scored.expectationSource == ExpectationSource.BOOTSTRAP
-          }
-        }
-      )
-    }
+    // Keyed off each set rather than its session: the bootstrap fit runs at set granularity, so
+    // its band genuinely moves set to set, and keying off sessionIndex would flatten that into
+    // one step per day.
+    val realBands = remember(windowed) { windowed.bandRuns(ExpectationSource.SESSION) }
+    val bootstrapBands = remember(windowed) { windowed.bandRuns(ExpectationSource.BOOTSTRAP) }
 
     Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = 2.dp) {
       Column(Modifier.fillMaxSize()) {
-        // Doubles as the chart's only legend: it names the color of the bubble the user
-        // just earned, in the moment they earn it, rather than a static key for all five.
+        // Doubles as the chart's only legend: it names where the bubble the user just earned
+        // landed, in the moment they earn it, rather than a static key for every state.
         Row(
           Modifier
             .fillMaxWidth()
@@ -206,17 +190,13 @@ fun SetTrendStrip(
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
               )
             } else {
+              // Sized, not coloured: colour means reps on the chart below, so a coloured key
+              // here would name the wrong channel. The dot matches the bubble it describes.
               Box(
                 Modifier
-                  .size(8.dp)
+                  .size(sizeStepDot(sizeStepOf(latestZone)))
                   .background(
-                    zoneColor(
-                      latestZone,
-                      MaterialTheme.colors.primary,
-                      Theme.goodAttention,
-                      Theme.timerAmber,
-                      MaterialTheme.colors.onSurface.copy(alpha = 0.25f)
-                    ),
+                    MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
                     CircleShape
                   )
               )
@@ -230,8 +210,8 @@ fun SetTrendStrip(
             .fillMaxWidth()
             .weight(1f),
           points = points,
-          trend = realTrend,
-          dashedTrend = bootstrapTrend,
+          bands = realBands,
+          dashedBands = bootstrapBands,
           yLabels = yLabels,
           gapMarks = sessionGapMarks,
           compact = true

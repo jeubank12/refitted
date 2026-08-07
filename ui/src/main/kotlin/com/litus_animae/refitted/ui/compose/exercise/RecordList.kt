@@ -56,6 +56,7 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.litus_animae.refitted.data.effort.EffortConfig
 import com.litus_animae.refitted.data.effort.EffortModel
+import com.litus_animae.refitted.data.effort.ExpectationSource
 import com.litus_animae.refitted.data.effort.ScoredSet
 import com.litus_animae.refitted.data.effort.TrendPoint
 import com.litus_animae.refitted.data.effort.toEffortSet
@@ -70,7 +71,7 @@ import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortLegend
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.LineChart
-import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
+import com.litus_animae.refitted.ui.compose.charts.bandRuns
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.ui.compose.util.Theme
@@ -380,14 +381,25 @@ private fun EffortHistoryCard(
 
   val points = remember(sortedEntries) {
     sortedEntries.map { (sessionIndex, scored) ->
-      EffortPoint(sessionIndex.toFloat(), scored.source.weight.toFloat(), scored.size, scored.zone)
+      EffortPoint(
+        sessionIndex.toFloat(),
+        scored.source.weight.toFloat(),
+        scored.source.reps,
+        scored.zone
+      )
     }
   }
-  val expectedWeightBySession = remember(trend) {
-    trend.associateBy({ it.sessionIndex }, { it.expectedWeight })
+  // Built from the plotted set's own band rather than TrendPoint's session-level, typical-reps
+  // expectation. The dot is drawn at that set's raw weight, so a line placed at the session's
+  // average rep count sits somewhere it never has to agree with - which is how the old chart
+  // managed to draw a GROWTH bubble visibly below its own trend line.
+  val bandRuns = remember(sortedEntries) {
+    sortedEntries.map { it.value }
+      .bandRuns(ExpectationSource.SESSION) { index, _ -> sortedEntries[index].key.toFloat() }
   }
-  val trendRuns = remember(sortedEntries, expectedWeightBySession) {
-    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, expectedWeightBySession)
+  val repRange = remember(sortedEntries) {
+    val reps = sortedEntries.map { it.value.source.reps }
+    if (reps.isEmpty()) null else reps.min()..reps.max()
   }
   val gapMarks = remember(sortedEntries) {
     sortedEntries.zipWithNext().mapNotNull { (a, b) ->
@@ -436,7 +448,7 @@ private fun EffortHistoryCard(
           .fillMaxWidth()
           .weight(1f),
         points = points,
-        trend = trendRuns,
+        bands = bandRuns,
         xLabels = xLabels,
         yLabels = yLabels,
         gapMarks = gapMarks
@@ -460,7 +472,8 @@ private fun EffortHistoryCard(
         EffortLegend(
           Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
+            .padding(top = 4.dp),
+          repRange = repRange
         )
       }
     }

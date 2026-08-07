@@ -50,7 +50,12 @@
     <string name="reps_label">Reps</string>
     <string name="doubled_label">Barbell\nMode?</string>
     <string name="effort_label">Effort</string>
-    <string name="effort_chart_subtitle">Bubble size = effort vs. your trend</string>
+    <string name="effort_chart_subtitle">Band = what your trend expects · colour = reps</string>
+    <string name="effort_step_under">Under</string>
+    <string name="effort_step_on">On track</string>
+    <string name="effort_step_over">Over</string>
+    <string name="effort_reps_low">%1$d reps</string>
+    <string name="effort_reps_high">%1$d</string>
     <string name="effort_zone_cold">New</string>
     <string name="effort_zone_below">Below trend</string>
     <string name="effort_zone_on_curve">On curve</string>
