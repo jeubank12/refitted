@@ -527,7 +527,10 @@ class EffortModelTest {
       val week = comebackExpectation(7)
       val quarter = comebackExpectation(90)
 
-      assertThat(quarter).isAtLeast(week * EffortConfig.Default.detrainFloor)
+      // Stated as the ratio it actually constrains - on a flat history the quarter-long layoff
+      // lands exactly on the floor, and comparing the two products asserts equality of floats
+      // that agree only to within a few ULP.
+      assertThat(quarter / week).isAtLeast(EffortConfig.Default.detrainFloor - 1e-9)
       // Past the point the floor binds, more time away costs nothing further.
       assertThat(comebackExpectation(365)).isWithin(1e-9).of(quarter)
       assertThat(comebackExpectation(3650)).isWithin(1e-9).of(quarter)
@@ -686,6 +689,106 @@ class EffortModelTest {
         .let { (it.capacity - it.expectation!!) / it.z!! }
 
       assertThat(bandAt(7)).isLessThan(bandAt(6))
+    }
+
+    /**
+     * A block improving by [gainPerSession] every 4 days, then [layoffDays] off, then a rebuild
+     * resuming at [comebackWeight] and improving at the same rate.
+     */
+    private fun rebuild(
+      layoffDays: Long = 730,
+      comebackWeight: Double = 80.0,
+      gainPerSession: Double = 2.0,
+      rebuildSessions: Int = 10
+    ): EffortSeries {
+      val pre = (0 until 12).flatMap { s ->
+        (0 until 3).map {
+          EffortSet(day(s * 4L).plusSeconds(it * 180L), 100.0 + gainPerSession * s, 10)
+        }
+      }
+      val post = (0 until rebuildSessions).flatMap { s ->
+        (0 until 3).map {
+          EffortSet(
+            day(44 + layoffDays + s * 4L).plusSeconds(it * 180L),
+            comebackWeight + gainPerSession * s,
+            10
+          )
+        }
+      }
+      return EffortModel.score(pre + post)
+    }
+
+    /** Fitted capacity-per-day between consecutive rebuild sessions' expectations. */
+    private fun rebuildSlopes(series: EffortSeries): List<Double> =
+      series.trend.filter { it.sessionIndex > 12 }
+        .zipWithNext { a, b ->
+          (b.expectedCapacity - a.expectedCapacity) / (b.dayOffset - a.dayOffset)
+        }
+
+    @Test
+    fun `a rebuild is predicted as growth, not as decline`() {
+      // The gap used to sit in the regression's x-domain as a lever arm, tipping the fitted
+      // slope negative while the lifter gained every single session.
+      val slopes = rebuildSlopes(rebuild())
+
+      assertThat(slopes).isNotEmpty()
+      slopes.forEach { assertThat(it).isGreaterThan(0.0) }
+    }
+
+    @Test
+    fun `the pace carried across a gap tracks the pace before it`() {
+      // +2 lb per session on a 4-day cadence, in capacity terms per day.
+      val trueSlope = (EffortModel.capacity(102.0, 10) - EffortModel.capacity(100.0, 10)) / 4.0
+      val slopes = rebuildSlopes(rebuild())
+
+      // Same order of magnitude and same sign - not a refit from scratch, which lands near zero.
+      assertThat(slopes.last()).isGreaterThan(trueSlope / 3.0)
+      assertThat(slopes.last()).isLessThan(trueSlope * 2.0)
+    }
+
+    @Test
+    fun `a steady rebuild stops reading as a surprise every session`() {
+      val rebuilt = rebuild()
+      val postLayoff = rebuilt.sets.filter { it.sessionIndex > 12 && it.z != null }
+
+      assertThat(postLayoff).isNotEmpty()
+      // Predicted, not marvelled at: nothing drifts toward the outlier line.
+      postLayoff.forEach { assertThat(it.zone).isNotEqualTo(EffortZone.IMPLAUSIBLE) }
+      assertThat(postLayoff.map { it.z!! }.max()).isLessThan(1.5)
+    }
+
+    @Test
+    fun `a session of nothing but a light feeler cannot re-level the history`() {
+      val block = (0..7).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 4L).plusSeconds(it * 180L), 200.0, 8) }
+      }
+      val feeler = listOf(EffortSet(day(28 + 730), 20.0, 5))
+      val next = (0 until 3).map {
+        EffortSet(day(28 + 730 + 4).plusSeconds(it * 180L), 150.0, 8)
+      }
+
+      val settled = EffortModel.score(block + feeler + next).sets.last()
+
+      // The clamp bounds the *rescale* of retained history, not the feeler's own fold-in - a
+      // 20 lb set logged as a whole session is still evidence and still moves the fit. What
+      // must not happen is the model concluding this is a 20 lb lifter.
+      assertThat(settled.expectation!!).isGreaterThan(EffortModel.capacity(20.0, 5) * 2.0)
+    }
+
+    @Test
+    fun `an ordinary gap inside the grace is left completely alone`() {
+      // The whole comeback path must be inert during normal training - no slide, no re-level.
+      val steady = (0..11).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 4L).plusSeconds(it * 180L), 100.0 + s, 10) }
+      }
+      val series = EffortModel.score(steady)
+
+      series.trend.forEach { assertThat(it.expectedCapacity).isGreaterThan(0.0) }
+      // A pure straight line in, a pure straight line out.
+      val slopes = series.trend.zipWithNext { a, b ->
+        (b.expectedCapacity - a.expectedCapacity) / (b.dayOffset - a.dayOffset)
+      }
+      slopes.forEach { assertThat(it).isGreaterThan(0.0) }
     }
 
     @Test

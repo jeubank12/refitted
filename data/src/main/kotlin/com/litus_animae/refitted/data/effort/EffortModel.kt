@@ -348,10 +348,38 @@ object EffortModel {
       val typicalGapDays = if (sumGapW > 0.0) exp(sumGapWlog / sumGapW) else 0.0
       val detrain = detrainFactor(session.layoffDays, typicalGapDays, config)
       val followedLayoff = detrain < 1.0
+      // Both halves of the comeback treatment turn on this one condition. They are a pair:
+      // sliding x without re-levelling parks the old, higher block right beside a lower
+      // comeback and fits a cliff through them, which is worse than leaving the gap alone.
+      // A prediction has to exist for the re-level to have anything to measure against, so
+      // the slide is gated on the same prior-session count rather than on sumW alone.
+      val reAnchorComeback = followedLayoff && priorSessionCount >= config.minPriorSessions
+
+      // Close the dead part of the gap in the regression's x-domain before predicting from it.
+      //
+      // Nothing happened during a layoff, but the days still counted, and x is a day offset -
+      // so the pre-layoff block sat hundreds of days to the left of the comeback with a much
+      // higher capacity, and even at the 0.4% weight the aging decay leaves it, that lever arm
+      // dominated the fit. The slope came out *negative* for ten sessions while the lifter was
+      // gaining every session. A translation moves every accumulated x by the same amount, so
+      // the slope is preserved exactly and only the arm goes away. Paired with the re-level at
+      // fold-in below: sliding alone is far worse than doing nothing, because it parks the old
+      // high capacity immediately left of a much lower comeback.
+      if (reAnchorComeback) {
+        val dead = (session.layoffDays - graceDays(typicalGapDays, config)).coerceAtLeast(0.0)
+        // sumWxx consumes the pre-shift sumWx, so it has to be updated first.
+        sumWxx += 2 * dead * sumWx + dead * dead * sumW
+        sumWx += dead * sumW
+        sumWxy += dead * sumWy
+        lastPriorX += dead
+      }
 
       var expectedCapacity: Double? = null
       var expectedWeight: Double? = null
       var residualScale: Double? = null
+      // The expectation before the detrain haircut - what the fit says you'd be at had you
+      // never stopped. The fold-in measures the comeback against it to size the real handicap.
+      var undetrainedCapacity: Double? = null
 
       if (priorSessionCount >= config.minPriorSessions) {
         val xEff = min(session.x, lastPriorX + maxExtrapolation)
@@ -372,6 +400,7 @@ object EffortModel {
         // bounds the *level*, which nothing did before - the curve used to freeze where it was
         // left, so coming back from months off read BELOW on every set until it was clawed back.
         val undetrained = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
+        undetrainedCapacity = undetrained
         val cHat = undetrained * detrain
         expectedCapacity = cHat
 
@@ -431,12 +460,42 @@ object EffortModel {
       runningBest = max(runningBest, sessionValue)
       if (isWarmUp) return@forEach
 
+      // A layoff's real cost is only knowable once the lifter is back, so measure it rather
+      // than keeping the time-based guess: the ratio of what they actually did to what the fit
+      // said they'd be at is the handicap. Rescaling the retained history by it re-expresses
+      // the whole block at the level they returned to, which is what lets the slope carried
+      // across the gap above describe a rebuild instead of a decline.
+      //
+      // Clamped to the same floor the blind guess uses, so a session that is nothing but one
+      // light feeler set cannot re-level a whole history down to it, and to 1.0, because
+      // coming back strong is already captured by folding this session in at its true value -
+      // it must not retroactively inflate what was done years ago.
+      val handicap = undetrainedCapacity
+        ?.takeIf { reAnchorComeback }
+        ?.let { (sessionValue / it).coerceIn(config.detrainFloor, 1.0) }
+        ?: 1.0
+
       // Fold this session in *after* using it for prediction/scoring, so a session's
       // outcome (a PR or a bad day) never influences its own expectation.
-      val decay = sessionDecay * 0.5.pow(session.agingDays / config.halfLifeDays)
+      //
+      // A re-levelled history skips the calendar term: aging is what strips a stale block of
+      // influence, and once the block has been restated at today's level it is no longer
+      // stale - it is the only evidence of how fast this lifter improves. The session-count
+      // half-life still retires it over the next several sessions as real post-comeback data
+      // arrives, so it acts as a prior rather than an anchor.
+      val decay = if (reAnchorComeback) {
+        sessionDecay
+      } else {
+        sessionDecay * 0.5.pow(session.agingDays / config.halfLifeDays)
+      }
       sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
       sumResidualW *= decay; sumResidualWe2 *= decay
       sumRepsW *= decay; sumRepsWr *= decay
+
+      // Level, not shape: only the capacity-valued sums move, so the fitted slope keeps its
+      // proportions and simply lands where the lifter actually is.
+      sumWy *= handicap; sumWxy *= handicap
+      sumResidualWe2 *= handicap * handicap
       // Session-count decay only, deliberately skipping the calendar term the others carry.
       // Cadence is a per-exposure property, and aging it by the very gap being judged is
       // self-defeating: a two-year break would age away the rhythm it needs to be measured
