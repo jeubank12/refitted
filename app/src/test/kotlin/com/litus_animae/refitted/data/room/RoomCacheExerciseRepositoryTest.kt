@@ -2,6 +2,7 @@ package com.litus_animae.refitted.data.room
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
@@ -43,6 +44,7 @@ class RoomCacheExerciseRepositoryTest {
   // Mocks
   private val roomProvider: RefittedRoomProvider = mockk()
   private val networkService: ExerciseSetNetworkService = mockk()
+  private val setRecordSink: SetRecordSink = mockk()
   private val roomDatabase: RefittedRoom = mockk()
   private val exerciseDao: ExerciseDao = mockk()
   private val log: LogUtil = TestLogUtil
@@ -94,7 +96,7 @@ class RoomCacheExerciseRepositoryTest {
     every { roomProvider.refittedRoom } returns roomDatabase
     every { roomDatabase.getExerciseDao() } returns exerciseDao
 
-    subject = RoomCacheExerciseRepository(roomProvider, networkService, log)
+    subject = RoomCacheExerciseRepository(roomProvider, networkService, setRecordSink, log)
   }
 
   fun setupGetSetRecords(
@@ -362,9 +364,9 @@ class RoomCacheExerciseRepositoryTest {
   @DisplayName("addRecord")
   inner class AddRecord {
     @Test
-    fun `calls DAO to insert a new record`() = runTest {
+    fun `delegates to SetRecordSink`() = runTest {
       // Given
-      coEvery { exerciseDao.storeExerciseRecord(any()) } returns Unit
+      coEvery { setRecordSink.store(any()) } returns Unit
       val newRecord = SetRecord(
         weight = 110.0,
         reps = 10,
@@ -375,7 +377,7 @@ class RoomCacheExerciseRepositoryTest {
       subject.storeSetRecord(newRecord)
 
       // Then
-      coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(newRecord)) }
+      coVerify { setRecordSink.store(listOf(newRecord)) }
     }
   }
 
