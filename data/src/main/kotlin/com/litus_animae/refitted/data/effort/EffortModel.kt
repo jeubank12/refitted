@@ -334,11 +334,19 @@ object EffortModel {
         // The extrapolation clamp above bounds how far the *slope* can run after a gap; this
         // bounds the *level*, which nothing did before - the curve used to freeze where it was
         // left, so coming back from months off read BELOW on every set until it was clawed back.
-        val cHat = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY) * detrainFactor(session.layoffDays, config)
+        val undetrained = shrunk.coerceIn(0.5 * meanY, 1.5 * meanY)
+        val cHat = undetrained * detrainFactor(session.layoffDays, config)
         expectedCapacity = cHat
 
         val fittedResidualScale = if (sumResidualW >= 2.0) sqrt(sumResidualWe2 / sumResidualW) else 0.0
-        residualScale = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
+        val fittedOrFloor = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
+        // Detraining lowers the bar but says nothing about how well that lower number is known,
+        // and the floor is a fraction of it - so the haircut used to tighten the band along with
+        // the target it was cutting, and an ordinary comeback scored several sigma above a number
+        // the model had just admitted it couldn't predict. The haircut is itself the scale of what
+        // isn't known, so it widens the band instead of narrowing it.
+        val layoffUncertainty = config.layoffUncertaintyWeight * (undetrained - cHat)
+        residualScale = sqrt(fittedOrFloor * fittedOrFloor + layoffUncertainty * layoffUncertainty)
 
         val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
         val wHat = cHat / (1 + rHat / config.epleyDivisor)

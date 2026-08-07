@@ -555,6 +555,50 @@ class EffortModelTest {
     }
 
     @Test
+    fun `a comeback is not implausible for landing near the detrained bar`() {
+      // Two years off, back at a fraction of the old numbers - the single most ordinary thing a
+      // long-dormant exercise can do, and it used to pin z at the clamp and render amber.
+      val lastSession = comeback(layoffDays = 730, comebackWeight = 75.0)
+        .sets.takeLast(3)
+
+      lastSession.forEach {
+        assertThat(it.zone).isNotEqualTo(EffortZone.IMPLAUSIBLE)
+        assertThat(abs(it.z!!)).isLessThan(EffortConfig.Default.maxAbsZ)
+      }
+    }
+
+    @Test
+    fun `time away widens the band rather than narrowing it with the bar`() {
+      fun bandOf(layoffDays: Long) = comeback(layoffDays).sets.last()
+        .let { (it.capacity - it.expectation!!) / it.z!! }
+
+      val week = bandOf(7)
+      val quarter = bandOf(90)
+      val twoYears = bandOf(730)
+
+      assertThat(quarter).isGreaterThan(week)
+      // Past the detrain floor the haircut stops growing, so neither does the uncertainty.
+      assertThat(twoYears).isWithin(1e-9).of(quarter)
+    }
+
+    @Test
+    fun `the widened band is confined to sessions that follow a layoff`() {
+      // The session after the comeback has no gap in front of it, so it is scored on the
+      // ordinary band again - the widening must not linger once training resumes.
+      val block = (0..5).flatMap { s ->
+        (0 until 3).map { EffortSet(day(s * 7L).plusSeconds(it * 180L), 100.0, 8) }
+      }
+      val back = (0 until 3).map { EffortSet(day(400).plusSeconds(it * 180L), 75.0, 8) }
+      val next = (0 until 3).map { EffortSet(day(403).plusSeconds(it * 180L), 75.0, 8) }
+
+      val series = EffortModel.score(block + back + next)
+      fun bandAt(sessionIndex: Int) = series.sets.last { it.sessionIndex == sessionIndex }
+        .let { (it.capacity - it.expectation!!) / it.z!! }
+
+      assertThat(bandAt(7)).isLessThan(bandAt(6))
+    }
+
+    @Test
     fun `stale history stops outweighing what happened since`() {
       // Identical session counts and identical numbers either way - only the calendar distance
       // between the old block and the recent one differs. When that distance ages the old block

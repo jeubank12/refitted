@@ -35,6 +35,12 @@ data class EffortConfig(
   val detrainGraceDays: Double = 10.0,
   val detrainHalfLifeDays: Double = 60.0,
   val detrainFloor: Double = 0.6,
+  // How much of that haircut is also charged as uncertainty. Cutting the expectation without
+  // widening the band around it makes the model *more* confident the longer someone has been
+  // away - the residual floor is a fraction of the expectation, so it shrinks right along with
+  // it - and a comeback then reads IMPLAUSIBLE for the crime of being predictable. Only ever
+  // non-zero when detrainFactor is, so every session inside the grace period is untouched.
+  val layoffUncertaintyWeight: Double = 0.75,
   val minPriorSessions: Int = 3,
   val residualScaleFloorFraction: Double = 0.05,
   val maxExtrapolationDays: Long = 14,
