@@ -313,7 +313,10 @@ fun Calendar(
         workoutPlanError,
         onSelect = {
           scaffoldScope.launch { scaffoldState.drawerState.close() }
-          workoutModel.loadWorkoutDaysCompleted(it)
+          if (it.workout != selectedWorkoutPlan?.workout) {
+            editMode = false
+            workoutModel.loadWorkoutDaysCompleted(it)
+          }
         },
         onCreateCustom = {
           scaffoldScope.launch { scaffoldState.drawerState.close() }
