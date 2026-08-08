@@ -315,8 +315,8 @@ fun Calendar(
           scaffoldScope.launch { scaffoldState.drawerState.close() }
           if (it.workout != selectedWorkoutPlan?.workout) {
             editMode = false
+            workoutModel.loadWorkoutDaysCompleted(it)
           }
-          workoutModel.loadWorkoutDaysCompleted(it)
         },
         onCreateCustom = {
           scaffoldScope.launch { scaffoldState.drawerState.close() }
