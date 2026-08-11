@@ -126,11 +126,19 @@ class GarminWatchService @Inject constructor(
   // is silently dropped rather than crashing.
   private fun onMessageReceived(message: List<Any>, status: ConnectIQ.IQMessageStatus) {
     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
-    when (val envelope = WatchProtocol.decode(message)) {
-      is WatchProtocol.SetDone -> handleSetDone(envelope)
-      is WatchProtocol.UnsupportedVersion ->
-        log.w(TAG, "watch sent unsupported protocol version ${envelope.receivedVersion}")
-      else -> {}
+    // A watch's Communications.transmit() arrives here wrapped in an extra List layer, unlike a
+    // phone's sendMessage() payload on the watch's registerForPhoneAppMessages side - confirmed
+    // on-device, not documented in the SDK. Unwrap the single envelope element before decoding.
+    val envelopeMessage = (message.singleOrNull() as? List<*>) ?: message
+    try {
+      when (val envelope = WatchProtocol.decode(envelopeMessage)) {
+        is WatchProtocol.SetDone -> handleSetDone(envelope)
+        is WatchProtocol.UnsupportedVersion ->
+          log.w(TAG, "watch sent unsupported protocol version ${envelope.receivedVersion}")
+        else -> {}
+      }
+    } catch (e: Exception) {
+      log.e(TAG, "failed to decode watch message: $envelopeMessage", e)
     }
   }
 

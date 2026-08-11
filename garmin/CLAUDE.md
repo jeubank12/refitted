@@ -28,6 +28,17 @@ service; this module never touches `BluetoothAdapter` directly.
   `SetRecordSink` on a service-owned `CoroutineScope` - this class is `@Singleton`, so it can't rely
   on a caller's scope living as long as an incoming message might arrive.
 
+## Gotchas
+
+- **A watch's `Communications.transmit()` arrives wrapped in an extra `List` layer.** Confirmed
+  on-device (crash log: `message[0] as Number` threw `ClassCastException: ArrayList cannot be cast
+  to Number`), not documented anywhere in the SDK. `IQApplicationEventListener.onMessageReceived`'s
+  `message` is `[actualEnvelope]`, not `actualEnvelope` directly - unlike the phone's `sendMessage`
+  payload, which the watch receives unwrapped via `registerForPhoneAppMessages`. Unwrap with
+  `(message.singleOrNull() as? List<*>) ?: message` before calling `WatchProtocol.decode` (see
+  `GarminWatchService.onMessageReceived`). If a future message type needs this listener too, reuse
+  that unwrap rather than assuming the raw `message` is the envelope.
+
 ## Dependencies
 
 - `api(project(":data"))`, `api(project(":util"))` - no `:room`, no `:dynamo`
