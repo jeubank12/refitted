@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,19 +34,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CustomCredential
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePanel
 import com.litus_animae.refitted.ui.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
-import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
+import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,15 +68,15 @@ fun Exercise(
   editing: Boolean = false,
   exerciseModel: ExerciseViewModel = viewModel(),
   workoutModel: WorkoutViewModel = viewModel(),
-  onAddExercise: () -> Unit = {},
-  onAddAlternate: (ExerciseSet) -> Unit = {},
-  scrollToExerciseName: String? = null
+  userModel: UserViewModel = viewModel()
 ) {
   val title = stringResource(id = R.string.app_name)
   val dayWord = stringResource(id = R.string.day)
   val scaffoldState = rememberScaffoldState()
   val scaffoldScope = rememberCoroutineScope()
   val sheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
+  val addExerciseSheetState =
+    rememberModalBottomSheetState(ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
 
   val loadedWorkoutPlan by workoutModel.currentWorkout.collectAsState(
     initial = workoutModel.savedStateLastWorkoutPlan,
@@ -82,6 +90,11 @@ fun Exercise(
   val (historyList, setHistoryList) = remember {
     mutableStateOf(SetHistory())
   }
+  // Which existing step (if any) the picked exercise should become an alternate of - null
+  // means "add exercise", non-null means "add alternate" for that step.
+  var alternateToStep by rememberSaveable { mutableStateOf<String?>(null) }
+  // Lands the pager on the exercise just added - consumed once by PagerExerciseView.
+  var scrollToExerciseName by rememberSaveable { mutableStateOf<String?>(null) }
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
     // landscape — the two-pane exercise layout then splits content right up against it.
@@ -119,7 +132,10 @@ fun Exercise(
             // collapsed, it is an overflow menu and belongs last instead.
             if (!collapsed) contextMenu(false)
             if (showAddExercise) {
-              IconButton(onAddExercise) {
+              IconButton({
+                alternateToStep = null
+                scaffoldScope.launch { addExerciseSheetState.show() }
+              }) {
                 // TODO localize
                 Icon(Icons.Default.Add, "add exercise")
               }
@@ -148,31 +164,113 @@ fun Exercise(
   ) {
     var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
     ModalBottomSheetLayout(
+      sheetState = addExerciseSheetState,
       sheetContent = {
-        Box(Modifier.padding(top = 10.dp, bottom = 10.dp)) {
-          WeightButtons(
-            sheetWeight
+        // sheetContent composes continuously even while hidden - gate the collection this
+        // panel needs behind visibility so browsing a library's cost only starts once the
+        // user actually opens the sheet (see ui/CLAUDE.md's Compose Gotchas).
+        if (addExerciseSheetState.isVisible) {
+          val selectedMuscle by exerciseModel.selectedMuscle.collectAsStateWithLifecycle()
+          val localExercises by remember(selectedMuscle) {
+            exerciseModel.exercisesByMuscle(selectedMuscle)
+          }.collectAsStateWithLifecycle(initialValue = emptyList())
+          val accessibleWorkouts by exerciseModel.accessibleWorkouts
+            .collectAsStateWithLifecycle(initialValue = emptyList())
+          // The plan list itself (accessibleWorkouts) only updates when this same paging refresh
+          // runs - reusing it rather than a separate sync path keeps this screen's "refresh the
+          // plan list" in lockstep with the drawer's.
+          val workoutPlansPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
+          val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
+          // Reload accessibleWorkouts once sign-in actually completes, so newly-unlocked admin
+          // plans show up without the user having to tap the refresh icon themselves.
+          var signInClicked by remember { mutableStateOf(false) }
+          LaunchedEffect(currentEmail) {
+            if (signInClicked) {
+              workoutPlansPagingItems.refresh()
+            }
+          }
+          AddExercisePanel(
+            title = if (alternateToStep != null) "Add alternate" else "Add exercise",
+            muscle = selectedMuscle,
+            onMuscleSelected = exerciseModel::selectMuscle,
+            // Exclude the plan being built itself - a custom plan is assembled from admin
+            // content, so any local rows under its own name just duplicate an admin section.
+            localExercisesByWorkout = localExercises
+              .filter { it.workout != workoutId }
+              .groupBy { it.workout },
+            accessibleWorkouts = accessibleWorkouts,
+            remoteExercisesByWorkout = exerciseModel.remoteExercisesByWorkout,
+            loadingWorkouts = exerciseModel.loadingWorkouts,
+            onLoadWorkout = { workout -> exerciseModel.loadRemoteExercises(workout, selectedMuscle) },
+            onPick = { exercise ->
+              val baseStep = alternateToStep
+              if (baseStep != null) {
+                exerciseModel.addAlternateExercise(
+                  workoutId, day, baseStep, exercise.id, exercise.description
+                )
+              } else {
+                exerciseModel.addExercise(workoutId, day, exercise.id, exercise.description)
+              }
+              scrollToExerciseName = exercise.name
+              scaffoldScope.launch { addExerciseSheetState.hide() }
+            },
+            onClose = { scaffoldScope.launch { addExerciseSheetState.hide() } },
+            onRefreshWorkouts = { workoutPlansPagingItems.refresh() },
+            isRefreshingWorkouts = workoutPlansPagingItems.loadState.refresh is LoadState.Loading,
+            authedEmail = currentEmail,
+            onSignInSuccess = { response ->
+              signInClicked = true
+              when (val credential = response.credential) {
+                is CustomCredential -> {
+                  if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    userModel.handleSignIn(credential.data)
+                  } else {
+                    Log.e("Exercise", "Unexpected type of credential")
+                  }
+                }
+
+                else -> Log.e("Exercise", "Unexpected type of credential")
+              }
+            },
+            onSignInFailure = { Log.e("Exercise", "Sign in failed", it) },
+            webClientId = userModel.googleWebClientId
           )
         }
-      },
-      sheetState = sheetState
+      }
     ) {
-      PagerExerciseView(exerciseModel,
-        workoutPlan = loadedWorkoutPlan,
-        contentPadding = it,
-        setHistoryList = { setHistoryList(it) },
-        setContextMenu = { contextMenu = it },
-        onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) },
-        onStartEditWeight = {
-          sheetWeight = it
-          scaffoldScope.launch { sheetState.show() }
+      ModalBottomSheetLayout(
+        sheetContent = {
+          Box(Modifier.padding(top = 10.dp, bottom = 10.dp)) {
+            WeightButtons(
+              sheetWeight
+            )
+          }
         },
-        onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
-        onOpenHistory = { scaffoldScope.launch { scaffoldState.drawerState.open() } },
-        editing = editing,
-        onAddExercise = onAddExercise,
-        onAddAlternate = onAddAlternate,
-        scrollToExerciseName = scrollToExerciseName)
+        sheetState = sheetState
+      ) {
+        PagerExerciseView(exerciseModel,
+          workoutPlan = loadedWorkoutPlan,
+          contentPadding = it,
+          setHistoryList = { setHistoryList(it) },
+          setContextMenu = { contextMenu = it },
+          onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) },
+          onStartEditWeight = {
+            sheetWeight = it
+            scaffoldScope.launch { sheetState.show() }
+          },
+          onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
+          onOpenHistory = { scaffoldScope.launch { scaffoldState.drawerState.open() } },
+          editing = editing,
+          onAddExercise = {
+            alternateToStep = null
+            scaffoldScope.launch { addExerciseSheetState.show() }
+          },
+          onAddAlternate = { set ->
+            alternateToStep = set.primaryStep
+            scaffoldScope.launch { addExerciseSheetState.show() }
+          },
+          scrollToExerciseName = scrollToExerciseName)
+      }
     }
   }
 }

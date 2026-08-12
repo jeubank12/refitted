@@ -102,7 +102,7 @@ fun PagerExerciseView(
   // Land on an exercise just added from the add-exercise flow instead of wherever the pager
   // otherwise starts - fires once the newly-inserted row has actually loaded, then clears
   // itself so later unrelated recompositions of `instructions` don't re-trigger the scroll.
-  var pendingScrollTarget by remember { mutableStateOf(scrollToExerciseName) }
+  var pendingScrollTarget by remember(scrollToExerciseName) { mutableStateOf(scrollToExerciseName) }
   LaunchedEffect(instructions, pendingScrollTarget) {
     val target = pendingScrollTarget ?: return@LaunchedEffect
     val targetIndex = instructions.indexOfFirst { instruction ->

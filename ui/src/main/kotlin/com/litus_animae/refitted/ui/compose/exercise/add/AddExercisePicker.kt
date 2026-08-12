@@ -1,6 +1,12 @@
 package com.litus_animae.refitted.ui.compose.exercise.add
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,7 +38,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AppBarDefaults
-import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Divider
@@ -45,7 +50,6 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandMore
@@ -73,77 +77,44 @@ import com.litus_animae.refitted.ui.compose.AuthButton
 private val muscleGroups = MuscleGroup.displayNames()
 
 /**
- * Target-muscle screen (design 1i): body diagram + chips, both driving the same selection.
- * A separate nav destination from [ExercisePickerList] so system/gesture back steps one
- * screen at a time instead of leaving the whole add-exercise flow.
+ * Target-muscle picker content (design 1i): body diagram + chips, both driving the same
+ * selection. Applies instantly - there's no confirm step, the caller closes the panel itself
+ * once [onSelect] fires.
  */
 @Composable
-fun MuscleGroupPickerScreen(
-  onContinue: (String) -> Unit,
-  onClose: () -> Unit,
-  modifier: Modifier = Modifier,
-  // TODO localize
-  title: String = "Add exercise"
+fun MuscleGroupPicker(
+  selected: String,
+  onSelect: (String) -> Unit,
+  modifier: Modifier = Modifier
 ) {
-  var selected by rememberSaveable { mutableStateOf(muscleGroups.first()) }
-  Scaffold(
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
-    modifier = modifier,
-    topBar = {
-      TopAppBar(
-        title = { Text(title) },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-        ),
-        backgroundColor = MaterialTheme.colors.primary,
-        navigationIcon = {
-          // TODO localize
-          IconButton(onClick = onClose) { Icon(Icons.Default.Close, "close") }
-        }
-      )
+  Column(
+    modifier
+      .verticalScroll(rememberScrollState())
+      .padding(16.dp)
+  ) {
+    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+      // TODO localize
+      Text("Tap the muscle group to target", style = MaterialTheme.typography.body2)
     }
-  ) { contentPadding ->
-    Column(modifier.padding(contentPadding).fillMaxSize()) {
-      Column(
-        Modifier
-          .weight(1f)
-          .verticalScroll(rememberScrollState())
-          .padding(16.dp)
-      ) {
-        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-          // TODO localize
-          Text("Tap the muscle group to target", style = MaterialTheme.typography.body2)
-        }
-        Spacer(Modifier.height(14.dp))
-        BodyDiagram(selected = selected, onSelect = { selected = it }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(14.dp))
-        FlowRow(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-          muscleGroups.forEach { muscle ->
-            MuscleChip(muscle, selected = muscle == selected, onClick = { selected = muscle })
-          }
-        }
-      }
-      Button(
-        onClick = { onContinue(selected) },
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(16.dp)
-      ) {
-        // TODO localize
-        Text("Continue — $selected")
+    Spacer(Modifier.height(14.dp))
+    BodyDiagram(selected = selected, onSelect = onSelect, modifier = Modifier.fillMaxWidth())
+    Spacer(Modifier.height(14.dp))
+    FlowRow(
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+      muscleGroups.forEach { muscle ->
+        MuscleChip(muscle, selected = muscle == selected, onClick = { onSelect(muscle) })
       }
     }
   }
 }
 
-/** A section of [ExercisePickerList] - one accessible plan, ordered by [kind] then name. */
+/** A section of [AddExerciseList] - one accessible plan, ordered by [kind] then name. */
 private data class PickerSection(val name: String, val kind: PlanKind, val isRemoteSource: Boolean)
 
 /**
- * Exercise-list screen (design 1j) - plans the user can pull exercises from, as sections, equipment
+ * Exercise-list content (design 1j) - plans the user can pull exercises from, as sections, equipment
  * libraries ([PlanKind.LOCATION]/[PlanKind.EQUIPMENT]) first and admin programs after a divider.
  * Locally-synced matches ([localExercisesByWorkout]) render immediately; other accessible
  * (admin-authored) plans render a "Load exercises" row that triggers an on-demand remote query
@@ -153,11 +124,14 @@ private data class PickerSection(val name: String, val kind: PlanKind, val isRem
  * nothing of their own to load remotely. Picking an exercise reuses its exact id so its record
  * history carries over ([onPick]). Every section starts collapsed - [onRefreshWorkouts] is a
  * separate top-bar action re-syncing the plan list itself (new/removed plans), not any one
- * plan's exercises.
+ * plan's exercises. The current [muscle] is shown as a tappable header ([onMuscleTap]) rather
+ * than a plain title - it's a live filter now, not something picked on a screen before this one.
  */
 @Composable
-fun ExercisePickerList(
+fun AddExerciseList(
+  title: String,
   muscle: String,
+  onMuscleTap: () -> Unit,
   localExercisesByWorkout: Map<String, List<Exercise>>,
   accessibleWorkouts: List<WorkoutPlan>,
   /** Keyed by (workout, muscle) - a workout's cached rows are only ever for this screen's own muscle. */
@@ -165,7 +139,7 @@ fun ExercisePickerList(
   loadingWorkouts: Map<Pair<String, String>, Boolean>,
   onLoadWorkout: (String) -> Unit,
   onPick: (Exercise) -> Unit,
-  onBack: () -> Unit,
+  onClose: () -> Unit,
   /** Re-syncs [accessibleWorkouts] itself (new/removed plans) - separate from a section's own onLoadWorkout, which only refreshes that plan's exercises. */
   onRefreshWorkouts: () -> Unit,
   isRefreshingWorkouts: Boolean,
@@ -193,13 +167,14 @@ fun ExercisePickerList(
     modifier = modifier,
     topBar = {
       TopAppBar(
-        title = { Text(muscle) },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-        ),
+        title = { Text(title) },
+        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
-          IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "back") }
+          // There's no picker screen left to step back to - this closes the whole add-exercise
+          // sheet, so it reads as "close" rather than "back".
+          // TODO localize
+          IconButton(onClick = onClose) { Icon(Icons.Default.Close, "close") }
         },
         actions = {
           if (isRefreshingWorkouts) {
@@ -236,6 +211,9 @@ fun ExercisePickerList(
     }
   ) { contentPadding ->
     LazyColumn(Modifier.padding(contentPadding).fillMaxSize()) {
+      item(key = "muscle-header") {
+        SelectedMuscleHeader(muscle, onClick = onMuscleTap)
+      }
       sections.forEachIndexed { index, section ->
         val workout = section.name
         if (index == firstProgramIndex && index > 0) {
@@ -384,6 +362,117 @@ fun ExercisePickerList(
 }
 
 @Composable
+private fun SelectedMuscleHeader(muscle: String, onClick: () -> Unit) {
+  Column {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .clickable(onClickLabel = "change target muscle", onClick = onClick)
+        .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+          // TODO localize
+          Text("Target muscle", style = MaterialTheme.typography.overline)
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(muscle, style = MaterialTheme.typography.subtitle1)
+      }
+      Icon(Icons.Default.ExpandMore, contentDescription = null)
+    }
+    Divider()
+  }
+}
+
+/**
+ * Combines [AddExerciseList] with an [AnimatedVisibility] overlay of [MuscleGroupPicker] -
+ * a plain `Box` overlay rather than a second nested `ModalBottomSheetLayout`, so its swipe/anchor
+ * math never runs against an already-clamped outer sheet (see ui/CLAUDE.md's guidance on hosting
+ * overlays in an unclipped ancestor instead of layering more sheet/Popup machinery). System/gesture
+ * back closes just the picker first via the [BackHandler] below, which - because it only composes
+ * while [pickingMuscle] is true, itself nested inside the outer sheet's own content - registers
+ * (and so takes priority) after that sheet's own built-in back handling.
+ */
+@Composable
+fun AddExercisePanel(
+  title: String,
+  muscle: String,
+  onMuscleSelected: (String) -> Unit,
+  localExercisesByWorkout: Map<String, List<Exercise>>,
+  accessibleWorkouts: List<WorkoutPlan>,
+  remoteExercisesByWorkout: Map<Pair<String, String>, List<Exercise>>,
+  loadingWorkouts: Map<Pair<String, String>, Boolean>,
+  onLoadWorkout: (String) -> Unit,
+  onPick: (Exercise) -> Unit,
+  onClose: () -> Unit,
+  onRefreshWorkouts: () -> Unit,
+  isRefreshingWorkouts: Boolean,
+  authedEmail: String?,
+  onSignInSuccess: (GetCredentialResponse) -> Unit,
+  onSignInFailure: (GetCredentialException) -> Unit,
+  webClientId: String,
+  modifier: Modifier = Modifier
+) {
+  var pickingMuscle by rememberSaveable { mutableStateOf(false) }
+
+  BackHandler(enabled = pickingMuscle) { pickingMuscle = false }
+
+  Box(modifier.fillMaxSize()) {
+    AddExerciseList(
+      title = title,
+      muscle = muscle,
+      onMuscleTap = { pickingMuscle = true },
+      localExercisesByWorkout = localExercisesByWorkout,
+      accessibleWorkouts = accessibleWorkouts,
+      remoteExercisesByWorkout = remoteExercisesByWorkout,
+      loadingWorkouts = loadingWorkouts,
+      onLoadWorkout = onLoadWorkout,
+      onPick = onPick,
+      onClose = onClose,
+      onRefreshWorkouts = onRefreshWorkouts,
+      isRefreshingWorkouts = isRefreshingWorkouts,
+      authedEmail = authedEmail,
+      onSignInSuccess = onSignInSuccess,
+      onSignInFailure = onSignInFailure,
+      webClientId = webClientId
+    )
+    AnimatedVisibility(
+      visible = pickingMuscle,
+      enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 }),
+      exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 4 })
+    ) {
+      Surface(Modifier.fillMaxSize()) {
+        Column {
+          Row(
+            Modifier
+              .fillMaxWidth()
+              .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            // TODO localize
+            Text("Target muscle", style = MaterialTheme.typography.h6)
+            IconButton(onClick = { pickingMuscle = false }) {
+              Icon(Icons.Default.Close, "close")
+            }
+          }
+          MuscleGroupPicker(
+            selected = muscle,
+            onSelect = {
+              onMuscleSelected(it)
+              pickingMuscle = false
+            },
+            modifier = Modifier.weight(1f)
+          )
+        }
+      }
+    }
+  }
+}
+
+@Composable
 private fun MuscleChip(label: String, selected: Boolean, onClick: () -> Unit) {
   Surface(
     shape = RoundedCornerShape(16.dp),
@@ -500,16 +589,18 @@ private fun BodyFigure(parts: List<BodyPart>, selected: String, onSelect: (Strin
 @Composable
 private fun PreviewMuscleGroupPicker() {
   MaterialTheme {
-    MuscleGroupPickerScreen(onContinue = {}, onClose = {})
+    MuscleGroupPicker(selected = "Chest", onSelect = {})
   }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun PreviewExercisePickerList() {
+private fun PreviewAddExerciseList() {
   MaterialTheme {
-    ExercisePickerList(
+    AddExerciseList(
+      title = "Add exercise",
       muscle = "Chest",
+      onMuscleTap = {},
       localExercisesByWorkout = mapOf(
         "Push Pull Legs" to listOf(
           Exercise("Push Pull Legs", "Chest_Barbell Bench Press"),
@@ -531,7 +622,7 @@ private fun PreviewExercisePickerList() {
       loadingWorkouts = emptyMap(),
       onLoadWorkout = {},
       onPick = {},
-      onBack = {},
+      onClose = {},
       onRefreshWorkouts = {},
       isRefreshingWorkouts = false,
       authedEmail = null,
