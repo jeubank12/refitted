@@ -21,7 +21,9 @@ service; this module never touches `BluetoothAdapter` directly.
 
 - `GarminConnection.kt` - `@Singleton`, `DefaultLifecycleObserver` hooked to
   `ProcessLifecycleOwner` in `RefittedApplication`. Initializes on first `onStart`, shuts down on
-  `onStop` only when no session is active. Debug builds hard-crash on a leaked SDK binding
+  `onStop` only when no session is active, and skips re-initializing on a later `onStart` while
+  already ready (`sdkReady` can still be `true` from a prior session-active `onStop` that skipped
+  shutdown). Debug builds hard-crash on a leaked SDK binding
   (`VmPolicy.detectLeakedClosableObjects().penaltyDeath()`), so this pairing must stay exact.
 - `GarminWatchService.kt` - Implements `WatchService`. Maps every `InvalidStateException` /
   `ServiceUnavailableException` at the boundary onto `WatchState.NoDevice` / `WatchState.Unsupported`
