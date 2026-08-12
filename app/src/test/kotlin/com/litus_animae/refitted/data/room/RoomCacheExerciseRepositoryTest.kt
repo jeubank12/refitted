@@ -382,6 +382,41 @@ class RoomCacheExerciseRepositoryTest {
   }
 
   @Nested
+  @DisplayName("updateSetRecord")
+  inner class UpdateSetRecord {
+    @Test
+    fun `delegates to the DAO, not SetRecordSink`() = runTest {
+      // Given
+      val completed = Instant.now()
+      coEvery { exerciseDao.updateSetRecord("Chest_Bench Press", completed, 120.0, 8) } returns Unit
+
+      // When
+      subject.updateSetRecord("Chest_Bench Press", completed, 120.0, 8)
+
+      // Then
+      coVerify { exerciseDao.updateSetRecord("Chest_Bench Press", completed, 120.0, 8) }
+      coVerify(exactly = 0) { setRecordSink.store(any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("deleteSetRecord")
+  inner class DeleteSetRecord {
+    @Test
+    fun `delegates to the DAO`() = runTest {
+      // Given
+      val completed = Instant.now()
+      coEvery { exerciseDao.deleteSetRecord("Chest_Bench Press", completed) } returns Unit
+
+      // When
+      subject.deleteSetRecord("Chest_Bench Press", completed)
+
+      // Then
+      coVerify { exerciseDao.deleteSetRecord("Chest_Bench Press", completed) }
+    }
+  }
+
+  @Nested
   @DisplayName("addCustomExercise")
   inner class AddCustomExercise {
     @Test
