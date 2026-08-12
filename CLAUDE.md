@@ -331,7 +331,12 @@ This repository contains three separate applications:
 3. **admin/** - AWS Lambda functions (TypeScript)
    - Backend administration functions
 
-All three components share the same AWS DynamoDB backend for data storage.
+4. **connectiq/** - Garmin Connect IQ watch app (Monkey C), paired with the phone via `:garmin`
+   - Deliberately outside the Gradle build - different toolchain, no CI job
+   - See `connectiq/CLAUDE.md` for build instructions and Monkey C gotchas (device button mapping,
+     Picker/NumberPicker, module-scope quirks)
+
+All Android/web/admin components share the same AWS DynamoDB backend for data storage.
 
 ## Code Conventions
 
