@@ -168,9 +168,7 @@ fun AddExerciseList(
     topBar = {
       TopAppBar(
         title = { Text(title) },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-        ),
+        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
           // There's no picker screen left to step back to - this closes the whole add-exercise
