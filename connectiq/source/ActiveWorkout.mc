@@ -243,8 +243,15 @@ class ActiveWorkoutDelegate extends WatchUi.InputDelegate {
         // WORK -> (adjust picker) -> REST opens the confirm screen for the set in progress.
         if (key == WatchUi.KEY_ESC || key == WatchUi.KEY_LAP) {
             if (view.state == ActiveWorkoutView.REST) {
-                view.enterWork();
-                WatchUi.requestUpdate();
+                // sets == -1 is the open/challenge set (AMRAP) - no cap, always allowed. Otherwise
+                // once completedSets reaches the planned count there's nothing left to log for this
+                // exercise, so REST -> WORK is refused rather than starting an extra set.
+                var exercise = plan.exercises[view.currentIndex];
+                var setsRemaining = exercise.sets == -1 || view.completedSets[view.currentIndex] < exercise.sets;
+                if (setsRemaining) {
+                    view.enterWork();
+                    WatchUi.requestUpdate();
+                }
             } else {
                 onCompleteSet();
             }
