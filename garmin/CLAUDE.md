@@ -26,7 +26,11 @@ service; this module never touches `BluetoothAdapter` directly.
   events once a device is known; incoming messages are decoded via `WatchProtocol.decode` and, for
   `SetDone`, resolved against the session's `WatchSessionState` (`toSetRecord`) and written through
   `SetRecordSink` on a service-owned `CoroutineScope` - this class is `@Singleton`, so it can't rely
-  on a caller's scope living as long as an incoming message might arrive.
+  on a caller's scope living as long as an incoming message might arrive. `SessionEnded` (sent once
+  by the watch right before it exits, from `ExitConfirmMenu.mc`'s Save or Discard) resets `_state`
+  back to `WatchState.Idle` and clears `sessionActive`/`session` - this is the only path back to
+  Idle from Active, so a dropped or unhandled `SessionEnded` leaves the phone's watch button stuck
+  showing a checkmark until the app restarts.
 
 ## Gotchas
 

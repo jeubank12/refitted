@@ -121,9 +121,9 @@ class GarminWatchService @Inject constructor(
     }
   }
 
-  // BUFFER/HELLO/SESSION_ENDED are Phase 3/4 concerns (offline replay, activity recording) - only
-  // SET_DONE is handled here. A message outside an active session (stale device, ended workout)
-  // is silently dropped rather than crashing.
+  // BUFFER/HELLO are Phase 3/4 concerns (offline replay) - only SET_DONE and SESSION_ENDED are
+  // handled here. A message outside an active session (stale device, ended workout) is silently
+  // dropped rather than crashing.
   private fun onMessageReceived(message: List<Any>, status: ConnectIQ.IQMessageStatus) {
     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
     // A watch's Communications.transmit() arrives here wrapped in an extra List layer, unlike a
@@ -133,6 +133,7 @@ class GarminWatchService @Inject constructor(
     try {
       when (val envelope = WatchProtocol.decode(envelopeMessage)) {
         is WatchProtocol.SetDone -> handleSetDone(envelope)
+        is WatchProtocol.SessionEnded -> handleSessionEnded()
         is WatchProtocol.UnsupportedVersion ->
           log.w(TAG, "watch sent unsupported protocol version ${envelope.receivedVersion}")
         else -> {}
@@ -148,5 +149,15 @@ class GarminWatchService @Inject constructor(
     scope.launch {
       setRecordSink.store(listOf(record))
     }
+  }
+
+  // The watch sends this once, right before exiting, whether the user saved or discarded from
+  // ExitConfirmMenu - both outcomes end the watch-side session the same way from the phone's
+  // perspective, so there's nothing further to distinguish here.
+  private fun handleSessionEnded() {
+    val targetDevice = device ?: return
+    session = null
+    connection.sessionActive = false
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true)
   }
 }

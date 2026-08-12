@@ -3,6 +3,7 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.2</item>
+        <item>The watch icon now resets properly after you stop or save a watch session, instead of staying stuck on the checkmark</item>
         <item>Complete a set on your paired Garmin watch and it shows up on your phone automatically</item>
         <item>Send today\'s plan to a paired Garmin watch, right from the exercise screen</item>
         <item>**v1.4.1</item>
