@@ -64,13 +64,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -624,8 +624,13 @@ private fun ExerciseInstructions(
   val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
     ?: MaterialTheme.colors.surface
   // Hoisted (rather than collected only inside the LazyColumn item below) so the edit dialog can
-  // show the same description without a second subscription.
-  val exercise by (exerciseSet?.exercise ?: emptyFlow()).collectAsStateWithLifecycle(null)
+  // show the same description without a second subscription. Keyed by hand rather than via
+  // collectAsState, whose backing state is unkeyed: swapping to an alternate would otherwise
+  // leave the previous exercise's description readable here until the new flow's first emission.
+  val exerciseFlow = exerciseSet?.exercise
+  val exerciseState = remember(exerciseFlow) { mutableStateOf<Exercise?>(null) }
+  LaunchedEffect(exerciseFlow) { exerciseFlow?.collect { exerciseState.value = it } }
+  val exercise by exerciseState
   // The band anchored above the pinned counter, bottom to top: solidHeight is fully
   // opaque card background (guarantees the counter never sits on visible text, since a
   // linear fade alone only reaches full opacity at its very last pixel), then fadeHeight
