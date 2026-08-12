@@ -136,6 +136,7 @@ fun PagerExerciseView(
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
+  val watchSessionActive by model.watchSessionActive.collectAsStateWithLifecycle()
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
@@ -277,7 +278,8 @@ fun PagerExerciseView(
             }
           },
           onStartEditWeight = onStartEditWeight,
-          onOpenHistory = onOpenHistory
+          onOpenHistory = onOpenHistory,
+          watchSessionActive = watchSessionActive
         )
       }
     }
@@ -350,7 +352,9 @@ fun PagerDetailView(
     workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int, repsRange: Int
   ) -> Unit = { _, _, _, _, _, _, _ -> },
   onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> },
-  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> }
+  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> },
+  /** The watch owns rest display/countdown while a session is active - the phone suppresses its own. */
+  watchSessionActive: Boolean = false,
 ) {
   val scope = rememberCoroutineScope()
   val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
@@ -434,6 +438,7 @@ fun PagerDetailView(
             }
           },
           restOverride = ringRestSeconds,
+          watchSessionActive = watchSessionActive,
           // Rest is freely adjustable in edit mode only - unconditionally, not gated on
           // completion state - and writes straight through to the persisted set, same path
           // as the sets/reps target editor. Outside edit mode the prescribed rest is fixed.
