@@ -8,6 +8,7 @@ import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.device.WatchExercise
 import com.litus_animae.refitted.data.device.WatchPlan
 import com.litus_animae.refitted.data.device.WatchProtocol
+import com.litus_animae.refitted.data.device.WatchState
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.util.LogUtil
 import io.mockk.Runs
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test
 // needs to hand-build a raw BUFFER envelope (there is no encodeBuffer on the phone side; only the
 // watch ever sends one) has to mirror the value rather than import it.
 private const val TYPE_BUFFER = 18
+private const val TYPE_HELLO = 16
 
 class GarminWatchServiceTest {
 
@@ -146,6 +148,36 @@ class GarminWatchServiceTest {
       deliver(listOf(WatchProtocol.PROTOCOL_VERSION, TYPE_BUFFER, listOf(entries.map(::rawSetDone))))
 
       coVerify(exactly = 0) { setRecordSink.store(any()) }
+    }
+  }
+
+  @Nested
+  @DisplayName("HELLO from the watch")
+  inner class HelloTests {
+
+    // A fresh service (not the shared fixture, which is already past startSession/Active) so the
+    // Idle -> appOpen transition is actually observable.
+    @Test
+    fun `flips Idle to appOpen once a HELLO arrives`() = runTest {
+      val freshAppEventListener = slot<ConnectIQ.IQApplicationEventListener>()
+      every { connectIQ.registerForAppEvents(device, any(), capture(freshAppEventListener)) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+
+      assertThat((freshService.state.value as WatchState.Idle).appOpen).isFalse()
+
+      // No phone-side encodeHello exists - only the watch ever sends one (see TYPE_BUFFER's
+      // comment above) - so hand-build the raw envelope the same way.
+      val helloEnvelope = listOf(WatchProtocol.PROTOCOL_VERSION, TYPE_HELLO, listOf(1, WatchProtocol.PROTOCOL_VERSION))
+      freshAppEventListener.captured.onMessageReceived(
+        device,
+        watchApp,
+        listOf(helloEnvelope),
+        ConnectIQ.IQMessageStatus.SUCCESS
+      )
+
+      assertThat((freshService.state.value as WatchState.Idle).appOpen).isTrue()
     }
   }
 

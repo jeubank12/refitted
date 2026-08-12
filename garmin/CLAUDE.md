@@ -13,6 +13,9 @@ service; this module never touches `BluetoothAdapter` directly.
 - Encodes/decodes the wire protocol via `WatchProtocol` (in `:data`, no SDK dependency)
 - Receives `SET_DONE`/`BUFFER` from the watch, writes them through `SetRecordSink` (in `:data`),
   and ACKs back the session's `highestSeqPersisted` so the watch can trim its offline queue
+- Tracks whether the watch app is actually open (`WatchState.Idle.appOpen`) via its `HELLO`
+  heartbeat, since `ConnectIQ.sendMessage`'s `SUCCESS` status only confirms delivery to the
+  *device*, not that the target `IQApp` is foregrounded and listening - see Gotchas
 
 ## Important Files
 
@@ -34,6 +37,21 @@ service; this module never touches `BluetoothAdapter` directly.
   showing a checkmark until the app restarts.
 
 ## Gotchas
+
+- **`sendMessage`'s `IQMessageStatus.SUCCESS` is not an app-level ack.** It only means Garmin
+  Connect Mobile accepted the payload for BLE delivery to the *device* - it says nothing about
+  whether the target `IQApp` is open on the watch and actually received it. There's no passive SDK
+  query for "is this app currently running" either: `ConnectIQ.getApplicationInfo` only reports
+  install status, and `ConnectIQ.openApplication` actively tries to launch/foreground the app on
+  the watch (and can show the wearer a prompt) as a side effect of checking, so it's unsuitable for
+  silent polling. Instead, `GarminWatchService` treats the watch's `HELLO` message
+  (`connectiqApp.mc` sends one on `onStart` and then repeats it on a ~10s foreground heartbeat) as
+  the actual open/closed signal: `lastHelloAt` is stamped on each `HELLO`, and a poller job on the
+  service's `scope` ages `WatchState.Idle.appOpen` back to `false` if no heartbeat has arrived
+  within `HELLO_TIMEOUT`. There is no explicit watch->phone "goodbye" message on close - a reliable
+  transmit from a tearing-down `onStop` isn't guaranteed, so staleness timeout is the only signal,
+  which means `appOpen` can lag reality by up to `HELLO_TIMEOUT` after the watch app actually
+  closes.
 
 - **A watch's `Communications.transmit()` arrives wrapped in an extra `List` layer.** Confirmed
   on-device (crash log: `message[0] as Number` threw `ClassCastException: ArrayList cannot be cast

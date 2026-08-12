@@ -16,11 +16,15 @@ import com.litus_animae.refitted.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +36,11 @@ import kotlin.coroutines.resume
  */
 private const val REFITTED_WATCH_APP_ID = "7fb7b276-65e1-47df-a7d2-0d31553e0b4d"
 private const val TAG = "GarminWatchService"
+
+// Watch heartbeats every ~10s (connectiqApp.mc) while its app is foreground - this timeout needs
+// enough slack over that interval to absorb a missed beat without flickering the send button.
+private val HELLO_TIMEOUT: Duration = Duration.ofSeconds(25)
+private const val APP_OPEN_POLL_INTERVAL_MS = 5_000L
 
 @Singleton
 class GarminWatchService @Inject constructor(
@@ -50,6 +59,8 @@ class GarminWatchService @Inject constructor(
 
   private var device: IQDevice? = null
   private var session: WatchSessionState? = null
+  private var lastHelloAt: Instant? = null
+  private var appOpenPollerJob: Job? = null
 
   override suspend fun refresh() {
     awaitReady()
@@ -64,7 +75,8 @@ class GarminWatchService @Inject constructor(
         connectIQ.registerForAppEvents(knownDevice, watchApp) { _, _, message, status ->
           onMessageReceived(message, status)
         }
-        WatchState.Idle(knownDevice.friendlyName, appInstalled = true)
+        startAppOpenPoller()
+        WatchState.Idle(knownDevice.friendlyName, appInstalled = true, appOpen = false)
       }
     } catch (e: InvalidStateException) {
       _state.value = WatchState.NoDevice
@@ -89,7 +101,7 @@ class GarminWatchService @Inject constructor(
     val targetDevice = device ?: return
     runCatching { sendMessage(targetDevice, WatchProtocol.encodeEnd()) }
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
   }
 
   // GarminConnection.initialize() is async - onSdkReady() can land well after this service is
@@ -141,8 +153,14 @@ class GarminWatchService @Inject constructor(
         is WatchProtocol.SetDone -> handleSetDone(envelope)
         is WatchProtocol.Buffer -> handleBuffer(envelope)
         is WatchProtocol.SessionEnded -> handleSessionEnded()
-        is WatchProtocol.Hello ->
+        is WatchProtocol.Hello -> {
+          lastHelloAt = Instant.now()
+          val currentState = _state.value
+          if (currentState is WatchState.Idle && !currentState.appOpen) {
+            _state.value = currentState.copy(appOpen = true)
+          }
           log.d(TAG, "watch hello: app v${envelope.watchAppVersion}, max protocol v${envelope.maxProtocolVersion}")
+        }
         is WatchProtocol.UnsupportedVersion ->
           log.w(TAG, "watch sent unsupported protocol version ${envelope.receivedVersion}")
         else -> {}
@@ -188,6 +206,26 @@ class GarminWatchService @Inject constructor(
     val targetDevice = device ?: return
     session = null
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
+  }
+
+  // The watch's HELLO heartbeat (connectiqApp.mc, ~10s while foreground) is the only signal the
+  // phone has for "the watch app is still open" - sendMessage's SUCCESS status only confirms Garmin
+  // Connect Mobile delivered a payload to the device, not that the target IQApp received it. This
+  // job ages out appOpen once heartbeats stop arriving, rather than waiting on an explicit
+  // goodbye message the watch has no reliable way to send from a tearing-down onStop.
+  private fun startAppOpenPoller() {
+    appOpenPollerJob?.cancel()
+    appOpenPollerJob = scope.launch {
+      while (isActive) {
+        delay(APP_OPEN_POLL_INTERVAL_MS)
+        val currentState = _state.value
+        if (currentState !is WatchState.Idle || !currentState.appOpen) continue
+        val lastHello = lastHelloAt
+        if (lastHello == null || Duration.between(lastHello, Instant.now()) > HELLO_TIMEOUT) {
+          _state.value = currentState.copy(appOpen = false)
+        }
+      }
+    }
   }
 }
