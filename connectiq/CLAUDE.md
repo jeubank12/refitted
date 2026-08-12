@@ -67,6 +67,14 @@ See `PLAN-garmin.md` at the repo root for the full architecture, wire protocol, 
   instance instead (see `SetAdjustPicker.mc`'s `IntegerPickerFactory`, which takes a format string +
   divisor rather than a `Method` callback).
 
+- **A Connect IQ app exits by emptying its view stack, not via an explicit `System.exit()` call.**
+  `connectiqApp.onPhoneMessage` uses `WatchUi.switchToView` to make `ExerciseListMenu` the stack's
+  base (replacing the idle screen), and `ExerciseListMenuDelegate.onSelect` then `pushView`s
+  `ActiveWorkoutView` on top of that. `ExitConfirmMenuDelegate.onSelect` (`ExitConfirmMenu.mc`) has
+  to `popView` exactly three times on Save/Discard - the confirm menu, the active-workout screen,
+  and `ExerciseListMenu` itself - to actually return to the watch face; stopping after two just
+  lands back on the exercise list.
+
 ## Building Locally
 
 No CI job exists for this directory. Verify changes compile before asking for a sideload:

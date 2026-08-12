@@ -50,7 +50,9 @@ class ExitConfirmMenuDelegate extends WatchUi.Menu2InputDelegate {
         Communications.transmit(WatchProtocol.encodeSessionEnded(elapsedMs), {}, new SessionEndedTransmitListener());
 
         WatchUi.popView(WatchUi.SLIDE_DOWN); // dismiss this menu
-        WatchUi.popView(WatchUi.SLIDE_DOWN); // dismiss the active-workout screen - actual exit
+        WatchUi.popView(WatchUi.SLIDE_DOWN); // dismiss the active-workout screen
+        WatchUi.popView(WatchUi.SLIDE_DOWN); // dismiss the exercise list - empties the view stack,
+                                              // which is how a Connect IQ app exits to the watch face
     }
 
 }
