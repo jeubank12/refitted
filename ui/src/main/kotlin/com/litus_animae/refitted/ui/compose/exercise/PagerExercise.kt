@@ -151,21 +151,23 @@ fun PagerExerciseView(
         // Active is also disabled - a session is already running on the watch, so re-sending the
         // plan would just be a confusing no-op there too.
         val watchConnected = watchState is WatchState.Idle || watchState is WatchState.Active
+        val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
         IconButton(
           { model.sendPlanToWatch(workoutPlan?.globalAlternate) },
-          enabled = watchState is WatchState.Idle
+          enabled = watchState is WatchState.Idle && appOpen
         ) {
           Icon(
             if (watchState is WatchState.Active) Icons.Default.Check else Icons.Default.Watch,
             tint = if (watchState is WatchState.Active) {
               MaterialTheme.colors.secondary
             } else {
-              LocalContentColor.current.copy(alpha = if (watchConnected) 1f else ContentAlpha.disabled)
+              LocalContentColor.current.copy(alpha = if (watchConnected && appOpen) 1f else ContentAlpha.disabled)
             },
             // TODO localize
-            contentDescription = when (watchState) {
-              is WatchState.Active -> "watch session in progress"
-              is WatchState.Idle -> "send plan to watch"
+            contentDescription = when {
+              watchState is WatchState.Active -> "watch session in progress"
+              watchState is WatchState.Idle && appOpen -> "send plan to watch"
+              watchState is WatchState.Idle -> "watch app not open"
               else -> "no watch connected"
             }
           )
