@@ -124,4 +124,11 @@ module WatchProtocol {
             [seq, exerciseIndex, setNumber, reps, weightCenti, elapsedMs]
         ];
     }
+
+    // Sent once the user resolves the exit-confirm prompt (Save or Discard) - either way the phone
+    // clears its watchSessionActive state. Mirrors data/.../device/WatchProtocol.kt's decoder,
+    // which already understands this shape.
+    function encodeSessionEnded(elapsedMs as Number) as Array {
+        return [PROTOCOL_VERSION, TYPE_SESSION_ENDED, [elapsedMs]];
+    }
 }
