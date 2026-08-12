@@ -147,15 +147,13 @@ fun PagerExerciseInstructions(
   val scope = rememberCoroutineScope()
 
   val activeInstruction = instructions.getOrNull(pagerState.currentPage)
-  // Keyed on the instruction's stable identity (every set id it currently covers), not the
-  // instruction object itself - every edit anywhere rebuilds the whole instructions list into
-  // fresh ExerciseInstruction/ExerciseSet objects (each carrying a newly-queried
-  // `exercise: Flow<Exercise?>` field that's never equal across reloads), so keying on
-  // `instruction` would recreate this flow - and reset the collected state to null for a frame -
-  // on every unrelated edit, not just this card's own. The full set-id list (not just the head
-  // id) is used so adding or removing an alternate on *this* step still invalidates the key.
-  val activeInstructionId = activeInstruction?.sets?.map { it.id }
-  val activeSetFlow = remember(activeInstructionId, alternateIndex) {
+  // Keyed on the instruction's data (id and note), not just the id or the instruction object.
+  // Using id alone would miss updates to note/sets/reps. Using the instruction object would
+  // cause flickering on every unrelated edit (instructions rebuild wholesale). This includes
+  // the note so edits appear immediately. The full set-data list (not just the head) is used
+  // so adding or removing an alternate on *this* step still invalidates the key.
+  val activeInstructionDataKey = activeInstruction?.sets?.map { "${it.id}|${it.note}" }
+  val activeSetFlow = remember(activeInstructionDataKey, alternateIndex) {
     activeInstruction?.set(alternateIndex)
   }
   // Keyed by hand rather than via collectAsState, whose backing state is unkeyed: swiping to
@@ -171,13 +169,13 @@ fun PagerExerciseInstructions(
   // `activeSet` changes in, with no frame where the new content shows unanimated.
   // Reset per instruction so swiping to another card neither inherits its predecessor's set as a
   // swap origin nor leaves a stale swap running against a card that is no longer on top.
-  var settledSet by remember(activeInstructionId) { mutableStateOf<ExerciseSet?>(null) }
+  var settledSet by remember(activeInstructionDataKey) { mutableStateOf<ExerciseSet?>(null) }
   // The first set to land in a card slot should just appear - only a real set replacing another
   // real set is an alternate switch.
   val swap = settledSet?.let { from ->
     activeSet?.takeIf { it.id != from.id }?.let { to -> AlternateSwap(from, to) }
   }
-  LaunchedEffect(activeInstructionId, activeSet?.id) {
+  LaunchedEffect(activeInstructionDataKey, activeSet?.id) {
     if (swap == null) settledSet = activeSet
   }
 
