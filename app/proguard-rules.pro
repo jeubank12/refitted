@@ -40,3 +40,7 @@
 -dontwarn org.codehaus.jackson.**
 -dontwarn org.apache.commons.logging.impl.**
 -dontwarn org.apache.http.conn.scheme.**
+
+# Connect IQ Mobile SDK — Parcelables (IQDevice, IQApp, etc.) are unmarshalled by literal
+# class name from broadcasts sent by Garmin Connect Mobile, an unobfuscated external process.
+-keep class com.garmin.android.connectiq.** { *; }
