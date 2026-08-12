@@ -27,6 +27,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 import javax.inject.Inject
 
@@ -139,11 +140,15 @@ class ExerciseViewModel @Inject constructor(
     val resolvedSets = instructions.map { it.set(globalAlternate).first() }
     val firstSet = instructions.firstOrNull()?.sets?.head
     // suggestedWeight must be synchronous, so latestRecord (a Flow) is resolved up front here
-    // rather than inside buildWatchPlan's lambda.
+    // rather than inside buildWatchPlan's lambda. latestRecord never emits at all for a set with
+    // no history anywhere (RoomCacheExerciseRepository.buildExerciseRecord's combine().mapNotNull{}
+    // drops the all-null case rather than completing), so first() is bounded by a timeout to fall
+    // through to defaultRecord instead of hanging sendPlanToWatch forever.
     val suggestedWeights = resolvedSets.associate { set ->
       val exerciseRecord = currentRecords.firstOrNull { it.targetSet.id == set.id }
-      val weight = exerciseRecord?.latestRecord?.first()?.weight
-        ?: exerciseRecord?.defaultRecord?.weight
+      val weight = exerciseRecord?.let { record ->
+        withTimeoutOrNull(RESOLVE_LATEST_WEIGHT_TIMEOUT_MS) { record.latestRecord.first().weight }
+      } ?: exerciseRecord?.defaultRecord?.weight
         ?: 0.0
       set.id to weight
     }
@@ -402,5 +407,6 @@ class ExerciseViewModel @Inject constructor(
 
   companion object {
     private const val TAG = "ExerciseViewModel"
+    private const val RESOLVE_LATEST_WEIGHT_TIMEOUT_MS = 500L
   }
 }

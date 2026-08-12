@@ -18,7 +18,9 @@ import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -62,9 +64,14 @@ class ExerciseViewModelTest {
   private fun record(weight: Double, set: ExerciseSet) =
     Record(weight = weight, reps = 10, set = set, completed = Instant.now())
 
+  // viewModelScope dispatches onto Dispatchers.Main.immediate, so this must be the same
+  // dispatcher/scheduler runTest below drives - otherwise advanceUntilIdle() only advances the
+  // test body's own scheduler and never touches coroutines viewModelScope.launch queues onto Main.
+  private val mainDispatcher = StandardTestDispatcher()
+
   @BeforeEach
   fun setUp() {
-    Dispatchers.setMain(StandardTestDispatcher())
+    Dispatchers.setMain(mainDispatcher)
     every { watchService.state } returns MutableStateFlow(WatchState.NoDevice)
   }
 
@@ -77,7 +84,7 @@ class ExerciseViewModelTest {
   @DisplayName("Sending the plan to the watch")
   inner class SendPlanToWatch {
     @Test
-    fun `suggested weight comes from the latest performed record, not the hardcoded default`() = runTest {
+    fun `suggested weight comes from the latest performed record, not the hardcoded default`() = runTest(mainDispatcher) {
       val set = exerciseSet()
       // RoomCacheExerciseRepository.buildDefaultRecordForExerciseSet's hardcoded placeholder -
       // never what the user actually lifted.
@@ -113,7 +120,7 @@ class ExerciseViewModelTest {
     }
 
     @Test
-    fun `falls back to the default record when no exercise has been performed yet`() = runTest {
+    fun `falls back to the default record when the exercise has never been performed`() = runTest(mainDispatcher) {
       val set = exerciseSet()
       val defaultRecord = record(weight = 25.0, set = set)
       every { exerciseRepo.exercises } returns flowOf(listOf(set))
@@ -122,7 +129,10 @@ class ExerciseViewModelTest {
           ExerciseRecord(
             targetSet = set,
             defaultRecord = defaultRecord,
-            latestRecord = flowOf(defaultRecord),
+            // Mirrors RoomCacheExerciseRepository.buildExerciseRecord's real shape when a set has
+            // no history anywhere: its combine().mapNotNull{} drops the all-null case rather than
+            // completing, so the flow never emits and never completes.
+            latestRecord = flow { awaitCancellation() },
             allSets = flowOf(PagingData.empty()),
             currentRecords = flowOf(emptyList())
           )
