@@ -32,6 +32,10 @@ class GarminConnection @Inject constructor(
   }
 
   override fun onStart(owner: LifecycleOwner) {
+    // onStop skips shutdown() while sessionActive, leaving sdkReady true across that
+    // background/foreground cycle - re-initializing an already-bound SDK here is what the
+    // leaked-binding VmPolicy death penalty (see class doc) actually catches.
+    if (sdkReady) return
     connectIQ.initialize(context, false, object : ConnectIQ.ConnectIQListener {
       override fun onSdkReady() {
         sdkReady = true

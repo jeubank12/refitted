@@ -21,13 +21,18 @@ service; this module never touches `BluetoothAdapter` directly.
 
 - `GarminConnection.kt` - `@Singleton`, `DefaultLifecycleObserver` hooked to
   `ProcessLifecycleOwner` in `RefittedApplication`. Initializes on first `onStart`, shuts down on
-  `onStop` only when no session is active. Debug builds hard-crash on a leaked SDK binding
+  `onStop` only when no session is active, and skips re-initializing on a later `onStart` while
+  already ready (`sdkReady` can still be `true` from a prior session-active `onStop` that skipped
+  shutdown). Debug builds hard-crash on a leaked SDK binding
   (`VmPolicy.detectLeakedClosableObjects().penaltyDeath()`), so this pairing must stay exact.
 - `GarminWatchService.kt` - Implements `WatchService`. Maps every `InvalidStateException` /
   `ServiceUnavailableException` at the boundary onto `WatchState.NoDevice` / `WatchState.Unsupported`
-  - these must never escape into `:ui`, which has no way to name them. Registers
+  - these must never escape into `:ui`, which has no way to name them. `refresh()` unregisters the
+  previously known device's listeners before registering
   `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)` alongside device
-  events once a device is known; incoming messages are decoded via `WatchProtocol.decode` and, for
+  events for the current one - this service is `@Singleton` but `refresh()` runs once per
+  `ExerciseViewModel` init (scoped per nav destination), so skipping the unregister would pile up
+  listeners on repeated navigation. Incoming messages are decoded via `WatchProtocol.decode` and, for
   `SetDone`, resolved against the session's `WatchSessionState` (`toSetRecord`) and written through
   `SetRecordSink` on a service-owned `CoroutineScope` - this class is `@Singleton`, so it can't rely
   on a caller's scope living as long as an incoming message might arrive. `SessionEnded` (sent once
