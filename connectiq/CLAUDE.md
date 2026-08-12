@@ -77,6 +77,16 @@ See `PLAN-garmin.md` at the repo root for the full architecture, wire protocol, 
   and `ExerciseListMenu` itself - to actually return to the watch face; stopping after two just
   lands back on the exercise list.
 
+- **The Connect IQ SDK has no way to write a native FIT `set_mesg` (message type 225) the way
+  Garmin's own Strength Training app does for reps/weight per set.** `ActivityRecording.Session`
+  only exposes `addLap()` (writes `lap_mesg`) and `createField()` for `FitContributor` developer
+  fields, whose `:mesgType` option is hard-limited to `MESG_TYPE_SESSION` (18), `MESG_TYPE_LAP`
+  (19), or `MESG_TYPE_RECORD` (20) - confirmed against the local SDK docs
+  (`Toybox.ActivityRecording.Session`, `Toybox.FitContributor`), there is no `MESG_TYPE_SET` and no
+  other entry point for a custom native message type. `ActiveWorkout.mc`'s `session.addLap()` per
+  completed set is the closest available primitive and is already in use - don't re-investigate
+  this expecting a "real" set to be reachable via public API.
+
 ## Building Locally
 
 No CI job exists for this directory. Verify changes compile before asking for a sideload:
