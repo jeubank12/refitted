@@ -167,6 +167,14 @@ interface ExerciseDao {
   @Query("UPDATE SetRecord SET workout = :newName WHERE workout = :oldName")
   suspend fun renameSetRecordWorkout(oldName: String, newName: String)
 
+  /**
+   * Updates a single set record's weight/reps in place, keyed by its primary key
+   * (exercise, completed). The timestamp itself is never in the SET clause - see
+   * ExerciseRepository.updateSetRecord.
+   */
+  @Query("UPDATE SetRecord SET weight = :weight, reps = :reps WHERE exercise = :exercise AND completed = :completed")
+  suspend fun updateSetRecord(exercise: String, completed: Instant, weight: Double, reps: Int)
+
   @Query("DELETE FROM Exercise WHERE exercise_workout = :name")
   suspend fun deleteExercisesForWorkout(name: String)
 
@@ -175,6 +183,12 @@ interface ExerciseDao {
 
   @Query("DELETE FROM SetRecord WHERE workout = :name")
   suspend fun deleteSetRecordsForWorkout(name: String)
+
+  /**
+   * Deletes a single set record by its primary key (exercise, completed).
+   */
+  @Query("DELETE FROM SetRecord WHERE exercise = :exercise AND completed = :completed")
+  suspend fun deleteSetRecord(exercise: String, completed: Instant)
 
   data class ExerciseCompletionRecord(
     @ColumnInfo(name = "latest_completion") val latestCompletion: Instant,
