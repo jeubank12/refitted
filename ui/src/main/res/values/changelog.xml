@@ -3,7 +3,6 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.2</item>
-        <item>Adding an exercise is quicker: pick your target muscle right from the exercise list, no extra screens, and it stays put while you add more</item>
         <item>**v1.4.1</item>
         <item>Give any exercise in a custom workout an alternate, then swap between them as you train</item>
         <item>Rename or delete your custom plans, from the workout list or the calendar menu</item>
