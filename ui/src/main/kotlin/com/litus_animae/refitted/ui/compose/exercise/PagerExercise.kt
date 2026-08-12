@@ -32,6 +32,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Watch
@@ -146,13 +147,15 @@ fun PagerExerciseView(
         val watchState by model.watchState.collectAsStateWithLifecycle()
         // NoDevice/Unsupported stay visible (this doubles as the connection-status affordance)
         // but disabled - tapping send when there's nothing to send to silently no-oped before.
+        // Active is also disabled - a session is already running on the watch, so re-sending the
+        // plan would just be a confusing no-op there too.
         val watchConnected = watchState is WatchState.Idle || watchState is WatchState.Active
         IconButton(
           { model.sendPlanToWatch(workoutPlan?.globalAlternate) },
-          enabled = watchConnected
+          enabled = watchState is WatchState.Idle
         ) {
           Icon(
-            Icons.Default.Watch,
+            if (watchState is WatchState.Active) Icons.Default.Check else Icons.Default.Watch,
             tint = if (watchState is WatchState.Active) {
               MaterialTheme.colors.secondary
             } else {
@@ -160,7 +163,7 @@ fun PagerExerciseView(
             },
             // TODO localize
             contentDescription = when (watchState) {
-              is WatchState.Active -> "watch connected"
+              is WatchState.Active -> "watch session in progress"
               is WatchState.Idle -> "send plan to watch"
               else -> "no watch connected"
             }
