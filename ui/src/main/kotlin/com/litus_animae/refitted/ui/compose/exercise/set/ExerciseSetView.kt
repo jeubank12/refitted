@@ -406,7 +406,8 @@ fun ColumnScope.ExerciseSetView(
     saveReps,
     exerciseSet.superSetStep,
     numCompleted,
-    isTimerRunning
+    isTimerRunning,
+    watchSessionActive
   )
 }
 

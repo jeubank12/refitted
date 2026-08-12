@@ -24,12 +24,13 @@ fun CompleteExerciseSetButton(
   saveReps: Int,
   superSetStep: Int?,
   numCompleted: Int,
-  isTimerRunning: Boolean
+  isTimerRunning: Boolean,
+  watchSessionActive: Boolean = false
 ) {
   Button(
     onClick,
     modifier.fillMaxWidth(),
-    enabled = exerciseIncomplete
+    enabled = exerciseIncomplete && !watchSessionActive
   ) {
     val cancelRestPhrase = String.format(stringResource(id = R.string.cancel_rest), numCompleted + 1)
     val exerciseCompletePhrase = stringResource(id = R.string.complete_exercise)
