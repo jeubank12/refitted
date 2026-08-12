@@ -54,7 +54,9 @@ dependencies {
   api(libs.androidx.lifecycle.common)
 
   testImplementation(platform(libs.junit))
+  testImplementation(libs.junit.jupiter.api)
   testRuntimeOnly(libs.bundles.junit.runtime)
   testImplementation(libs.mockk)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.truth)
 }

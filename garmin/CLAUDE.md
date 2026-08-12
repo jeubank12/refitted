@@ -11,7 +11,8 @@ service; this module never touches `BluetoothAdapter` directly.
 - Owns the Connect IQ SDK's process-wide `initialize`/`shutdown` lifecycle (`GarminConnection`)
 - Implements `WatchService` from `:data` (`GarminWatchService`) - session start/end, connection state
 - Encodes/decodes the wire protocol via `WatchProtocol` (in `:data`, no SDK dependency)
-- Receives `SET_DONE` from the watch and writes it through `SetRecordSink` (in `:data`)
+- Receives `SET_DONE`/`BUFFER` from the watch, writes them through `SetRecordSink` (in `:data`),
+  and ACKs back the session's `highestSeqPersisted` so the watch can trim its offline queue
 
 ## Important Files
 

@@ -103,14 +103,21 @@ class GarminWatchService @Inject constructor(
     }
   }
 
+  // The SDK's send-status callback can fire more than once for a single sendMessage call (Phase
+  // 0's finding that ConnectIQAdbStrategy unconditionally fires FAILURE_UNKNOWN after SUCCESS over
+  // the simulator's tethered transport - confirmed here happening over real BLE too, via a crash:
+  // resuming an already-resumed CancellableContinuation throws IllegalStateException and crashes
+  // the whole app). Every branch must check isActive before resuming, not just the failure one.
   private suspend fun sendMessage(targetDevice: IQDevice, payload: List<Any>) {
     suspendCancellableCoroutine { continuation ->
       try {
         connection.connectIQ.sendMessage(targetDevice, watchApp, payload) { _, _, status ->
-          if (status == ConnectIQ.IQMessageStatus.SUCCESS) {
-            continuation.resume(Unit)
-          } else if (continuation.isActive) {
-            continuation.resumeWith(Result.failure(IllegalStateException("send failed: $status")))
+          if (continuation.isActive) {
+            if (status == ConnectIQ.IQMessageStatus.SUCCESS) {
+              continuation.resume(Unit)
+            } else {
+              continuation.resumeWith(Result.failure(IllegalStateException("send failed: $status")))
+            }
           }
         }
       } catch (e: InvalidStateException) {
@@ -121,9 +128,8 @@ class GarminWatchService @Inject constructor(
     }
   }
 
-  // BUFFER/HELLO are Phase 3/4 concerns (offline replay) - only SET_DONE and SESSION_ENDED are
-  // handled here. A message outside an active session (stale device, ended workout) is silently
-  // dropped rather than crashing.
+  // A message outside an active session (stale device, ended workout) is silently dropped rather
+  // than crashing.
   private fun onMessageReceived(message: List<Any>, status: ConnectIQ.IQMessageStatus) {
     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
     // A watch's Communications.transmit() arrives here wrapped in an extra List layer, unlike a
@@ -133,7 +139,10 @@ class GarminWatchService @Inject constructor(
     try {
       when (val envelope = WatchProtocol.decode(envelopeMessage)) {
         is WatchProtocol.SetDone -> handleSetDone(envelope)
+        is WatchProtocol.Buffer -> handleBuffer(envelope)
         is WatchProtocol.SessionEnded -> handleSessionEnded()
+        is WatchProtocol.Hello ->
+          log.d(TAG, "watch hello: app v${envelope.watchAppVersion}, max protocol v${envelope.maxProtocolVersion}")
         is WatchProtocol.UnsupportedVersion ->
           log.w(TAG, "watch sent unsupported protocol version ${envelope.receivedVersion}")
         else -> {}
@@ -148,7 +157,28 @@ class GarminWatchService @Inject constructor(
     val record = setDone.toSetRecord(currentSession) ?: return
     scope.launch {
       setRecordSink.store(listOf(record))
+      currentSession.recordPersisted(setDone.seq)
+      sendAck(currentSession.highestSeqPersisted)
     }
+  }
+
+  // The watch replays its whole unacked buffer after a dropped connection, so entries here may
+  // include ones already persisted from an earlier SET_DONE that never got ACK'd back (RoomDao's
+  // OnConflictStrategy.IGNORE makes a re-store a no-op) - dedup is free, nothing extra to do here.
+  private fun handleBuffer(buffer: WatchProtocol.Buffer) {
+    val currentSession = session ?: return
+    val records = buffer.entries.mapNotNull { it.toSetRecord(currentSession) }
+    if (records.isEmpty()) return
+    scope.launch {
+      setRecordSink.store(records)
+      buffer.entries.forEach { currentSession.recordPersisted(it.seq) }
+      sendAck(currentSession.highestSeqPersisted)
+    }
+  }
+
+  private suspend fun sendAck(highestSeqPersisted: Int) {
+    val targetDevice = device ?: return
+    runCatching { sendMessage(targetDevice, WatchProtocol.encodeAck(highestSeqPersisted)) }
   }
 
   // The watch sends this once, right before exiting, whether the user saved or discarded from
