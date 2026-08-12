@@ -18,6 +18,8 @@ See `PLAN-garmin.md` at the repo root for the full architecture, wire protocol, 
 - `ActiveWorkout.mc` - the in-workout screen and its `InputDelegate` (button handling - see Gotchas)
 - `SetAdjustPicker.mc` - the reps/weight adjust `Picker` shown before a set counts as complete
 - `ExitConfirmMenu.mc` - Save/Discard `Menu2`, shown on exit mid-workout
+- `TextWrap.mc` - shared word-wrap helper (no layout `<label>` or SDK API wraps text on its own);
+  used by both `connectiqView.mc`'s idle prompt and `ActiveWorkout.mc`'s exercise name
 - `WatchProtocol.mc` - wire format encode/decode, mirrors `data/.../device/WatchProtocol.kt` exactly
 
 ## Gotchas

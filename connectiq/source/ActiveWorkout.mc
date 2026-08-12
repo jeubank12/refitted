@@ -56,10 +56,16 @@ class ActiveWorkoutView extends WatchUi.View {
         var exercise = plan.exercises[currentIndex];
         var centerX = dc.getWidth() / 2;
         var y = dc.getHeight() / 4;
-        var lineHeight = Graphics.getFontHeight(Graphics.FONT_MEDIUM);
+        var nameFont = Graphics.FONT_MEDIUM;
+        var lineHeight = Graphics.getFontHeight(nameFont);
+        var maxWidth = (dc.getWidth() * 0.75).toNumber();
+        var nameLines = TextWrap.wrapText(exercise.name, nameFont, maxWidth, dc);
 
-        dc.drawText(centerX, y, Graphics.FONT_MEDIUM, exercise.name, Graphics.TEXT_JUSTIFY_CENTER);
-        y += lineHeight * 1.5;
+        for (var i = 0; i < nameLines.size(); i += 1) {
+            dc.drawText(centerX, y, nameFont, nameLines[i], Graphics.TEXT_JUSTIFY_CENTER);
+            y += lineHeight;
+        }
+        y += lineHeight * 0.5;
         dc.drawText(centerX, y, Graphics.FONT_SMALL, targetText(exercise), Graphics.TEXT_JUSTIFY_CENTER);
         y += lineHeight;
         dc.drawText(
