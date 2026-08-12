@@ -12,7 +12,17 @@ data class WatchSessionState(
   val workout: String,
   val startInstant: Instant,
   val plan: WatchPlan
-)
+) {
+  /** Highest [WatchProtocol.SetDone.seq] persisted so far this session - what an ACK reports back. */
+  var highestSeqPersisted: Int = 0
+    private set
+
+  fun recordPersisted(seq: Int) {
+    if (seq > highestSeqPersisted) {
+      highestSeqPersisted = seq
+    }
+  }
+}
 
 /**
  * Resolves a decoded [WatchProtocol.SetDone] against the session it belongs to. Returns null for
