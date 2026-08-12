@@ -3,6 +3,7 @@
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
         <item>**v1.4.2</item>
+        <item>Pair a Garmin watch to run your workout from your wrist: send today\'s plan, complete sets and rest right there, and it all syncs back to your phone automatically, even through a dropped connection</item>
         <item>**v1.4.1</item>
         <item>Give any exercise in a custom workout an alternate, then swap between them as you train</item>
         <item>Rename or delete your custom plans, from the workout list or the calendar menu</item>

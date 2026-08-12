@@ -4,10 +4,13 @@
 
 # API keys
 **/google-services.json
+developer_key
 
 # Local infra/config not for the repo (source for REFITTED_GROUPS_B64) and working docs
 groups.json
 PLAN-web-security.md
+PLAN-garmin.md
+docs/
 
 # Equipment-library content for scripts/seed_libraries.py - synthesized descriptions, but they
 # live only in DynamoDB, same as workout-program content never belonging in this repo

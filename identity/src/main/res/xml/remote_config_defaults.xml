@@ -5,4 +5,8 @@
     <key>record_chart_type</key>
     <value>line</value>
   </entry>
+  <entry>
+    <key>watch_sync</key>
+    <value>disabled</value>
+  </entry>
 </defaults>

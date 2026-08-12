@@ -21,6 +21,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.ExperimentalMaterialApi
@@ -31,8 +32,10 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -49,7 +52,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.nonEmptyListOf
+import com.litus_animae.refitted.data.device.WatchState
+import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.LocalFeatures
 import com.litus_animae.refitted.ui.compose.exercise.set.ExerciseSetView
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
@@ -130,6 +136,7 @@ fun PagerExerciseView(
     ?.collectAsState(initial = null, Dispatchers.IO)
     ?: remember { mutableStateOf(null) }
   val isRefreshing by model.isLoading.collectAsStateWithLifecycle()
+  val watchSessionActive by model.watchSessionActive.collectAsStateWithLifecycle()
 
   val currentSetRecord = exerciseSet?.let { setRecords[it.id] }
 
@@ -137,6 +144,35 @@ fun PagerExerciseView(
     setContextMenu { collapsed ->
       // Rendered here rather than in the top bar itself because this is where the displayed
       // exercise is known - it lands next to the add-exercise icon either way.
+      if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.WATCH_SYNC] == "enabled") {
+        val watchState by model.watchState.collectAsStateWithLifecycle()
+        // NoDevice/Unsupported stay visible (this doubles as the connection-status affordance)
+        // but disabled - tapping send when there's nothing to send to silently no-oped before.
+        // Active is also disabled - a session is already running on the watch, so re-sending the
+        // plan would just be a confusing no-op there too.
+        val watchConnected = watchState is WatchState.Idle || watchState is WatchState.Active
+        val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
+        IconButton(
+          { model.sendPlanToWatch(workoutPlan?.globalAlternate) },
+          enabled = watchState is WatchState.Idle && appOpen
+        ) {
+          Icon(
+            if (watchState is WatchState.Active) Icons.Default.Check else Icons.Default.Watch,
+            tint = if (watchState is WatchState.Active) {
+              MaterialTheme.colors.secondary
+            } else {
+              LocalContentColor.current.copy(alpha = if (watchConnected && appOpen) 1f else ContentAlpha.disabled)
+            },
+            // TODO localize
+            contentDescription = when {
+              watchState is WatchState.Active -> "watch session in progress"
+              watchState is WatchState.Idle && appOpen -> "send plan to watch"
+              watchState is WatchState.Idle -> "watch app not open"
+              else -> "no watch connected"
+            }
+          )
+        }
+      }
       if (editing && workoutPlan?.isCustom == true) {
         exerciseSet?.let { set ->
           if (collapsed) {
@@ -244,7 +280,8 @@ fun PagerExerciseView(
             }
           },
           onStartEditWeight = onStartEditWeight,
-          onOpenHistory = onOpenHistory
+          onOpenHistory = onOpenHistory,
+          watchSessionActive = watchSessionActive
         )
       }
     }
@@ -317,7 +354,9 @@ fun PagerDetailView(
     workout: String, day: String, step: String, sets: Int, reps: Int, rest: Int, repsRange: Int
   ) -> Unit = { _, _, _, _, _, _, _ -> },
   onDeleteExercise: (workout: String, day: String, step: String) -> Unit = { _, _, _ -> },
-  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> }
+  onEditNote: (workout: String, day: String, step: String, note: String) -> Unit = { _, _, _, _ -> },
+  /** The watch owns rest display/countdown while a session is active - the phone suppresses its own. */
+  watchSessionActive: Boolean = false,
 ) {
   val scope = rememberCoroutineScope()
   val exerciseSetId = activeSetWithRecord?.exerciseSet?.id
@@ -401,6 +440,7 @@ fun PagerDetailView(
             }
           },
           restOverride = ringRestSeconds,
+          watchSessionActive = watchSessionActive,
           // Rest is freely adjustable in edit mode only - unconditionally, not gated on
           // completion state - and writes straight through to the persisted set, same path
           // as the sets/reps target editor. Outside edit mode the prescribed rest is fixed.

@@ -12,6 +12,10 @@ import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
+import com.litus_animae.refitted.data.device.WatchPlan
+import com.litus_animae.refitted.data.device.WatchService
+import com.litus_animae.refitted.data.device.WatchState
+import com.litus_animae.refitted.data.device.buildWatchPlan
 import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
@@ -31,6 +35,7 @@ import javax.inject.Inject
 class ExerciseViewModel @Inject constructor(
   private val exerciseRepo: ExerciseRepository,
   private val workoutPlanRepo: WorkoutPlanRepository,
+  private val watchService: WatchService,
   private val log: LogUtil
 ) : ViewModel() {
   var exercisesError: String? by mutableStateOf(null)
@@ -88,6 +93,56 @@ class ExerciseViewModel @Inject constructor(
         instructions
       }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+  val watchState: StateFlow<WatchState> = watchService.state
+
+  // The rest timer arbitration lives here (rather than being read directly off watchState by the
+  // UI) because Top.kt scopes ViewModels per nav destination - this state must outlive navigation.
+  val watchSessionActive: StateFlow<Boolean> = watchState
+    .map { it is WatchState.Active }
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+  init {
+    // GarminWatchService never discovers a device on its own - without this, watchState sits at
+    // its initial NoDevice forever and sendPlanToWatch silently no-ops.
+    refreshWatchState()
+  }
+
+  fun refreshWatchState() {
+    viewModelScope.launch {
+      watchService.refresh()
+    }
+  }
+
+  fun sendPlanToWatch(globalAlternate: Int?) {
+    viewModelScope.launch {
+      try {
+        watchService.startSession(resolveWatchPlan(globalAlternate)).onFailure { ex ->
+          log.e(TAG, "error sending plan to watch", ex)
+        }
+      } catch (ex: Throwable) {
+        log.e(TAG, "error building watch plan", ex)
+      }
+    }
+  }
+
+  /**
+   * Resolves the currently displayed instructions - `.set(globalAlternate)` is the same call
+   * [PagerExerciseInstructions] uses to decide what to display, so the watch always shows exactly
+   * what the phone shows - then hands them to [buildWatchPlan] for the (independently tested)
+   * flattening into the wire shape.
+   */
+  private suspend fun resolveWatchPlan(globalAlternate: Int?): WatchPlan {
+    val instructions = exercises.value
+    val currentRecords = records.first()
+    val resolvedSets = instructions.map { it.set(globalAlternate).first() }
+    val firstSet = instructions.firstOrNull()?.sets?.head
+    return buildWatchPlan(
+      workout = firstSet?.workout.orEmpty(),
+      day = firstSet?.day.orEmpty(),
+      resolvedSets = resolvedSets
+    ) { set -> currentRecords.firstOrNull { it.targetSet.id == set.id }?.defaultRecord?.weight ?: 0.0 }
+  }
 
   private fun getLastCompletedAlternateIndex(thisSets: NonEmptyList<ExerciseSet>): Flow<Int> {
     val primaryStep = thisSets.head.primaryStep

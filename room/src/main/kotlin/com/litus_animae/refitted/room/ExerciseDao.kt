@@ -140,7 +140,9 @@ interface ExerciseDao {
   @Query("select * from setrecord where exercise = :targetExercise order by completed desc limit :limit")
   fun getRecentSetRecords(targetExercise: String, limit: Int): Flow<List<RoomSetRecord>>
 
-  @Insert
+  // IGNORE, not the default ABORT: a watch-buffer replay resends an already-persisted completion
+  // verbatim (same primary key, [exercise, completed]) and must be a silent no-op, not a crash.
+  @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 
   /**

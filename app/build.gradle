@@ -61,9 +61,9 @@ android {
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             debuggable = false
-            // Library modules (:ui, :room, :dynamo, :data, :util, :identity) only declare
-            // debug/release build types; fall back to their debug variant since there's no
-            // matching minifiedDebug variant to resolve against.
+            // Library modules (:ui, :room, :dynamo, :data, :util, :identity, :garmin) only
+            // declare debug/release build types; fall back to their debug variant since there's
+            // no matching minifiedDebug variant to resolve against.
             matchingFallbacks = ['debug']
         }
     }
@@ -109,6 +109,7 @@ dependencies {
     implementation project(':data')
     implementation project(':util')
     implementation project(':identity')
+    implementation project(':garmin')
 
     // Core Android
     implementation libs.androidx.activity
@@ -133,6 +134,7 @@ dependencies {
 
     // Lifecycle (used directly in repositories and Activity)
     implementation libs.androidx.lifecycle.common
+    implementation libs.androidx.lifecycle.process
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.lifecycle.viewmodel.savedstate

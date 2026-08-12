@@ -101,6 +101,7 @@ fun ExerciseSetView(
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
   onOpenHistory: () -> Unit = {},
+  watchSessionActive: Boolean = false,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -119,6 +120,7 @@ fun ExerciseSetView(
       editing = editing,
       onUpdateCustomTargets = onUpdateCustomTargets,
       onOpenHistory = onOpenHistory,
+      watchSessionActive = watchSessionActive,
     )
   }
 }
@@ -141,6 +143,8 @@ fun ColumnScope.ExerciseSetView(
   editing: Boolean = false,
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
   onOpenHistory: () -> Unit = {},
+  /** The watch owns rest display/countdown while a session is active - the phone suppresses its own. */
+  watchSessionActive: Boolean = false,
 ) {
   val exerciseSet = setWithRecord.exerciseSet
   val currentRecord = setWithRecord.currentRecord
@@ -300,27 +304,31 @@ fun ColumnScope.ExerciseSetView(
           }
           Spacer(Modifier.height(8.dp))
         }
-        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
-          CircularRestTimer(
-            restSeconds = effectiveRestSeconds,
-            isRunning = isTimerRunning,
-            startedAt = effectiveTimerStart,
-            // Grows the card instead of insetting the ring - CircularRestTimer's own square
-            // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
-            // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
-            // more height, not padding down the ring's existing (correct) size.
-            modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
-            nextRestSeconds = nextRestSeconds,
-            onAdjust = onRestOverrideChange,
-            onFinish = {
-              if (onTimerToggle != null) {
-                onTimerToggle()
-              } else {
-                timerRunning.value = false
-                timerDuration.intValue = exerciseSet.rest * 1000
+        // The watch shows its own rest countdown while a session is active - mounting this too
+        // would just be a second, unsynced countdown.
+        if (!watchSessionActive) {
+          Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+            CircularRestTimer(
+              restSeconds = effectiveRestSeconds,
+              isRunning = isTimerRunning,
+              startedAt = effectiveTimerStart,
+              // Grows the card instead of insetting the ring - CircularRestTimer's own square
+              // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
+              // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
+              // more height, not padding down the ring's existing (correct) size.
+              modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
+              nextRestSeconds = nextRestSeconds,
+              onAdjust = onRestOverrideChange,
+              onFinish = {
+                if (onTimerToggle != null) {
+                  onTimerToggle()
+                } else {
+                  timerRunning.value = false
+                  timerDuration.intValue = exerciseSet.rest * 1000
+                }
               }
-            }
-          )
+            )
+          }
         }
       }
     }
@@ -383,7 +391,7 @@ fun ColumnScope.ExerciseSetView(
       if (!isTimerRunning) {
         onSave(record.copy(weight = saveWeight, reps = saveReps))
       }
-      if (effectiveRestSeconds > 0 || isTimerRunning) {
+      if (!watchSessionActive && (effectiveRestSeconds > 0 || isTimerRunning)) {
         if (onTimerToggle != null) {
           onTimerToggle()
         } else {
@@ -398,7 +406,8 @@ fun ColumnScope.ExerciseSetView(
     saveReps,
     exerciseSet.superSetStep,
     numCompleted,
-    isTimerRunning
+    isTimerRunning,
+    watchSessionActive
   )
 }
 

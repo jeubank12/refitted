@@ -9,6 +9,7 @@ import androidx.paging.map
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
 import com.litus_animae.refitted.data.ExerciseRepository
+import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.Exercise
@@ -22,7 +23,6 @@ import com.litus_animae.refitted.room.ExerciseDao
 import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
-import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.progressiveZipWithPrevious
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +59,7 @@ import javax.inject.Inject
 class RoomCacheExerciseRepository @Inject constructor(
   private val roomProvider: RefittedRoomProvider,
   private val networkService: ExerciseSetNetworkService,
+  private val setRecordSink: SetRecordSink,
   private val log: LogUtil
 ) : ExerciseRepository {
   private val refittedRoom by lazy { roomProvider.refittedRoom }
@@ -192,11 +193,9 @@ class RoomCacheExerciseRepository @Inject constructor(
 
 
   override suspend fun storeSetRecord(record: SetRecord) {
-    withContext(Dispatchers.IO) {
-      log.d(TAG, "storing set record")
-      refittedRoom.getExerciseDao().storeExerciseRecord(RoomSetRecord.fromDomain(record))
-      log.d(TAG, "stored set record")
-    }
+    log.d(TAG, "storing set record")
+    setRecordSink.store(listOf(record))
+    log.d(TAG, "stored set record")
   }
 
   override fun loadWorkoutRecords(workoutId: String) {
