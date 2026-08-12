@@ -160,7 +160,13 @@ fun Exercise(
       }
     },
     scaffoldState = scaffoldState,
-    drawerContent = { SetRecordList(history = historyList) }
+    drawerContent = {
+      SetRecordList(
+        history = historyList,
+        onUpdateRecord = exerciseModel::updateSetRecord,
+        onDeleteRecord = exerciseModel::deleteSetRecord
+      )
+    }
   ) {
     var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
     ModalBottomSheetLayout(
