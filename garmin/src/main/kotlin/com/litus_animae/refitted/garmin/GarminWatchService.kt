@@ -67,6 +67,10 @@ class GarminWatchService @Inject constructor(
     try {
       val connectIQ = connection.connectIQ
       val knownDevice = connectIQ.knownDevices.orEmpty().firstOrNull()
+      // ExerciseViewModel (scoped per nav destination) calls this on every init, but this
+      // service is a @Singleton - unregister a prior device's listeners first, or repeated
+      // navigation piles up registrations and every incoming message gets handled N times.
+      unregisterDeviceListeners(connectIQ)
       device = knownDevice
       _state.value = if (knownDevice == null) {
         WatchState.NoDevice
@@ -83,6 +87,12 @@ class GarminWatchService @Inject constructor(
     } catch (e: ServiceUnavailableException) {
       _state.value = WatchState.Unsupported
     }
+  }
+
+  private fun unregisterDeviceListeners(connectIQ: ConnectIQ) {
+    val previousDevice = device ?: return
+    runCatching { connectIQ.unregisterForDeviceEvents(previousDevice) }
+    runCatching { connectIQ.unregisterForApplicationEvents(previousDevice, watchApp) }
   }
 
   override suspend fun startSession(plan: WatchPlan): Result<Unit> {
