@@ -138,11 +138,20 @@ class ExerciseViewModel @Inject constructor(
     val currentRecords = records.first()
     val resolvedSets = instructions.map { it.set(globalAlternate).first() }
     val firstSet = instructions.firstOrNull()?.sets?.head
+    // suggestedWeight must be synchronous, so latestRecord (a Flow) is resolved up front here
+    // rather than inside buildWatchPlan's lambda.
+    val suggestedWeights = resolvedSets.associate { set ->
+      val exerciseRecord = currentRecords.firstOrNull { it.targetSet.id == set.id }
+      val weight = exerciseRecord?.latestRecord?.first()?.weight
+        ?: exerciseRecord?.defaultRecord?.weight
+        ?: 0.0
+      set.id to weight
+    }
     return buildWatchPlan(
       workout = firstSet?.workout.orEmpty(),
       day = firstSet?.day.orEmpty(),
       resolvedSets = resolvedSets
-    ) { set -> currentRecords.firstOrNull { it.targetSet.id == set.id }?.defaultRecord?.weight ?: 0.0 }
+    ) { set -> suggestedWeights[set.id] ?: 0.0 }
   }
 
   private fun getLastCompletedAlternateIndex(thisSets: NonEmptyList<ExerciseSet>): Flow<Int> {
