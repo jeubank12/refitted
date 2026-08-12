@@ -97,10 +97,15 @@ class ConfirmPickerFactory extends WatchUi.PickerFactory {
 class SetAdjustPickerDelegate extends WatchUi.PickerDelegate {
 
     private var onDone as Method(reps as Number, weightCenti as Number) as Void;
+    private var onCancelled as Method() as Void;
 
-    function initialize(onDone as Method(reps as Number, weightCenti as Number) as Void) {
+    function initialize(
+        onDone as Method(reps as Number, weightCenti as Number) as Void,
+        onCancelled as Method() as Void
+    ) {
         PickerDelegate.initialize();
         self.onDone = onDone;
+        self.onCancelled = onCancelled;
     }
 
     // values[2] is the fixed ConfirmPickerFactory's dummy value - only values[0]/values[1] (reps,
@@ -113,6 +118,7 @@ class SetAdjustPickerDelegate extends WatchUi.PickerDelegate {
 
     function onCancel() as Boolean {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
+        onCancelled.invoke();
         return true;
     }
 
@@ -131,10 +137,12 @@ module SetAdjustPicker {
     const WEIGHT_STEP_CENTI = 250;
 
     // Pushes the combined reps/weight Picker. onDone fires only on confirm, with the values the
-    // user landed on (which may equal the prefilled suggestion if they changed nothing).
+    // user landed on (which may equal the prefilled suggestion if they changed nothing); onCancelled
+    // fires if the screen is backed out of instead.
     function show(
         initialReps as Number, initialWeightCenti as Number,
-        onDone as Method(reps as Number, weightCenti as Number) as Void
+        onDone as Method(reps as Number, weightCenti as Number) as Void,
+        onCancelled as Method() as Void
     ) as Void {
         var repsFactory = new IntegerPickerFactory(REPS_MIN, REPS_MAX, REPS_STEP, initialReps, 1, "%d");
         var weightFactory = new IntegerPickerFactory(
@@ -157,7 +165,7 @@ module SetAdjustPicker {
             :defaults => [repsFactory.initialIndex, weightFactory.initialIndex, 0]
         });
 
-        WatchUi.pushView(picker, new SetAdjustPickerDelegate(onDone), WatchUi.SLIDE_UP);
+        WatchUi.pushView(picker, new SetAdjustPickerDelegate(onDone, onCancelled), WatchUi.SLIDE_UP);
     }
 
 }

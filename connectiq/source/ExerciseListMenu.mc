@@ -1,5 +1,6 @@
 import Toybox.Activity;
 import Toybox.ActivityRecording;
+import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
@@ -44,8 +45,9 @@ class ExerciseListMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     // Selecting an exercise fires on KEY_ENTER, which is the physical Start/Enter button on
     // 5-button devices (confirmed against BehaviorDelegate's docs) - so this doubles as "start the
-    // workout" rather than needing a separate affordance. No onBack override: at this stage no
-    // session exists yet, so the default Menu2InputDelegate pop (nothing to confirm) is correct.
+    // workout" rather than needing a separate affordance. Picking an exercise here means you're
+    // about to do it now, not browsing - the session starts in WORK (lap timer running) for that
+    // exercise rather than the view's own default REST/ready state.
     function onSelect(item as WatchUi.MenuItem) as Void {
         var index = item.getId() as Number;
         var session = ActivityRecording.createSession({
@@ -56,12 +58,25 @@ class ExerciseListMenuDelegate extends WatchUi.Menu2InputDelegate {
         session.start();
         getApp().setActiveSession(session);
 
-        var view = new ActiveWorkoutView(plan, index);
+        var sessionStartMs = System.getTimer();
+        var view = new ActiveWorkoutView(plan, index, sessionStartMs);
+        view.enterWork();
         WatchUi.pushView(
             view,
-            new ActiveWorkoutDelegate(view, plan, session, System.getTimer()),
+            new ActiveWorkoutDelegate(view, plan, session, sessionStartMs),
             WatchUi.SLIDE_LEFT
         );
+    }
+
+    // This is the app's base view (connectiqApp.onPhoneMessage got here via switchToView), so the
+    // default Menu2InputDelegate.onBack (pop the active view) exits the whole app - backing out
+    // before ever selecting an exercise, with no ActivityRecording session ever created. Without
+    // this override that silent exit left the phone stuck showing WatchState.Active (the checkmark
+    // icon), since only ExitConfirmMenu's Save/Discard path used to send SESSION_ENDED - there was
+    // no session to end, but the phone still needs telling so it can accept a new plan.
+    function onBack() as Void {
+        Communications.transmit(WatchProtocol.encodeSessionEnded(0), {}, new SessionEndedTransmitListener());
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
     }
 
 }

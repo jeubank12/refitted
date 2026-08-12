@@ -131,4 +131,43 @@ module WatchProtocol {
     function encodeSessionEnded(elapsedMs as Number) as Array {
         return [PROTOCOL_VERSION, TYPE_SESSION_ENDED, [elapsedMs]];
     }
+
+    // Phase 4: not currently sent (the phone infers a reconnect from a BUFFER arriving), but kept
+    // here so the envelope shape has one source of truth if a future handshake needs it.
+    function encodeHello(watchAppVersion as Number, maxProtocolVersion as Number) as Array {
+        return [PROTOCOL_VERSION, TYPE_HELLO, [watchAppVersion, maxProtocolVersion]];
+    }
+
+    // A batched replay of still-unacked SET_DONE entries - PendingSetBuffer.flush() sends this
+    // instead of individual SET_DONEs once more than one entry is pending. Each entry is the same
+    // positional shape encodeSetDone's payload uses.
+    function encodeBuffer(entries as Array<Array>) as Array {
+        return [PROTOCOL_VERSION, TYPE_BUFFER, [entries]];
+    }
+
+    // The phone ACKs the highest SET_DONE/BUFFER-entry seq it has durably persisted -
+    // PendingSetBuffer.trim() drops everything at or below this from the offline queue.
+    function decodeAck(message as Array) as Number? {
+        var version = message[0] as Number;
+        if (version > PROTOCOL_VERSION) {
+            return null;
+        }
+        if ((message[1] as Number) != TYPE_ACK) {
+            return null;
+        }
+        var payload = message[2] as Array;
+        return payload[0] as Number;
+    }
+
+    function decodeNak(message as Array) as String? {
+        var version = message[0] as Number;
+        if (version > PROTOCOL_VERSION) {
+            return null;
+        }
+        if ((message[1] as Number) != TYPE_NAK) {
+            return null;
+        }
+        var payload = message[2] as Array;
+        return payload[0] as String;
+    }
 }

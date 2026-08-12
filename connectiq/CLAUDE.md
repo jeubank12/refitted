@@ -59,8 +59,11 @@ See `PLAN-garmin.md` at the repo root for the full architecture, wire protocol, 
   entries and `PickerDelegate.onAccept` returns one value per entry - so multiple fields (here, reps
   and weight) belong on one `Picker` screen, not chained separate `Picker`s.
 
-- **Module-level `const` in a `module { }` block cannot be `private`** - `monkeyc` rejects
-  `private const` at module scope with a parser error, unlike inside a `class`.
+- **Nothing at module scope (`const` or `function`) inside a `module { }` block can be `private`** -
+  `monkeyc` rejects `private const`/`private function` at module scope with a parser error
+  ("extraneous input 'private'"), unlike inside a `class`. `PendingSetBuffer.mc`'s `load`/`save`
+  helpers are unmarked (not `private`) for exactly this reason - they just aren't part of the
+  module's intended external surface.
 
 - **`method(:symbolName)` needs an instance (`self`) to bind to - it doesn't work for a bare
   function defined directly inside a `module { }` block.** Referencing a module-level function as a
