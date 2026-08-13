@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -62,7 +63,10 @@ class GarminWatchService @Inject constructor(
   private var lastHelloAt: Instant? = null
   private var appOpenPollerJob: Job? = null
 
-  override suspend fun refresh() {
+  // ConnectIQ.knownDevices is a synchronous Binder call into Garmin Connect Mobile, which answers
+  // it with a blocking SQLite read on its end - keep that off viewModelScope's default Main
+  // dispatcher so it can't jank the caller.
+  override suspend fun refresh() = withContext(Dispatchers.IO) {
     awaitReady()
     try {
       val connectIQ = connection.connectIQ
