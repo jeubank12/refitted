@@ -1,5 +1,7 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,17 +19,37 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.models.SetRecord
 import java.time.Instant
+
+/**
+ * `TextFieldValue` isn't Bundle-storable on its own, so `rememberSaveable` needs an explicit
+ * saver - see EditSetRecordDialog's weight/reps fields, which select-all-on-focus and therefore
+ * must carry [TextFieldValue.selection] through configuration changes alongside the text.
+ */
+private val TextFieldValueSaver = listSaver<TextFieldValue, Any>(
+  save = { listOf(it.text, it.selection.start, it.selection.end) },
+  restore = {
+    TextFieldValue(
+      text = it[0] as String,
+      selection = TextRange(it[1] as Int, it[2] as Int)
+    )
+  }
+)
 
 /**
  * Edits a single logged set's weight/reps in place. The completion timestamp isn't editable -
@@ -47,14 +69,16 @@ fun EditSetRecordDialog(
   // source, so if this dialog's composable slot were ever reused for a different SetRecord,
   // unkeyed state would leak the previous record's in-progress edit into the new one (see
   // ui/CLAUDE.md's Compose Gotchas).
-  var weight by rememberSaveable(record.exercise, record.completed) {
-    mutableStateOf(record.weight.toString())
+  var weight by rememberSaveable(record.exercise, record.completed, stateSaver = TextFieldValueSaver) {
+    mutableStateOf(TextFieldValue(record.weight.toString()))
   }
-  var reps by rememberSaveable(record.exercise, record.completed) {
-    mutableStateOf(record.reps.toString())
+  var reps by rememberSaveable(record.exercise, record.completed, stateSaver = TextFieldValueSaver) {
+    mutableStateOf(TextFieldValue(record.reps.toString()))
   }
-  val parsedWeight = weight.toDoubleOrNull()
-  val parsedReps = reps.toIntOrNull()
+  val parsedWeight = weight.text.replace(",", ".").toDoubleOrNull()
+  val parsedReps = reps.text.toIntOrNull()
+  val isWeightError = parsedWeight == null || parsedWeight < 0
+  val isRepsError = parsedReps == null || parsedReps < 0
 
   AlertDialog(
     onDismissRequest = onDismissRequest,
@@ -62,26 +86,22 @@ fun EditSetRecordDialog(
     title = { Text("Edit Set") },
     text = {
       Column {
-        OutlinedTextField(
+        SelectAllOnFocusField(
           value = weight,
           onValueChange = { weight = it },
           // TODO localize
-          label = { Text("Weight") },
-          singleLine = true,
-          isError = parsedWeight == null,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-          modifier = Modifier.fillMaxWidth()
+          label = "Weight",
+          isError = isWeightError,
+          keyboardType = KeyboardType.Decimal
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
+        SelectAllOnFocusField(
           value = reps,
           onValueChange = { reps = it },
           // TODO localize
-          label = { Text("Reps") },
-          singleLine = true,
-          isError = parsedReps == null,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-          modifier = Modifier.fillMaxWidth()
+          label = "Reps",
+          isError = isRepsError,
+          keyboardType = KeyboardType.Number
         )
       }
     },
@@ -104,13 +124,48 @@ fun EditSetRecordDialog(
         Spacer(Modifier.width(8.dp))
         Button(
           onClick = { onSave(parsedWeight ?: record.weight, parsedReps ?: record.reps) },
-          enabled = parsedWeight != null && parsedReps != null
+          enabled = !isWeightError && !isRepsError
         ) {
           // TODO localize
           Text("Save")
         }
       }
     }
+  )
+}
+
+/**
+ * A numeric [OutlinedTextField] that selects its entire value every time it gains focus, so
+ * typing a replacement overwrites rather than requiring the user to delete the old value first.
+ * Setting the selection directly from a focus callback doesn't survive: the same tap that focuses
+ * the field also drives BasicTextField's own tap-to-place-cursor `onValueChange`, which fires
+ * after and overwrites the selection we set. Applying it from [LaunchedEffect] instead means it
+ * runs as a coroutine dispatched after that frame's composition, so it lands after the tap's own
+ * update rather than racing it - and re-fires on every focus/blur cycle since it's keyed directly
+ * off `isFocused`, not a manually consumed one-shot flag.
+ */
+@Composable
+private fun SelectAllOnFocusField(
+  value: TextFieldValue,
+  onValueChange: (TextFieldValue) -> Unit,
+  label: String,
+  isError: Boolean,
+  keyboardType: KeyboardType
+) {
+  val interactionSource = remember { MutableInteractionSource() }
+  val isFocused by interactionSource.collectIsFocusedAsState()
+  LaunchedEffect(isFocused) {
+    if (isFocused) onValueChange(value.copy(selection = TextRange(0, value.text.length)))
+  }
+  OutlinedTextField(
+    value = value,
+    onValueChange = onValueChange,
+    label = { Text(label) },
+    singleLine = true,
+    isError = isError,
+    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+    interactionSource = interactionSource,
+    modifier = Modifier.fillMaxWidth()
   )
 }
 
