@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.ui.models
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -237,11 +236,6 @@ class ExerciseViewModel @Inject constructor(
           val currentIndex =
             overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
             else idx
-          Log.v(
-            TAG,
-            "Resolved alternate for step ${sets.head.primaryStep} to index $currentIndex " +
-              "(planOverride=$overrideIndex, userSelected=$idx, lastCompleted=$lastCompletedIdx)"
-          )
           selection.viewedIndex.value = currentIndex
           currentIndex
         }.distinctUntilChanged()
