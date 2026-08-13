@@ -7,6 +7,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import java.time.Instant
 
 /**
  * Repository interface for exercise-related operations.
@@ -17,6 +18,19 @@ interface ExerciseRepository {
   fun refreshExercises()
   suspend fun storeSetRecord(record: SetRecord)
   fun loadWorkoutRecords(workoutId: String)
+
+  /**
+   * Updates a previously-logged set's [weight] and [reps] in place, keyed by [exercise]/[completed]
+   * - SetRecord's composite identity (see RoomSetRecord's primary key). The completion timestamp
+   * itself is not editable here: it's part of the persisted primary key, and changing it would need
+   * delete+reinsert semantics rather than a plain update. No-op if the record doesn't exist.
+   */
+  suspend fun updateSetRecord(exercise: String, completed: Instant, weight: Double, reps: Int)
+
+  /**
+   * Deletes a single logged set, keyed by [exercise]/[completed]. No-op if the record doesn't exist.
+   */
+  suspend fun deleteSetRecord(exercise: String, completed: Instant)
 
   /**
    * Adds an exercise to a custom plan's day, as an open (no set limit) set. [exerciseId] should

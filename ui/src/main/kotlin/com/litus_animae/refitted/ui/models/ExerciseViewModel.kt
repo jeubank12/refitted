@@ -391,6 +391,28 @@ class ExerciseViewModel @Inject constructor(
     }
   }
 
+  fun updateSetRecord(exercise: String, completed: Instant, weight: Double, reps: Int) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.updateSetRecord(exercise, completed, weight, reps)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error updating set record", ex)
+        exercisesError = "There was an error updating the set"
+      }
+    }
+  }
+
+  fun deleteSetRecord(exercise: String, completed: Instant) {
+    viewModelScope.launch {
+      try {
+        exerciseRepo.deleteSetRecord(exercise, completed)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error deleting set record", ex)
+        exercisesError = "There was an error removing the set"
+      }
+    }
+  }
+
   companion object {
     private const val TAG = "ExerciseViewModel"
   }
