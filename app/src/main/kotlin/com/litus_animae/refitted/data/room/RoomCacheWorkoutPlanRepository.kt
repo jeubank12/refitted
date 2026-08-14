@@ -98,20 +98,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         val newDay = currentPlan.totalDays + 1
 
         val sourceSets = exerciseDao.loadDayExerciseSets(fromDay.toString(), workoutPlan.workout)
-        // Targets come from what was actually completed, not the source day's (possibly still
-        // open, sets = -1) definition - that's the point of "copy day".
-        val completedByTargetSet = exerciseDao
-            .loadDaySetRecords(workoutPlan.workout, fromDay.toString())
-            .groupBy { it.targetSet }
-
-        val copiedSets = sourceSets.map { source ->
-            val completed = completedByTargetSet["$fromDay.${source.step}"]
-            if (completed.isNullOrEmpty()) {
-                source.copy(day = newDay.toString())
-            } else {
-                source.copy(day = newDay.toString(), sets = completed.size, reps = completed.last().reps)
-            }
-        }
+        val copiedSets = sourceSets.map { source -> source.copy(day = newDay.toString()) }
         exerciseDao.storeExerciseSets(copiedSets)
 
         workoutPlanDao.update(currentPlan.copy(totalDays = newDay))

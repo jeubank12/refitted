@@ -145,13 +145,6 @@ interface ExerciseDao {
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 
-  /**
-   * All records logged against target sets belonging to [day] (target_set ids are
-   * "$day.$step") - used to derive copy-day targets from what was actually completed.
-   */
-  @Query("select * from setrecord where workout = :workout and target_set like (:day || '.%') order by completed")
-  suspend fun loadDaySetRecords(workout: String, day: String): List<RoomSetRecord>
-
   @Query(
     "select max(completed) as latest_completion, target_set from setrecord " +
       "where workout = :workout group by target_set"

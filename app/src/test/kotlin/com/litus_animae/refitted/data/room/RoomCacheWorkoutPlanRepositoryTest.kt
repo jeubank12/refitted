@@ -11,7 +11,6 @@ import com.litus_animae.refitted.room.RefittedRoom
 import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.WorkoutPlanDao
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
-import com.litus_animae.refitted.room.entities.RoomSetRecord
 import com.litus_animae.refitted.room.entities.RoomWorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.TestLogUtil
@@ -153,46 +152,23 @@ class RoomCacheWorkoutPlanRepositoryTest {
     )
 
     @Test
-    fun `appends a new day with targets derived from completed sets`() = runTest {
+    fun `appends a new day with the source day's own targets`() = runTest {
       // Given
       val existingPlan = RoomWorkoutPlan(workout = workoutName, totalDays = 2, isCustom = true)
       coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
       coEvery { exerciseDao.loadDayExerciseSets("1", workoutName) } returns listOf(sourceExercise)
-      coEvery { exerciseDao.loadDaySetRecords(workoutName, "1") } returns listOf(
-        RoomSetRecord(25.0, 9, workoutName, "1.1", Instant.ofEpochMilli(1), "custom_Push-Up"),
-        RoomSetRecord(25.0, 8, workoutName, "1.1", Instant.ofEpochMilli(2), "custom_Push-Up")
-      )
       val stored = slot<List<RoomExerciseSet>>()
       coEvery { exerciseDao.storeExerciseSets(capture(stored)) } returns Unit
 
       // When
       val newDay = subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1)
 
-      // Then - a new day 3, with sets/reps filled from what was actually completed
+      // Then - a new day 3, with the source day's sets/reps carried over unchanged
       assertThat(newDay).isEqualTo(3)
-      assertThat(stored.captured).containsExactly(
-        sourceExercise.copy(day = "3", sets = 2, reps = 8)
-      )
+      assertThat(stored.captured).containsExactly(sourceExercise.copy(day = "3"))
       // Copy is append-only - it must never touch an existing day's rows.
       coVerify(exactly = 0) { exerciseDao.clearDay(any(), any()) }
       coVerify { workoutPlanDao.update(existingPlan.copy(totalDays = 3)) }
-    }
-
-    @Test
-    fun `copies as still-open sets when nothing was completed`() = runTest {
-      // Given
-      val existingPlan = RoomWorkoutPlan(workout = workoutName, totalDays = 2, isCustom = true)
-      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
-      coEvery { exerciseDao.loadDayExerciseSets("1", workoutName) } returns listOf(sourceExercise)
-      coEvery { exerciseDao.loadDaySetRecords(workoutName, "1") } returns emptyList()
-      val stored = slot<List<RoomExerciseSet>>()
-      coEvery { exerciseDao.storeExerciseSets(capture(stored)) } returns Unit
-
-      // When
-      subject.copyCustomDay(existingPlan.toDomain(), fromDay = 1)
-
-      // Then
-      assertThat(stored.captured).containsExactly(sourceExercise.copy(day = "3"))
     }
   }
 
