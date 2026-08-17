@@ -6,6 +6,18 @@
         <activity
             android:name="com.litus_animae.refitted.HiltTestActivity"
             android:exported="true" />
+
+        <!-- Manual harness for SetTrendStrip's windowing/session-collapse behavior. Debug-only:
+             this source set is never merged into the release build. -->
+        <activity
+            android:name="com.litus_animae.refitted.StripChartTesterActivity"
+            android:exported="true"
+            android:label="Strip Chart Tester">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
