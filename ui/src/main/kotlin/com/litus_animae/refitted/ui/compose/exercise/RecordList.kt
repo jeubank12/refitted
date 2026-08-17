@@ -429,7 +429,12 @@ private fun EffortHistoryCard(
 
   val points = remember(sortedEntries) {
     sortedEntries.map { (sessionIndex, scored) ->
-      EffortPoint(sessionIndex.toFloat(), scored.source.weight.toFloat(), scored.size, scored.zone)
+      EffortPoint(
+        sessionIndex.toFloat(),
+        scored.source.weight.toFloat(),
+        EffortModel.repSize(scored.source.reps),
+        scored.zone
+      )
     }
   }
   val expectedWeightBySession = remember(trend) {
