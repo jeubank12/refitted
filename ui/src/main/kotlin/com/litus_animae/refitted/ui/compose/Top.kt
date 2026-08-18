@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme as M2Theme
+import androidx.compose.material3.MaterialTheme as M3Theme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -29,9 +30,7 @@ fun Top() {
       val userModel: UserViewModel = hiltViewModel(it)
       val navigateToWorkoutDay: (WorkoutPlan, Int, Boolean) -> Unit =
         { wp, day, editing -> controller.navigate("exercise/${wp.workout}/$day/$editing") }
-      // M2 theme for now - flips to M3 once this screen's subtree is fully migrated
-      // (ui/CLAUDE.md's M2->M3 migration plan).
-      M2Theme(colors = Theme.darkColors) {
+      M3Theme(colorScheme = Theme.darkScheme) {
         Calendar(Modifier.fillMaxSize(), navigateToWorkoutDay, workoutModel, userModel)
       }
     }

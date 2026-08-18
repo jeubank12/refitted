@@ -14,25 +14,31 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.AppBarDefaults
-import androidx.compose.material.Button
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.FabPosition
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.SnackbarDuration
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.rememberScaffoldState
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,7 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Calendar(
   modifier: Modifier = Modifier,
@@ -69,7 +75,8 @@ fun Calendar(
   workoutModel: WorkoutViewModel = viewModel(),
   userModel: UserViewModel = viewModel()
 ) {
-  val scaffoldState = rememberScaffoldState()
+  val drawerState = rememberDrawerState(DrawerValue.Closed)
+  val snackbarHostState = remember { SnackbarHostState() }
   val scaffoldScope = rememberCoroutineScope()
   var showCreateCustomDialog by rememberSaveable { mutableStateOf(false) }
   var showCopyDayDialog by rememberSaveable { mutableStateOf(false) }
@@ -105,32 +112,125 @@ fun Calendar(
     Changelog { userModel.setChangelogShown() }
   }
 
-  Scaffold(
-    // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
-    // landscape.
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
-    modifier,
-    scaffoldState = scaffoldState,
-    topBar = {
-      TopAppBar(
-        title = {
-          val appName = stringResource(id = R.string.app_name)
-          if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan!!.workout)
-          else Text(appName)
-        },
-        windowInsets = AppBarDefaults.topAppBarWindowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-        ),
-        backgroundColor = MaterialTheme.colors.primary,
-        navigationIcon = {
-          IconButton(
-            {
-              scaffoldScope.launch {
-                if (scaffoldState.drawerState.isClosed) scaffoldState.drawerState.open()
-                else scaffoldState.drawerState.close()
-              }
+  ModalNavigationDrawer(
+    drawerState = drawerState,
+    drawerContent = {
+      ModalDrawerSheet(drawerShape = MaterialTheme.shapes.medium) {
+        val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
+        val workoutPlanError = workoutModel.workoutError
+        LaunchedEffect(workoutPlanError) {
+          if (workoutPlanError != null)
+            snackbarHostState.showSnackbar(
+              workoutPlanError,
+              duration = SnackbarDuration.Indefinite
+            )
+        }
+        val userError = userModel.userError
+        LaunchedEffect(userError) {
+          if (userError != null)
+            snackbarHostState.showSnackbar(
+              userError,
+              duration = SnackbarDuration.Indefinite
+            )
+        }
+        val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
+        WorkoutPlanMenu(
+          Modifier.weight(1f),
+          lastRefresh,
+          workoutPlanPagingItems,
+          workoutPlanError,
+          onSelect = {
+            scaffoldScope.launch { drawerState.close() }
+            if (it.workout != selectedWorkoutPlan?.workout) {
+              editMode = false
+              workoutModel.loadWorkoutDaysCompleted(it)
             }
-          ) {
+          },
+          onCreateCustom = {
+            scaffoldScope.launch { drawerState.close() }
+            showCreateCustomDialog = true
+          },
+          onRenameRequest = {
+            renameTarget = it.workout
+            renameError = null
+          }
+        )
+        Row(
+          Modifier
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp)
+        ) {
+          val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
+          val coroutineScope = rememberCoroutineScope()
+          var signInClicked by remember { mutableStateOf(false) }
+
+          LaunchedEffect(currentEmail) {
+            if (signInClicked) {
+              workoutPlanPagingItems.refresh()
+            }
+          }
+
+          AuthButton(
+            Modifier.fillMaxWidth(),
+            handleAuthSuccess = {
+              signInClicked = true
+              // Handle the successfully returned credential.
+              when (val credential = it.credential) {
+                // GoogleIdToken credential
+                is CustomCredential -> {
+                  if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    userModel.handleSignIn(credential.data)
+                  }
+                  else {
+                    // Catch any unrecognized custom credential type here.
+                    Log.e("handleAuthSuccess", "Unexpected type of credential")
+                  }
+                }
+
+                else -> {
+                  // Catch any unrecognized credential type here.
+                  Log.e("handleAuthSuccess", "Unexpected type of credential")
+                }
+              }
+            }, handleAuthFailure = {
+              coroutineScope.launch {
+                it.message?.let { it1 -> snackbarHostState.showSnackbar(it1) }
+              }
+            },
+            handleDeAuth = { userModel.handleSignOut() },
+            authedEmail = currentEmail,
+            userModel.googleWebClientId,
+          )
+        }
+      }
+    }
+  ) {
+    Scaffold(
+      // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
+      // landscape.
+      contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+      modifier = modifier,
+      snackbarHost = { SnackbarHost(snackbarHostState) },
+      topBar = {
+        TopAppBar(
+          title = {
+            val appName = stringResource(id = R.string.app_name)
+            if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan!!.workout)
+            else Text(appName)
+          },
+          windowInsets = TopAppBarDefaults.windowInsets.union(
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          ),
+          colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+          navigationIcon = {
+            IconButton(
+              {
+                scaffoldScope.launch {
+                  if (drawerState.isClosed) drawerState.open()
+                  else drawerState.close()
+                }
+              }
+            ) {
             Icon(
               Icons.Default.Menu,
               // TODO localize
@@ -285,96 +385,8 @@ fun Calendar(
         }
       }
     },
-    floatingActionButtonPosition = FabPosition.End,
-    drawerShape = MaterialTheme.shapes.medium,
-    drawerContent = {
-      val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
-      val workoutPlanError = workoutModel.workoutError
-      LaunchedEffect(workoutPlanError) {
-        if (workoutPlanError != null)
-          scaffoldState.snackbarHostState.showSnackbar(
-            workoutPlanError,
-            duration = SnackbarDuration.Indefinite
-          )
-      }
-      val userError = userModel.userError
-      LaunchedEffect(userError) {
-        if (userError != null)
-          scaffoldState.snackbarHostState.showSnackbar(
-            userError,
-            duration = SnackbarDuration.Indefinite
-          )
-      }
-      val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
-      WorkoutPlanMenu(
-        Modifier.weight(1f),
-        lastRefresh,
-        workoutPlanPagingItems,
-        workoutPlanError,
-        onSelect = {
-          scaffoldScope.launch { scaffoldState.drawerState.close() }
-          if (it.workout != selectedWorkoutPlan?.workout) {
-            editMode = false
-            workoutModel.loadWorkoutDaysCompleted(it)
-          }
-        },
-        onCreateCustom = {
-          scaffoldScope.launch { scaffoldState.drawerState.close() }
-          showCreateCustomDialog = true
-        },
-        onRenameRequest = {
-          renameTarget = it.workout
-          renameError = null
-        }
-      )
-      Row(
-        Modifier
-          .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
-          .padding(start = 10.dp, end = 10.dp, top = 10.dp)
-      ) {
-        val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
-        val coroutineScope = rememberCoroutineScope()
-        var signInClicked by remember { mutableStateOf(false) }
-
-        LaunchedEffect(currentEmail) {
-          if (signInClicked) {
-            workoutPlanPagingItems.refresh()
-          }
-        }
-
-        AuthButton(
-          Modifier.fillMaxWidth(),
-          handleAuthSuccess = {
-            signInClicked = true
-            // Handle the successfully returned credential.
-            when (val credential = it.credential) {
-              // GoogleIdToken credential
-              is CustomCredential -> {
-                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                  userModel.handleSignIn(credential.data)
-                }
-                else {
-                  // Catch any unrecognized custom credential type here.
-                  Log.e("handleAuthSuccess", "Unexpected type of credential")
-                }
-              }
-
-              else -> {
-                // Catch any unrecognized credential type here.
-                Log.e("handleAuthSuccess", "Unexpected type of credential")
-              }
-            }
-          }, handleAuthFailure = {
-            coroutineScope.launch {
-              it.message?.let { it1 -> scaffoldState.snackbarHostState.showSnackbar(it1) }
-            }
-          },
-          handleDeAuth = { userModel.handleSignOut() },
-          authedEmail = currentEmail,
-          userModel.googleWebClientId,
-        )
-      }
-    }) { contentPadding ->
+    floatingActionButtonPosition = FabPosition.End
+    ) { contentPadding ->
     if (savedSelectedPlanLoading || (selectedWorkoutPlan != null && completedDaysLoading)) {
       Surface(
         Modifier
@@ -411,6 +423,7 @@ fun Calendar(
         navigateToWorkoutDay(selectedWorkoutPlan!!, it, false)
         workoutModel.setLastViewedDay(selectedWorkoutPlan!!, it)
       }
+    }
     }
   }
 

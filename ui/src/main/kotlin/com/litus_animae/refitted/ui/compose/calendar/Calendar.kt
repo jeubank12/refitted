@@ -13,15 +13,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -58,7 +57,7 @@ import kotlin.math.ceil
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendar() {
-  MaterialTheme(colors = Theme.darkColors) {
+  MaterialTheme(colorScheme = Theme.darkScheme) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 4, Instant.now().minus(3, ChronoUnit.DAYS)), mapOf(
         Pair(1, Instant.ofEpochMilli(1L)),
@@ -72,7 +71,7 @@ fun PreviewCalendar() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendarUnaligned() {
-  MaterialTheme(colors = Theme.darkColors) {
+  MaterialTheme(colorScheme = Theme.darkScheme) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 1),
       emptyMap(),
@@ -246,9 +245,9 @@ private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modif
   Surface(
     modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colors.primary,
-    contentColor = MaterialTheme.colors.onPrimary,
-    elevation = 1.dp
+    color = MaterialTheme.colorScheme.primary,
+    contentColor = MaterialTheme.colorScheme.onPrimary,
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -280,9 +279,9 @@ private fun StartDatePickerBanner(
   Surface(
     modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colors.primary,
-    contentColor = MaterialTheme.colors.onPrimary,
-    elevation = 1.dp
+    color = MaterialTheme.colorScheme.primary,
+    contentColor = MaterialTheme.colorScheme.onPrimary,
+    shadowElevation = 1.dp
   ) {
     Column(Modifier.padding(14.dp)) {
       // TODO localize
@@ -316,13 +315,13 @@ private fun MonthNavRow(
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), elevation = 1.dp) {
+    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
       IconButton(onClick = onPrevious) {
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowLeft,
           // TODO localize
           "previous month",
-          tint = MaterialTheme.colors.primary
+          tint = MaterialTheme.colorScheme.primary
         )
       }
     }
@@ -331,13 +330,13 @@ private fun MonthNavRow(
       fontSize = 17.sp,
       fontWeight = FontWeight.SemiBold
     )
-    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), elevation = 1.dp) {
+    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
       IconButton(onClick = onNext) {
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowRight,
           // TODO localize
           "next month",
-          tint = MaterialTheme.colors.primary
+          tint = MaterialTheme.colorScheme.primary
         )
       }
     }
@@ -351,7 +350,7 @@ private fun CalendarLegend() {
       .fillMaxWidth()
       .padding(bottom = 10.dp),
     shape = RoundedCornerShape(10.dp),
-    elevation = 1.dp
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -359,14 +358,14 @@ private fun CalendarLegend() {
         .padding(12.dp, 10.dp),
       horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-      LegendEntry("upcoming", MaterialTheme.colors.primary)
-      LegendEntry("completed", MaterialTheme.colors.secondary)
+      LegendEntry("upcoming", MaterialTheme.colorScheme.primary)
+      LegendEntry("completed", MaterialTheme.colorScheme.secondary)
       LegendEntry(
         "last viewed",
-        MaterialTheme.colors.background,
-        outlineColor = MaterialTheme.colors.primaryVariant
+        MaterialTheme.colorScheme.background,
+        outlineColor = MaterialTheme.colorScheme.primaryContainer
       )
-      LegendEntry("rest day", MaterialTheme.colors.primary, alpha = 0.35f)
+      LegendEntry("rest day", MaterialTheme.colorScheme.primary, alpha = 0.35f)
     }
   }
 }
@@ -397,7 +396,7 @@ private fun HideRestDaysRow(hideRestDays: Boolean, onToggle: (Boolean) -> Unit) 
       .fillMaxWidth()
       .padding(bottom = 12.dp),
     shape = RoundedCornerShape(10.dp),
-    elevation = 1.dp
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -425,7 +424,7 @@ private fun WeekdayHeader() {
         textAlign = TextAlign.Center,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+        color = MaterialTheme.colorScheme.onSurfaceVariant
       )
     }
   }
@@ -464,7 +463,7 @@ class DayPropertiesPreviewParameterProvider : PreviewParameterProvider<DayProper
 fun PreviewCalendarDayButton(
   @PreviewParameter(DayPropertiesPreviewParameterProvider::class) properties: DayProperties
 ) {
-  MaterialTheme(colors = Theme.darkColors) {
+  MaterialTheme(colorScheme = Theme.darkScheme) {
     CalendarDayCell(1, 1, properties)
   }
 }
@@ -476,7 +475,7 @@ private fun OutOfRangeDayCell(dayOfMonth: Int, isToday: Boolean = false) {
       "$dayOfMonth",
       fontSize = 13.sp,
       color = if (isToday) Theme.goodAttention
-      else MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled),
+      else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
       fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
     )
   }
@@ -495,12 +494,12 @@ private fun CalendarDayCell(
   // outline style covers "this is the reference day" in either mode.
   val highlighted = properties.isLastViewedDay || selected
   val backgroundColor = when {
-    highlighted -> MaterialTheme.colors.background
-    properties.isCompletedDay -> MaterialTheme.colors.secondary
-    else -> MaterialTheme.colors.primary
+    highlighted -> MaterialTheme.colorScheme.background
+    properties.isCompletedDay -> MaterialTheme.colorScheme.secondary
+    else -> MaterialTheme.colorScheme.primary
   }
   val contentColor = contentColorFor(backgroundColor)
-  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colors.primaryVariant) else null
+  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer) else null
   // Rest-day and adjacent-month dimming both fade the same surface - multiply rather than
   // pick one, so a rest day that also falls outside the displayed month reads as both.
   val restDayAlpha = if (properties.isRestDay) 0.45f else 1f

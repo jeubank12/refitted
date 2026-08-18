@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -40,7 +40,7 @@ fun WorkoutPlanPreview() {
     )
   )
     .collectAsLazyPagingItems()
-  MaterialTheme(Theme.darkColors) {
+  MaterialTheme(colorScheme = Theme.darkScheme) {
     Column {
       WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null, onSelect = {})
     }
@@ -62,7 +62,7 @@ fun ColumnScope.WorkoutPlanMenu(
       Row(
         Modifier
           .fillMaxWidth()
-          .background(MaterialTheme.colors.primary)
+          .background(MaterialTheme.colorScheme.primary)
           .windowInsetsPadding(
             WindowInsets.systemBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
           )
@@ -74,8 +74,8 @@ fun ColumnScope.WorkoutPlanMenu(
           Row(verticalAlignment = Alignment.CenterVertically) {
             // TODO localize
             Text(
-              "Workouts", style = MaterialTheme.typography.h6, color = contentColorFor(
-                backgroundColor = MaterialTheme.colors.primary
+              "Workouts", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
+                backgroundColor = MaterialTheme.colorScheme.primary
               )
             )
             IconButton(onClick = { plans.refresh() }) {
@@ -83,14 +83,14 @@ fun ColumnScope.WorkoutPlanMenu(
                 Icons.Default.Refresh,
                 // TODO localize
                 "refresh",
-                tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
+                tint = contentColorFor(backgroundColor = MaterialTheme.colorScheme.primary)
               )
             }
           }
           Row {
             Text(
               "Last Refreshed At: $lastRefresh", color = contentColorFor(
-                backgroundColor = MaterialTheme.colors.primary
+                backgroundColor = MaterialTheme.colorScheme.primary
               )
             )
           }
@@ -106,7 +106,7 @@ fun ColumnScope.WorkoutPlanMenu(
           Modifier
             .fillMaxWidth()
             .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-          style = MaterialTheme.typography.button
+          style = MaterialTheme.typography.labelLarge
         )
       }
     } else if (plans.loadState.refresh is LoadState.Loading) {
@@ -138,7 +138,7 @@ fun ColumnScope.WorkoutPlanMenu(
               Modifier
                 .fillMaxWidth()
                 .padding(start = 10.dp, top = 18.dp, bottom = 4.dp),
-              style = MaterialTheme.typography.overline
+              style = MaterialTheme.typography.labelSmall
             )
           }
           WorkoutPlanRow(
@@ -146,7 +146,7 @@ fun ColumnScope.WorkoutPlanMenu(
             onSelect = onSelect,
             onRenameRequest = onRenameRequest
           )
-          Divider()
+          HorizontalDivider()
         }
       }
       item {
@@ -157,16 +157,16 @@ fun ColumnScope.WorkoutPlanMenu(
             .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colors.primary)
+          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colorScheme.primary)
           Spacer(Modifier.width(8.dp))
           // TODO localize
           Text(
             "Create your own plan",
-            color = MaterialTheme.colors.primary,
-            style = MaterialTheme.typography.button
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelLarge
           )
         }
-        Divider()
+        HorizontalDivider()
       }
     }
   }
@@ -196,12 +196,12 @@ private fun WorkoutPlanRow(
       Modifier
         .weight(1f)
         .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-      style = MaterialTheme.typography.button
+      style = MaterialTheme.typography.labelLarge
     )
     if (plan.isCustom) {
       IconButton(onClick = { onRenameRequest(plan) }) {
         // TODO localize
-        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colors.primary)
+        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colorScheme.primary)
       }
     }
   }
