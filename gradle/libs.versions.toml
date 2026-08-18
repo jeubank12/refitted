@@ -37,6 +37,7 @@ testRunner = "1.7.0"
 truth = "1.4.5"
 turbine = "1.2.1"
 lifecycle = "2.11.0"
+window = "1.5.1"
 
 [libraries]
 androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
@@ -94,6 +95,7 @@ androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "
 androidx-sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqlite" }
 androidx-test-monitor = { module = "androidx.test:monitor", version.ref = "testMonitor" }
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "testRunner" }
+androidx-window = { module = "androidx.window:window", version.ref = "window" }
 arrow-core = { module = "io.arrow-kt:arrow-core" }
 arrow-stack = { module = "io.arrow-kt:arrow-stack", version.ref = "arrowStack" }
 aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "aws" }

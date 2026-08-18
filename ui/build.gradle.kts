@@ -113,6 +113,8 @@ dependencies {
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Window (fold/hinge awareness)
+    implementation(libs.androidx.window)
 
     // Testing
     testImplementation(platform(libs.junit))

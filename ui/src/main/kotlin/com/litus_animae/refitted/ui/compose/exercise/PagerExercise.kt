@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.window.layout.FoldingFeature
 import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.data.device.WatchState
 import com.litus_animae.refitted.identity.ConfigProvider
@@ -81,6 +82,7 @@ fun PagerExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
+  foldingFeature: FoldingFeature? = null,
   setHistoryList: (SetHistory) -> Unit,
   /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
   setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
@@ -248,6 +250,7 @@ fun PagerExerciseView(
           instructions = instructions,
           pagerState = pagerState,
           activeSetWithRecord = currentSetRecord,
+          foldingFeature = foldingFeature,
           displayedPage = displayedPage,
           globalAlternate = workoutPlan?.globalAlternate,
           workoutPlan = workoutPlan,
@@ -336,6 +339,8 @@ fun PagerDetailView(
   instructions: List<ExerciseViewModel.ExerciseInstruction>,
   pagerState: PagerState,
   activeSetWithRecord: ExerciseSetWithRecord?,
+  /** Active fold hinge, if any - drives the split axis/gap in place of orientation alone. */
+  foldingFeature: FoldingFeature? = null,
   /** The page the detail pane reflects — commits on release rather than tracking the drag. */
   displayedPage: Int = pagerState.settledPage,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
@@ -394,6 +399,7 @@ fun PagerDetailView(
     modifier = Modifier.fillMaxSize(),
     splitRatio = 0.45f,
     gap = 8.dp,
+    foldingFeature = foldingFeature,
     first = {
       PagerExerciseInstructions(
         instructions = instructions,
