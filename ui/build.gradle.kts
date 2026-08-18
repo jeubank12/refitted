@@ -113,8 +113,6 @@ dependencies {
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
-    // Accompanist
-    implementation(libs.accompanist.adaptive)
 
     // Testing
     testImplementation(platform(libs.junit))
