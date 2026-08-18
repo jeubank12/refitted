@@ -52,6 +52,7 @@ androidx-compose-foundation-layout = { module = "androidx.compose.foundation:fou
 androidx-compose-material = { module = "androidx.compose.material:material" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-runtime = { module = "androidx.compose.runtime:runtime" }
 androidx-compose-runtime-saveable = { module = "androidx.compose.runtime:runtime-saveable" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
@@ -144,6 +145,7 @@ compose = [
     "androidx-compose-foundation",
     "androidx-compose-foundation-layout",
     "androidx-compose-material",
+    "androidx-compose-material3",
     "androidx-compose-material-icons-core",
     "androidx-compose-animation",
     "androidx-compose-animation-core",
