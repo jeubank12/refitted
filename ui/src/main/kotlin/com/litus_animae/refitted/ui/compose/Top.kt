@@ -1,7 +1,6 @@
 package com.litus_animae.refitted.ui.compose
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme as M2Theme
 import androidx.compose.material3.MaterialTheme as M3Theme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -46,9 +45,7 @@ fun Top() {
       val day = it.arguments?.getString("day")
       val editing = it.arguments?.getString("editing")?.toBoolean() == true
       if (workoutId != null && day != null) {
-        // M2 theme for now - flips to M3 once this screen's subtree is fully migrated
-        // (ui/CLAUDE.md's M2->M3 migration plan).
-        M2Theme(colors = Theme.darkColors) {
+        M3Theme(colorScheme = Theme.darkScheme) {
           Exercise(
             day = day,
             workoutId = workoutId,
