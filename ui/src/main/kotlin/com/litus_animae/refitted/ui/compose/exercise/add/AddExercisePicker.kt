@@ -391,9 +391,10 @@ private fun SelectedMuscleHeader(muscle: String, onClick: () -> Unit) {
 
 /**
  * Combines [AddExerciseList] with an [AnimatedVisibility] overlay of [MuscleGroupPicker] -
- * a plain `Box` overlay rather than a second nested `ModalBottomSheetLayout`, so its swipe/anchor
- * math never runs against an already-clamped outer sheet (see ui/CLAUDE.md's guidance on hosting
- * overlays in an unclipped ancestor instead of layering more sheet/Popup machinery). System/gesture
+ * a plain `Box` overlay rather than a second nested `ModalBottomSheet`, so its swipe/anchor math
+ * never runs against an already-clamped outer sheet, and it doesn't need a second Popup window
+ * stacked on the outer sheet's own (see ui/CLAUDE.md's guidance on hosting overlays in an
+ * unclipped ancestor instead of layering more sheet/Popup machinery). System/gesture
  * back closes just the picker first via the [BackHandler] below, which - because it only composes
  * while [pickingMuscle] is true, itself nested inside the outer sheet's own content - registers
  * (and so takes priority) after that sheet's own built-in back handling.

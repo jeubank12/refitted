@@ -60,11 +60,16 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
   handoff happen in the same composition pass. See `settledSet`/`swap` in
   `PagerExerciseInstructions`.
 
-- **`ModalBottomSheetLayout`'s `sheetContent` is always composed, even while hidden** — it's
-  measured for the sheet's own animation regardless of visibility. Don't assume hidden sheet
-  content is absent from composition: gate any expensive collection or side-effects inside it
-  behind the sheet's own `sheetState.isVisible`, or they run continuously any time the host
-  screen is on-screen. See the add-exercise sheet in `exercise/Main.kt`.
+- **M3's `ModalBottomSheet` is a real overlay, invoked conditionally — not M2's always-mounted
+  wrapper.** M2's `ModalBottomSheetLayout` wrapped the whole screen and kept `sheetContent`
+  composed continuously even while hidden, so expensive collection/side-effects inside it needed
+  a manual `sheetState.isVisible` gate. `ModalBottomSheet` has no such gotcha: gate it yourself
+  with `if (showSheet) { ModalBottomSheet(...) { ... } }` and it simply isn't in the composition
+  until shown. To close it with the built-in exit animation from code (not a user swipe/scrim
+  tap), await `sheetState.hide()` before flipping the `showSheet` flag —
+  `scope.launch { sheetState.hide() }.invokeOnCompletion { if (!sheetState.isVisible) showSheet = false }`
+  — flipping the flag directly removes the sheet with no animation. See the add-exercise and
+  weight-edit sheets in `exercise/Main.kt`.
 
 ## Testing
 
