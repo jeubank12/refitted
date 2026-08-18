@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,16 +67,16 @@ fun SetsDisplay(
         enter = expandVertically(),
         exit = shrinkVertically()
       ) {
-        Text("Set", style = MaterialTheme.typography.h5)
+        Text("Set", style = MaterialTheme.typography.headlineSmall)
       }
       Row {
-        Text(progressText, style = MaterialTheme.typography.h4)
+        Text(progressText, style = MaterialTheme.typography.headlineMedium)
         AnimatedVisibility(
           showProgressGoal,
           enter = expandHorizontally(expandFrom = Alignment.Start),
           exit = shrinkHorizontally(shrinkTowards = Alignment.Start)
         ) {
-          Text(" / ${progressGoal.intValue}", style = MaterialTheme.typography.h4)
+          Text(" / ${progressGoal.intValue}", style = MaterialTheme.typography.headlineMedium)
         }
       }
       AnimatedVisibility(
@@ -90,16 +90,16 @@ fun SetsDisplay(
             enter = fadeIn(),
             exit = fadeOut()
           ) {
-            Text("Reps", style = MaterialTheme.typography.h5)
+            Text("Reps", style = MaterialTheme.typography.headlineSmall)
           }
           AnimatedVisibility(
             exerciseSet.sets >= 0,
             enter = fadeIn(),
             exit = fadeOut()
           ) {
-            Text("Sets", style = MaterialTheme.typography.h5)
+            Text("Sets", style = MaterialTheme.typography.headlineSmall)
           }
-          Text(" Completed", style = MaterialTheme.typography.h5)
+          Text(" Completed", style = MaterialTheme.typography.headlineSmall)
         }
       }
     }

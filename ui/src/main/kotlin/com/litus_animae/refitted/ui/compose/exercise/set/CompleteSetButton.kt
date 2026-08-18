@@ -1,9 +1,9 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -66,6 +66,6 @@ fun CompleteExerciseSetButton(
       isTimerRunning -> cancelRestPhrase
       else -> completeSetPhrase
     }
-    Text(buttonText, style = MaterialTheme.typography.h5)
+    Text(buttonText, style = MaterialTheme.typography.headlineSmall)
   }
 }

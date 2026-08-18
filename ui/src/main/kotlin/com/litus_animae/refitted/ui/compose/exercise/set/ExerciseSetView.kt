@@ -19,10 +19,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -187,10 +188,10 @@ fun ColumnScope.ExerciseSetView(
     // when space is tight the weight card absorbs the difference
     Layout(
       content = {
-        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
           WeightDisplay(onStartEditWeight, weight, saveWeight)
         }
-        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
           RepsDisplay(
             setWithRecord,
             reps,
@@ -292,7 +293,7 @@ fun ColumnScope.ExerciseSetView(
           }
         }
         if (stepperShown) {
-          Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = 2.dp) {
+          Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
             Box(Modifier.padding(8.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
               // TODO localize
               TargetStepper(
@@ -307,7 +308,7 @@ fun ColumnScope.ExerciseSetView(
         // The watch shows its own rest countdown while a session is active - mounting this too
         // would just be a second, unsynced countdown.
         if (!watchSessionActive) {
-          Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+          Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
             CircularRestTimer(
               restSeconds = effectiveRestSeconds,
               isRunning = isTimerRunning,
@@ -454,7 +455,7 @@ private fun PreviewExerciseSetDetails(
       mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
     )
   ) {
-    MaterialTheme(Theme.lightColors) {
+    MaterialTheme(colorScheme = Theme.lightScheme) {
       Column(
         Modifier
           .padding(16.dp)

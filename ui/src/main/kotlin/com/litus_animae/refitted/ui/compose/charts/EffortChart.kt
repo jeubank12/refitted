@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -83,12 +83,12 @@ fun EffortChart(
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
   gapMarks: List<Float> = emptyList(),
-  baseColor: Color = MaterialTheme.colors.primary,
+  baseColor: Color = MaterialTheme.colorScheme.primary,
   peakColor: Color = Theme.goodAttention,
   punishedColor: Color = Theme.timerAmber,
-  coldColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f),
-  trendColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.35f),
-  emphasisColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+  coldColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+  trendColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+  emphasisColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
   maxPointSize: Dp = if (compact) 16.dp else 30.dp,
   trendWidth: Dp = if (compact) 1.5.dp else 2.dp
@@ -136,7 +136,7 @@ fun EffortChart(
   val emphasisWidthPx = with(density) { EmphasisRingWidth.toPx() }
 
   val textMeasurer = rememberTextMeasurer()
-  val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f))
+  val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
   val xLabelLayouts = remember(xLabels, labelStyle) {
     xLabels.map { (x, text) -> x to textMeasurer.measure(text, labelStyle) }
   }
@@ -244,10 +244,10 @@ fun EffortChart(
 @Composable
 fun EffortLegend(
   modifier: Modifier = Modifier,
-  baseColor: Color = MaterialTheme.colors.primary,
+  baseColor: Color = MaterialTheme.colorScheme.primary,
   peakColor: Color = Theme.goodAttention,
   punishedColor: Color = Theme.timerAmber,
-  coldColor: Color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f)
+  coldColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
 ) {
   FlowRow(
     modifier,
@@ -261,7 +261,7 @@ fun EffortLegend(
             .size(8.dp)
             .background(zoneColor(zone, baseColor, peakColor, punishedColor, coldColor), CircleShape)
         )
-        Text(stringResource(zoneLabelRes(zone)), style = MaterialTheme.typography.caption)
+        Text(stringResource(zoneLabelRes(zone)), style = MaterialTheme.typography.labelSmall)
       }
     }
   }

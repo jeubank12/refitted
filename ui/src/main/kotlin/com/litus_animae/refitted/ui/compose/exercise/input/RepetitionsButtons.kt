@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -90,7 +90,7 @@ private fun RepetitionButton(repetitions: Int, onClick: (Int) -> Unit, size: Dp)
 @Composable
 @Preview(heightDp = 300)
 fun PreviewRepetitionButtons() {
-  MaterialTheme(Theme.lightColors) {
+  MaterialTheme(colorScheme = Theme.lightScheme) {
     val reps = remember { Repetitions(8) }
     Column(Modifier.fillMaxSize()) {
       RepetitionsButtons(reps)
@@ -101,7 +101,7 @@ fun PreviewRepetitionButtons() {
 @Composable
 @Preview(heightDp = 150, widthDp = 75)
 fun PreviewSmallRepetitionButtons() {
-  MaterialTheme(Theme.lightColors) {
+  MaterialTheme(colorScheme = Theme.lightScheme) {
     val reps = remember { Repetitions(8) }
     Column(Modifier.fillMaxSize()) {
       RepetitionsButtons(reps)

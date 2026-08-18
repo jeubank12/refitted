@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.runtime.Composable
@@ -45,13 +45,13 @@ fun WeightDisplay(
     val weightUnit = stringResource(id = R.string.lbs)
     Text(
       weightLabel,
-      style = MaterialTheme.typography.h5,
+      style = MaterialTheme.typography.headlineSmall,
       modifier = Modifier.align(Alignment.CenterHorizontally)
     )
     val displayWeight = String.format("%.1f", saveWeight)
     Text(
       "$displayWeight $weightUnit",
-      style = MaterialTheme.typography.h4,
+      style = MaterialTheme.typography.headlineMedium,
       modifier = Modifier.align(Alignment.CenterHorizontally)
     )
   }

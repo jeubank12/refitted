@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -101,7 +101,7 @@ fun ColumnScope.ExerciseTimer(
         val buttonContent =
           if (isExerciseTimerRunning) "$timerValue remaining (click to stop)"
           else "Start $timerMax exercise timer"
-        Text(buttonContent, style = MaterialTheme.typography.h5)
+        Text(buttonContent, style = MaterialTheme.typography.headlineSmall)
       }
     }
   }

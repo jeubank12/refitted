@@ -11,9 +11,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -119,8 +119,8 @@ private fun DrawTimer(
   elapsedMillisProvider: () -> Int,
   countDown: Boolean
 ) {
-  val drawColor = MaterialTheme.colors.onPrimary
-  val elapsedColor = MaterialTheme.colors.primary
+  val drawColor = MaterialTheme.colorScheme.onPrimary
+  val elapsedColor = MaterialTheme.colorScheme.primary
 
   val elapsedMillisR = remember(elapsedMillisProvider) {
     derivedStateOf {
@@ -131,7 +131,7 @@ private fun DrawTimer(
   Canvas(
     modifier
       .height(20.dp)
-      .background(MaterialTheme.colors.surface)
+      .background(MaterialTheme.colorScheme.surface)
   ) {
     val elapsedMillis by elapsedMillisR
     val offsetMillis = if (countDown) millisToElapse - elapsedMillis else elapsedMillis
@@ -165,7 +165,7 @@ class ElapsedMillisParameterProvider : PreviewParameterProvider<Int> {
 @Composable
 @Preview(widthDp = 800)
 fun PreviewTimer(@PreviewParameter(ElapsedMillisParameterProvider::class) elapsedMillis: Int) {
-  MaterialTheme(Theme.lightColors) {
+  MaterialTheme(colorScheme = Theme.lightScheme) {
     DrawTimer(Modifier.fillMaxWidth(), 60000, { elapsedMillis }, countDown = false)
   }
 }
@@ -176,7 +176,7 @@ fun PreviewRunningTimer() {
   var running by remember { mutableStateOf(false) }
   val start = remember(running) { Instant.now() }
   var down by remember { mutableStateOf(false) }
-  MaterialTheme(Theme.lightColors) {
+  MaterialTheme(colorScheme = Theme.lightScheme) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
       Timer(start, running, 15000, debugView = true, countDown = down)
       Row {

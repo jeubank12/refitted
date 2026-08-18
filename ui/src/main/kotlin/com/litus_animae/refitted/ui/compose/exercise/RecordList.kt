@@ -23,14 +23,16 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AppBarDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -85,6 +87,7 @@ import kotlin.math.roundToInt
 private const val GapThresholdDays = 21L
 private const val MaxXLabels = 4
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetRecordList(
   modifier: Modifier = Modifier,
@@ -133,9 +136,9 @@ fun SetRecordList(
     Row(
       Modifier
         .fillMaxWidth()
-        .background(MaterialTheme.colors.primary)
+        .background(MaterialTheme.colorScheme.primary)
         .windowInsetsPadding(
-          AppBarDefaults.topAppBarWindowInsets.union(
+          TopAppBarDefaults.windowInsets.union(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
           )
         )
@@ -145,8 +148,8 @@ fun SetRecordList(
     ) {
       // TODO localize
       Text(
-        "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
-          backgroundColor = MaterialTheme.colors.primary
+        "Set History", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
+          backgroundColor = MaterialTheme.colorScheme.primary
         )
       )
       IconButton({ records.refresh() }) {
@@ -154,7 +157,7 @@ fun SetRecordList(
           Icons.Default.Refresh,
           // TODO localize
           "refresh",
-          tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
+          tint = contentColorFor(backgroundColor = MaterialTheme.colorScheme.primary)
         )
       }
     }
@@ -288,7 +291,7 @@ private fun SessionRow(
     Modifier
       .fillMaxWidth()
       .padding(horizontal = 10.dp, vertical = 4.dp),
-    elevation = 1.dp
+    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
   ) {
     Column {
       Row(
@@ -304,12 +307,12 @@ private fun SessionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
           ) {
-            Text(dayFormat.format(session.day), style = MaterialTheme.typography.subtitle2)
+            Text(dayFormat.format(session.day), style = MaterialTheme.typography.titleSmall)
             if (isPR) {
               Text(
                 // TODO localize
                 "PR",
-                style = MaterialTheme.typography.caption,
+                style = MaterialTheme.typography.labelSmall,
                 color = Color.White,
                 modifier = Modifier
                   .background(Theme.goodAttention, RoundedCornerShape(4.dp))
@@ -320,11 +323,11 @@ private fun SessionRow(
           Text(
             // TODO localize
             "${session.sets.size} sets · ${String.format("%.0f", session.volume)} lbs volume",
-            style = MaterialTheme.typography.caption,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
           )
         }
-        Text(String.format("%.1f", session.topWeight), style = MaterialTheme.typography.button)
+        Text(String.format("%.1f", session.topWeight), style = MaterialTheme.typography.labelLarge)
         Icon(
           if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
           contentDescription = null
@@ -332,16 +335,16 @@ private fun SessionRow(
       }
       if (expanded) {
         session.sets.forEachIndexed { index, set ->
-          Divider()
+          HorizontalDivider()
           Row(
             Modifier
               .fillMaxWidth()
               .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
-            Text(timeFormat.format(set.completed), style = MaterialTheme.typography.caption)
-            Text(set.reps.toString(), style = MaterialTheme.typography.body2)
-            Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.body2)
+            Text(timeFormat.format(set.completed), style = MaterialTheme.typography.labelSmall)
+            Text(set.reps.toString(), style = MaterialTheme.typography.bodyMedium)
+            Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.bodyMedium)
           }
         }
       }
@@ -423,13 +426,13 @@ private fun EffortHistoryCard(
     }
   }
 
-  Card(modifier, elevation = 2.dp) {
+  Card(modifier, elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
     Column(Modifier.padding(12.dp)) {
-      Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.subtitle2)
+      Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.titleSmall)
       Text(
         stringResource(R.string.effort_chart_subtitle),
-        style = MaterialTheme.typography.caption,
-        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
       )
       EffortChart(
         Modifier
@@ -450,8 +453,8 @@ private fun EffortHistoryCard(
           .coerceAtLeast(1)
         Text(
           pluralStringResource(R.plurals.sessions_until_trend, remaining, remaining),
-          style = MaterialTheme.typography.caption,
-          color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
           modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp)

@@ -15,9 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -173,7 +174,7 @@ fun SetTrendStrip(
       )
     }
 
-    Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = 2.dp) {
+    Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
       Column(Modifier.fillMaxSize()) {
         // Doubles as the chart's only legend: it names the color of the bubble the user
         // just earned, in the moment they earn it, rather than a static key for all five.
@@ -184,7 +185,7 @@ fun SetTrendStrip(
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.caption)
+          Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.labelSmall)
           val latestZone = windowed.last().zone
           // weight(1f) claims whatever the "Effort" label didn't, so the countdown text (much
           // longer than a zone label) is guaranteed the 8dp gap and a bound on its own width
@@ -202,8 +203,8 @@ fun SetTrendStrip(
               // worth naming rather than an unexplained "New" label.
               Text(
                 stringResource(R.string.strip_trend_locked),
-                style = MaterialTheme.typography.caption,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
               )
             } else {
               Box(
@@ -212,16 +213,16 @@ fun SetTrendStrip(
                   .background(
                     zoneColor(
                       latestZone,
-                      MaterialTheme.colors.primary,
+                      MaterialTheme.colorScheme.primary,
                       Theme.goodAttention,
                       Theme.timerAmber,
-                      MaterialTheme.colors.onSurface.copy(alpha = 0.25f)
+                      MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                     ),
                     CircleShape
                   )
               )
               Spacer(Modifier.width(4.dp))
-              Text(stringResource(zoneLabelRes(latestZone)), style = MaterialTheme.typography.caption)
+              Text(stringResource(zoneLabelRes(latestZone)), style = MaterialTheme.typography.labelSmall)
             }
           }
         }
