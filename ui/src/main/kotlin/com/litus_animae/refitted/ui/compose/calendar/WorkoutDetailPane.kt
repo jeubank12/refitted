@@ -79,8 +79,14 @@ fun WorkoutDetailPane(
 
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
-    // landscape.
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+    // landscape. But when both panes are showing side by side, this pane only ever sits at the
+    // screen's End edge - WorkoutPlanListPane owns the Start edge - so consuming the full
+    // (both-sides) cutout here pads this pane's Start with a cutout that's nowhere near it,
+    // wasting width it doesn't need to give up and squishing its own content.
+    contentWindowInsets = WindowInsets.navigationBars.union(
+      if (showMenuButton) WindowInsets.displayCutout
+      else WindowInsets.displayCutout.only(WindowInsetsSides.End)
+    ),
     topBar = {
       TopAppBar(
         title = {

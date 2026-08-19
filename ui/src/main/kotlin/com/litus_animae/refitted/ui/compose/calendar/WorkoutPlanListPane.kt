@@ -108,7 +108,14 @@ fun WorkoutPlanListPane(
 
   Scaffold(
     modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+    // When both panes are showing side by side, this pane only ever sits at the screen's Start
+    // edge - WorkoutDetailPane owns the End edge - so consuming the full (both-sides) cutout
+    // here pads this pane's End with a cutout that's nowhere near it, wasting width it doesn't
+    // need to give up.
+    contentWindowInsets = WindowInsets.navigationBars.union(
+      if (showBackButton) WindowInsets.displayCutout
+      else WindowInsets.displayCutout.only(WindowInsetsSides.Start)
+    ),
     topBar = {
       TopAppBar(
         scrollBehavior = scrollBehavior,
@@ -215,7 +222,11 @@ fun WorkoutPlanListPane(
           // whatever compact's single-line pill needed, crushing/clipping it instead of just
           // reserving less fade/padding than the content actually uses.
           .heightIn(min = authBarHeight)
-          .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+          .windowInsetsPadding(
+            WindowInsets.displayCutout.only(
+              if (showBackButton) WindowInsetsSides.Horizontal else WindowInsetsSides.Start
+            )
+          )
           .padding(start = 10.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
