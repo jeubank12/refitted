@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -122,13 +124,24 @@ fun SetRecordList(
     }
   }
 
-  val sessions = remember(retained) {
-    retained.groupBy { it.completed.atZone(zone).toLocalDate() }
+  // Swiping the exercise pager points [history] at a brand-new paging flow, which restarts
+  // collectAsLazyPagingItems() from a Loading refresh - holding the previous exercise's
+  // retained rows until the new source's first page actually lands keeps the chart/list from
+  // blanking to a spinner on every swipe.
+  val isRefreshing = records.loadState.refresh is LoadState.Loading
+  val shownRetained = remember { mutableStateOf(retained) }
+  SideEffect {
+    if (!isRefreshing) shownRetained.value = retained
+  }
+  val displayRetained = if (isRefreshing) shownRetained.value else retained
+
+  val sessions = remember(displayRetained) {
+    displayRetained.groupBy { it.completed.atZone(zone).toLocalDate() }
       .map { (day, sets) -> SessionGroup(day, sets.sortedBy { it.completed }) }
   }
-  val series = remember(retained) { EffortModel.score(retained.map { it.toEffortSet() }) }
-  val sessionIndexByDay = remember(retained) {
-    retained.map { it.completed.atZone(zone).toLocalDate() }.distinct().sorted()
+  val series = remember(displayRetained) { EffortModel.score(displayRetained.map { it.toEffortSet() }) }
+  val sessionIndexByDay = remember(displayRetained) {
+    displayRetained.map { it.completed.atZone(zone).toLocalDate() }.distinct().sorted()
       .withIndex().associate { (i, day) -> day to i }
   }
   val bestBySessionIndex = remember(series) {
@@ -179,12 +192,17 @@ fun SetRecordList(
           }
         },
         actions = {
-          IconButton({ records.refresh() }) {
-            Icon(
-              Icons.Default.Refresh,
-              // TODO localize
-              "refresh"
-            )
+          Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            IconButton({ records.refresh() }) {
+              Icon(
+                Icons.Default.Refresh,
+                // TODO localize
+                "refresh"
+              )
+            }
+            if (isRefreshing) {
+              CircularProgressIndicator(Modifier.size(40.dp), strokeWidth = 2.dp)
+            }
           }
         }
       )
@@ -192,8 +210,10 @@ fun SetRecordList(
   ) { contentPadding ->
     // A single spinner spanning the whole pane rather than one wedged into the list - the
     // chart pane doesn't render at all yet during the initial load, so a list-only spinner left
-    // it looking broken beside an empty chart.
-    if (records.loadState.refresh is LoadState.Loading) {
+    // it looking broken beside an empty chart. Only for the genuine first load though - once
+    // shownRetained holds a previous exercise's rows, fall through and keep showing those
+    // instead of blanking to a spinner on every pager swipe.
+    if (isRefreshing && shownRetained.value.isEmpty()) {
       Box(
         Modifier.fillMaxSize().padding(contentPadding),
         contentAlignment = Alignment.Center
@@ -206,7 +226,7 @@ fun SetRecordList(
     // A permanently-mounted supporting pane (unlike a dismissable drawer) needs its own
     // explanation for the zero-records case rather than an empty chart beside an empty list -
     // on medium+ width this pane sits on screen the whole time a brand-new exercise is worked.
-    if (records.itemCount == 0 && appendDone) {
+    if (displayRetained.isEmpty() && appendDone) {
       Box(
         Modifier.fillMaxSize().padding(contentPadding),
         contentAlignment = Alignment.Center
@@ -279,9 +299,9 @@ fun SetRecordList(
                 zone = zone
               )
             }
-          } else if (records.itemCount > 0) {
-            val items = remember(records.itemSnapshotList) {
-              records.itemSnapshotList.items.reversed()
+          } else if (displayRetained.isNotEmpty()) {
+            val items = remember(displayRetained) {
+              displayRetained.reversed()
             }
             if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble-exploded") {
               val data = remember(items) {
