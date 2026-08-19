@@ -50,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -87,6 +88,10 @@ fun PagerExerciseView(
    * this same condition - passed down rather than recomputed so every consumer of the reclaimed
    * space agrees with the Scaffold's own decision in the same composition pass. */
   reclaimBottomInset: Boolean,
+  /** Mirrors ExerciseMainPane's landscape+compactHeight top bar, which only spans the
+   * instructions pane's width - this clears the instructions pane's content of that overlay
+   * without pushing the controls pane (which gets no such bar) down too. */
+  firstPaneTopPadding: Dp = 0.dp,
   setHistoryList: (SetHistory) -> Unit,
   /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
   setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
@@ -249,6 +254,7 @@ fun PagerExerciseView(
           activeSetWithRecord = currentSetRecord,
           displayedPage = displayedPage,
           reclaimBottomInset = reclaimBottomInset,
+          firstPaneTopPadding = firstPaneTopPadding,
           globalAlternate = workoutPlan?.globalAlternate,
           workoutPlan = workoutPlan,
           onAlternateChange = onAlternateChange,
@@ -342,6 +348,10 @@ fun PagerDetailView(
    * this same condition - passed down rather than recomputed so every consumer of the reclaimed
    * space agrees with the Scaffold's own decision in the same composition pass. */
   reclaimBottomInset: Boolean = false,
+  /** Mirrors ExerciseMainPane's landscape+compactHeight top bar, which only spans the
+   * instructions pane's width - clears its content of that overlay without affecting the
+   * controls pane below, which gets no such bar. */
+  firstPaneTopPadding: Dp = 0.dp,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
   /** Source of `globalAlternate` and any plan-wide alternate name overrides for the card's chip. */
@@ -396,14 +406,18 @@ fun PagerDetailView(
 
   AdaptiveExercisePanes(
     modifier = Modifier.fillMaxSize(),
-    splitRatio = 0.45f,
-    gap = 8.dp,
+    splitRatio = ExercisePanesSplitRatio,
+    gap = ExercisePanesGap,
     first = {
       // A no-op when PagerExerciseView's PullToRefreshBox already consumed navigationBars
       // (portrait, or landscape at medium+ height) - only actually reserves space when
       // ExerciseMainPane's Scaffold left it unconsumed for ExerciseSetView's rest timer to grow
       // into instead (reclaimBottomInset), since this pane isn't exempted from it.
-      Box(Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
+      Box(
+        Modifier
+          .padding(top = firstPaneTopPadding)
+          .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+      ) {
         PagerExerciseInstructions(
           instructions = instructions,
           pagerState = pagerState,

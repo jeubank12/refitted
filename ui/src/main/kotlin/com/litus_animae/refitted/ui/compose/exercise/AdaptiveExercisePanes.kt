@@ -6,6 +6,12 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+// PagerDetailView's split of instructions (first) vs controls (second) in landscape. Also read by
+// ExerciseMainPane's landscape+compactHeight top bar, which sizes its left-pane-only overlay to
+// match this exact split - keep both call sites pointed at these rather than duplicating literals.
+val ExercisePanesSplitRatio = 0.45f
+val ExercisePanesGap = 8.dp
+
 /**
  * Adaptive two-pane layout that reflows between portrait (vertical split) and landscape
  * (horizontal split) based on constraints alone — NOT a composition branch.

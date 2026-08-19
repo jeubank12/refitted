@@ -1,16 +1,24 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
@@ -31,11 +39,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.WorkoutPlan
@@ -78,95 +90,115 @@ fun ExerciseMainPane(
   // bothPanesFit (which are width-only, see exercise/Main.kt).
   val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
   val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+  val splitTopBar = isLandscape && compactHeight
+
+  val title = stringResource(id = R.string.app_name)
+  val dayWord = stringResource(id = R.string.day)
+  val barTitle = "$title: $workoutId $dayWord $day"
+  val showAddExercise = loadedWorkoutPlan?.isCustom == true && editing
 
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
     // landscape — the two-pane exercise layout then splits content right up against it. Dropped
     // here when landscape+compact height so ExerciseSetView's rest timer can grow into it instead.
-    contentWindowInsets = if (isLandscape && compactHeight) {
+    contentWindowInsets = if (splitTopBar) {
       WindowInsets.displayCutout
     } else {
       WindowInsets.navigationBars.union(WindowInsets.displayCutout)
     },
     topBar = {
-      val title = stringResource(id = R.string.app_name)
-      val dayWord = stringResource(id = R.string.day)
-      val barTitle = "$title: $workoutId $dayWord $day"
-      val showAddExercise = loadedWorkoutPlan?.isCustom == true && editing
-      BoxWithConstraints {
-        val textMeasurer = rememberTextMeasurer()
-        val titleStyle = MaterialTheme.typography.titleLarge
-        val buttonStyle = MaterialTheme.typography.labelLarge
-        val alternateLabel = stringResource(id = R.string.alternate)
-        val density = LocalDensity.current
-        val availablePx = with(density) { maxWidth.toPx() }
-        // Navigation icon plus the add-exercise icon, both 48dp touch targets, and the
-        // TextButton's own horizontal content padding.
-        val fixedPx = with(density) {
-          (48.dp + (if (showAddExercise) 48.dp else 0.dp) + 16.dp).toPx()
-        }
-        val titlePx = remember(barTitle, titleStyle) {
-          textMeasurer.measure(barTitle, titleStyle).size.width
-        }
-        val alternatePx = remember(alternateLabel, buttonStyle) {
-          textMeasurer.measure(alternateLabel, buttonStyle).size.width
-        }
-        val collapsed = titlePx + alternatePx + fixedPx > availablePx
-        TopAppBar(
-          title = { Text(barTitle) },
-          // The default 64dp content height plus the status bar inset above it eats a real
-          // chunk of a short landscape window - shrink to something closer to Material2's
-          // actionBar height, the insets themselves are unaffected. Only when height is
-          // actually short - a portrait phone is width-compact too but has height to spare.
-          expandedHeight = if (compactHeight) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
+      if (splitTopBar) {
+        // Just the status-bar sliver, full width - the actual title/nav/actions bar below only
+        // spans the instructions pane's width as a content overlay, so Scaffold's contentPadding
+        // (shared by both panes) reserves only the unavoidable status bar here, not the bar's own
+        // height too. Keeps the top edge reading as one continuous band despite the bar itself
+        // only extending over the instructions pane.
+        Box(
+          Modifier
+            .fillMaxWidth()
+            .background(appBarColors().containerColor)
+            .windowInsetsPadding(WindowInsets.statusBars.only(WindowInsetsSides.Top))
+        )
+      } else {
+        ExerciseAppBar(
+          barTitle = barTitle,
+          showAddExercise = showAddExercise,
+          expandedHeight = TopAppBarDefaults.TopAppBarExpandedHeight,
           windowInsets = TopAppBarDefaults.windowInsets.union(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
           ),
-          colors = appBarColors(),
-          actions = {
-            // Expanded, the labelled action reads as a peer of + and sits ahead of it;
-            // collapsed, it is an overflow menu and belongs last instead.
-            if (!collapsed) contextMenu(false)
-            if (showAddExercise) {
-              IconButton(onAddExercise) {
-                // TODO localize
-                Icon(Icons.Default.Add, "add exercise")
-              }
-            }
-            if (collapsed) contextMenu(true)
-          },
-          navigationIcon = {
-            if (showHistoryButton) {
-              IconButton(onOpenHistory) {
-                Icon(
-                  Icons.Default.History,
-                  // TODO localize
-                  "history"
-                )
-              }
-            }
-          }
+          contextMenu = contextMenu,
+          showHistoryButton = showHistoryButton,
+          onOpenHistory = onOpenHistory,
+          onAddExercise = onAddExercise,
         )
       }
     }
   ) { contentPadding ->
-    PagerExerciseView(exerciseModel,
-      workoutPlan = loadedWorkoutPlan,
-      contentPadding = contentPadding,
-      reclaimBottomInset = isLandscape && compactHeight,
-      setHistoryList = setHistoryList,
-      setContextMenu = { contextMenu = it },
-      onAlternateChange = onAlternateChange,
-      onStartEditWeight = {
-        sheetWeight = it
-        showWeightSheet = true
-      },
-      onSetSaved = onSetSaved,
-      onOpenHistory = onOpenHistory,
-      editing = editing,
-      onAddExercise = onAddExercise,
-      onAddAlternate = onAddAlternate,
-      scrollToExerciseName = scrollToExerciseName)
+    val layoutDirection = LocalLayoutDirection.current
+
+    // Unpadded - PagerExerciseView below still consumes contentPadding itself exactly as the
+    // non-split path always did, so a side-mounted camera cutout keeps pushing its actual
+    // *content* (cards, text) clear of the notch. This wrapper and the single PagerExerciseView
+    // call stay unconditional (only argument *values* branch on splitTopBar) so toggling
+    // splitTopBar - e.g. a rotation or an unfold crossing the 480dp breakpoint - never remounts
+    // PagerExerciseView's subtree, which would otherwise drop ExerciseSetView's in-progress
+    // rememberSaveable weight/reps state.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+      PagerExerciseView(exerciseModel,
+        workoutPlan = loadedWorkoutPlan,
+        contentPadding = contentPadding,
+        reclaimBottomInset = splitTopBar,
+        firstPaneTopPadding = if (splitTopBar) ExerciseAppBarCompactHeight else 0.dp,
+        setHistoryList = setHistoryList,
+        setContextMenu = { contextMenu = it },
+        onAlternateChange = onAlternateChange,
+        onStartEditWeight = {
+          sheetWeight = it
+          showWeightSheet = true
+        },
+        onSetSaved = onSetSaved,
+        onOpenHistory = onOpenHistory,
+        editing = editing,
+        onAddExercise = onAddExercise,
+        onAddAlternate = onAddAlternate,
+        scrollToExerciseName = scrollToExerciseName)
+
+      if (splitTopBar) {
+        // AdaptiveExercisePanes' instructions pane starts only after contentPadding's horizontal
+        // component (the cutout) is consumed by PagerExerciseView above, so the bar's own *right*
+        // edge must line up against that same post-consumption split - cutoutStart is added back
+        // on top of it so the bar's *background* still reaches the true left edge instead of
+        // stopping where the cutout's clearance begins (only this overlay's windowInsets below,
+        // which insets its title/icon content, should respect the cutout).
+        val cutoutStart = contentPadding.calculateStartPadding(layoutDirection)
+        val cutoutEnd = contentPadding.calculateEndPadding(layoutDirection)
+        val barWidth = cutoutStart +
+          (maxWidth - cutoutStart - cutoutEnd - ExercisePanesGap) * ExercisePanesSplitRatio
+        ExerciseAppBar(
+          modifier = Modifier
+            .align(Alignment.TopStart)
+            // Scaffold draws its topBar slot (the status-bar band) above this content area in
+            // z-order, both anchored at the same y=0 - without this offset this overlay would
+            // render at y=0 too and end up entirely hidden underneath that band instead of
+            // appearing right below it.
+            .padding(top = contentPadding.calculateTopPadding())
+            .width(barWidth),
+          barTitle = barTitle,
+          showAddExercise = showAddExercise,
+          expandedHeight = ExerciseAppBarCompactHeight,
+          // The status bar is already reserved by the band in Scaffold's topBar above - this
+          // overlay sits below it in the content area, so it only needs the horizontal cutout
+          // clearance (unconsumed here, unlike PagerExerciseView's own content), not another top
+          // inset stacked on top.
+          windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+          contextMenu = contextMenu,
+          showHistoryButton = showHistoryButton,
+          onOpenHistory = onOpenHistory,
+          onAddExercise = onAddExercise,
+        )
+      }
+    }
 
     if (showWeightSheet) {
       ModalBottomSheet(
@@ -178,5 +210,79 @@ fun ExerciseMainPane(
         }
       }
     }
+  }
+}
+
+// The compactHeight bar height - shared by the landscape+compactHeight overlay and its
+// Scaffold-slot counterpart so both agree on one value.
+private val ExerciseAppBarCompactHeight = 48.dp
+
+/**
+ * The exercise screen's title/nav-icon/actions bar. Shared by both of ExerciseMainPane's uses:
+ * the ordinary full-width Scaffold topBar, and (landscape+compactHeight only) a left-pane-only
+ * overlay in the content area - only [expandedHeight] and [windowInsets] differ between the two,
+ * everything else (title measurement/collapse logic, action placement) is identical.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExerciseAppBar(
+  barTitle: String,
+  showAddExercise: Boolean,
+  expandedHeight: Dp,
+  windowInsets: WindowInsets,
+  contextMenu: @Composable RowScope.(collapsed: Boolean) -> Unit,
+  showHistoryButton: Boolean,
+  onOpenHistory: () -> Unit,
+  onAddExercise: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  BoxWithConstraints(modifier) {
+    val textMeasurer = rememberTextMeasurer()
+    val titleStyle = MaterialTheme.typography.titleLarge
+    val buttonStyle = MaterialTheme.typography.labelLarge
+    val alternateLabel = stringResource(id = R.string.alternate)
+    val density = LocalDensity.current
+    val availablePx = with(density) { maxWidth.toPx() }
+    // Navigation icon plus the add-exercise icon, both 48dp touch targets, and the
+    // TextButton's own horizontal content padding.
+    val fixedPx = with(density) {
+      (48.dp + (if (showAddExercise) 48.dp else 0.dp) + 16.dp).toPx()
+    }
+    val titlePx = remember(barTitle, titleStyle) {
+      textMeasurer.measure(barTitle, titleStyle).size.width
+    }
+    val alternatePx = remember(alternateLabel, buttonStyle) {
+      textMeasurer.measure(alternateLabel, buttonStyle).size.width
+    }
+    val collapsed = titlePx + alternatePx + fixedPx > availablePx
+    TopAppBar(
+      title = { Text(barTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+      expandedHeight = expandedHeight,
+      windowInsets = windowInsets,
+      colors = appBarColors(),
+      actions = {
+        // Expanded, the labelled action reads as a peer of + and sits ahead of it;
+        // collapsed, it is an overflow menu and belongs last instead.
+        if (!collapsed) contextMenu(false)
+        if (showAddExercise) {
+          IconButton(onAddExercise) {
+            // TODO localize
+            Icon(Icons.Default.Add, "add exercise")
+          }
+        }
+        if (collapsed) contextMenu(true)
+      },
+      navigationIcon = {
+        if (showHistoryButton) {
+          IconButton(onOpenHistory) {
+            Icon(
+              Icons.Default.History,
+              // TODO localize
+              "history"
+            )
+          }
+        }
+      }
+    )
   }
 }
