@@ -1,8 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -75,8 +73,9 @@ private val EditStepperCardHeight = 80.dp
 private val StripPreferredHeight = 88.dp
 private val StripMinHeight = 64.dp
 
-// Crossfade key - only ever holds a resolved, non-empty trend, so a swap fades between two
-// real exercises' data rather than through a blank or merged frame.
+// Last-resolved trend per exercise, kept as-is (not cleared) across an exercise change so the
+// strip keeps showing the previous exercise's data until the new one's history round-trips
+// through Room instead of flashing empty in between.
 private data class ShownTrend(val exerciseId: String, val sets: List<EffortSet>)
 
 /**
@@ -321,15 +320,13 @@ fun ColumnScope.ExerciseSetView(
           exit = fadeOut() + shrinkVertically()
         ) {
           Column {
-            Crossfade(shownTrend.value, animationSpec = tween(180), label = "effortStrip") { trend ->
-              SetTrendStrip(
-                Modifier
-                  .fillMaxWidth()
-                  .height(stripHeight ?: StripPreferredHeight),
-                merged = trend?.sets.orEmpty(),
-                onClick = onOpenHistory
-              )
-            }
+            SetTrendStrip(
+              Modifier
+                .fillMaxWidth()
+                .height(stripHeight ?: StripPreferredHeight),
+              merged = shownTrend.value?.sets.orEmpty(),
+              onClick = onOpenHistory
+            )
             Spacer(Modifier.height(8.dp))
           }
         }
