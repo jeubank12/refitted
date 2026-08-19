@@ -114,64 +114,16 @@ fun SetTrendStrip(
       MIN_WINDOW
     }
 
-    if (merged.isEmpty()) return@BoxWithConstraints
-
     // scoreWithBootstrap augments score()'s output rather than replacing it - every session
     // past EffortConfig.minPriorSessions behaves identically, and a first-ever session stays
     // all-COLD regardless of its own set count (no prior session exists yet to bootstrap
-    // from).
-    val series = remember(merged) { EffortModel.scoreWithBootstrap(merged) }
-    val windowed = remember(series, window) { series.sets.takeLast(window) }
-    if (windowed.isEmpty()) return@BoxWithConstraints
-
-    val points = remember(windowed) {
-      windowed.mapIndexed { index, scored ->
-        EffortPoint(
-          index.toFloat(),
-          scored.source.weight.toFloat(),
-          scored.size,
-          scored.zone,
-          emphasized = index == windowed.lastIndex
-        )
-      }
-    }
-    // A faint dashed rule wherever the window crosses into a new session, so "these 3 are
-    // today, that one's from last time" reads at a glance instead of needing the header's
-    // single zone label to carry it.
-    val sessionGapMarks = remember(windowed) {
-      windowed.zipWithNext().mapIndexedNotNull { index, (a, b) ->
-        if (a.sessionIndex != b.sessionIndex) index + 0.5f else null
-      }
-    }
-    val yLabels = remember(points) {
-      val minWeight = points.minOf { it.weight }
-      val maxWeight = points.maxOf { it.weight }
-      listOf(minWeight, maxWeight).distinct().map { it to it.roundToInt().toString() }
-    }
-    // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
-    // beneath trend, so the dash itself is the only signal a segment is the coarser,
-    // strip-only stand-in rather than the real session-based fit.
-    //
-    // Built from each set's own expectedWeight rather than a per-session lookup: the bootstrap
-    // fit runs at set granularity, so its expectation genuinely moves set to set, and keying
-    // off sessionIndex would flatten that into one step per day.
-    val realTrend = remember(windowed) {
-      buildTrendRuns(
-        windowed.mapIndexed { index, scored ->
-          index.toFloat() to scored.expectedWeight.takeIf {
-            scored.expectationSource == ExpectationSource.SESSION
-          }
-        }
-      )
-    }
-    val bootstrapTrend = remember(windowed) {
-      buildTrendRuns(
-        windowed.mapIndexed { index, scored ->
-          index.toFloat() to scored.expectedWeight.takeIf {
-            scored.expectationSource == ExpectationSource.BOOTSTRAP
-          }
-        }
-      )
+    // from). Kept empty (not an early return) when there's no data yet - the card and its
+    // "locked" header still render below so the strip reserves its space and shows the same
+    // locked message from the very first render, rather than popping in once data exists.
+    val windowed = if (merged.isEmpty()) {
+      emptyList()
+    } else {
+      remember(merged, window) { EffortModel.scoreWithBootstrap(merged).sets.takeLast(window) }
     }
 
     Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
@@ -186,7 +138,7 @@ fun SetTrendStrip(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.labelSmall)
-          val latestZone = windowed.last().zone
+          val latestZone = windowed.lastOrNull()?.zone
           // weight(1f) claims whatever the "Effort" label didn't, so the countdown text (much
           // longer than a zone label) is guaranteed the 8dp gap and a bound on its own width
           // instead of butting straight up against "Effort" under SpaceBetween.
@@ -197,10 +149,11 @@ fun SetTrendStrip(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            if (latestZone == EffortZone.COLD) {
-              // Only reachable during a first-ever session - even one prior session with
-              // enough sets unlocks the bootstrap trend immediately, so this is a real state
-              // worth naming rather than an unexplained "New" label.
+            if (latestZone == null || latestZone == EffortZone.COLD) {
+              // No sets logged for this exercise yet, or (once logged) still a first-ever
+              // session - even one prior session with enough sets unlocks the bootstrap trend
+              // immediately, so this is a real state worth naming rather than an unexplained
+              // "New" label or leaving the header blank.
               Text(
                 stringResource(R.string.strip_trend_locked),
                 style = MaterialTheme.typography.labelSmall,
@@ -226,17 +179,71 @@ fun SetTrendStrip(
             }
           }
         }
-        EffortChart(
-          Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          points = points,
-          trend = realTrend,
-          dashedTrend = bootstrapTrend,
-          yLabels = yLabels,
-          gapMarks = sessionGapMarks,
-          compact = true
-        )
+        if (windowed.isEmpty()) {
+          // Reserves the chart's own space so the card doesn't resize once real data arrives.
+          Spacer(Modifier.fillMaxWidth().weight(1f))
+        } else {
+          val points = remember(windowed) {
+            windowed.mapIndexed { index, scored ->
+              EffortPoint(
+                index.toFloat(),
+                scored.source.weight.toFloat(),
+                scored.size,
+                scored.zone,
+                emphasized = index == windowed.lastIndex
+              )
+            }
+          }
+          // A faint dashed rule wherever the window crosses into a new session, so "these 3 are
+          // today, that one's from last time" reads at a glance instead of needing the header's
+          // single zone label to carry it.
+          val sessionGapMarks = remember(windowed) {
+            windowed.zipWithNext().mapIndexedNotNull { index, (a, b) ->
+              if (a.sessionIndex != b.sessionIndex) index + 0.5f else null
+            }
+          }
+          val yLabels = remember(points) {
+            val minWeight = points.minOf { it.weight }
+            val maxWeight = points.maxOf { it.weight }
+            listOf(minWeight, maxWeight).distinct().map { it to it.roundToInt().toString() }
+          }
+          // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
+          // beneath trend, so the dash itself is the only signal a segment is the coarser,
+          // strip-only stand-in rather than the real session-based fit.
+          //
+          // Built from each set's own expectedWeight rather than a per-session lookup: the
+          // bootstrap fit runs at set granularity, so its expectation genuinely moves set to
+          // set, and keying off sessionIndex would flatten that into one step per day.
+          val realTrend = remember(windowed) {
+            buildTrendRuns(
+              windowed.mapIndexed { index, scored ->
+                index.toFloat() to scored.expectedWeight.takeIf {
+                  scored.expectationSource == ExpectationSource.SESSION
+                }
+              }
+            )
+          }
+          val bootstrapTrend = remember(windowed) {
+            buildTrendRuns(
+              windowed.mapIndexed { index, scored ->
+                index.toFloat() to scored.expectedWeight.takeIf {
+                  scored.expectationSource == ExpectationSource.BOOTSTRAP
+                }
+              }
+            )
+          }
+          EffortChart(
+            Modifier
+              .fillMaxWidth()
+              .weight(1f),
+            points = points,
+            trend = realTrend,
+            dashedTrend = bootstrapTrend,
+            yLabels = yLabels,
+            gapMarks = sessionGapMarks,
+            compact = true
+          )
+        }
       }
     }
   }

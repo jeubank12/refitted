@@ -297,19 +297,15 @@ fun ColumnScope.ExerciseSetView(
       } else {
         null
       }
-      // Held across an exercise change so the strip doesn't collapse/re-expand while the next
-      // exercise's history round-trips through Room - same high-water-mark shape as
-      // compose/state/SetsRecords.kt's numCompletedHighWaterMark.
-      val lastHadTrend = remember { mutableStateOf(false) }
-      val hasTrend = effortSets?.isNotEmpty() ?: lastHadTrend.value
-      SideEffect { if (effortSets != null) lastHadTrend.value = effortSets.isNotEmpty() }
-
+      // Reflects the current exercise's data - real, empty/"locked", or (while effortSets is
+      // still null, mid-flow-transition) whatever the previous exercise last showed, so a pager
+      // swipe doesn't flash blank before the new exercise's history round-trips through Room.
+      // The strip's own presence is driven only by showStrip (layout/feature-flag) below, not by
+      // whether there's data yet, so it never animates in/out just because a set got logged.
       val shownTrend = remember { mutableStateOf<ShownTrend?>(null) }
       SideEffect {
-        if (!effortSets.isNullOrEmpty()) shownTrend.value = ShownTrend(exerciseSet.id, effortSets)
+        if (effortSets != null) shownTrend.value = ShownTrend(exerciseSet.id, effortSets)
       }
-
-      val stripVisible = showStrip && hasTrend
 
       // Wraps its content instead of filling the available height so it floats centered rather
       // than stretching to an arbitrary bottom edge - except in the reclaim case, where the
@@ -320,7 +316,7 @@ fun ColumnScope.ExerciseSetView(
           .then(if (reclaimBottomInset) Modifier.fillMaxHeight() else Modifier)
       ) {
         AnimatedVisibility(
-          stripVisible,
+          showStrip,
           enter = fadeIn() + expandVertically(),
           exit = fadeOut() + shrinkVertically()
         ) {
