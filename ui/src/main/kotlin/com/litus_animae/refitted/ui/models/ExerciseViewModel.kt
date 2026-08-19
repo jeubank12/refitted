@@ -361,7 +361,7 @@ class ExerciseViewModel @Inject constructor(
   }
 
   // Held here rather than remembered in the Set History composable so an Activity recreation
-  // (e.g. rotation) doesn't reset it to SetHistory()'s dead emptyFlow() default while the pane
+  // (e.g. rotation) doesn't reset it to SetHistory()'s empty-page default while the pane
   // stays open around it.
   private val _setHistory = MutableStateFlow(SetHistory())
   val setHistory: StateFlow<SetHistory> = _setHistory.asStateFlow()

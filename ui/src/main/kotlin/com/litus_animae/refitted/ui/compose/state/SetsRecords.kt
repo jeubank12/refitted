@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.paging.LoadState
+import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
@@ -12,6 +14,7 @@ import com.litus_animae.refitted.data.models.SetRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * The set-history drawer's data source. The pager's initialLoadSize is large (see
@@ -20,7 +23,18 @@ import kotlinx.coroutines.flow.emptyFlow
  * recency-weighted fit rather than visibly changing it.
  */
 data class SetHistory(
-  val paged: Flow<PagingData<SetRecord>> = emptyFlow()
+  // A resolved empty page, not emptyFlow() - collectAsLazyPagingItems() never leaves its
+  // initial LoadState.Loading refresh state without a first emission, which left the pane
+  // spinning forever whenever there were no exercises to point this at.
+  val paged: Flow<PagingData<SetRecord>> = flowOf(
+    PagingData.empty(
+      sourceLoadStates = LoadStates(
+        LoadState.NotLoading(true),
+        LoadState.NotLoading(true),
+        LoadState.NotLoading(true)
+      )
+    )
+  )
 )
 
 data class ExerciseSetWithRecord(
