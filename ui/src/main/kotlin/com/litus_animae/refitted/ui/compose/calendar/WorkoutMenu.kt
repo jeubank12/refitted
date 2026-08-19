@@ -57,7 +57,7 @@ fun WorkoutPlanPreview() {
 }
 
 @Composable
-fun ColumnScope.WorkoutPlanMenu(
+fun WorkoutPlanMenu(
   modifier: Modifier = Modifier,
   // Null when already shown elsewhere (e.g. the pane's own TopAppBar) - suppresses this row
   // entirely rather than showing a redundant copy.
@@ -71,18 +71,22 @@ fun ColumnScope.WorkoutPlanMenu(
   onRefresh: (() -> Unit)? = null,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit = {},
-  onRenameRequest: (WorkoutPlan) -> Unit = {}
+  onRenameRequest: (WorkoutPlan) -> Unit = {},
+  // Extra space at the bottom of the scrollable content - e.g. clearance for a floating overlay
+  // anchored below this list (see WorkoutPlanListPane's sign-in button).
+  contentPadding: PaddingValues = PaddingValues()
 ) {
-  LazyColumn(modifier) {
+  // lastRefresh is only non-null in the wide/landscape layout (see WorkoutPlanListPane) -
+  // reused here rather than adding a separate parameter, since it already encodes exactly the
+  // same "tight on vertical space" condition these rows need to shrink for.
+  val compact = lastRefresh != null
+  LazyColumn(modifier, contentPadding = contentPadding) {
     if (lastRefresh != null) {
       item {
         Row(
           Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(
-              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-            )
-            .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = 10.dp, top = 8.dp, bottom = 8.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -109,9 +113,6 @@ fun ColumnScope.WorkoutPlanMenu(
           workoutPlanError,
           Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(
-              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-            )
             .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
           style = MaterialTheme.typography.labelLarge
         )
@@ -146,9 +147,6 @@ fun ColumnScope.WorkoutPlanMenu(
               "FEATURED WORKOUTS",
               Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(
-                  WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-                )
                 .padding(start = 10.dp, top = 10.dp, bottom = 4.dp),
               style = MaterialTheme.typography.labelSmall
             )
@@ -159,18 +157,11 @@ fun ColumnScope.WorkoutPlanMenu(
               "CUSTOM WORKOUTS",
               Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(
-                  WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-                )
                 .padding(start = 10.dp, top = 18.dp, bottom = 4.dp),
               style = MaterialTheme.typography.labelSmall
             )
           }
           WorkoutPlanRow(
-            Modifier
-              .windowInsetsPadding(
-                WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-              ),
             plan = plan,
             isSelected = plan.workout == selectedWorkoutName,
             onSelect = onSelect,
@@ -184,10 +175,12 @@ fun ColumnScope.WorkoutPlanMenu(
           Modifier
             .fillMaxWidth()
             .clickable { onCreateCustom() }
-            .windowInsetsPadding(
-              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-            )
-            .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
+            .padding(
+              start = 10.dp,
+              end = 10.dp,
+              top = if (compact) 10.dp else 15.dp,
+              bottom = if (compact) 10.dp else 15.dp
+            ),
           verticalAlignment = Alignment.CenterVertically
         ) {
           Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colorScheme.primary)

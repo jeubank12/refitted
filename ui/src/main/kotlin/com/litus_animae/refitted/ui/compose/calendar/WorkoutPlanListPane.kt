@@ -1,17 +1,23 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -32,7 +38,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CustomCredential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,10 +56,11 @@ import kotlinx.coroutines.launch
 
 /**
  * The List side of the Calendar screen's List-Detail split: the previously-drawer-only
- * [WorkoutPlanMenu] plus the sign-in row, now with its own [TopAppBar]. At Compact width this
- * only appears once explicitly opened, as the sole full-screen pane, so its bar carries the
- * full "Workouts" + last-refreshed + refresh action. At Medium+ it's shown permanently
- * alongside [WorkoutDetailPane], so the bar drops to a single line (title only) to match
+ * [WorkoutPlanMenu] plus the sign-in row, now with its own [TopAppBar]. At Compact width, or at
+ * Medium+ width with enough height to spare, this only appears once explicitly opened, as the
+ * sole full-screen pane, so its bar carries the full "Workouts" + last-refreshed + refresh
+ * action. At Medium+ width with constrained height (landscape) it's shown permanently alongside
+ * [WorkoutDetailPane], so the bar drops to a single line (title only) to match
  * [WorkoutDetailPane]'s bar height, with the refresh action and last-refreshed text moving
  * into the body instead.
  */
@@ -63,9 +73,9 @@ fun WorkoutPlanListPane(
   snackbarHostState: SnackbarHostState,
   showBackButton: Boolean,
   onBack: () -> Unit,
-  // True when this pane is shown alongside WorkoutDetailPane (Medium+ width) - the refresh
-  // action moves next to "Last Refreshed At" in the body instead of the bar, since it's the
-  // only bar actions difference between this pane's TopAppBar and WorkoutDetailPane's.
+  // True when shown alongside WorkoutDetailPane AND height is constrained (landscape) - the
+  // refresh action moves next to "Last Refreshed At" in the body instead of the bar, since it's
+  // the only bar actions difference between this pane's TopAppBar and WorkoutDetailPane's.
   wideLayout: Boolean,
   selectedWorkoutName: String?,
   onSelect: (WorkoutPlan) -> Unit,
@@ -92,11 +102,16 @@ fun WorkoutPlanListPane(
 
   val lastRefresh by workoutModel.workoutsLastRefreshed.collectAsStateWithLifecycle(initialValue = "")
 
+  // The header is mostly decorative title text next to a real scrollable plan list below it -
+  // let it slide away as that list scrolls, reclaiming its height, and reappear on scroll-up.
+  val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
   Scaffold(
-    modifier = modifier,
+    modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
     topBar = {
       TopAppBar(
+        scrollBehavior = scrollBehavior,
         title = {
           if (wideLayout) {
             // TODO localize
@@ -113,6 +128,9 @@ fun WorkoutPlanListPane(
             }
           }
         },
+        // Only shrink in wideLayout - the compact/portrait title is two lines and needs the
+        // default height.
+        expandedHeight = if (wideLayout) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
         windowInsets = TopAppBarDefaults.windowInsets.union(
           WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
         ),
@@ -139,9 +157,28 @@ fun WorkoutPlanListPane(
       )
     }
   ) { contentPadding ->
-    Column(Modifier.padding(contentPadding)) {
+    // The sign-in row floats over the list instead of taking its own row - besides reclaiming
+    // a row of height, content now naturally scrolls out from under it, which (together with
+    // the fade band below) gives the list a visible scrollability hint it otherwise lacked.
+    // AuthButton's compact pill fits in one line, but its full mode stacks a "Signed in as"
+    // caption above the pill/CTA row - needs more room, or that stack gets crushed into
+    // whatever height a single-line bar reserved.
+    val authBarHeight = if (wideLayout) 56.dp else 88.dp
+    // Bottom to top: solidHeight is fully opaque background (guarantees the floating button
+    // never sits on visible list text), fadeHeight transitions back to transparent, then
+    // transparentHeight passes content through as-is - same banding PagerInstruction's pinned
+    // set counter uses over its scrolling text.
+    val transparentHeight = 8.dp
+    val fadeHeight = 40.dp
+    val solidHeight = authBarHeight - fadeHeight
+    val totalFadeHeight = transparentHeight + fadeHeight + solidHeight
+    val fadeStartFraction = transparentHeight / totalFadeHeight
+    val fadeEndFraction = (transparentHeight + fadeHeight) / totalFadeHeight
+    val paneBackground = MaterialTheme.colorScheme.background
+
+    Box(Modifier.padding(contentPadding).fillMaxSize()) {
       WorkoutPlanMenu(
-        Modifier.weight(1f),
+        Modifier.fillMaxSize(),
         // Already shown in the bar itself when not wideLayout - not repeated in the body.
         lastRefresh = if (wideLayout) lastRefresh else null,
         workoutPlanPagingItems,
@@ -150,12 +187,37 @@ fun WorkoutPlanListPane(
         onRefresh = if (wideLayout) ({ workoutPlanPagingItems.refresh() }) else null,
         onSelect = onSelect,
         onCreateCustom = onCreateCustom,
-        onRenameRequest = onRenameRequest
+        onRenameRequest = onRenameRequest,
+        // So the last row can scroll clear of the floating sign-in button below.
+        contentPadding = PaddingValues(bottom = authBarHeight)
       )
+
+      Box(
+        Modifier
+          .align(Alignment.BottomCenter)
+          .fillMaxWidth()
+          .height(totalFadeHeight)
+          .background(
+            Brush.verticalGradient(
+              0f to paneBackground.copy(alpha = 0f),
+              fadeStartFraction to paneBackground.copy(alpha = 0f),
+              fadeEndFraction to paneBackground,
+              1f to paneBackground
+            )
+          )
+      )
+
       Row(
         Modifier
+          .align(Alignment.BottomCenter)
+          .fillMaxWidth()
+          // min, not exact - a tight height would clamp full-mode's caption+pill stack down to
+          // whatever compact's single-line pill needed, crushing/clipping it instead of just
+          // reserving less fade/padding than the content actually uses.
+          .heightIn(min = authBarHeight)
           .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-          .padding(start = 10.dp, end = 10.dp, top = 10.dp)
+          .padding(start = 10.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
       ) {
         val currentEmail by userModel.userEmail.collectAsStateWithLifecycle(initialValue = null)
         val coroutineScope = rememberCoroutineScope()
@@ -197,6 +259,7 @@ fun WorkoutPlanListPane(
           handleDeAuth = { userModel.handleSignOut() },
           authedEmail = currentEmail,
           userModel.googleWebClientId,
+          compact = wideLayout,
         )
       }
     }

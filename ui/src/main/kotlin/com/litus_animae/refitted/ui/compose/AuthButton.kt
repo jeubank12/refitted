@@ -53,7 +53,11 @@ internal fun AuthButton(
   handleDeAuth: () -> Unit,
   authedEmail: String?,
   webClientId: String,
-  ctaText: String = "Sign in for more workouts"
+  ctaText: String = "Sign in for more workouts",
+  // Drops the "Signed in as" caption and CTA text, showing just the sign-in/out pill - for
+  // callers tight on vertical space (e.g. the calendar list pane in landscape) where even a
+  // single extra text line is too much, let alone the caption/CTA/pill stacked or wrapped.
+  compact: Boolean = false
 ) {
   val context: Context = LocalContext.current
   val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -65,6 +69,70 @@ internal fun AuthButton(
     } else {
       "Sign out"
     }
+  }
+
+  val pill = @Composable {
+    Row(
+      Modifier
+        .clip(RoundedCornerShape(20.dp))
+        .border(0.0f.dp, Color.Black, RoundedCornerShape(20.dp))
+        .background(Color.White)
+        .clickable(
+          onClickLabel = actionDescription,
+          role = Role.Button
+        ) {
+          if (authedEmail == null) {
+            coroutineScope.launch {
+              signIn(
+                webClientId,
+                credentialManager,
+                context,
+                handleAuthSuccess,
+                handleAuthFailure
+              )
+            }
+          } else {
+            handleDeAuth()
+          }
+        }
+        .padding(end = 12.dp)
+        .animateContentSize(),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Icon(
+        painter = painterResource(id = R.drawable.google_icon_g),
+        "Sign in with Google",
+        tint = Color.Unspecified
+      )
+      val style = remember {
+        TextStyle(
+          fontSize = 14.sp,
+          lineHeight = 20.sp,
+          fontFamily = FontFamily(Font(R.font.roboto_medium)),
+          color = Color(0xFF1F1F1F)
+        )
+      }
+      AnimatedContent(
+        authedEmail,
+        Modifier.weight(1f, fill = false), label = "AuthActionText"
+      ) {
+        if (it == null) {
+          Text(
+            "Sign in with Google",
+            style = style,
+            overflow = TextOverflow.Visible,
+            softWrap = false
+          )
+        } else {
+          Text("Sign Out", style = style)
+        }
+      }
+    }
+  }
+
+  if (compact) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { pill() }
+    return
   }
 
   Column(
@@ -94,63 +162,7 @@ internal fun AuthButton(
           )
         }
       }
-
-      Row(
-        Modifier
-          .clip(RoundedCornerShape(20.dp))
-          .border(0.0f.dp, Color.Black, RoundedCornerShape(20.dp))
-          .background(Color.White)
-          .clickable(
-            onClickLabel = actionDescription,
-            role = Role.Button
-          ) {
-            if (authedEmail == null) {
-              coroutineScope.launch {
-                signIn(
-                  webClientId,
-                  credentialManager,
-                  context,
-                  handleAuthSuccess,
-                  handleAuthFailure
-                )
-              }
-            } else {
-              handleDeAuth()
-            }
-          }
-          .padding(end = 12.dp)
-          .animateContentSize(),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Icon(
-          painter = painterResource(id = R.drawable.google_icon_g),
-          "Sign in with Google",
-          tint = Color.Unspecified
-        )
-        val style = remember {
-          TextStyle(
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-            fontFamily = FontFamily(Font(R.font.roboto_medium)),
-            color = Color(0xFF1F1F1F)
-          )
-        }
-        AnimatedContent(
-          authedEmail,
-          Modifier.weight(1f, fill = false), label = "AuthActionText"
-        ) {
-          if (it == null) {
-            Text(
-              "Sign in with Google",
-              style = style,
-              overflow = TextOverflow.Visible,
-              softWrap = false
-            )
-          } else {
-            Text("Sign Out", style = style)
-          }
-        }
-      }
+      pill()
     }
   }
 }

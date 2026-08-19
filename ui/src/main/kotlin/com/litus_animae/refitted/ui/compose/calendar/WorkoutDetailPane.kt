@@ -66,6 +66,10 @@ fun WorkoutDetailPane(
   onDeleteRequest: (String) -> Unit,
   onCopyDayRequest: () -> Unit,
   showMenuButton: Boolean,
+  // True when shown alongside WorkoutPlanListPane AND height is constrained (landscape) - the
+  // calendar's legend and "hide rest days" toggle move into a vertical sidebar instead of
+  // stacking, since landscape has width to spare but not much height.
+  wideLayout: Boolean,
   onOpenMenu: () -> Unit,
   workoutModel: WorkoutViewModel,
   userModel: UserViewModel,
@@ -84,6 +88,9 @@ fun WorkoutDetailPane(
           if (selectedWorkoutPlan != null) Text(selectedWorkoutPlan.workout)
           else Text(appName)
         },
+        // Matches WorkoutPlanListPane's bar height in wideLayout, since the two panes sit
+        // side by side and should read as one continuous bar.
+        expandedHeight = if (wideLayout) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
         windowInsets = TopAppBarDefaults.windowInsets.union(
           WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
         ),
@@ -270,6 +277,7 @@ fun WorkoutDetailPane(
         selectedWorkoutPlan,
         completedDays,
         contentPadding = contentPadding,
+        wideLayout = wideLayout,
         editMode = editMode,
         onExitEdit = { onEditModeChange(false) },
         onSaveStartDate = { workoutModel.setStartDate(selectedWorkoutPlan, it) },

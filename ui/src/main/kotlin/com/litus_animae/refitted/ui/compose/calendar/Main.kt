@@ -88,7 +88,8 @@ fun Calendar(
   // Zero the built-in gutter - the two panes' own TopAppBars (matched in height/color) plus a
   // single hairline drawn at their shared boundary read as one continuous bar, which a visible
   // gutter would break apart into two separate-looking blocks.
-  val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfo())
+  val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+  val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(windowAdaptiveInfo)
     .let { it.copy(horizontalPartitionSpacerSize = 0.dp) }
   val focusedRole = if (planMenuOpen) ListDetailPaneScaffoldRole.List else ListDetailPaneScaffoldRole.Detail
   val scaffoldValue = calculateThreePaneScaffoldValue(
@@ -106,6 +107,13 @@ fun Calendar(
   // panes fit together? - not of which pane is currently focused, so it stays constant across
   // every tap at a given width.
   val bothPanesFit = directive.maxHorizontalPartitions >= 2
+  // bothPanesFit is width-only - an unfolded phone/tablet in portrait is comfortably Medium+
+  // width but has plenty of height, so the compact-height squeeze (calendar's sidebar, the
+  // shrunk single-line TopAppBars, the compact sign-in row with no "signed in as" caption) is
+  // only warranted in landscape, where height is actually scarce. Same threshold as the
+  // exercise screen's bothPanesFit height gate.
+  val compactPaneLayout = bothPanesFit &&
+    !windowAdaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(480)
 
   BackHandler(enabled = scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Hidden) {
     planMenuOpen = false
@@ -135,6 +143,7 @@ fun Calendar(
             onDeleteRequest = { deleteTarget = it },
             onCopyDayRequest = { showCopyDayDialog = true },
             showMenuButton = !bothPanesFit,
+            wideLayout = compactPaneLayout,
             onOpenMenu = { planMenuOpen = true },
             workoutModel = workoutModel,
             userModel = userModel,
@@ -149,7 +158,7 @@ fun Calendar(
             userModel = userModel,
             snackbarHostState = snackbarHostState,
             showBackButton = !bothPanesFit,
-            wideLayout = bothPanesFit,
+            wideLayout = compactPaneLayout,
             selectedWorkoutName = selectedWorkoutPlan?.workout,
             onBack = { planMenuOpen = false },
             onSelect = {
