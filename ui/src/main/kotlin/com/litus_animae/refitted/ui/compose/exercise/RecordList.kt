@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,10 +29,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
@@ -92,7 +93,9 @@ private const val MaxXLabels = 4
 @Composable
 fun SetRecordList(
   modifier: Modifier = Modifier,
-  history: SetHistory
+  history: SetHistory,
+  showBackButton: Boolean = false,
+  onBack: () -> Unit = {}
 ) {
   val records = history.paged.collectAsLazyPagingItems()
   val zone = remember { ZoneId.systemDefault() }
@@ -133,37 +136,46 @@ fun SetRecordList(
   fun isExpanded(day: LocalDate) =
     expandedOverrides[day.toEpochDay()] ?: (day == sessions.firstOrNull()?.day)
 
-  val background = appBarColors().containerColor
-  Column(modifier.fillMaxSize()) {
-    Row(
-      Modifier
-        .fillMaxWidth()
-        .background(background)
-        .windowInsetsPadding(
-          TopAppBarDefaults.windowInsets.union(
-            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-          )
-        )
-        .padding(start = 10.dp, bottom = 10.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-      // TODO localize
-      Text(
-        "Set History", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
-          backgroundColor = background
-        )
-      )
-      IconButton({ records.refresh() }) {
-        Icon(
-          Icons.Default.Refresh,
+  val barColors = appBarColors()
+  Scaffold(
+    modifier = modifier,
+    // Only the horizontal cutout inset - the session LazyColumn below already applies its own
+    // navigationBars-bottom contentPadding, so including navigationBars here too would double
+    // it up.
+    contentWindowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+    topBar = {
+      TopAppBar(
+        title = {
           // TODO localize
-          "refresh",
-          tint = contentColorFor(backgroundColor = background)
-        )
-      }
+          Text("Set History")
+        },
+        windowInsets = TopAppBarDefaults.windowInsets.union(
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+        ),
+        colors = barColors,
+        navigationIcon = {
+          if (showBackButton) {
+            IconButton(onBack) {
+              Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                // TODO localize
+                "back to exercise"
+              )
+            }
+          }
+        },
+        actions = {
+          IconButton({ records.refresh() }) {
+            Icon(
+              Icons.Default.Refresh,
+              // TODO localize
+              "refresh"
+            )
+          }
+        }
+      )
     }
-
+  ) { contentPadding ->
     // AdaptiveExercisePanes applies one ratio to both axes, but the list's good portrait
     // width (2/3 of a narrow screen) and its good landscape width (which only needs to stay
     // roughly that same absolute width, not 2/3 of a much wider screen) aren't the same
@@ -176,18 +188,11 @@ fun SetRecordList(
     }
 
     // Chart left / list right in landscape, chart top / list bottom in portrait - reuses the
-    // same reflow PagerExercise.kt uses for its instructions/set-detail split. In landscape a
-    // side-mounted camera cutout lands on whichever pane sits at that edge, so this needs the
-    // same horizontal cutout inset the header above already applies to itself - unlike the
-    // header, there's no app bar to carry it, so it's applied directly here. The chart pane
-    // must always emit exactly one composable (AdaptiveExercisePanes measures first() and
-    // second() as one child each), so the flag/empty-state branches below are wrapped in one
-    // outer Box rather than conditionally emitting nothing.
+    // same reflow PagerExercise.kt uses for its instructions/set-detail split.
     AdaptiveExercisePanes(
       Modifier
-        .fillMaxWidth()
-        .weight(1f)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
+        .fillMaxSize()
+        .padding(contentPadding),
       splitRatio = chartSplitRatio,
       first = {
         // Matches SessionRow's own horizontal inset (10.dp) so the chart pane doesn't sit
