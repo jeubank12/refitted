@@ -262,6 +262,9 @@ private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modif
       Text(
         if (isEmpty) "This is your new plan — tap + below to add your first day"
         else "Editing plan — tap a day to change it",
+        Modifier
+          .weight(1f)
+          .padding(end = 8.dp),
         fontSize = 13.sp
       )
       Button(onClick = onDone) {

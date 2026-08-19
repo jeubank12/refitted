@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,7 +21,6 @@ import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.WorkoutPlan
-import com.litus_animae.refitted.ui.compose.util.appBarColors
 import kotlinx.coroutines.flow.flowOf
 
 @Preview(showBackground = true, widthDp = 200, heightDp = 400)
@@ -51,50 +49,39 @@ fun WorkoutPlanPreview() {
 @Composable
 fun ColumnScope.WorkoutPlanMenu(
   modifier: Modifier = Modifier,
-  lastRefresh: String,
+  // Null when already shown elsewhere (e.g. the pane's own TopAppBar) - suppresses this row
+  // entirely rather than showing a redundant copy.
+  lastRefresh: String?,
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
+  onRefresh: (() -> Unit)? = null,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit = {},
   onRenameRequest: (WorkoutPlan) -> Unit = {}
 ) {
-  val background = appBarColors().containerColor
   LazyColumn(modifier) {
-    item {
-      Row(
-        Modifier
-          .fillMaxWidth()
-          .background(background)
-          .windowInsetsPadding(
-            WindowInsets.systemBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+    if (lastRefresh != null) {
+      item {
+        Row(
+          Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(
+              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+            )
+            .padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Text(
+            "Last Refreshed At: $lastRefresh",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
           )
-          .padding(start = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-      ) {
-        Column {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            // TODO localize
-            Text(
-              "Workouts", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
-                backgroundColor = background
-              )
-            )
-            IconButton(onClick = { plans.refresh() }) {
-              Icon(
-                Icons.Default.Refresh,
-                // TODO localize
-                "refresh",
-                tint = contentColorFor(backgroundColor = background)
-              )
+          if (onRefresh != null) {
+            IconButton(onClick = onRefresh) {
+              // TODO localize
+              Icon(Icons.Default.Refresh, "refresh")
             }
-          }
-          Row {
-            Text(
-              "Last Refreshed At: $lastRefresh", color = contentColorFor(
-                backgroundColor = background
-              )
-            )
           }
         }
       }
