@@ -253,7 +253,7 @@ fun WorkoutCalendar(
     // exercise screen's instructions/detail and chart/list splits.
     AdaptiveExercisePanes(
       bodyModifier,
-      splitRatio = 0.78f,
+      splitRatio = 0.74f,
       gap = 12.dp,
       first = { gridContent(Modifier.fillMaxSize(), false) },
       second = {
@@ -449,8 +449,8 @@ private fun CalendarSidebar(
     Column(
       Modifier
         .fillMaxSize()
-        .padding(12.dp, 10.dp),
-      verticalArrangement = Arrangement.spacedBy(10.dp)
+        .padding(12.dp, 8.dp),
+      verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
       Text(
         // Abbreviated - this bar is narrow, unlike MonthNavRow's full-width portrait home.
