@@ -67,6 +67,7 @@ fun WorkoutPlanListPane(
   // action moves next to "Last Refreshed At" in the body instead of the bar, since it's the
   // only bar actions difference between this pane's TopAppBar and WorkoutDetailPane's.
   wideLayout: Boolean,
+  selectedWorkoutName: String?,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit,
   onRenameRequest: (WorkoutPlan) -> Unit,
@@ -145,6 +146,7 @@ fun WorkoutPlanListPane(
         lastRefresh = if (wideLayout) lastRefresh else null,
         workoutPlanPagingItems,
         workoutPlanError,
+        selectedWorkoutName = selectedWorkoutName,
         onRefresh = if (wideLayout) ({ workoutPlanPagingItems.refresh() }) else null,
         onSelect = onSelect,
         onCreateCustom = onCreateCustom,

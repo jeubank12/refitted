@@ -150,6 +150,7 @@ fun Calendar(
             snackbarHostState = snackbarHostState,
             showBackButton = !bothPanesFit,
             wideLayout = bothPanesFit,
+            selectedWorkoutName = selectedWorkoutPlan?.workout,
             onBack = { planMenuOpen = false },
             onSelect = {
               planMenuOpen = false

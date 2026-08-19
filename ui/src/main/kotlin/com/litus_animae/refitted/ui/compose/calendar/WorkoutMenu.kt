@@ -1,16 +1,20 @@
 package com.litus_animae.refitted.ui.compose.calendar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -41,7 +45,13 @@ fun WorkoutPlanPreview() {
     .collectAsLazyPagingItems()
   RefittedTheme(darkTheme = true) {
     Column {
-      WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null, onSelect = {})
+      WorkoutPlanMenu(
+        lastRefresh = "Refreshed At",
+        plans = data,
+        workoutPlanError = null,
+        selectedWorkoutName = "The second workout",
+        onSelect = {}
+      )
     }
   }
 }
@@ -54,6 +64,10 @@ fun ColumnScope.WorkoutPlanMenu(
   lastRefresh: String?,
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
+  // The currently loaded plan (Calendar's WorkoutViewModel.currentWorkout) - highlighted so it
+  // stays identifiable in the Medium+ layout, where this list sits alongside its detail pane
+  // rather than being dismissed on selection like at Compact width.
+  selectedWorkoutName: String?,
   onRefresh: (() -> Unit)? = null,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit = {},
@@ -142,6 +156,7 @@ fun ColumnScope.WorkoutPlanMenu(
                 WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
               ),
             plan = plan,
+            isSelected = plan.workout == selectedWorkoutName,
             onSelect = onSelect,
             onRenameRequest = onRenameRequest
           )
@@ -185,20 +200,37 @@ fun ColumnScope.WorkoutPlanMenu(
 private fun WorkoutPlanRow(
   modifier: Modifier = Modifier,
   plan: WorkoutPlan,
+  isSelected: Boolean,
   onSelect: (WorkoutPlan) -> Unit,
   onRenameRequest: (WorkoutPlan) -> Unit
 ) {
   Row(
     modifier
       .fillMaxWidth()
+      .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       .clickable { onSelect(plan) },
     verticalAlignment = Alignment.CenterVertically
   ) {
+    if (isSelected) {
+      Icon(
+        Icons.Default.Check,
+        // TODO localize
+        "currently selected plan",
+        Modifier.padding(start = 10.dp),
+        tint = MaterialTheme.colorScheme.onSecondaryContainer
+      )
+    }
     Text(
       plan.workout,
       Modifier
         .weight(1f)
-        .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
+        .padding(
+          start = if (isSelected) 8.dp else 10.dp,
+          top = 15.dp,
+          bottom = 15.dp
+        ),
+      color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else Color.Unspecified,
+      fontWeight = if (isSelected) FontWeight.Bold else null,
       style = MaterialTheme.typography.labelLarge
     )
     if (plan.isCustom) {
