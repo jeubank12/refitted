@@ -13,10 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
@@ -77,6 +83,10 @@ fun PagerExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so every consumer of the reclaimed
+   * space agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean,
   setHistoryList: (SetHistory) -> Unit,
   /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
   setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
@@ -222,7 +232,12 @@ fun PagerExerciseView(
   PullToRefreshBox(
     isRefreshing = showRefreshIndicator,
     onRefresh = model::refreshExercises,
-    modifier = Modifier.padding(contentPadding)
+    // consumeWindowInsets so anything further down reading WindowInsets.navigationBars directly
+    // (ExerciseSetView's rest timer growth, PagerDetailView's instructions-pane protection) sees
+    // it already reserved here rather than double-counting it - see ExerciseMainPane's Scaffold.
+    modifier = Modifier
+      .padding(contentPadding)
+      .consumeWindowInsets(contentPadding)
   ) {
     if (workoutPlan?.isCustom == true && instructions.isEmpty() && !isRefreshing) {
       EmptyCustomDay(onAddExercise = if (editing) onAddExercise else null)
@@ -233,6 +248,7 @@ fun PagerExerciseView(
           pagerState = pagerState,
           activeSetWithRecord = currentSetRecord,
           displayedPage = displayedPage,
+          reclaimBottomInset = reclaimBottomInset,
           globalAlternate = workoutPlan?.globalAlternate,
           workoutPlan = workoutPlan,
           onAlternateChange = onAlternateChange,
@@ -322,6 +338,10 @@ fun PagerDetailView(
   activeSetWithRecord: ExerciseSetWithRecord?,
   /** The page the detail pane reflects — commits on release rather than tracking the drag. */
   displayedPage: Int = pagerState.settledPage,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so every consumer of the reclaimed
+   * space agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean = false,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
   /** Source of `globalAlternate` and any plan-wide alternate name overrides for the card's chip. */
@@ -379,17 +399,23 @@ fun PagerDetailView(
     splitRatio = 0.45f,
     gap = 8.dp,
     first = {
-      PagerExerciseInstructions(
-        instructions = instructions,
-        pagerState = pagerState,
-        alternateIndex = globalAlternate,
-        workoutPlan = workoutPlan,
-        onAlternateChange = onAlternateChange,
-        setRecords = setRecords,
-        editing = editing,
-        onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
-        onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
-      )
+      // A no-op when PagerExerciseView's PullToRefreshBox already consumed navigationBars
+      // (portrait, or landscape at medium+ height) - only actually reserves space when
+      // ExerciseMainPane's Scaffold left it unconsumed for ExerciseSetView's rest timer to grow
+      // into instead (reclaimBottomInset), since this pane isn't exempted from it.
+      Box(Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
+        PagerExerciseInstructions(
+          instructions = instructions,
+          pagerState = pagerState,
+          alternateIndex = globalAlternate,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
+          setRecords = setRecords,
+          editing = editing,
+          onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
+          onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
+        )
+      }
     },
     second = {
       if (activeSetWithRecord == null) {
@@ -400,6 +426,7 @@ fun PagerDetailView(
           modifier = Modifier
             .fillMaxSize()
             .padding(top= if(orientation == Configuration.ORIENTATION_LANDSCAPE) 16.dp else 0.dp, start=16.dp, end = 16.dp, bottom = 16.dp),
+          reclaimBottomInset = reclaimBottomInset,
           setWithRecord = activeSetWithRecord,
           currentIndex = displayedPage,
           maxIndex = instructions.size - 1,

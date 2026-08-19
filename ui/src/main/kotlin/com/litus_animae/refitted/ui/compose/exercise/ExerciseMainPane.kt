@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.RowScope
@@ -31,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -75,11 +77,17 @@ fun ExerciseMainPane(
   // shrink it when height is actually the scarce dimension, independent of showHistoryButton/
   // bothPanesFit (which are width-only, see exercise/Main.kt).
   val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
+  val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
-    // landscape — the two-pane exercise layout then splits content right up against it.
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+    // landscape — the two-pane exercise layout then splits content right up against it. Dropped
+    // here when landscape+compact height so ExerciseSetView's rest timer can grow into it instead.
+    contentWindowInsets = if (isLandscape && compactHeight) {
+      WindowInsets.displayCutout
+    } else {
+      WindowInsets.navigationBars.union(WindowInsets.displayCutout)
+    },
     topBar = {
       val title = stringResource(id = R.string.app_name)
       val dayWord = stringResource(id = R.string.day)
@@ -145,6 +153,7 @@ fun ExerciseMainPane(
     PagerExerciseView(exerciseModel,
       workoutPlan = loadedWorkoutPlan,
       contentPadding = contentPadding,
+      reclaimBottomInset = isLandscape && compactHeight,
       setHistoryList = setHistoryList,
       setContextMenu = { contextMenu = it },
       onAlternateChange = onAlternateChange,

@@ -103,6 +103,7 @@ fun ExerciseSetView(
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
   onOpenHistory: () -> Unit = {},
   watchSessionActive: Boolean = false,
+  reclaimBottomInset: Boolean = false,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -122,6 +123,7 @@ fun ExerciseSetView(
       onUpdateCustomTargets = onUpdateCustomTargets,
       onOpenHistory = onOpenHistory,
       watchSessionActive = watchSessionActive,
+      reclaimBottomInset = reclaimBottomInset,
     )
   }
 }
@@ -146,6 +148,10 @@ fun ColumnScope.ExerciseSetView(
   onOpenHistory: () -> Unit = {},
   /** The watch owns rest display/countdown while a session is active - the phone suppresses its own. */
   watchSessionActive: Boolean = false,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so the button placement here always
+   * agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean = false,
 ) {
   val exerciseSet = setWithRecord.exerciseSet
   val currentRecord = setWithRecord.currentRecord
@@ -181,7 +187,42 @@ fun ColumnScope.ExerciseSetView(
   val saveWeight by weight.value
   val saveReps by reps.value
 
-  // Controls row: left = Weight + Reps | right = CircularRestTimer
+  val completeButton = @Composable {
+    CompleteExerciseSetButton(
+      Modifier,
+      onClick = {
+        if (!isTimerRunning) {
+          onSave(record.copy(weight = saveWeight, reps = saveReps))
+        }
+        if (!watchSessionActive && (effectiveRestSeconds > 0 || isTimerRunning)) {
+          if (onTimerToggle != null) {
+            onTimerToggle()
+          } else {
+            timerRunning.value = !isTimerRunning
+            timerStart.value = Instant.now()
+          }
+        }
+      },
+      setWithRecord.exerciseIncomplete,
+      exerciseSet.sets,
+      exerciseSet.reps(numCompleted),
+      saveReps,
+      exerciseSet.superSetStep,
+      numCompleted,
+      isTimerRunning,
+      watchSessionActive
+    )
+  }
+
+  if (reclaimBottomInset) {
+    completeButton()
+    Spacer(Modifier.height(8.dp))
+  }
+
+  // Controls row: left = Weight + Reps | right = CircularRestTimer. Both sides fillMaxHeight to
+  // the Row's own height, so both grow together when it's taller (e.g. reclaimBottomInset) -
+  // WeightDisplay and RepsDisplay both already center their content with flexible spacers, so
+  // neither needs to be capped to guard a fixed-position control.
   Row(Modifier.weight(3f)) {
     // Split the height evenly between the two cards, except the reps card may
     // not shrink below its own minimum (the 170.dp inside RepsDisplay) —
@@ -229,7 +270,7 @@ fun ColumnScope.ExerciseSetView(
       Modifier
         .weight(1f)
         .fillMaxHeight()
-        .padding(start = 8.dp),
+        .padding(start = 8.dp, bottom = 8.dp),
       contentAlignment = Alignment.Center
     ) {
       val stepperShown = editing && onUpdateCustomTargets != null
@@ -270,10 +311,14 @@ fun ColumnScope.ExerciseSetView(
 
       val stripVisible = showStrip && hasTrend
 
-      // Wraps its content instead of filling the row's height (which the Weight/Reps
-      // stack next to it doesn't fully occupy either) so it floats centered rather than
-      // stretching to an arbitrary bottom edge that never quite matched theirs.
-      Column(Modifier.fillMaxWidth()) {
+      // Wraps its content instead of filling the available height so it floats centered rather
+      // than stretching to an arbitrary bottom edge - except in the reclaim case, where the
+      // timer card below is meant to stretch into that space.
+      Column(
+        Modifier
+          .fillMaxWidth()
+          .then(if (reclaimBottomInset) Modifier.fillMaxHeight() else Modifier)
+      ) {
         AnimatedVisibility(
           stripVisible,
           enter = fadeIn() + expandVertically(),
@@ -308,7 +353,12 @@ fun ColumnScope.ExerciseSetView(
         // The watch shows its own rest countdown while a session is active - mounting this too
         // would just be a second, unsynced countdown.
         if (!watchSessionActive) {
-          Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+          Card(
+            Modifier
+              .fillMaxWidth()
+              .then(if (reclaimBottomInset) Modifier.weight(1f) else Modifier),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+          ) {
             CircularRestTimer(
               restSeconds = effectiveRestSeconds,
               isRunning = isTimerRunning,
@@ -316,8 +366,14 @@ fun ColumnScope.ExerciseSetView(
               // Grows the card instead of insetting the ring - CircularRestTimer's own square
               // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
               // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
-              // more height, not padding down the ring's existing (correct) size.
-              modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
+              // more height, not padding down the ring's existing (correct) size. In the
+              // reclaim case the card's height comes from weight(1f) above instead of a fixed
+              // value, so fill it rather than fixing it again here.
+              modifier = if (reclaimBottomInset) {
+                Modifier.fillMaxWidth().fillMaxHeight()
+              } else {
+                Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp)
+              },
               nextRestSeconds = nextRestSeconds,
               onAdjust = onRestOverrideChange,
               onFinish = {
@@ -333,8 +389,7 @@ fun ColumnScope.ExerciseSetView(
         }
       }
     }
-  }
-
+    }
   // Navigation row — kept for the legacy ExerciseView path, hidden in pager path
   if (showNavigationButtons) {
     Row(
@@ -386,30 +441,9 @@ fun ColumnScope.ExerciseSetView(
     }
   }
 
-  CompleteExerciseSetButton(
-    Modifier,
-    onClick = {
-      if (!isTimerRunning) {
-        onSave(record.copy(weight = saveWeight, reps = saveReps))
-      }
-      if (!watchSessionActive && (effectiveRestSeconds > 0 || isTimerRunning)) {
-        if (onTimerToggle != null) {
-          onTimerToggle()
-        } else {
-          timerRunning.value = !isTimerRunning
-          timerStart.value = Instant.now()
-        }
-      }
-    },
-    setWithRecord.exerciseIncomplete,
-    exerciseSet.sets,
-    exerciseSet.reps(numCompleted),
-    saveReps,
-    exerciseSet.superSetStep,
-    numCompleted,
-    isTimerRunning,
-    watchSessionActive
-  )
+  if (!reclaimBottomInset) {
+    completeButton()
+  }
 }
 
 private val previewRecentSets: List<SetRecord> = run {
