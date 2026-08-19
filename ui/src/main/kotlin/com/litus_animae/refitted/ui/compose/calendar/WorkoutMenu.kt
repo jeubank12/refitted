@@ -107,6 +107,9 @@ fun ColumnScope.WorkoutPlanMenu(
           workoutPlanError,
           Modifier
             .fillMaxWidth()
+            .windowInsetsPadding(
+              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+            )
             .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
           style = MaterialTheme.typography.labelLarge
         )
@@ -139,11 +142,18 @@ fun ColumnScope.WorkoutPlanMenu(
               "CUSTOM WORKOUTS",
               Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(
+                  WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+                )
                 .padding(start = 10.dp, top = 18.dp, bottom = 4.dp),
               style = MaterialTheme.typography.labelSmall
             )
           }
           WorkoutPlanRow(
+            Modifier
+              .windowInsetsPadding(
+                WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+              ),
             plan = plan,
             onSelect = onSelect,
             onRenameRequest = onRenameRequest
@@ -156,6 +166,9 @@ fun ColumnScope.WorkoutPlanMenu(
           Modifier
             .fillMaxWidth()
             .clickable { onCreateCustom() }
+            .windowInsetsPadding(
+              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+            )
             .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
@@ -183,12 +196,13 @@ fun ColumnScope.WorkoutPlanMenu(
  */
 @Composable
 private fun WorkoutPlanRow(
+  modifier: Modifier = Modifier,
   plan: WorkoutPlan,
   onSelect: (WorkoutPlan) -> Unit,
   onRenameRequest: (WorkoutPlan) -> Unit
 ) {
   Row(
-    Modifier
+    modifier
       .fillMaxWidth()
       .clickable { onSelect(plan) },
     verticalAlignment = Alignment.CenterVertically
