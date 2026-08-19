@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -13,6 +14,7 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AdaptStrategy
 import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.LevitatedPaneScrim
 import androidx.compose.material3.adaptive.layout.MutableThreePaneScaffoldState
 import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
@@ -31,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CustomCredential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +42,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePanel
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
@@ -107,7 +111,9 @@ fun Exercise(
     // needs. Extra defaults to Hide too - Levitate is what turns it into a floating overlay.
     adaptStrategies = SupportingPaneScaffoldDefaults.adaptStrategies(
       supportingPaneAdaptStrategy = AdaptStrategy.Hide,
-      extraPaneAdaptStrategy = AdaptStrategy.Levitate()
+      extraPaneAdaptStrategy = AdaptStrategy.Levitate(
+        scrim = { LevitatedPaneScrim(onClick = { showAddExercisePicker = false }) }
+      )
     ),
     currentDestination = ThreePaneScaffoldDestinationItem<Nothing>(pane = focusedRole)
   )
@@ -175,6 +181,9 @@ fun Exercise(
               showAddExercisePicker = false
             },
             onClose = { showAddExercisePicker = false },
+            // The docked/Levitate presentation is a small box centered over the scaffold - it
+            // never reaches a physical screen edge, so it shouldn't reserve display-cutout space.
+            edgeToEdge = false,
             modifier = Modifier.fillMaxSize()
           )
         }
@@ -184,9 +193,22 @@ fun Exercise(
 
   if (showAddExercisePicker && !bothPanesFit) {
     val addExerciseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Matches the sheet's own rounded-corner surface (and drag handle) to AddExerciseList's blue
+    // TopAppBar - otherwise the sheet's default light containerColor peeks out above/around the
+    // handle before the app bar starts, reading as a background-colored gap at the top of the pane.
+    val addExerciseSheetColors = appBarColors()
+    // ModalBottomSheet itself caps at BottomSheetDefaults.SheetMaxWidth (640dp) and centers
+    // itself as a dialog-like card on anything wider - e.g. a landscape phone, whose reduced
+    // height forces this sheet path despite ample width. A centered card doesn't reach a screen
+    // edge either, same as the docked pane above, so it shouldn't reserve display-cutout space.
+    val sheetEdgeToEdge = LocalConfiguration.current.screenWidthDp.dp < BottomSheetDefaults.SheetMaxWidth
     ModalBottomSheet(
       onDismissRequest = { showAddExercisePicker = false },
-      sheetState = addExerciseSheetState
+      sheetState = addExerciseSheetState,
+      containerColor = addExerciseSheetColors.containerColor,
+      dragHandle = {
+        BottomSheetDefaults.DragHandle(color = addExerciseSheetColors.titleContentColor)
+      }
     ) {
       AddExercisePickerContent(
         title = if (alternateToStep != null) "Add alternate" else "Add exercise",
@@ -206,7 +228,8 @@ fun Exercise(
           scaffoldScope.launch { addExerciseSheetState.hide() }.invokeOnCompletion {
             if (!addExerciseSheetState.isVisible) showAddExercisePicker = false
           }
-        }
+        },
+        edgeToEdge = sheetEdgeToEdge
       )
     }
   }
@@ -215,7 +238,8 @@ fun Exercise(
 /**
  * Shared wiring for [AddExercisePanel] - identical whether it's shown as a full-screen
  * [ModalBottomSheet] (Compact) or as the Extra pane's floating/[AdaptStrategy.Levitate] content
- * (Medium+); only [onPicked]/[onClose] differ, since dismissing each host works differently.
+ * (Medium+); only [onPicked]/[onClose]/[edgeToEdge] differ, since dismissing each host works
+ * differently and only the sheet host actually reaches the screen edges.
  */
 @Composable
 private fun AddExercisePickerContent(
@@ -223,6 +247,7 @@ private fun AddExercisePickerContent(
   workoutId: String,
   day: String,
   alternateToStep: String?,
+  edgeToEdge: Boolean,
   exerciseModel: ExerciseViewModel,
   workoutModel: WorkoutViewModel,
   userModel: UserViewModel,
@@ -251,6 +276,7 @@ private fun AddExercisePickerContent(
   }
   AddExercisePanel(
     modifier = modifier,
+    edgeToEdge = edgeToEdge,
     title = title,
     muscle = selectedMuscle,
     onMuscleSelected = exerciseModel::selectMuscle,

@@ -150,6 +150,8 @@ fun AddExerciseList(
   onSignInSuccess: (GetCredentialResponse) -> Unit,
   onSignInFailure: (GetCredentialException) -> Unit,
   webClientId: String,
+  /** False when this is hosted as a small centered docked pane rather than a full-screen sheet - it never reaches a physical screen edge, so it shouldn't reserve display-cutout space. */
+  edgeToEdge: Boolean = true,
   modifier: Modifier = Modifier
 ) {
   val accessibleNames = accessibleWorkouts.map { it.workout }.toSet()
@@ -165,12 +167,18 @@ fun AddExerciseList(
   // run plus every program, a fully expanded list is more than fits on screen at once.
   var expandedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
   Scaffold(
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+    contentWindowInsets = WindowInsets.navigationBars.let {
+      if (edgeToEdge) it.union(WindowInsets.displayCutout) else it
+    },
     modifier = modifier,
     topBar = {
       TopAppBar(
         title = { Text(title) },
-        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+        windowInsets = if (edgeToEdge) {
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+        } else {
+          WindowInsets(0, 0, 0, 0)
+        },
         colors = appBarColors(),
         navigationIcon = {
           // There's no picker screen left to step back to - this closes the whole add-exercise
@@ -200,7 +208,11 @@ fun AddExerciseList(
       if (authedEmail == null) {
         AuthButton(
           Modifier
-            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
+            .windowInsetsPadding(
+              WindowInsets.navigationBars.let {
+                if (edgeToEdge) it.union(WindowInsets.displayCutout) else it
+              }
+            )
             .padding(16.dp),
           handleAuthSuccess = onSignInSuccess,
           handleAuthFailure = onSignInFailure,
@@ -418,6 +430,8 @@ fun AddExercisePanel(
   onSignInSuccess: (GetCredentialResponse) -> Unit,
   onSignInFailure: (GetCredentialException) -> Unit,
   webClientId: String,
+  /** False when this is hosted as a small centered docked pane rather than a full-screen sheet - it never reaches a physical screen edge, so it shouldn't reserve display-cutout space. */
+  edgeToEdge: Boolean = true,
   modifier: Modifier = Modifier
 ) {
   var pickingMuscle by rememberSaveable { mutableStateOf(false) }
@@ -441,7 +455,8 @@ fun AddExercisePanel(
       authedEmail = authedEmail,
       onSignInSuccess = onSignInSuccess,
       onSignInFailure = onSignInFailure,
-      webClientId = webClientId
+      webClientId = webClientId,
+      edgeToEdge = edgeToEdge
     )
     AnimatedVisibility(
       visible = pickingMuscle,
