@@ -2,6 +2,7 @@ package com.litus_animae.refitted.ui.compose.state
 
 import android.util.Log
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.paging.PagingData
 import com.litus_animae.refitted.data.models.ExerciseRecord
@@ -64,13 +65,23 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
 
       val currentSet = currentSetRecord.targetSet
       val todayRecords by currentSetRecord.currentRecords.collectAsState(initial = emptyList())
-      val latestRecord by currentSetRecord.latestRecord.collectAsState(initial = currentSetRecord.defaultRecord)
 
       // TODO if one already exists in the state, use it instead of this one?
-      // TODO how to correctly update this..... perhaps off todayRecords changing?
-      // we need to skip the first calculation cycle when the list is empty
-      val currentRecord =
-        remember(latestRecord) { mutableStateOf(latestRecord.copy(stored = false)) }
+      // hasSyncedInitialRecord is rememberSaveable so it comes back true after rotation,
+      // limiting currentRecord to one real sync from latestRecord instead of re-deriving (and
+      // stomping an in-progress edit) on every rotation's resubscription replay.
+      val hasSyncedInitialRecord = rememberSaveable(currentSet.id) { mutableStateOf(false) }
+      val currentRecord = remember(currentSet.id) {
+        mutableStateOf(currentSetRecord.defaultRecord.copy(stored = false))
+      }
+      LaunchedEffect(currentSetRecord.latestRecord) {
+        currentSetRecord.latestRecord.collect { real ->
+          if (!hasSyncedInitialRecord.value) {
+            currentRecord.value = real.copy(stored = false)
+            hasSyncedInitialRecord.value = true
+          }
+        }
+      }
       val rememberedSetRecords =
         remember(todayRecords) { mutableStateListOf(*todayRecords.toTypedArray()) }
       val setsCompleted by currentSetRecord.currentRecordsCount.collectAsState(
