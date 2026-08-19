@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
-import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -40,7 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -50,9 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.window.layout.FoldingFeature
-import androidx.window.layout.WindowInfoTracker
-import androidx.window.layout.WindowLayoutInfo
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePanel
@@ -104,21 +99,6 @@ fun Exercise(
   var alternateToStep by rememberSaveable { mutableStateOf<String?>(null) }
   // Lands the pager on the exercise just added - consumed once by PagerExerciseView.
   var scrollToExerciseName by rememberSaveable { mutableStateOf<String?>(null) }
-
-  // Folding-feature awareness for foldables opened to a book/tabletop posture - the activity is
-  // the app's single Compose host, so LocalContext.current is always safe to cast here.
-  val activity = LocalContext.current as Activity
-  val windowInfoTracker = remember(activity) { WindowInfoTracker.getOrCreate(activity) }
-  val windowLayoutInfo by remember(windowInfoTracker, activity) {
-    windowInfoTracker.windowLayoutInfo(activity)
-  }.collectAsState(initial = WindowLayoutInfo(emptyList()))
-  val foldingFeature = windowLayoutInfo.displayFeatures
-    .filterIsInstance<FoldingFeature>()
-    .firstOrNull()
-  // FLAT means the device is unfolded all the way open (as opposed to HALF_OPENED book/tabletop
-  // posture) - there's enough width there to show history as a permanent side pane rather than
-  // a dismissible drawer overlay fighting the user for the same screen real estate.
-  val historyAsSidePane = foldingFeature?.state == FoldingFeature.State.FLAT
 
   var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
 
@@ -201,7 +181,6 @@ fun Exercise(
       PagerExerciseView(exerciseModel,
         workoutPlan = loadedWorkoutPlan,
         contentPadding = it,
-        foldingFeature = foldingFeature,
         setHistoryList = { setHistoryList(it) },
         setContextMenu = { contextMenu = it },
         onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) },

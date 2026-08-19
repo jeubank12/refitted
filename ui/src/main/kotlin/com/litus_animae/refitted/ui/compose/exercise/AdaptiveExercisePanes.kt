@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.window.layout.FoldingFeature
 
 /**
  * Adaptive two-pane layout that reflows between portrait (vertical split) and landscape
@@ -17,16 +16,12 @@ import androidx.window.layout.FoldingFeature
  *
  * @param first  Top pane in portrait; left pane in landscape.
  * @param second Bottom pane in portrait; right pane in landscape.
- * @param foldingFeature Active hinge, if any. When half-opened, the split axis and gap follow
- * the hinge itself (book posture avoids the crease; tabletop posture treats it as a shelf)
- * instead of falling back to the width-vs-height heuristic.
  */
 @Composable
 fun AdaptiveExercisePanes(
   modifier: Modifier = Modifier,
   splitRatio: Float = 0.5f,
   gap: Dp = 16.dp,
-  foldingFeature: FoldingFeature? = null,
   first: @Composable () -> Unit,
   second: @Composable () -> Unit,
 ) {
