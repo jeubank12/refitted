@@ -75,7 +75,8 @@ import com.litus_animae.refitted.ui.compose.charts.LineChart
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 import java.time.LocalDate
@@ -132,11 +133,12 @@ fun SetRecordList(
   fun isExpanded(day: LocalDate) =
     expandedOverrides[day.toEpochDay()] ?: (day == sessions.firstOrNull()?.day)
 
+  val background = appBarColors().containerColor
   Column(modifier.fillMaxSize()) {
     Row(
       Modifier
         .fillMaxWidth()
-        .background(MaterialTheme.colorScheme.primary)
+        .background(background)
         .windowInsetsPadding(
           TopAppBarDefaults.windowInsets.union(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
@@ -149,7 +151,7 @@ fun SetRecordList(
       // TODO localize
       Text(
         "Set History", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
-          backgroundColor = MaterialTheme.colorScheme.primary
+          backgroundColor = background
         )
       )
       IconButton({ records.refresh() }) {
@@ -157,7 +159,7 @@ fun SetRecordList(
           Icons.Default.Refresh,
           // TODO localize
           "refresh",
-          tint = contentColorFor(backgroundColor = MaterialTheme.colorScheme.primary)
+          tint = contentColorFor(backgroundColor = background)
         )
       }
     }
@@ -313,9 +315,9 @@ private fun SessionRow(
                 // TODO localize
                 "PR",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = ExtendedTheme.colors.goodAttention.onColor,
                 modifier = Modifier
-                  .background(Theme.goodAttention, RoundedCornerShape(4.dp))
+                  .background(ExtendedTheme.colors.goodAttention.color, RoundedCornerShape(4.dp))
                   .padding(horizontal = 4.dp, vertical = 1.dp)
               )
             }

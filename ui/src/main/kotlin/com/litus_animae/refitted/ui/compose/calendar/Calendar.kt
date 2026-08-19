@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,13 +15,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -44,7 +45,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import java.time.Instant
 import java.time.LocalDate
@@ -57,7 +59,7 @@ import kotlin.math.ceil
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendar() {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 4, Instant.now().minus(3, ChronoUnit.DAYS)), mapOf(
         Pair(1, Instant.ofEpochMilli(1L)),
@@ -71,7 +73,7 @@ fun PreviewCalendar() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendarUnaligned() {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 1),
       emptyMap(),
@@ -358,8 +360,16 @@ private fun CalendarLegend() {
         .padding(12.dp, 10.dp),
       horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+      val isDark = isSystemInDarkTheme()
       LegendEntry("upcoming", MaterialTheme.colorScheme.primary)
-      LegendEntry("completed", MaterialTheme.colorScheme.secondary)
+      LegendEntry(
+        "completed",
+        // Solid dark chip in light mode; matches the app's card surfaces in dark mode instead of
+        // standing out as a bright inverse chip (see CalendarDayCell's same choice) - outlined
+        // here so the legend swatch itself stays visible against its own matching background.
+        if (isDark) CardDefaults.cardColors().containerColor else MaterialTheme.colorScheme.inverseSurface,
+        outlineColor = if (isDark) MaterialTheme.colorScheme.outline else null
+      )
       LegendEntry(
         "last viewed",
         MaterialTheme.colorScheme.background,
@@ -463,7 +473,7 @@ class DayPropertiesPreviewParameterProvider : PreviewParameterProvider<DayProper
 fun PreviewCalendarDayButton(
   @PreviewParameter(DayPropertiesPreviewParameterProvider::class) properties: DayProperties
 ) {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     CalendarDayCell(1, 1, properties)
   }
 }
@@ -474,7 +484,7 @@ private fun OutOfRangeDayCell(dayOfMonth: Int, isToday: Boolean = false) {
     Text(
       "$dayOfMonth",
       fontSize = 13.sp,
-      color = if (isToday) Theme.goodAttention
+      color = if (isToday) ExtendedTheme.colors.goodAttention.color
       else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
       fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
     )
@@ -493,12 +503,25 @@ private fun CalendarDayCell(
   // Last-viewed (aligned) and selected-as-start (unaligned) are mutually exclusive - one
   // outline style covers "this is the reference day" in either mode.
   val highlighted = properties.isLastViewedDay || selected
+  val isDark = isSystemInDarkTheme()
   val backgroundColor = when {
     highlighted -> MaterialTheme.colorScheme.background
-    properties.isCompletedDay -> MaterialTheme.colorScheme.secondary
+    // Old M2 secondary (#212121) doubled as both the "secondary" role and the literal
+    // completed-day color; the generated M3 secondary doesn't preserve that. In light mode
+    // inverseSurface gives the same solid, high-emphasis dark chip (#2E3036, close to the
+    // original black). In dark mode that same chip would flip to a bright light color and read
+    // as shouting rather than "done" - use the same tonal container Cards render with instead,
+    // so completed cells blend with the rest of the app's card surfaces.
+    properties.isCompletedDay -> if (isDark) CardDefaults.cardColors().containerColor else MaterialTheme.colorScheme.inverseSurface
     else -> MaterialTheme.colorScheme.primary
   }
-  val contentColor = contentColorFor(backgroundColor)
+  // contentColorFor(backgroundColor) doesn't resolve inverseSurface/inverseOnSurface (or the
+  // Card container tone) as a pair, so each branch picks its own "on" color explicitly.
+  val contentColor = when {
+    highlighted -> MaterialTheme.colorScheme.onBackground
+    properties.isCompletedDay -> if (isDark) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
+    else -> MaterialTheme.colorScheme.onPrimary
+  }
   val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer) else null
   // Rest-day and adjacent-month dimming both fade the same surface - multiply rather than
   // pick one, so a rest day that also falls outside the displayed month reads as both.
@@ -522,7 +545,7 @@ private fun CalendarDayCell(
       Text(
         "$dayOfMonth",
         fontSize = 14.sp,
-        color = if (isToday) Theme.goodAttention else contentColor,
+        color = if (isToday) ExtendedTheme.colors.goodAttention.color else contentColor,
         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
       )
       Text(

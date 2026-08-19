@@ -20,8 +20,9 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.ui.compose.util.LoadingView
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.WorkoutPlan
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import kotlinx.coroutines.flow.flowOf
 
 @Preview(showBackground = true, widthDp = 200, heightDp = 400)
@@ -40,7 +41,7 @@ fun WorkoutPlanPreview() {
     )
   )
     .collectAsLazyPagingItems()
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     Column {
       WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null, onSelect = {})
     }
@@ -57,12 +58,13 @@ fun ColumnScope.WorkoutPlanMenu(
   onCreateCustom: () -> Unit = {},
   onRenameRequest: (WorkoutPlan) -> Unit = {}
 ) {
+  val background = appBarColors().containerColor
   LazyColumn(modifier) {
     item {
       Row(
         Modifier
           .fillMaxWidth()
-          .background(MaterialTheme.colorScheme.primary)
+          .background(background)
           .windowInsetsPadding(
             WindowInsets.systemBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
           )
@@ -75,7 +77,7 @@ fun ColumnScope.WorkoutPlanMenu(
             // TODO localize
             Text(
               "Workouts", style = MaterialTheme.typography.titleLarge, color = contentColorFor(
-                backgroundColor = MaterialTheme.colorScheme.primary
+                backgroundColor = background
               )
             )
             IconButton(onClick = { plans.refresh() }) {
@@ -83,14 +85,14 @@ fun ColumnScope.WorkoutPlanMenu(
                 Icons.Default.Refresh,
                 // TODO localize
                 "refresh",
-                tint = contentColorFor(backgroundColor = MaterialTheme.colorScheme.primary)
+                tint = contentColorFor(backgroundColor = background)
               )
             }
           }
           Row {
             Text(
               "Last Refreshed At: $lastRefresh", color = contentColorFor(
-                backgroundColor = MaterialTheme.colorScheme.primary
+                backgroundColor = background
               )
             )
           }

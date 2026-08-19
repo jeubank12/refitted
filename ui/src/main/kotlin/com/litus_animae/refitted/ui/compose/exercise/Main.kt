@@ -58,6 +58,7 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePanel
 import com.litus_animae.refitted.ui.compose.exercise.input.WeightButtons
 import com.litus_animae.refitted.ui.compose.state.SetHistory
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.UserViewModel
@@ -123,7 +124,14 @@ fun Exercise(
 
   ModalNavigationDrawer(
     drawerState = drawerState,
-    drawerContent = { ModalDrawerSheet { SetRecordList(history = historyList) } }
+    // Zero insets: SetRecordList's own header row already handles the status bar/cutout inset
+    // itself - ModalDrawerSheet's own default inset reservation just leaves a white gap above
+    // it since that reserved strip uses the sheet's surface color, not the header's background.
+    drawerContent = {
+      ModalDrawerSheet(windowInsets = WindowInsets(0, 0, 0, 0)) {
+        SetRecordList(history = historyList)
+      }
+    }
   ) {
     Scaffold(
       // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
@@ -156,7 +164,7 @@ fun Exercise(
             windowInsets = TopAppBarDefaults.windowInsets.union(
               WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
             ),
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+            colors = appBarColors(),
             actions = {
               // Expanded, the labelled action reads as a peer of + and sits ahead of it;
               // collapsed, it is an overflow menu and belongs last instead.

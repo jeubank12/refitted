@@ -27,7 +27,7 @@ import com.litus_animae.refitted.ui.compose.state.Repetitions
 import com.litus_animae.refitted.ui.compose.util.ConstrainedButton
 import com.litus_animae.refitted.ui.compose.util.ConstrainedText
 import com.litus_animae.refitted.ui.compose.util.ConstrainedTextBox
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 
 @Composable
 fun RepetitionsButtons(reps: Repetitions) {
@@ -90,7 +90,7 @@ private fun RepetitionButton(repetitions: Int, onClick: (Int) -> Unit, size: Dp)
 @Composable
 @Preview(heightDp = 300)
 fun PreviewRepetitionButtons() {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     val reps = remember { Repetitions(8) }
     Column(Modifier.fillMaxSize()) {
       RepetitionsButtons(reps)
@@ -101,7 +101,7 @@ fun PreviewRepetitionButtons() {
 @Composable
 @Preview(heightDp = 150, widthDp = 75)
 fun PreviewSmallRepetitionButtons() {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     val reps = remember { Repetitions(8) }
     Column(Modifier.fillMaxSize()) {
       RepetitionsButtons(reps)

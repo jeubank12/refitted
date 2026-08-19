@@ -58,7 +58,7 @@ import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.state.recordsByExerciseId
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
@@ -471,7 +471,7 @@ fun PagerDetailView(
 @Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape", apiLevel = 36)
 @Composable
 private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     val records = remember { mutableStateListOf<Record>() }
     val currentRecord =
       remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }

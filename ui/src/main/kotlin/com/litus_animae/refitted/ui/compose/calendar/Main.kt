@@ -61,6 +61,7 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.AuthButton
 import com.litus_animae.refitted.ui.compose.Changelog
 import com.litus_animae.refitted.ui.compose.util.LoadingView
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +116,11 @@ fun Calendar(
   ModalNavigationDrawer(
     drawerState = drawerState,
     drawerContent = {
-      ModalDrawerSheet(drawerShape = MaterialTheme.shapes.medium) {
+      // Zero insets: the drawer's own header row already handles the status bar/cutout inset
+      // itself (see its windowInsetsPadding below) - ModalDrawerSheet's own default inset
+      // reservation just leaves a white gap above it since that reserved strip uses the sheet's
+      // surface color, not our header's background.
+      ModalDrawerSheet(drawerShape = MaterialTheme.shapes.medium, windowInsets = WindowInsets(0, 0, 0, 0)) {
         val workoutPlanPagingItems = workoutModel.workouts.collectAsLazyPagingItems()
         val workoutPlanError = workoutModel.workoutError
         LaunchedEffect(workoutPlanError) {
@@ -221,7 +226,7 @@ fun Calendar(
           windowInsets = TopAppBarDefaults.windowInsets.union(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
           ),
-          colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+          colors = appBarColors(),
           navigationIcon = {
             IconButton(
               {

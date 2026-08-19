@@ -95,7 +95,9 @@ fun RepsDisplay(
       else -> "${setWithRecord.reps}" to ""
     }
 
-    val typography = MaterialTheme.typography.displaySmall
+    // Shared by the NumberPicker digits, the static target-reps text, and RepsRangeStepper
+    // below - all three need to match, not just individually look right.
+    val typography = MaterialTheme.typography.displayMedium
     val currentRepsValue by reps.value
 
     Spacer(Modifier.weight(1f))

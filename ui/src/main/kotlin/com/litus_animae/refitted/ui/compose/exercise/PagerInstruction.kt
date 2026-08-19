@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Dp
@@ -62,7 +63,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
@@ -564,7 +565,7 @@ private fun ExerciseCard(
 @Preview(showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     val pagerState = rememberPagerState { 4 }
     PagerExerciseInstructions(
       instructions = IntArray(4) { 1 }.asList().map { _ ->
@@ -586,7 +587,7 @@ private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExercisePr
 @Preview(showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun PreviewPagerExerciseInstructionsWithAlternate() {
-  MaterialTheme(colorScheme = Theme.darkScheme) {
+  RefittedTheme(darkTheme = true) {
     val pagerState = rememberPagerState { 1 }
     val alternateSet = exampleExerciseSet.copy(step = "1.a", name = "B_Dumbbell Press")
     PagerExerciseInstructions(
@@ -618,10 +619,11 @@ private fun ExerciseInstructions(
   onDeleteExercise: (ExerciseSet) -> Unit = {},
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
-  // M2's LocalElevationOverlay auto-tinted elevated surfaces in dark mode; M3 has no equivalent
-  // concept here (tonal elevation on the Card itself, not this gradient overlay, is how M3
-  // expresses elevation-driven color) - the fade below just tracks the surface color directly.
-  val cardColor = MaterialTheme.colorScheme.surface
+  // Must match the actual Card's own container color (its M3 tonal default, not plain
+  // colorScheme.surface) or the gradient fades to a visibly different color than the card
+  // background it's sitting on - was fading to something close to black in dark mode before this
+  // tracked the real default.
+  val cardColor = CardDefaults.cardColors().containerColor
   // Hoisted (rather than collected only inside the LazyColumn item below) so the edit dialog can
   // show the same description without a second subscription.
   val exercise by (exerciseSet?.exercise ?: emptyFlow()).collectAsStateWithLifecycle(null)
@@ -645,11 +647,13 @@ private fun ExerciseInstructions(
       contentPadding = PaddingValues(bottom = 40.dp)
     ) {
       stickyHeader {
-        Surface(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        Surface(Modifier.fillMaxWidth().padding(bottom = 4.dp), color = cardColor) {
           Column {
             Text(
               text = exerciseSet?.exerciseName ?: "",
-              style = MaterialTheme.typography.headlineMedium
+              // M3's headlineMedium defaults to Regular weight; M2's h4 (what this replaced)
+              // read bolder at this size - bold explicitly to keep the exercise name prominent.
+              style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
             )
             if (exerciseSet != null) {
               val prescriptionText = buildPrescriptionText(exerciseSet)

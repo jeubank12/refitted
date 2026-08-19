@@ -71,6 +71,7 @@ import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.PlanKind
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.compose.AuthButton
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 
 private val muscleGroups = MuscleGroup.displayNames()
 
@@ -170,7 +171,7 @@ fun AddExerciseList(
       TopAppBar(
         title = { Text(title) },
         windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+        colors = appBarColors(),
         navigationIcon = {
           // There's no picker screen left to step back to - this closes the whole add-exercise
           // sheet, so it reads as "close" rather than "back".

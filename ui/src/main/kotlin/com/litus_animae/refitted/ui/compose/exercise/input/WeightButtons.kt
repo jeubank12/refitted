@@ -26,7 +26,7 @@ import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.util.ConstrainedButton
 import com.litus_animae.refitted.ui.compose.util.ConstrainedText
 import com.litus_animae.refitted.ui.compose.util.ConstrainedTextBox
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import java.text.DecimalFormat
 import kotlin.math.sign
 import kotlin.math.withSign
@@ -136,7 +136,7 @@ private fun WeightButton(weight: Double, onClick: (Double) -> Unit, size: Dp) {
 @Composable
 @Preview(heightDp = 300)
 fun PreviewWeightButtons() {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     val weight = remember { Weight(10.5) }
     Column(Modifier.fillMaxSize()) {
       WeightButtons(weight)
@@ -147,7 +147,7 @@ fun PreviewWeightButtons() {
 @Composable
 @Preview(heightDp = 150, widthDp = 250)
 fun PreviewSmallWeightButtons() {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     val weight = remember { Weight(10.5) }
     Column(Modifier.fillMaxSize()) {
       WeightButtons(weight)

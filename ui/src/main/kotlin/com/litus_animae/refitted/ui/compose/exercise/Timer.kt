@@ -22,7 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import java.time.Instant
 import kotlin.math.max
 import kotlin.math.min
@@ -165,7 +165,7 @@ class ElapsedMillisParameterProvider : PreviewParameterProvider<Int> {
 @Composable
 @Preview(widthDp = 800)
 fun PreviewTimer(@PreviewParameter(ElapsedMillisParameterProvider::class) elapsedMillis: Int) {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     DrawTimer(Modifier.fillMaxWidth(), 60000, { elapsedMillis }, countDown = false)
   }
 }
@@ -176,7 +176,7 @@ fun PreviewRunningTimer() {
   var running by remember { mutableStateOf(false) }
   val start = remember(running) { Instant.now() }
   var down by remember { mutableStateOf(false) }
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
       Timer(start, running, 15000, debugView = true, countDown = down)
       Row {

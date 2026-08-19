@@ -36,7 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.litus_animae.refitted.data.effort.EffortZone
 import com.litus_animae.refitted.ui.R
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import kotlin.math.sqrt
 
 /**
@@ -84,11 +85,11 @@ fun EffortChart(
   yLabels: List<Pair<Float, String>> = emptyList(),
   gapMarks: List<Float> = emptyList(),
   baseColor: Color = MaterialTheme.colorScheme.primary,
-  peakColor: Color = Theme.goodAttention,
-  punishedColor: Color = Theme.timerAmber,
-  coldColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
-  trendColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-  emphasisColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+  peakColor: Color = ExtendedTheme.colors.goodAttention.color,
+  punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
+  coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+  trendColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+  emphasisColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
   maxPointSize: Dp = if (compact) 16.dp else 30.dp,
   trendWidth: Dp = if (compact) 1.5.dp else 2.dp
@@ -136,7 +137,7 @@ fun EffortChart(
   val emphasisWidthPx = with(density) { EmphasisRingWidth.toPx() }
 
   val textMeasurer = rememberTextMeasurer()
-  val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+  val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
   val xLabelLayouts = remember(xLabels, labelStyle) {
     xLabels.map { (x, text) -> x to textMeasurer.measure(text, labelStyle) }
   }
@@ -153,7 +154,9 @@ fun EffortChart(
   val canvasModifier = if (compact) {
     modifier.padding(horizontal = 6.dp, vertical = 4.dp)
   } else {
-    modifier.padding(8.dp).defaultMinSize(100.dp, 100.dp)
+    modifier
+      .padding(8.dp)
+      .defaultMinSize(100.dp, 100.dp)
   }
 
   Canvas(canvasModifier) {
@@ -245,9 +248,9 @@ fun EffortChart(
 fun EffortLegend(
   modifier: Modifier = Modifier,
   baseColor: Color = MaterialTheme.colorScheme.primary,
-  peakColor: Color = Theme.goodAttention,
-  punishedColor: Color = Theme.timerAmber,
-  coldColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+  peakColor: Color = ExtendedTheme.colors.goodAttention.color,
+  punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
+  coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
 ) {
   FlowRow(
     modifier,
@@ -259,7 +262,10 @@ fun EffortLegend(
         Box(
           Modifier
             .size(8.dp)
-            .background(zoneColor(zone, baseColor, peakColor, punishedColor, coldColor), CircleShape)
+            .background(
+              zoneColor(zone, baseColor, peakColor, punishedColor, coldColor),
+              CircleShape
+            )
         )
         Text(stringResource(zoneLabelRes(zone)), style = MaterialTheme.typography.labelSmall)
       }
@@ -289,111 +295,145 @@ internal fun zoneColor(
   EffortZone.IMPLAUSIBLE -> punishedColor
 }
 
+private val darkTheme = false
+
 @Preview
 @Composable
 private fun PreviewEffortChartEmpty() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = emptyList()
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = emptyList()
+    )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartSinglePoint() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(EffortPoint(0f, 100f, 0.45f, EffortZone.COLD))
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(EffortPoint(0f, 100f, 0.45f, EffortZone.COLD))
+    )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartTwoSameDay() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 95f, 0.45f, EffortZone.COLD),
-      EffortPoint(0f, 100f, 0.45f, EffortZone.COLD)
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 95f, 0.45f, EffortZone.COLD),
+        EffortPoint(0f, 100f, 0.45f, EffortZone.COLD)
+      )
     )
-  )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartColdStartOnly() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
-      EffortPoint(1f, 95f, 0.45f, EffortZone.COLD)
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 95f, 0.45f, EffortZone.COLD)
+      )
     )
-  )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartLongHistoryWithSpike() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
-      EffortPoint(1f, 92f, 0.45f, EffortZone.COLD),
-      EffortPoint(2f, 95f, 0.45f, EffortZone.COLD),
-      EffortPoint(3f, 98f, 0.70f, EffortZone.ON_CURVE),
-      EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH),
-      EffortPoint(5f, 130f, 0.40f, EffortZone.IMPLAUSIBLE),
-      EffortPoint(6f, 103f, 0.60f, EffortZone.ON_CURVE),
-      EffortPoint(7f, 105f, 1.00f, EffortZone.GROWTH)
-    ),
-    trend = listOf(
-      listOf(3f to 96f, 4f to 98f, 5f to 100f, 6f to 101f, 7f to 103f)
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 92f, 0.45f, EffortZone.COLD),
+        EffortPoint(2f, 95f, 0.45f, EffortZone.COLD),
+        EffortPoint(3f, 98f, 0.70f, EffortZone.ON_CURVE),
+        EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH),
+        EffortPoint(5f, 130f, 0.40f, EffortZone.IMPLAUSIBLE),
+        EffortPoint(6f, 103f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(7f, 105f, 1.00f, EffortZone.GROWTH)
+      ),
+      trend = listOf(
+        listOf(3f to 96f, 4f to 98f, 5f to 100f, 6f to 101f, 7f to 103f)
+      )
     )
-  )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartEmphasizedNewest() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
-      EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
-      EffortPoint(2f, 98f, 0.85f, EffortZone.GROWTH, emphasized = true)
-    ),
-    gapMarks = listOf(0.5f, 1.5f),
-    yLabels = listOf(90f to "90", 98f to "98")
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(2f, 98f, 0.85f, EffortZone.GROWTH, emphasized = true)
+      ),
+      gapMarks = listOf(0.5f, 1.5f),
+      yLabels = listOf(90f to "90", 98f to "98")
+    )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartDashedTrendHandoff() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
-      EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
-      EffortPoint(2f, 98f, 0.60f, EffortZone.ON_CURVE),
-      EffortPoint(3f, 100f, 0.70f, EffortZone.ON_CURVE),
-      EffortPoint(4f, 103f, 0.85f, EffortZone.GROWTH)
-    ),
-    // The bootstrap (dashed) run hands off to the real (solid) run at x=2 - the solid
-    // segment should render cleanly over the dash where they overlap.
-    dashedTrend = listOf(listOf(1f to 94f, 2f to 97f)),
-    trend = listOf(listOf(2f to 97f, 3f to 99f, 4f to 101f))
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(2f, 98f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(3f, 100f, 0.70f, EffortZone.ON_CURVE),
+        EffortPoint(4f, 103f, 0.85f, EffortZone.GROWTH)
+      ),
+      // The bootstrap (dashed) run hands off to the real (solid) run at x=2 - the solid
+      // segment should render cleanly over the dash where they overlap.
+      dashedTrend = listOf(listOf(1f to 94f, 2f to 97f)),
+      trend = listOf(listOf(2f to 97f, 3f to 99f, 4f to 101f))
+    )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartFlatHistory() {
-  EffortChart(
-    Modifier.size(300.dp).background(Color.White),
-    points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.60f, EffortZone.ON_CURVE) },
-    trend = listOf((3..6).map { it.toFloat() to 100f })
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.60f, EffortZone.ON_CURVE) },
+      trend = listOf((3..6).map { it.toFloat() to 100f })
+    )
+  }
 }
 
 /** Regression check for the plot-rect inset: max-size bubbles sit at every domain corner and
@@ -401,8 +441,11 @@ private fun PreviewEffortChartFlatHistory() {
 @Preview
 @Composable
 private fun PreviewEffortChartCornerPoints() {
+  RefittedTheme(darkTheme = darkTheme) {
   EffortChart(
-    Modifier.size(300.dp).background(Color.White),
+    Modifier
+      .size(300.dp)
+      .background(MaterialTheme.colorScheme.surfaceContainer),
     points = listOf(
       EffortPoint(0f, 0f, 1.00f, EffortZone.GROWTH),
       EffortPoint(0f, 100f, 1.00f, EffortZone.GROWTH),
@@ -410,29 +453,38 @@ private fun PreviewEffortChartCornerPoints() {
       EffortPoint(10f, 100f, 1.00f, EffortZone.GROWTH)
     )
   )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortChartWithAxesAndGaps() {
-  EffortChart(
-    Modifier.size(340.dp, 220.dp).background(Color.White),
-    points = listOf(
-      EffortPoint(0f, 20f, 0.30f, EffortZone.COLD),
-      EffortPoint(1f, 20f, 0.30f, EffortZone.COLD),
-      EffortPoint(2f, 15f, 0.60f, EffortZone.ON_CURVE),
-      EffortPoint(3f, 35f, 0.85f, EffortZone.GROWTH),
-      EffortPoint(4f, 40f, 1.00f, EffortZone.GROWTH)
-    ),
-    trend = listOf(listOf(3f to 33f, 4f to 38f)),
-    gapMarks = listOf(1.5f, 2.5f),
-    xLabels = listOf(0f to "Nov '21", 2f to "Jan '23", 4f to "Jun '23"),
-    yLabels = listOf(15f to "15", 40f to "40")
-  )
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(340.dp, 220.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 20f, 0.30f, EffortZone.COLD),
+        EffortPoint(1f, 20f, 0.30f, EffortZone.COLD),
+        EffortPoint(2f, 15f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(3f, 35f, 0.85f, EffortZone.GROWTH),
+        EffortPoint(4f, 40f, 1.00f, EffortZone.GROWTH)
+      ),
+      trend = listOf(listOf(3f to 33f, 4f to 38f)),
+      gapMarks = listOf(1.5f, 2.5f),
+      xLabels = listOf(0f to "Nov '21", 2f to "Jan '23", 4f to "Jun '23"),
+      yLabels = listOf(15f to "15", 40f to "40")
+    )
+  }
 }
 
 @Preview
 @Composable
 private fun PreviewEffortLegend() {
-  EffortLegend(Modifier.background(Color.White).padding(8.dp))
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortLegend(Modifier
+      .background(MaterialTheme.colorScheme.surfaceContainer)
+      .padding(8.dp))
+  }
 }

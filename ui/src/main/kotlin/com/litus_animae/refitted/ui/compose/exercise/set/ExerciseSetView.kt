@@ -57,7 +57,7 @@ import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.Repetitions
 import com.litus_animae.refitted.ui.compose.state.Weight
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
@@ -455,7 +455,7 @@ private fun PreviewExerciseSetDetails(
       mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
     )
   ) {
-    MaterialTheme(colorScheme = Theme.lightScheme) {
+    RefittedTheme(darkTheme = false) {
       Column(
         Modifier
           .padding(16.dp)

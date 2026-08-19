@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,7 +46,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
+import com.litus_animae.refitted.ui.compose.util.tertiaryLight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -168,10 +171,13 @@ fun CircularRestTimer(
     }
   }
 
-  val primaryColor = MaterialTheme.colorScheme.primary
-  val amberColor = Theme.timerAmber
-  val successColor = Theme.goodAttention
-  val trackColor = Theme.timerTrack
+  val primaryColor = if (isSystemInDarkTheme()) tertiaryLight else MaterialTheme.colorScheme.primary
+  val primaryTextColor = MaterialTheme.colorScheme.primary
+  val amberColor = ExtendedTheme.colors.timerAmber.color
+  val successColor = ExtendedTheme.colors.goodAttention.color
+  // Muted track behind the arc - tied to onSurface so it reads correctly against both light and
+  // dark surfaces, rather than a fixed color that only worked on one.
+  val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
 
   Column(
     modifier = modifier.fillMaxSize(),
@@ -243,7 +249,7 @@ fun CircularRestTimer(
             Text(
               "${restSeconds}s",
               style = MaterialTheme.typography.headlineMedium,
-              color = primaryColor
+              color = primaryTextColor
             )
           }
           Text("rest", style = MaterialTheme.typography.labelSmall)
@@ -300,7 +306,7 @@ private class IdleFillRatioProvider : PreviewParameterProvider<Int> {
 fun PreviewCircularRestTimerIdle(
   @PreviewParameter(IdleFillRatioProvider::class) restSeconds: Int
 ) {
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     Card(Modifier.fillMaxSize()) {
       CircularRestTimer(
         restSeconds = restSeconds,
@@ -323,7 +329,7 @@ fun PreviewCircularRestTimerInteractive() {
   var restSeconds by remember { mutableIntStateOf(30) }
   val startedAt = remember(running) { Instant.now() }
 
-  MaterialTheme(colorScheme = Theme.lightScheme) {
+  RefittedTheme(darkTheme = false) {
     Card(Modifier.fillMaxSize()) {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(220.dp)) {

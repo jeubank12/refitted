@@ -45,7 +45,7 @@ import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
 import com.litus_animae.refitted.ui.compose.charts.zoneColor
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -214,8 +214,8 @@ fun SetTrendStrip(
                     zoneColor(
                       latestZone,
                       MaterialTheme.colorScheme.primary,
-                      Theme.goodAttention,
-                      Theme.timerAmber,
+                      ExtendedTheme.colors.goodAttention.color,
+                      ExtendedTheme.colors.timerAmber.color,
                       MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                     ),
                     CircleShape
