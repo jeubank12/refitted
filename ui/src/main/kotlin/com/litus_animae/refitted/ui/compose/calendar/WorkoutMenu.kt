@@ -131,7 +131,9 @@ fun ColumnScope.WorkoutPlanMenu(
     } else {
       items(
         count = plans.itemCount,
-        key = plans.itemKey { it.workout }
+        // it.id, not it.workout - a rename changes the display name and this row's sort
+        // position, but must stay the same Compose item (a move), not read as a delete+insert.
+        key = plans.itemKey { it.id }
       ) { index ->
         val plan = plans[index]
         if (plan != null) {
