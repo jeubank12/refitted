@@ -228,7 +228,7 @@ class WorkoutViewModel @Inject constructor(
       log.d(TAG, "Renaming custom workout $oldName to $newName")
       workoutPlanRepo.renameCustomPlan(oldName, newName).fold(
         onSuccess = {
-          if (_currentWorkout.value?.workout == oldName) {
+          if (currentWorkout.first()?.workout == oldName) {
             savedStateHandle[selectedPlan] = newName
             savedStateRepo.setState(selectedPlan, newName)
             workoutPlanRepo.workoutByName(newName).first()?.let { _currentWorkout.value = it }
