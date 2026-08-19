@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,7 +50,7 @@ import com.litus_animae.refitted.ui.models.ExerciseViewModel
  * Always the default screen; [SetRecordList] only appears once explicitly opened via the
  * History icon, or permanently alongside this pane at Medium+.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun ExerciseMainPane(
   day: String,
@@ -69,6 +71,10 @@ fun ExerciseMainPane(
   val weightSheetState = rememberModalBottomSheetState()
   var sheetWeight by remember { mutableStateOf(Weight(0.0)) }
   var contextMenu by remember { mutableStateOf<@Composable RowScope.(Boolean) -> Unit>({}) }
+  // Width-compact portrait phones have plenty of height and should keep the default bar - only
+  // shrink it when height is actually the scarce dimension, independent of showHistoryButton/
+  // bothPanesFit (which are width-only, see exercise/Main.kt).
+  val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
 
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
@@ -100,6 +106,11 @@ fun ExerciseMainPane(
         val collapsed = titlePx + alternatePx + fixedPx > availablePx
         TopAppBar(
           title = { Text(barTitle) },
+          // The default 64dp content height plus the status bar inset above it eats a real
+          // chunk of a short landscape window - shrink to something closer to Material2's
+          // actionBar height, the insets themselves are unaffected. Only when height is
+          // actually short - a portrait phone is width-compact too but has height to spare.
+          expandedHeight = if (compactHeight) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
           windowInsets = TopAppBarDefaults.windowInsets.union(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
           ),

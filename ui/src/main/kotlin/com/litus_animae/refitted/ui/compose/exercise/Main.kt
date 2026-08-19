@@ -82,9 +82,15 @@ fun Exercise(
   // Lands the pager on the exercise just added - consumed once by PagerExerciseView.
   var scrollToExerciseName by rememberSaveable { mutableStateOf<String?>(null) }
 
-  val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfo())
+  val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+  val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(windowAdaptiveInfo)
     .let { it.copy(horizontalPartitionSpacerSize = 0.dp) }
-  val bothPanesFit = directive.maxHorizontalPartitions >= 2
+  // maxHorizontalPartitions is width-only - a landscape phone is comfortably Medium+ width but
+  // short on height, so without this check both panes would show side by side and squeeze every
+  // card down to a quarter of the screen width. Require enough height too, same threshold the
+  // (deprecated but still present) WindowHeightSizeClass.MEDIUM cutoff used.
+  val bothPanesFit = directive.maxHorizontalPartitions >= 2 &&
+    windowAdaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(480)
   // The add-exercise picker only uses the Extra/Levitate role at Medium+ (a floating pane with
   // a scrim, docked over both other panes) - at Compact it's the existing full-screen
   // ModalBottomSheet instead, so Extra is never the destination there.
@@ -94,7 +100,11 @@ fun Exercise(
     else -> SupportingPaneScaffoldRole.Main
   }
   val scaffoldValue = calculateThreePaneScaffoldValue(
-    maxHorizontalPartitions = directive.maxHorizontalPartitions,
+    // Must agree with bothPanesFit - that's what showHistoryButton/showBackButton/the
+    // add-exercise picker's sheet-vs-pane choice are keyed off, so if this still allowed 2
+    // partitions on a short-height window, both panes would render anyway while those flags
+    // believed only one was showing (e.g. a back button with no pane transition to go back to).
+    maxHorizontalPartitions = if (bothPanesFit) directive.maxHorizontalPartitions else 1,
     // Supporting defaults to AdaptStrategy.Reflow(Main), which bleeds its content into Main's
     // pane when hidden instead of just disappearing - Hide is what a drawer-like on/off pane
     // needs. Extra defaults to Hide too - Levitate is what turns it into a floating overlay.

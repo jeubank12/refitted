@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -89,7 +91,7 @@ import kotlin.math.roundToInt
 private const val GapThresholdDays = 21L
 private const val MaxXLabels = 4
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun SetRecordList(
   modifier: Modifier = Modifier,
@@ -137,18 +139,32 @@ fun SetRecordList(
     expandedOverrides[day.toEpochDay()] ?: (day == sessions.firstOrNull()?.day)
 
   val barColors = appBarColors()
+  val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+  // Width-compact portrait phones have plenty of height and should keep the default bar - only
+  // shrink it when height is actually the scarce dimension, independent of isLandscape (which is
+  // about the chart/list split above, not this).
+  val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
   Scaffold(
     modifier = modifier,
     // Only the horizontal cutout inset - the session LazyColumn below already applies its own
     // navigationBars-bottom contentPadding, so including navigationBars here too would double
-    // it up.
-    contentWindowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+    // it up. And only in portrait: in landscape both the chart and list panes sit side by side,
+    // so reserving the full cutout width at this outer level double-reserves space that only one
+    // pane's edge actually needs.
+    contentWindowInsets = if (isLandscape) {
+      WindowInsets(0, 0, 0, 0)
+    } else {
+      WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+    },
     topBar = {
       TopAppBar(
         title = {
           // TODO localize
           Text("Set History")
         },
+        // Matches ExerciseMainPane's top bar height when both are short on height - a portrait
+        // phone is width-compact too but has height to spare, so keeps the default bar.
+        expandedHeight = if (compactHeight) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
         windowInsets = TopAppBarDefaults.windowInsets.union(
           WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
         ),
@@ -181,7 +197,7 @@ fun SetRecordList(
     // roughly that same absolute width, not 2/3 of a much wider screen) aren't the same
     // fraction - a landscape screen is wide enough that giving the chart a bigger share still
     // leaves the list at a comparable width to portrait's, rather than needlessly wide.
-    val chartSplitRatio = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+    val chartSplitRatio = if (isLandscape) {
       0.6f
     } else {
       1f / 3f
