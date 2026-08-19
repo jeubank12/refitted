@@ -99,6 +99,7 @@ fun ColumnScope.WorkoutPlanMenu(
           }
         }
       }
+      item { HorizontalDivider() }
     }
 
     if (workoutPlanError != null) {
@@ -134,9 +135,22 @@ fun ColumnScope.WorkoutPlanMenu(
       ) { index ->
         val plan = plans[index]
         if (plan != null) {
-          // Custom plans sort after server plans (see WorkoutPlanDao.pagingSource) - this is
-          // the transition into that section, so it only ever renders once.
+          // Custom plans sort after server plans (see WorkoutPlanDao.pagingSource) - these two
+          // checks are each the transition into their section, so they only ever render once.
           val previousPlan = if (index > 0) plans[index - 1] else null
+          if (!plan.isCustom && previousPlan == null) {
+            // TODO localize
+            Text(
+              "FEATURED WORKOUTS",
+              Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                  WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+                )
+                .padding(start = 10.dp, top = 10.dp, bottom = 4.dp),
+              style = MaterialTheme.typography.labelSmall
+            )
+          }
           if (plan.isCustom && previousPlan?.isCustom != true) {
             // TODO localize
             Text(
