@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -196,6 +199,43 @@ fun SetRecordList(
         contentAlignment = Alignment.Center
       ) {
         LoadingView()
+      }
+      return@Scaffold
+    }
+
+    // A permanently-mounted supporting pane (unlike a dismissable drawer) needs its own
+    // explanation for the zero-records case rather than an empty chart beside an empty list -
+    // on medium+ width this pane sits on screen the whole time a brand-new exercise is worked.
+    if (records.itemCount == 0 && appendDone) {
+      Box(
+        Modifier.fillMaxSize().padding(contentPadding),
+        contentAlignment = Alignment.Center
+      ) {
+        Column(
+          Modifier.padding(32.dp),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          Icon(
+            Icons.Default.History,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            modifier = Modifier.size(48.dp)
+          )
+          Text(
+            // TODO localize
+            "No sets logged yet",
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center
+          )
+          Text(
+            // TODO localize
+            "Complete a set to start building your history here",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+          )
+        }
       }
       return@Scaffold
     }
@@ -582,4 +622,24 @@ private fun PreviewSetRecordListEffortChartFewSessions() {
       SetHistory(flowOf(data))
     )
   }
+}
+
+@Preview
+@Composable
+private fun PreviewSetRecordListEmpty() {
+  val data = PagingData.empty<SetRecord>(
+    sourceLoadStates = LoadStates(
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true)
+    )
+  )
+
+  SetRecordList(
+    Modifier
+      .background(Color.White)
+      .height(500.dp)
+      .width(360.dp),
+    SetHistory(flowOf(data))
+  )
 }
