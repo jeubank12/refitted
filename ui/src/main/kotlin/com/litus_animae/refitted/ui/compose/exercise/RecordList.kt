@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -148,14 +149,8 @@ fun SetRecordList(
     modifier = modifier,
     // Only the horizontal cutout inset - the session LazyColumn below already applies its own
     // navigationBars-bottom contentPadding, so including navigationBars here too would double
-    // it up. And only in portrait: in landscape both the chart and list panes sit side by side,
-    // so reserving the full cutout width at this outer level double-reserves space that only one
-    // pane's edge actually needs.
-    contentWindowInsets = if (isLandscape) {
-      WindowInsets(0, 0, 0, 0)
-    } else {
-      WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-    },
+    // it up.
+    contentWindowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
     topBar = {
       TopAppBar(
         title = {
@@ -192,6 +187,19 @@ fun SetRecordList(
       )
     }
   ) { contentPadding ->
+    // A single spinner spanning the whole pane rather than one wedged into the list - the
+    // chart pane doesn't render at all yet during the initial load, so a list-only spinner left
+    // it looking broken beside an empty chart.
+    if (records.loadState.refresh is LoadState.Loading) {
+      Box(
+        Modifier.fillMaxSize().padding(contentPadding),
+        contentAlignment = Alignment.Center
+      ) {
+        LoadingView()
+      }
+      return@Scaffold
+    }
+
     // AdaptiveExercisePanes applies one ratio to both axes, but the list's good portrait
     // width (2/3 of a narrow screen) and its good landscape width (which only needs to stay
     // roughly that same absolute width, not 2/3 of a much wider screen) aren't the same
@@ -215,9 +223,11 @@ fun SetRecordList(
         // flush against the drawer edge or the header the way the list's Card rows don't
         // either - the elevated Card had no margin of its own in any orientation, most
         // visible in landscape where it touched both the header and the pane's bottom edge.
+        // windowInsetsPadding matches the list pane's own navigationBars-bottom protection below.
         Box(
           Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
             .padding(horizontal = 10.dp, vertical = 8.dp)
         ) {
           if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
@@ -259,31 +269,22 @@ fun SetRecordList(
           Modifier.fillMaxSize(),
           contentPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues()
         ) {
-          // TODO does this cause everything to recompose? Should we just overlay?
-          if (records.loadState.refresh is LoadState.Loading) {
+          items(sessions, key = { it.day.toEpochDay() }) { session ->
+            val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
+            SessionRow(
+              session = session,
+              isPR = scored != null && scored.capacity == bestCapacityOverall,
+              expanded = isExpanded(session.day),
+              onToggle = {
+                expandedOverrides = expandedOverrides +
+                  (session.day.toEpochDay() to !isExpanded(session.day))
+              }
+            )
+          }
+          if (records.loadState.append is LoadState.Loading) {
             item {
               Row(Modifier.fillMaxWidth()) {
                 LoadingView()
-              }
-            }
-          } else {
-            items(sessions, key = { it.day.toEpochDay() }) { session ->
-              val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
-              SessionRow(
-                session = session,
-                isPR = scored != null && scored.capacity == bestCapacityOverall,
-                expanded = isExpanded(session.day),
-                onToggle = {
-                  expandedOverrides = expandedOverrides +
-                    (session.day.toEpochDay() to !isExpanded(session.day))
-                }
-              )
-            }
-            if (records.loadState.append is LoadState.Loading) {
-              item {
-                Row(Modifier.fillMaxWidth()) {
-                  LoadingView()
-                }
               }
             }
           }
