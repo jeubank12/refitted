@@ -39,7 +39,6 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.litus_animae.refitted.ui.compose.exercise.add.AddExercisePanel
-import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
@@ -68,9 +67,7 @@ fun Exercise(
   LaunchedEffect(day, workoutId) {
     exerciseModel.loadExercises(day, workoutId)
   }
-  val (historyList, setHistoryList) = remember {
-    mutableStateOf(SetHistory())
-  }
+  val historyList by exerciseModel.setHistory.collectAsStateWithLifecycle()
   // True once the user explicitly opens history at Compact width - the pager is always the
   // default/home screen, this is only ever set by an explicit tap.
   var historyFocused by rememberSaveable { mutableStateOf(false) }
@@ -137,7 +134,7 @@ fun Exercise(
             editing = editing,
             loadedWorkoutPlan = loadedWorkoutPlan,
             exerciseModel = exerciseModel,
-            setHistoryList = { setHistoryList(it) },
+            setHistoryList = exerciseModel::setHistoryList,
             onAlternateChange = { workoutModel.setGlobalIndexIfEnabled(loadedWorkoutPlan, it) },
             onSetSaved = { workoutModel.alignToDayIfUnaligned(loadedWorkoutPlan, day.toIntOrNull() ?: 1) },
             showHistoryButton = !bothPanesFit,

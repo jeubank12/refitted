@@ -20,6 +20,7 @@ import com.litus_animae.refitted.data.models.Exercise
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.maybeZipWithNext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -357,6 +358,16 @@ class ExerciseViewModel @Inject constructor(
 
   fun selectMuscle(muscle: String) {
     _selectedMuscle.value = muscle
+  }
+
+  // Held here rather than remembered in the Set History composable so an Activity recreation
+  // (e.g. rotation) doesn't reset it to SetHistory()'s dead emptyFlow() default while the pane
+  // stays open around it.
+  private val _setHistory = MutableStateFlow(SetHistory())
+  val setHistory: StateFlow<SetHistory> = _setHistory.asStateFlow()
+
+  fun setHistoryList(history: SetHistory) {
+    _setHistory.value = history
   }
 
   // Keyed by (workout, muscle) - not workout alone - so switching muscle within one session
