@@ -6,10 +6,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -50,12 +53,18 @@ import kotlin.math.sqrt
  * One bubble to draw: [x] and [weight] in the caller's chosen domain, [size] in `[0, 1]`.
  * [emphasized] draws a ring around this bubble (e.g. "the set you just did") - false costs
  * nothing extra to draw.
+ *
+ * [zone] alone only buckets a set into 5 flat colors; [z] is the raw score behind it, so the
+ * dot can be colored continuously - how far above/below expectation, not just which bucket -
+ * matching the funnel band's own gradient instead of stepping between flat zone colors. `null`
+ * (no expectation yet, i.e. [EffortZone.COLD]) falls back to a flat [zone] color.
  */
 data class EffortPoint(
   val x: Float,
   val weight: Float,
   val size: Float,
   val zone: EffortZone,
+  val z: Double? = null,
   val emphasized: Boolean = false
 )
 
@@ -358,7 +367,8 @@ fun EffortChart(
       // Interpolating the squared diameter and taking the root keeps size proportional to area.
       val clampedSize = point.size.coerceIn(0f, 1f)
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
-      val color = zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
+      val color = point.z?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor) }
+        ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
       val center = Offset(px(point.x), py(point.weight))
       drawPoints(listOf(center), PointMode.Points, color, diameter, StrokeCap.Round)
       if (point.emphasized) {
@@ -434,6 +444,43 @@ internal fun zoneColor(
   EffortZone.ON_CURVE -> baseColor.copy(alpha = 0.85f)
   EffortZone.GROWTH -> peakColor
   EffortZone.IMPLAUSIBLE -> punishedColor
+}
+
+// Same z thresholds EffortModel.zoneOf buckets into zones (-1, 0.5, 2.0), plus a floor and
+// ceiling a bit beyond either end so a dot deep in BELOW/IMPLAUSIBLE still reads as fully
+// saturated rather than clamping right at the zone boundary. Colors at -1/0.5 intentionally
+// match zoneColor's BELOW/ON_CURVE alphas, so a continuously-colored dot sitting exactly on a
+// zone boundary looks the same as the discrete legend swatch for that zone.
+private const val EffortColorFloor = -2.0
+private const val EffortColorCeiling = 3.0
+
+/** Continuous version of [zoneColor] - where [z] falls between zone boundaries, not just which
+ * zone it's in, so a dot's color shows how far off expectation it is. `null` has no z-based
+ * color; callers fall back to [zoneColor] (COLD) instead. */
+internal fun effortColor(
+  z: Double,
+  baseColor: Color,
+  peakColor: Color,
+  punishedColor: Color,
+  coldColor: Color
+): Color {
+  val anchors = listOf(
+    EffortColorFloor to coldColor,
+    -1.0 to baseColor.copy(alpha = 0.55f),
+    0.5 to baseColor.copy(alpha = 0.85f),
+    2.0 to peakColor,
+    EffortColorCeiling to punishedColor
+  )
+  val clamped = z.coerceIn(EffortColorFloor, EffortColorCeiling)
+  for (i in 0 until anchors.size - 1) {
+    val (zLo, colorLo) = anchors[i]
+    val (zHi, colorHi) = anchors[i + 1]
+    if (clamped <= zHi) {
+      val t = if (zHi <= zLo) 0f else ((clamped - zLo) / (zHi - zLo)).toFloat()
+      return lerp(colorLo, colorHi, t)
+    }
+  }
+  return punishedColor
 }
 
 private val darkTheme = false
@@ -694,6 +741,26 @@ private fun PreviewEffortChartFunnelGradient() {
           bandMid = listOf(mid)
         )
       }
+    }
+  }
+}
+
+/** A row of dots spanning cold through implausible, at a fixed weight so only [EffortPoint.z]
+ * drives color - to tune [effortColor] against [zoneColor]'s legend swatches directly. */
+@Preview
+@Composable
+private fun PreviewEffortChartContinuousDotColor() {
+  RefittedTheme(darkTheme = darkTheme) {
+    Column {
+      EffortChart(
+        Modifier
+          .fillMaxWidth()
+          .height(160.dp)
+          .background(MaterialTheme.colorScheme.surfaceContainer),
+        points = listOf(-2.5, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.5)
+          .mapIndexed { index, z -> EffortPoint(index.toFloat(), 100f, 0.6f, EffortZone.ON_CURVE, z = z) }
+      )
+      EffortLegend(Modifier.padding(8.dp))
     }
   }
 }

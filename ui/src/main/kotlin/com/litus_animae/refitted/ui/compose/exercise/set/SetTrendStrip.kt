@@ -190,6 +190,7 @@ fun SetTrendStrip(
                 scored.source.weight.toFloat(),
                 EffortModel.repSize(scored.source.reps),
                 scored.zone,
+                z = scored.z,
                 emphasized = index == windowed.lastIndex
               )
             }

@@ -532,7 +532,8 @@ private fun EffortHistoryCard(
         sessionIndex.toFloat(),
         scored.source.weight.toFloat(),
         EffortModel.repSize(scored.source.reps),
-        scored.zone
+        scored.zone,
+        z = scored.z
       )
     }
   }
