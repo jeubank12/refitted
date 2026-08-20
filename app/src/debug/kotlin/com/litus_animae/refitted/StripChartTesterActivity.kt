@@ -220,7 +220,7 @@ private fun Stepper(label: String, value: String, onDecrement: () -> Unit, onInc
  * windowing/session-collapse behavior this activity exists to test on-device; see the
  * activity's kdoc.
  */
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 450)
 @Composable
 private fun PreviewStripChartTesterScreen() {
   RefittedTheme {
