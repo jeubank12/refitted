@@ -11,7 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.AdaptStrategy
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.LevitatedPaneScrim
@@ -88,7 +88,7 @@ fun Exercise(
   // Lands the pager on the exercise just added - consumed once by PagerExerciseView.
   var scrollToExerciseName by rememberSaveable { mutableStateOf<String?>(null) }
 
-  val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+  val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
   val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(windowAdaptiveInfo)
     .let { it.copy(horizontalPartitionSpacerSize = 0.dp) }
   // maxHorizontalPartitions is width-only - a landscape phone is comfortably Medium+ width but
@@ -260,6 +260,7 @@ fun Exercise(
  * (Medium+); only [onPicked]/[onClose]/[edgeToEdge] differ, since dismissing each host works
  * differently and only the sheet host actually reaches the screen edges.
  */
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Composable
 private fun AddExercisePickerContent(
   title: String,

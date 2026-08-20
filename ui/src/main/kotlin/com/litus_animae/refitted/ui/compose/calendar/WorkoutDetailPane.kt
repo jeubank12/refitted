@@ -44,6 +44,7 @@ import com.litus_animae.refitted.ui.compose.util.LoadingView
 import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.Instant
 
 /**
@@ -53,7 +54,7 @@ import java.time.Instant
  * permanently alongside this pane at Medium+. Sits to the right of [WorkoutPlanListPane]
  * ([ListDetailPaneScaffoldDefaults]'s pane order is List, Detail, Extra).
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalCoroutinesApi::class)
 @Composable
 fun WorkoutDetailPane(
   selectedWorkoutPlan: WorkoutPlan?,

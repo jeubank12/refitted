@@ -9,7 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldDefaults
@@ -93,7 +93,7 @@ fun Calendar(
   // Zero the built-in gutter - the two panes' own TopAppBars (matched in height/color) plus a
   // single hairline drawn at their shared boundary read as one continuous bar, which a visible
   // gutter would break apart into two separate-looking blocks.
-  val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+  val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
   val directive = calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(windowAdaptiveInfo)
     .let { it.copy(horizontalPartitionSpacerSize = 0.dp) }
   val focusedRole = if (planMenuOpen) ListDetailPaneScaffoldRole.List else ListDetailPaneScaffoldRole.Detail

@@ -28,7 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -173,7 +173,7 @@ fun SetRecordList(
   // Width-compact portrait phones have plenty of height and should keep the default bar - only
   // shrink it when height is actually the scarce dimension, independent of isLandscape (which is
   // about the chart/list split above, not this).
-  val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
+  val compactHeight = !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(480)
   Scaffold(
     modifier = modifier,
     // Only the horizontal cutout inset - the session LazyColumn below already applies its own

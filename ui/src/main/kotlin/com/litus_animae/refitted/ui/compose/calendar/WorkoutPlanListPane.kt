@@ -52,6 +52,7 @@ import com.litus_animae.refitted.ui.compose.AuthButton
 import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 
 /**
@@ -64,7 +65,7 @@ import kotlinx.coroutines.launch
  * [WorkoutDetailPane]'s bar height, with the refresh action and last-refreshed text moving
  * into the body instead.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalCoroutinesApi::class)
 @Composable
 fun WorkoutPlanListPane(
   modifier: Modifier = Modifier,

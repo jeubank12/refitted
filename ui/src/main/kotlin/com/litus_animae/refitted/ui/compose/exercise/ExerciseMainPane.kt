@@ -23,7 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +57,7 @@ import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.util.appBarColors
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
+import kotlinx.coroutines.FlowPreview
 
 /**
  * The Main side of the Exercise screen's Main/Supporting split: the exercise pager itself, plus
@@ -64,7 +65,7 @@ import com.litus_animae.refitted.ui.models.ExerciseViewModel
  * Always the default screen; [SetRecordList] only appears once explicitly opened via the
  * History icon, or permanently alongside this pane at Medium+.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class, FlowPreview::class)
 @Composable
 fun ExerciseMainPane(
   day: String,
@@ -92,7 +93,7 @@ fun ExerciseMainPane(
   // Width-compact portrait phones have plenty of height and should keep the default bar - only
   // shrink it when height is actually the scarce dimension, independent of showHistoryButton/
   // bothPanesFit (which are width-only, see exercise/Main.kt).
-  val compactHeight = !currentWindowAdaptiveInfo().windowSizeClass.isHeightAtLeastBreakpoint(480)
+  val compactHeight = !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(480)
   val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
   val splitTopBar = isLandscape && compactHeight
 
