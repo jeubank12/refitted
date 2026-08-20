@@ -40,6 +40,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
@@ -108,9 +109,17 @@ fun SetRecordList(
    * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
    * assuming a cutout affects whichever pane owns a given screen edge. */
   affectedByCutout: Boolean = true,
+  onUpdateRecord: (exercise: String, completed: Instant, weight: Double, reps: Int) -> Unit = { _, _, _, _ -> },
+  onDeleteRecord: (exercise: String, completed: Instant) -> Unit = { _, _ -> }
 ) {
   val records = history.paged.collectAsLazyPagingItems()
   val zone = remember { ZoneId.systemDefault() }
+
+  // Owned here, not per-SessionRow, since only one set can be under edit at a time across the
+  // whole drawer. Delete is a separate step from the edit dialog's own Delete button (see
+  // EditSetRecordDialog) - never fires directly from the edit form.
+  var editingRecord by remember { mutableStateOf<SetRecord?>(null) }
+  var confirmingDelete by remember { mutableStateOf<SetRecord?>(null) }
 
   // The oldest loaded session may be an arbitrary slice of Paging's page boundary rather
   // than the exercise's actual set count for that day - holding it back until pagination
@@ -351,7 +360,8 @@ fun SetRecordList(
               onToggle = {
                 expandedOverrides = expandedOverrides +
                   (session.day.toEpochDay() to !isExpanded(session.day))
-              }
+              },
+              onEditSet = { editingRecord = it }
             )
           }
           if (records.loadState.append is LoadState.Loading) {
@@ -362,6 +372,31 @@ fun SetRecordList(
             }
           }
         }
+      }
+    )
+  }
+
+  editingRecord?.let { record ->
+    EditSetRecordDialog(
+      record = record,
+      onDismissRequest = { editingRecord = null },
+      onSave = { weight, reps ->
+        onUpdateRecord(record.exercise, record.completed, weight, reps)
+        editingRecord = null
+      },
+      onDelete = {
+        confirmingDelete = record
+        editingRecord = null
+      }
+    )
+  }
+
+  confirmingDelete?.let { record ->
+    DeleteSetRecordConfirmDialog(
+      onDismissRequest = { confirmingDelete = null },
+      onConfirm = {
+        onDeleteRecord(record.exercise, record.completed)
+        confirmingDelete = null
       }
     )
   }
@@ -377,7 +412,8 @@ private fun SessionRow(
   session: SessionGroup,
   isPR: Boolean,
   expanded: Boolean,
-  onToggle: () -> Unit
+  onToggle: () -> Unit,
+  onEditSet: (SetRecord) -> Unit
 ) {
   val dayFormat = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
   val timeFormat = remember {
@@ -436,12 +472,24 @@ private fun SessionRow(
           Row(
             Modifier
               .fillMaxWidth()
-              .padding(horizontal = 12.dp, vertical = 8.dp),
+              .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
             Text(timeFormat.format(set.completed), style = MaterialTheme.typography.labelSmall)
             Text(set.reps.toString(), style = MaterialTheme.typography.bodyMedium)
             Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.bodyMedium)
+            IconButton(
+              onClick = { onEditSet(set) },
+              modifier = Modifier.size(32.dp)
+            ) {
+              Icon(
+                Icons.Default.Edit,
+                // TODO localize
+                "edit set",
+                modifier = Modifier.size(18.dp)
+              )
+            }
           }
         }
       }

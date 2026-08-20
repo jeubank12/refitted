@@ -179,7 +179,9 @@ fun Exercise(
             history = historyList,
             showBackButton = !bothPanesFit,
             affectedByCutout = supportingAffectedByCutout,
-            onBack = { historyFocused = false }
+            onBack = { historyFocused = false },
+            onUpdateRecord = exerciseModel::updateSetRecord,
+            onDeleteRecord = exerciseModel::deleteSetRecord
           )
         }
       },

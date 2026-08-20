@@ -206,6 +206,20 @@ class RoomCacheExerciseRepository @Inject constructor(
     log.d(TAG, "stored set record")
   }
 
+  // Called directly on the DAO rather than through setRecordSink, which is deliberately
+  // create-only (OnConflictStrategy.IGNORE) to keep watch-buffer replay from :garmin idempotent.
+  override suspend fun updateSetRecord(exercise: String, completed: Instant, weight: Double, reps: Int) {
+    withContext(Dispatchers.IO) {
+      refittedRoom.getExerciseDao().updateSetRecord(exercise, completed, weight, reps)
+    }
+  }
+
+  override suspend fun deleteSetRecord(exercise: String, completed: Instant) {
+    withContext(Dispatchers.IO) {
+      refittedRoom.getExerciseDao().deleteSetRecord(exercise, completed)
+    }
+  }
+
   override fun loadWorkoutRecords(workoutId: String) {
     currentWorkout.value = workoutId
   }
