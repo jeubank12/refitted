@@ -73,6 +73,7 @@ private val GapMarkDash = 4.dp
 private val EmphasisRingGap = 3.dp
 private val EmphasisRingWidth = 1.5.dp
 private val BandFadeInset = 4.dp
+private val FadeOutlineWidth = 1.dp
 
 /**
  * Effort-scored sets as bubbles (radius by rep count, color by demonstrated capacity vs.
@@ -184,6 +185,7 @@ fun EffortChart(
   val emphasisGapPx = with(density) { EmphasisRingGap.toPx() }
   val emphasisWidthPx = with(density) { EmphasisRingWidth.toPx() }
   val bandFadePx = with(density) { BandFadeInset.toPx() }
+  val fadeOutlinePx = with(density) { FadeOutlineWidth.toPx() }
 
   val textMeasurer = rememberTextMeasurer()
   val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
@@ -367,15 +369,25 @@ fun EffortChart(
       // Interpolating the squared diameter and taking the root keeps size proportional to area.
       val clampedSize = point.size.coerceIn(0f, 1f)
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
-      // Bubbles read as solid, unlike the funnel band behind them - force full opacity here
-      // rather than in effortColor/zoneColor themselves, since coldColor and the BELOW/ON_CURVE
-      // anchors are deliberately translucent for other uses (gap-mark lines, the legend).
-      val color = (
-        point.z?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor) }
-          ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
-        ).copy(alpha = 1f)
+      // Bubbles with a z-score read as solid, unlike the funnel band behind them - force full
+      // opacity here rather than in effortColor itself, whose below-on-curve anchors carry real
+      // white-blended RGB (not alpha) specifically so they stay visible once forced opaque. A
+      // COLD dot (no expectation yet, z null) has no such RGB fade - it keeps zoneColor's true
+      // alpha instead, since there's no band underneath it to fight for legibility against.
+      val color = point.z
+        ?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor).copy(alpha = 1f) }
+        ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
       val center = Offset(px(point.x), py(point.weight))
       drawPoints(listOf(center), PointMode.Points, color, diameter, StrokeCap.Round)
+      val outlineFade = point.z?.let { effortOutlineFade(it) } ?: EffortColdOutlineFade
+      if (outlineFade > 0f) {
+        drawCircle(
+          baseColor.copy(alpha = outlineFade * EffortOutlineMaxAlpha),
+          radius = diameter / 2f,
+          center = center,
+          style = Stroke(width = fadeOutlinePx)
+        )
+      }
       if (point.emphasized) {
         drawCircle(
           emphasisColor,
@@ -451,13 +463,39 @@ internal fun zoneColor(
   EffortZone.IMPLAUSIBLE -> punishedColor
 }
 
-// Same z thresholds EffortModel.zoneOf buckets into zones (-1, 0.5, 2.0), plus a floor and
-// ceiling a bit beyond either end so a dot deep in BELOW/IMPLAUSIBLE still reads as fully
-// saturated rather than clamping right at the zone boundary. Colors at -1/0.5 intentionally
-// match zoneColor's BELOW/ON_CURVE alphas, so a continuously-colored dot sitting exactly on a
-// zone boundary looks the same as the discrete legend swatch for that zone.
+// Same z thresholds EffortModel.zoneOf buckets into zones (0.5, 2.0), plus a floor and ceiling a
+// bit beyond either end so a dot deep in BELOW/IMPLAUSIBLE still reads as fully saturated rather
+// than clamping right at the zone boundary.
+//
+// Bubbles with a real z-score are forced fully opaque (see the caller in EffortChart) so they
+// stay legible over the funnel band - but zoneColor's BELOW/ON_CURVE only differ from baseColor
+// by *alpha* (same RGB), so forcing opacity used to collapse COLD/BELOW/ON_CURVE into one
+// indistinguishable flat color; nothing visibly changed until a dot reached peakColor or
+// punishedColor's genuinely different hue. Below on-curve, this fades real RGB toward white
+// instead of alpha (mirroring the funnel band's own "thins out toward the bottom edge" language,
+// just via lightness instead of transparency since these dots can't go transparent), so the
+// falloff below trend is visible immediately rather than only past an extreme threshold. Capped
+// below 100% white (EffortColorFloorWhiteMix) so even the floor stays visibly tinted, not
+// blending into a light background. One-sided: there's no analogous "too many reps" floor on the
+// overreach side, so punishedColor stays a flat endpoint as before.
 private const val EffortColorFloor = -2.0
 private const val EffortColorCeiling = 3.0
+private const val EffortColorFloorWhiteMix = 0.85f
+
+// A near-white dot has no contrast against a light card on its own - the outline drawn around
+// each bubble (see the caller in EffortChart) runs the fade in reverse: 0 alpha at/above
+// on-curve, strengthening toward EffortOutlineMaxAlpha as the fill nears the white floor. COLD
+// dots (no z yet) are always at that same muted starting point, so they always get the full
+// outline rather than computing a fraction that has nothing to interpolate against.
+private const val EffortOutlineMaxAlpha = 0.5f
+private const val EffortColdOutlineFade = 1f
+
+/** How much [effortColor] blended toward white at [z] - 1 at [EffortColorFloor], fading to 0 by
+ * the on-curve boundary. Used to drive the fade-reversing outline, not the fill itself. */
+private fun effortOutlineFade(z: Double): Float {
+  val clamped = z.coerceIn(EffortColorFloor, 0.5)
+  return 1f - ((clamped - EffortColorFloor) / (0.5 - EffortColorFloor)).toFloat()
+}
 
 /** Continuous version of [zoneColor] - where [z] falls between zone boundaries, not just which
  * zone it's in, so a dot's color shows how far off expectation it is. `null` has no z-based
@@ -470,9 +508,8 @@ internal fun effortColor(
   coldColor: Color
 ): Color {
   val anchors = listOf(
-    EffortColorFloor to coldColor,
-    -1.0 to baseColor.copy(alpha = 0.55f),
-    0.5 to baseColor.copy(alpha = 0.85f),
+    EffortColorFloor to lerp(coldColor, Color.White, EffortColorFloorWhiteMix),
+    0.5 to baseColor,
     2.0 to peakColor,
     EffortColorCeiling to punishedColor
   )
@@ -762,7 +799,7 @@ private fun PreviewEffortChartContinuousDotColor() {
           .fillMaxWidth()
           .height(160.dp)
           .background(MaterialTheme.colorScheme.surfaceContainer),
-        points = listOf(-2.5, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.5)
+        points = listOf(-2.5, -2.0, -1.5, -1.0, -0.75, -0.5, -0.25, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.5)
           .mapIndexed { index, z -> EffortPoint(index.toFloat(), 100f, 0.6f, EffortZone.ON_CURVE, z = z) }
       )
       EffortLegend(Modifier.padding(8.dp))
