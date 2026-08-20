@@ -182,6 +182,30 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("repSize")
+  inner class RepSize {
+    @Test
+    fun `scales linearly up to repCap`() {
+      val cap = EffortConfig.Default.repCap
+      assertThat(EffortModel.repSize(0)).isEqualTo(0f)
+      assertThat(EffortModel.repSize(cap / 2)).isEqualTo((cap / 2).toFloat() / cap)
+      assertThat(EffortModel.repSize(cap)).isEqualTo(1f)
+    }
+
+    @Test
+    fun `clamps at 1 past repCap`() {
+      val cap = EffortConfig.Default.repCap
+      assertThat(EffortModel.repSize(cap * 3)).isEqualTo(1f)
+    }
+
+    @Test
+    fun `never goes negative for zero or negative reps`() {
+      assertThat(EffortModel.repSize(0)).isEqualTo(0f)
+      assertThat(EffortModel.repSize(-1)).isEqualTo(0f)
+    }
+  }
+
+  @Nested
   @DisplayName("worked examples (spec table, curve at ĉ=133, s=10)")
   inner class WorkedExamples {
     private fun sizeFor(weight: Double, reps: Int): Float {

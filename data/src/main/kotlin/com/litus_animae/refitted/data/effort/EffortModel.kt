@@ -78,6 +78,16 @@ object EffortModel {
   fun weightForReps(capacity: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
     weightForEffectiveReps(capacity, effectiveReps(reps, config), config)
 
+  /**
+   * Reps mapped to `[0, 1]` for chart bubble size - a display-only alternative to [bubbleSize].
+   * Effort's z-score clusters most working sets near "on curve," so its bubble size barely
+   * varies across a real chart; reps vary far more per set and read as a visible size
+   * difference at a glance. [EffortConfig.repCap] is the natural ceiling already used to cap
+   * reps' contribution to capacity.
+   */
+  fun repSize(reps: Int, config: EffortConfig = EffortConfig.Default): Float =
+    (reps.toFloat() / config.repCap).coerceIn(0f, 1f)
+
   fun bubbleSize(z: Double?): Float {
     if (z == null) return NEUTRAL_SIZE
     if (z <= HUMP_ANCHORS.first().first) return HUMP_ANCHORS.first().second.toFloat()
