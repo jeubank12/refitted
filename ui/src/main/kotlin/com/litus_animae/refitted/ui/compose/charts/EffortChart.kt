@@ -111,6 +111,11 @@ fun EffortChart(
   compact: Boolean = false,
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
+  // A second set of y-axis labels drawn on the right edge instead of the left - for callers
+  // that want two independent y readings at once (e.g. observed min/max on the left, the
+  // funnel band's own extremes on the right) rather than merging them into one crowded list.
+  // Empty by default and costs nothing unused.
+  yLabelsRight: List<Pair<Float, String>> = emptyList(),
   gapMarks: List<Float> = emptyList(),
   baseColor: Color = MaterialTheme.colorScheme.primary,
   peakColor: Color = ExtendedTheme.colors.goodAttention.color,
@@ -195,8 +200,14 @@ fun EffortChart(
   val yLabelLayouts = remember(yLabels, labelStyle) {
     yLabels.map { (y, text) -> y to textMeasurer.measure(text, labelStyle) }
   }
+  val yLabelLayoutsRight = remember(yLabelsRight, labelStyle) {
+    yLabelsRight.map { (y, text) -> y to textMeasurer.measure(text, labelStyle) }
+  }
   val leftGutter = if (yLabelLayouts.isEmpty()) 0f else {
     yLabelLayouts.maxOf { it.second.size.width } + labelPaddingPx
+  }
+  val rightGutter = if (yLabelLayoutsRight.isEmpty()) 0f else {
+    yLabelLayoutsRight.maxOf { it.second.size.width } + labelPaddingPx
   }
   val bottomGutter = if (xLabelLayouts.isEmpty()) 0f else {
     xLabelLayouts.maxOf { it.second.size.height } + labelPaddingPx
@@ -219,7 +230,7 @@ fun EffortChart(
     // sits around this chart.
     val maxR = maxPx / 2f
     val plotLeft = (maxR + leftGutter).coerceAtMost(size.width / 2f)
-    val plotRight = (size.width - maxR).coerceAtLeast(plotLeft)
+    val plotRight = (size.width - maxR - rightGutter).coerceAtLeast(plotLeft)
     val plotTop = maxR.coerceAtMost(size.height / 2f)
     val plotBottom = (size.height - maxR - bottomGutter).coerceAtLeast(plotTop)
 
@@ -402,6 +413,12 @@ fun EffortChart(
       drawText(
         layout,
         topLeft = Offset(plotLeft - maxR - labelPaddingPx - layout.size.width, py(y) - layout.size.height / 2f)
+      )
+    }
+    yLabelLayoutsRight.forEach { (y, layout) ->
+      drawText(
+        layout,
+        topLeft = Offset(plotRight + maxR + labelPaddingPx, py(y) - layout.size.height / 2f)
       )
     }
     xLabelLayouts.forEach { (x, layout) ->

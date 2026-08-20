@@ -55,6 +55,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private val MinSlotWidth = 20.dp
@@ -205,11 +206,6 @@ fun SetTrendStrip(
               if (a.sessionIndex != b.sessionIndex) index + 0.5f else null
             }
           }
-          val yLabels = remember(points) {
-            val minWeight = points.minOf { it.weight }
-            val maxWeight = points.maxOf { it.weight }
-            listOf(minWeight, maxWeight).distinct().map { it to it.roundToInt().toString() }
-          }
           // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
           // beneath trend, so the dash itself is the only signal a segment is the coarser,
           // strip-only stand-in rather than the real session-based fit.
@@ -281,6 +277,41 @@ fun SetTrendStrip(
               )
             )
           }
+          // Left labels are the actually-observed extremes; right labels are the funnel's own
+          // extremes (heaviest 4-rep target, lightest low-anchor target) across the window - two
+          // independent y-readings rather than merging them into one crowded axis. When the two
+          // sides would land close enough to collide (a tight band hugging the data), the
+          // observed pair collapses to a single median point instead of fighting the gradient
+          // labels for the same pixels - the gradient extremes win since they're what makes the
+          // funnel's shape legible, and the median still says roughly where the actual sets sat.
+          val gradientMax = remember(bandTop) { bandTop.flatten().maxOfOrNull { it.second } }
+          val gradientMin = remember(bandBottom) { bandBottom.flatten().minOfOrNull { it.second } }
+          val observedMin = remember(points) { points.minOf { it.weight } }
+          val observedMax = remember(points) { points.maxOf { it.weight } }
+          val overlaps = remember(observedMin, observedMax, gradientMin, gradientMax) {
+            val domainMin = minOf(observedMin, gradientMin ?: observedMin)
+            val domainMax = maxOf(observedMax, gradientMax ?: observedMax)
+            val threshold = (domainMax - domainMin).coerceAtLeast(1f) * 0.12f
+            (gradientMax != null && abs(observedMax - gradientMax) < threshold) ||
+              (gradientMin != null && abs(observedMin - gradientMin) < threshold)
+          }
+          val yLabels = remember(points, observedMin, observedMax, overlaps) {
+            if (overlaps) {
+              val sortedWeights = points.map { it.weight }.sorted()
+              val mid = sortedWeights.size / 2
+              val median = if (sortedWeights.size % 2 == 0) {
+                (sortedWeights[mid - 1] + sortedWeights[mid]) / 2f
+              } else {
+                sortedWeights[mid]
+              }
+              listOf(median to median.roundToInt().toString())
+            } else {
+              listOf(observedMin, observedMax).distinct().map { it to it.roundToInt().toString() }
+            }
+          }
+          val yLabelsRight = remember(gradientMin, gradientMax) {
+            listOfNotNull(gradientMin, gradientMax).distinct().map { it to it.roundToInt().toString() }
+          }
           // Not split by expectationSource, matching bandTop/bandBottom's own "one shape
           // covers both SESSION and BOOTSTRAP" choice above - only positions the gradient's
           // midline stop, so it should track the same combined domain as the band itself
@@ -310,6 +341,7 @@ fun SetTrendStrip(
             bandBottom = bandBottom,
             bandMid = bandMid,
             yLabels = yLabels,
+            yLabelsRight = yLabelsRight,
             gapMarks = sessionGapMarks,
             compact = true
           )
