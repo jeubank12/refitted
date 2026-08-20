@@ -232,6 +232,24 @@ fun SetTrendStrip(
               }
             )
           }
+          // The funnel background, driven off each set's own expectation (the capacity value
+          // it was scored against) rather than expectedWeight - same source, converted at a
+          // literal heavy (4-rep) / light (15-rep) target instead of the fit's typical reps.
+          // One band shape covers both SESSION and BOOTSTRAP sets for now.
+          val bandTop = remember(windowed) {
+            buildTrendRuns(
+              windowed.mapIndexed { index, scored ->
+                index.toFloat() to scored.expectation?.let { EffortModel.weightForReps(it, 4) }
+              }
+            )
+          }
+          val bandBottom = remember(windowed) {
+            buildTrendRuns(
+              windowed.mapIndexed { index, scored ->
+                index.toFloat() to scored.expectation?.let { EffortModel.weightForReps(it, 15) }
+              }
+            )
+          }
           EffortChart(
             Modifier
               .fillMaxWidth()
@@ -239,6 +257,8 @@ fun SetTrendStrip(
             points = points,
             trend = realTrend,
             dashedTrend = bootstrapTrend,
+            bandTop = bandTop,
+            bandBottom = bandBottom,
             yLabels = yLabels,
             gapMarks = sessionGapMarks,
             compact = true

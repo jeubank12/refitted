@@ -537,6 +537,20 @@ private fun EffortHistoryCard(
   val trendRuns = remember(sortedEntries, expectedWeightBySession) {
     buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, expectedWeightBySession)
   }
+  // The funnel background: the weight range a session's fitted expectedCapacity implies at a
+  // heavy (4-rep) and a light (15-rep) target, connected with straight lines for now.
+  val bandTopBySession = remember(trend) {
+    trend.associateBy({ it.sessionIndex }, { EffortModel.weightForReps(it.expectedCapacity, 4) })
+  }
+  val bandBottomBySession = remember(trend) {
+    trend.associateBy({ it.sessionIndex }, { EffortModel.weightForReps(it.expectedCapacity, 15) })
+  }
+  val bandTopRuns = remember(sortedEntries, bandTopBySession) {
+    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, bandTopBySession)
+  }
+  val bandBottomRuns = remember(sortedEntries, bandBottomBySession) {
+    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, bandBottomBySession)
+  }
   val gapMarks = remember(sortedEntries) {
     sortedEntries.zipWithNext().mapNotNull { (a, b) ->
       if (b.value.dayOffset - a.value.dayOffset > GapThresholdDays) a.key + 0.5f else null
@@ -585,6 +599,8 @@ private fun EffortHistoryCard(
           .weight(1f),
         points = points,
         trend = trendRuns,
+        bandTop = bandTopRuns,
+        bandBottom = bandBottomRuns,
         xLabels = xLabels,
         yLabels = yLabels,
         gapMarks = gapMarks
