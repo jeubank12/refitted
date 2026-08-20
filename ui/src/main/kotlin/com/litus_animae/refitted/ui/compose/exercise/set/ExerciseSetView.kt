@@ -1,8 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise.set
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,10 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +55,7 @@ import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.Repetitions
 import com.litus_animae.refitted.ui.compose.state.Weight
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
@@ -74,8 +73,9 @@ private val EditStepperCardHeight = 80.dp
 private val StripPreferredHeight = 88.dp
 private val StripMinHeight = 64.dp
 
-// Crossfade key - only ever holds a resolved, non-empty trend, so a swap fades between two
-// real exercises' data rather than through a blank or merged frame.
+// Last-resolved trend per exercise, kept as-is (not cleared) across an exercise change so the
+// strip keeps showing the previous exercise's data until the new one's history round-trips
+// through Room instead of flashing empty in between.
 private data class ShownTrend(val exerciseId: String, val sets: List<EffortSet>)
 
 /**
@@ -102,6 +102,7 @@ fun ExerciseSetView(
   onUpdateCustomTargets: ((sets: Int, reps: Int, repsRange: Int) -> Unit)? = null,
   onOpenHistory: () -> Unit = {},
   watchSessionActive: Boolean = false,
+  reclaimBottomInset: Boolean = false,
 ) {
   Column(modifier) {
     ExerciseSetView(
@@ -121,6 +122,7 @@ fun ExerciseSetView(
       onUpdateCustomTargets = onUpdateCustomTargets,
       onOpenHistory = onOpenHistory,
       watchSessionActive = watchSessionActive,
+      reclaimBottomInset = reclaimBottomInset,
     )
   }
 }
@@ -145,6 +147,10 @@ fun ColumnScope.ExerciseSetView(
   onOpenHistory: () -> Unit = {},
   /** The watch owns rest display/countdown while a session is active - the phone suppresses its own. */
   watchSessionActive: Boolean = false,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so the button placement here always
+   * agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean = false,
 ) {
   val exerciseSet = setWithRecord.exerciseSet
   val currentRecord = setWithRecord.currentRecord
@@ -180,17 +186,52 @@ fun ColumnScope.ExerciseSetView(
   val saveWeight by weight.value
   val saveReps by reps.value
 
-  // Controls row: left = Weight + Reps | right = CircularRestTimer
+  val completeButton = @Composable {
+    CompleteExerciseSetButton(
+      Modifier,
+      onClick = {
+        if (!isTimerRunning) {
+          onSave(record.copy(weight = saveWeight, reps = saveReps))
+        }
+        if (!watchSessionActive && (effectiveRestSeconds > 0 || isTimerRunning)) {
+          if (onTimerToggle != null) {
+            onTimerToggle()
+          } else {
+            timerRunning.value = !isTimerRunning
+            timerStart.value = Instant.now()
+          }
+        }
+      },
+      setWithRecord.exerciseIncomplete,
+      exerciseSet.sets,
+      exerciseSet.reps(numCompleted),
+      saveReps,
+      exerciseSet.superSetStep,
+      numCompleted,
+      isTimerRunning,
+      watchSessionActive
+    )
+  }
+
+  if (reclaimBottomInset) {
+    completeButton()
+    Spacer(Modifier.height(8.dp))
+  }
+
+  // Controls row: left = Weight + Reps | right = CircularRestTimer. Both sides fillMaxHeight to
+  // the Row's own height, so both grow together when it's taller (e.g. reclaimBottomInset) -
+  // WeightDisplay and RepsDisplay both already center their content with flexible spacers, so
+  // neither needs to be capped to guard a fixed-position control.
   Row(Modifier.weight(3f)) {
     // Split the height evenly between the two cards, except the reps card may
     // not shrink below its own minimum (the 170.dp inside RepsDisplay) —
     // when space is tight the weight card absorbs the difference
     Layout(
       content = {
-        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
           WeightDisplay(onStartEditWeight, weight, saveWeight)
         }
-        Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+        Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
           RepsDisplay(
             setWithRecord,
             reps,
@@ -228,7 +269,7 @@ fun ColumnScope.ExerciseSetView(
       Modifier
         .weight(1f)
         .fillMaxHeight()
-        .padding(start = 8.dp),
+        .padding(start = 8.dp, bottom = 8.dp),
       contentAlignment = Alignment.Center
     ) {
       val stepperShown = editing && onUpdateCustomTargets != null
@@ -255,44 +296,42 @@ fun ColumnScope.ExerciseSetView(
       } else {
         null
       }
-      // Held across an exercise change so the strip doesn't collapse/re-expand while the next
-      // exercise's history round-trips through Room - same high-water-mark shape as
-      // compose/state/SetsRecords.kt's numCompletedHighWaterMark.
-      val lastHadTrend = remember { mutableStateOf(false) }
-      val hasTrend = effortSets?.isNotEmpty() ?: lastHadTrend.value
-      SideEffect { if (effortSets != null) lastHadTrend.value = effortSets.isNotEmpty() }
-
+      // Reflects the current exercise's data - real, empty/"locked", or (while effortSets is
+      // still null, mid-flow-transition) whatever the previous exercise last showed, so a pager
+      // swipe doesn't flash blank before the new exercise's history round-trips through Room.
+      // The strip's own presence is driven only by showStrip (layout/feature-flag) below, not by
+      // whether there's data yet, so it never animates in/out just because a set got logged.
       val shownTrend = remember { mutableStateOf<ShownTrend?>(null) }
       SideEffect {
-        if (!effortSets.isNullOrEmpty()) shownTrend.value = ShownTrend(exerciseSet.id, effortSets)
+        if (effortSets != null) shownTrend.value = ShownTrend(exerciseSet.id, effortSets)
       }
 
-      val stripVisible = showStrip && hasTrend
-
-      // Wraps its content instead of filling the row's height (which the Weight/Reps
-      // stack next to it doesn't fully occupy either) so it floats centered rather than
-      // stretching to an arbitrary bottom edge that never quite matched theirs.
-      Column(Modifier.fillMaxWidth()) {
+      // Wraps its content instead of filling the available height so it floats centered rather
+      // than stretching to an arbitrary bottom edge - except in the reclaim case, where the
+      // timer card below is meant to stretch into that space.
+      Column(
+        Modifier
+          .fillMaxWidth()
+          .then(if (reclaimBottomInset) Modifier.fillMaxHeight() else Modifier)
+      ) {
         AnimatedVisibility(
-          stripVisible,
+          showStrip,
           enter = fadeIn() + expandVertically(),
           exit = fadeOut() + shrinkVertically()
         ) {
           Column {
-            Crossfade(shownTrend.value, animationSpec = tween(180), label = "effortStrip") { trend ->
-              SetTrendStrip(
-                Modifier
-                  .fillMaxWidth()
-                  .height(stripHeight ?: StripPreferredHeight),
-                merged = trend?.sets.orEmpty(),
-                onClick = onOpenHistory
-              )
-            }
+            SetTrendStrip(
+              Modifier
+                .fillMaxWidth()
+                .height(stripHeight ?: StripPreferredHeight),
+              merged = shownTrend.value?.sets.orEmpty(),
+              onClick = onOpenHistory
+            )
             Spacer(Modifier.height(8.dp))
           }
         }
         if (stepperShown) {
-          Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = 2.dp) {
+          Card(Modifier.fillMaxWidth().height(EditStepperCardHeight), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
             Box(Modifier.padding(8.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
               // TODO localize
               TargetStepper(
@@ -307,7 +346,12 @@ fun ColumnScope.ExerciseSetView(
         // The watch shows its own rest countdown while a session is active - mounting this too
         // would just be a second, unsynced countdown.
         if (!watchSessionActive) {
-          Card(Modifier.fillMaxWidth(), elevation = 2.dp) {
+          Card(
+            Modifier
+              .fillMaxWidth()
+              .then(if (reclaimBottomInset) Modifier.weight(1f) else Modifier),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+          ) {
             CircularRestTimer(
               restSeconds = effectiveRestSeconds,
               isRunning = isTimerRunning,
@@ -315,8 +359,14 @@ fun ColumnScope.ExerciseSetView(
               // Grows the card instead of insetting the ring - CircularRestTimer's own square
               // fit (ringDp = min(w,h) - 16.dp) already reserves that same 16dp as its
               // horizontal margin, so matching top/bottom to it means giving the *box* 16dp
-              // more height, not padding down the ring's existing (correct) size.
-              modifier = Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp),
+              // more height, not padding down the ring's existing (correct) size. In the
+              // reclaim case the card's height comes from weight(1f) above instead of a fixed
+              // value, so fill it rather than fixing it again here.
+              modifier = if (reclaimBottomInset) {
+                Modifier.fillMaxWidth().fillMaxHeight()
+              } else {
+                Modifier.fillMaxWidth().height(RepsDisplayMinHeight + 16.dp)
+              },
               nextRestSeconds = nextRestSeconds,
               onAdjust = onRestOverrideChange,
               onFinish = {
@@ -332,8 +382,7 @@ fun ColumnScope.ExerciseSetView(
         }
       }
     }
-  }
-
+    }
   // Navigation row — kept for the legacy ExerciseView path, hidden in pager path
   if (showNavigationButtons) {
     Row(
@@ -385,30 +434,9 @@ fun ColumnScope.ExerciseSetView(
     }
   }
 
-  CompleteExerciseSetButton(
-    Modifier,
-    onClick = {
-      if (!isTimerRunning) {
-        onSave(record.copy(weight = saveWeight, reps = saveReps))
-      }
-      if (!watchSessionActive && (effectiveRestSeconds > 0 || isTimerRunning)) {
-        if (onTimerToggle != null) {
-          onTimerToggle()
-        } else {
-          timerRunning.value = !isTimerRunning
-          timerStart.value = Instant.now()
-        }
-      }
-    },
-    setWithRecord.exerciseIncomplete,
-    exerciseSet.sets,
-    exerciseSet.reps(numCompleted),
-    saveReps,
-    exerciseSet.superSetStep,
-    numCompleted,
-    isTimerRunning,
-    watchSessionActive
-  )
+  if (!reclaimBottomInset) {
+    completeButton()
+  }
 }
 
 private val previewRecentSets: List<SetRecord> = run {
@@ -454,7 +482,7 @@ private fun PreviewExerciseSetDetails(
       mapOf(ConfigProvider.Companion.Feature.RECORD_CHART_TYPE to "effort")
     )
   ) {
-    MaterialTheme(Theme.lightColors) {
+    RefittedTheme(darkTheme = false) {
       Column(
         Modifier
           .padding(16.dp)

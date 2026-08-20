@@ -9,17 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
-import androidx.compose.material.TextField
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -52,7 +51,7 @@ fun NewCustomWorkoutDialog(
       Column {
         Text(
           "You're creating your own workout plan from scratch. Give it a name — you'll add days and exercises from the calendar as you go.",
-          style = MaterialTheme.typography.body2
+          style = MaterialTheme.typography.bodyMedium
         )
         Spacer(Modifier.height(16.dp))
         TextField(
@@ -107,13 +106,16 @@ fun RenamePlanDialog(
           Spacer(Modifier.height(4.dp))
           Text(
             errorMessage,
-            color = MaterialTheme.colors.error,
-            style = MaterialTheme.typography.caption
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelSmall
           )
         }
       }
     },
-    buttons = {
+    // M3's AlertDialog has no raw "buttons" slot (M2's escape hatch for a custom button row) -
+    // this 3-button row (Delete/Cancel/Rename) goes entirely in confirmButton, dismissButton
+    // left unset.
+    confirmButton = {
       Row(
         Modifier
           .fillMaxWidth()
@@ -122,7 +124,7 @@ fun RenamePlanDialog(
       ) {
         TextButton(
           onClick = onDelete,
-          colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+          colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
           // TODO localize
           Text("Delete")
@@ -164,8 +166,8 @@ fun DeletePlanConfirmDialog(
       Button(
         onClick = onConfirm,
         colors = ButtonDefaults.buttonColors(
-          backgroundColor = MaterialTheme.colors.error,
-          contentColor = MaterialTheme.colors.onError
+          containerColor = MaterialTheme.colorScheme.error,
+          contentColor = MaterialTheme.colorScheme.onError
         )
       ) {
         // TODO localize
@@ -185,7 +187,7 @@ private fun DialogCancelButton(onClick: () -> Unit) {
   TextButton(
     onClick = onClick,
     colors = ButtonDefaults.textButtonColors(
-      contentColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+      contentColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
   ) {
     // TODO localize
@@ -214,7 +216,7 @@ fun CopyDayDialog(
       Column {
         Text(
           "Adds Day $newDayNumber with the same exercises as the day you pick below. Set and rep targets come from the sets you completed.",
-          style = MaterialTheme.typography.body2
+          style = MaterialTheme.typography.bodyMedium
         )
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -222,7 +224,7 @@ fun CopyDayDialog(
             onClick = { fromDay = (fromDay - 1).coerceAtLeast(1) },
             enabled = fromDay > 1
           ) { Icon(Icons.Default.Remove, "previous day") }
-          Text("Day $fromDay", style = MaterialTheme.typography.subtitle1)
+          Text("Day $fromDay", style = MaterialTheme.typography.titleMedium)
           IconButton(
             onClick = { fromDay = (fromDay + 1).coerceAtMost(totalDays) },
             enabled = fromDay < totalDays
@@ -256,12 +258,12 @@ fun DayEditDialog(
   // AlertDialog's title/text/buttons scaffold (sized for a couple of lines of prose plus a
   // button row) left a large empty gap below a short list of actions.
   Dialog(onDismissRequest = onDismissRequest) {
-    Surface(shape = MaterialTheme.shapes.medium, elevation = 24.dp) {
+    Surface(shape = MaterialTheme.shapes.medium, shadowElevation = 24.dp) {
       Column(Modifier.padding(top = 20.dp, bottom = 8.dp)) {
         // TODO localize
         Text(
           "Day $day",
-          style = MaterialTheme.typography.h6,
+          style = MaterialTheme.typography.titleLarge,
           modifier = Modifier.padding(horizontal = 24.dp)
         )
         Spacer(Modifier.height(12.dp))
@@ -311,6 +313,6 @@ private fun DayEditAction(label: String, onClick: () -> Unit) {
       .fillMaxWidth()
       .clickable(onClick = onClick)
       .padding(horizontal = 24.dp, vertical = 14.dp),
-    style = MaterialTheme.typography.body1
+    style = MaterialTheme.typography.bodyLarge
   )
 }

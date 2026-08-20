@@ -146,10 +146,9 @@ dependencies {
     implementation libs.firebase.analytics
     implementation libs.firebase.crashlytics
 
-    // Compose (Activity uses MaterialTheme, CompositionLocalProvider)
+    // Compose (Activity uses CompositionLocalProvider)
     implementation platform(libs.androidx.compose.bom)
     implementation libs.androidx.activity.compose
-    implementation libs.androidx.compose.material
     implementation libs.androidx.compose.runtime
 
     // Coroutines (used in repositories)

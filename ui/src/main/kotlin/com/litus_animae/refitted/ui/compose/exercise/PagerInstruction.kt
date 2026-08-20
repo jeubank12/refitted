@@ -22,16 +22,15 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.LocalAbsoluteElevation
-import androidx.compose.material.LocalElevationOverlay
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -54,6 +53,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.Dp
@@ -63,7 +63,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.nonEmptyListOf
 import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
@@ -372,8 +372,8 @@ fun PagerExerciseInstructions(
               .size(if (isActive) 10.dp else 6.dp)
               .clip(CircleShape)
               .background(
-                if (isActive) MaterialTheme.colors.primary
-                else MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                if (isActive) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
               )
           )
         }
@@ -542,7 +542,7 @@ private fun ExerciseCard(
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Card(modifier, elevation = elevation) {
+  Card(modifier, elevation = CardDefaults.cardElevation(defaultElevation = elevation)) {
     CompositionLocalProvider(LocalOverscrollFactory provides null) {
       // Each card self-serves its own progress from the records map — no reflow on swipe
       ExerciseInstructions(
@@ -565,7 +565,7 @@ private fun ExerciseCard(
 @Preview(showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     val pagerState = rememberPagerState { 4 }
     PagerExerciseInstructions(
       instructions = IntArray(4) { 1 }.asList().map { _ ->
@@ -587,7 +587,7 @@ private fun PreviewPagerExerciseInstructions(@PreviewParameter(ExampleExercisePr
 @Preview(showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun PreviewPagerExerciseInstructionsWithAlternate() {
-  MaterialTheme(Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     val pagerState = rememberPagerState { 1 }
     val alternateSet = exampleExerciseSet.copy(step = "1.a", name = "B_Dumbbell Press")
     PagerExerciseInstructions(
@@ -619,8 +619,11 @@ private fun ExerciseInstructions(
   onDeleteExercise: (ExerciseSet) -> Unit = {},
   onEditNote: (exerciseSet: ExerciseSet, note: String) -> Unit = { _, _ -> },
 ) {
-  val cardColor = LocalElevationOverlay.current?.apply(MaterialTheme.colors.surface, LocalAbsoluteElevation.current)
-    ?: MaterialTheme.colors.surface
+  // Must match the actual Card's own container color (its M3 tonal default, not plain
+  // colorScheme.surface) or the gradient fades to a visibly different color than the card
+  // background it's sitting on - was fading to something close to black in dark mode before this
+  // tracked the real default.
+  val cardColor = CardDefaults.cardColors().containerColor
   // Hoisted (rather than collected only inside the LazyColumn item below) so the edit dialog can
   // show the same description without a second subscription.
   val exercise by (exerciseSet?.exercise ?: emptyFlow()).collectAsStateWithLifecycle(null)
@@ -644,18 +647,20 @@ private fun ExerciseInstructions(
       contentPadding = PaddingValues(bottom = 40.dp)
     ) {
       stickyHeader {
-        Surface(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        Surface(Modifier.fillMaxWidth().padding(bottom = 4.dp), color = cardColor) {
           Column {
             Text(
               text = exerciseSet?.exerciseName ?: "",
-              style = MaterialTheme.typography.h4
+              // M3's headlineMedium defaults to Regular weight; M2's h4 (what this replaced)
+              // read bolder at this size - bold explicitly to keep the exercise name prominent.
+              style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
             )
             if (exerciseSet != null) {
               val prescriptionText = buildPrescriptionText(exerciseSet)
               Text(
                 text = prescriptionText,
-                style = MaterialTheme.typography.subtitle2,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 2.dp)
               )
             }
@@ -712,8 +717,8 @@ private fun ExerciseInstructions(
         Box(Modifier.weight(1f)) {
           Text(
             text = if (allSetsComplete) "All sets complete" else "Set ${numCompleted + 1} of ${exerciseSet.sets}",
-            style = MaterialTheme.typography.caption,
-            color = MaterialTheme.colors.primary,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.align(Alignment.Center)
           )
         }

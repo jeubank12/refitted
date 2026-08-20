@@ -4,8 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -66,7 +66,7 @@ fun RestTimer(
     val timerDisplayTime =
       if (isRunning) runningDisplayTime
       else String.format(localRestFormat, exerciseSet.rest.toFloat())
-    Text(timerDisplayTime, style = MaterialTheme.typography.h4)
+    Text(timerDisplayTime, style = MaterialTheme.typography.headlineMedium)
     AnimatedVisibility(isRunning || exerciseSet.rest > 0) {
       Timer(
         start,

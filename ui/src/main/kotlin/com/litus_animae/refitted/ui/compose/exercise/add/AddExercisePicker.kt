@@ -37,24 +37,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.AppBarDefaults
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.LocalContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +71,7 @@ import com.litus_animae.refitted.data.models.MuscleGroup
 import com.litus_animae.refitted.data.models.PlanKind
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.compose.AuthButton
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 
 private val muscleGroups = MuscleGroup.displayNames()
 
@@ -92,10 +91,12 @@ fun MuscleGroupPicker(
       .verticalScroll(rememberScrollState())
       .padding(16.dp)
   ) {
-    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-      // TODO localize
-      Text("Tap the muscle group to target", style = MaterialTheme.typography.body2)
-    }
+    // TODO localize
+    Text(
+      "Tap the muscle group to target",
+      style = MaterialTheme.typography.bodyMedium,
+      color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
     Spacer(Modifier.height(14.dp))
     BodyDiagram(selected = selected, onSelect = onSelect, modifier = Modifier.fillMaxWidth())
     Spacer(Modifier.height(14.dp))
@@ -127,6 +128,7 @@ private data class PickerSection(val name: String, val kind: PlanKind, val isRem
  * plan's exercises. The current [muscle] is shown as a tappable header ([onMuscleTap]) rather
  * than a plain title - it's a live filter now, not something picked on a screen before this one.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExerciseList(
   title: String,
@@ -148,6 +150,8 @@ fun AddExerciseList(
   onSignInSuccess: (GetCredentialResponse) -> Unit,
   onSignInFailure: (GetCredentialException) -> Unit,
   webClientId: String,
+  /** False when this is hosted as a small centered docked pane rather than a full-screen sheet - it never reaches a physical screen edge, so it shouldn't reserve display-cutout space. */
+  edgeToEdge: Boolean = true,
   modifier: Modifier = Modifier
 ) {
   val accessibleNames = accessibleWorkouts.map { it.workout }.toSet()
@@ -163,13 +167,19 @@ fun AddExerciseList(
   // run plus every program, a fully expanded list is more than fits on screen at once.
   var expandedWorkouts by rememberSaveable { mutableStateOf(setOf<String>()) }
   Scaffold(
-    contentWindowInsets = WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+    contentWindowInsets = WindowInsets.navigationBars.let {
+      if (edgeToEdge) it.union(WindowInsets.displayCutout) else it
+    },
     modifier = modifier,
     topBar = {
       TopAppBar(
         title = { Text(title) },
-        windowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-        backgroundColor = MaterialTheme.colors.primary,
+        windowInsets = if (edgeToEdge) {
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+        } else {
+          WindowInsets(0, 0, 0, 0)
+        },
+        colors = appBarColors(),
         navigationIcon = {
           // There's no picker screen left to step back to - this closes the whole add-exercise
           // sheet, so it reads as "close" rather than "back".
@@ -182,7 +192,7 @@ fun AddExerciseList(
               Modifier
                 .padding(12.dp)
                 .size(20.dp),
-              color = MaterialTheme.colors.onPrimary,
+              color = MaterialTheme.colorScheme.onPrimary,
               strokeWidth = 2.dp
             )
           } else {
@@ -198,7 +208,11 @@ fun AddExerciseList(
       if (authedEmail == null) {
         AuthButton(
           Modifier
-            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
+            .windowInsetsPadding(
+              WindowInsets.navigationBars.let {
+                if (edgeToEdge) it.union(WindowInsets.displayCutout) else it
+              }
+            )
             .padding(16.dp),
           handleAuthSuccess = onSignInSuccess,
           handleAuthFailure = onSignInFailure,
@@ -218,16 +232,15 @@ fun AddExerciseList(
         val workout = section.name
         if (index == firstProgramIndex && index > 0) {
           item(key = "kind-divider") {
-            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
-              // TODO localize
-              Text(
-                "— programs —",
-                Modifier
-                  .fillMaxWidth()
-                  .padding(start = 10.dp, top = 18.dp, bottom = 2.dp),
-                style = MaterialTheme.typography.overline
-              )
-            }
+            // TODO localize
+            Text(
+              "— programs —",
+              Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, top = 18.dp, bottom = 2.dp),
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.outline
+            )
           }
         }
         // Custom plans have no remote catalog of their own (see the KDoc above) - only ever
@@ -274,12 +287,14 @@ fun AddExerciseList(
                   .padding(4.dp)
                   .rotate(rotation)
               )
-              Text(workout, style = MaterialTheme.typography.overline)
+              Text(workout, style = MaterialTheme.typography.labelSmall)
               if (knowsCount) {
                 Spacer(Modifier.width(6.dp))
-                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-                  Text(exercises.size.toString(), style = MaterialTheme.typography.overline)
-                }
+                Text(
+                  exercises.size.toString(),
+                  style = MaterialTheme.typography.labelSmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
               }
             }
             if (isRemoteSource) {
@@ -324,21 +339,20 @@ fun AddExerciseList(
               verticalAlignment = Alignment.CenterVertically
             ) {
               // TODO localize
-              Text("Refresh to load", style = MaterialTheme.typography.button)
+              Text("Refresh to load", style = MaterialTheme.typography.labelLarge)
             }
           }
 
           exercises.isEmpty() -> item(key = "empty:$workout") {
-            CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.disabled) {
-              // TODO localize
-              Text(
-                "No $muscle exercises",
-                Modifier
-                  .fillMaxWidth()
-                  .padding(start = 10.dp, bottom = 10.dp),
-                style = MaterialTheme.typography.body2
-              )
-            }
+            // TODO localize
+            Text(
+              "No $muscle exercises",
+              Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, bottom = 10.dp),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.outline
+            )
           }
 
           else -> items(exercises, key = { "exercise:${it.workout}:${it.id}" }) { exercise ->
@@ -350,10 +364,10 @@ fun AddExerciseList(
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
-              Text(exercise.name ?: exercise.id, style = MaterialTheme.typography.button)
-              Icon(Icons.Default.Add, "add ${exercise.name}", tint = MaterialTheme.colors.primary)
+              Text(exercise.name ?: exercise.id, style = MaterialTheme.typography.labelLarge)
+              Icon(Icons.Default.Add, "add ${exercise.name}", tint = MaterialTheme.colorScheme.primary)
             }
-            Divider()
+            HorizontalDivider()
           }
         }
       }
@@ -373,24 +387,27 @@ private fun SelectedMuscleHeader(muscle: String, onClick: () -> Unit) {
       verticalAlignment = Alignment.CenterVertically
     ) {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-          // TODO localize
-          Text("Target muscle", style = MaterialTheme.typography.overline)
-        }
+        // TODO localize
+        Text(
+          "Target muscle",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.width(8.dp))
-        Text(muscle, style = MaterialTheme.typography.subtitle1)
+        Text(muscle, style = MaterialTheme.typography.titleMedium)
       }
       Icon(Icons.Default.ExpandMore, contentDescription = null)
     }
-    Divider()
+    HorizontalDivider()
   }
 }
 
 /**
  * Combines [AddExerciseList] with an [AnimatedVisibility] overlay of [MuscleGroupPicker] -
- * a plain `Box` overlay rather than a second nested `ModalBottomSheetLayout`, so its swipe/anchor
- * math never runs against an already-clamped outer sheet (see ui/CLAUDE.md's guidance on hosting
- * overlays in an unclipped ancestor instead of layering more sheet/Popup machinery). System/gesture
+ * a plain `Box` overlay rather than a second nested `ModalBottomSheet`, so its swipe/anchor math
+ * never runs against an already-clamped outer sheet, and it doesn't need a second Popup window
+ * stacked on the outer sheet's own (see ui/CLAUDE.md's guidance on hosting overlays in an
+ * unclipped ancestor instead of layering more sheet/Popup machinery). System/gesture
  * back closes just the picker first via the [BackHandler] below, which - because it only composes
  * while [pickingMuscle] is true, itself nested inside the outer sheet's own content - registers
  * (and so takes priority) after that sheet's own built-in back handling.
@@ -413,6 +430,8 @@ fun AddExercisePanel(
   onSignInSuccess: (GetCredentialResponse) -> Unit,
   onSignInFailure: (GetCredentialException) -> Unit,
   webClientId: String,
+  /** False when this is hosted as a small centered docked pane rather than a full-screen sheet - it never reaches a physical screen edge, so it shouldn't reserve display-cutout space. */
+  edgeToEdge: Boolean = true,
   modifier: Modifier = Modifier
 ) {
   var pickingMuscle by rememberSaveable { mutableStateOf(false) }
@@ -436,7 +455,8 @@ fun AddExercisePanel(
       authedEmail = authedEmail,
       onSignInSuccess = onSignInSuccess,
       onSignInFailure = onSignInFailure,
-      webClientId = webClientId
+      webClientId = webClientId,
+      edgeToEdge = edgeToEdge
     )
     AnimatedVisibility(
       visible = pickingMuscle,
@@ -453,7 +473,7 @@ fun AddExercisePanel(
             verticalAlignment = Alignment.CenterVertically
           ) {
             // TODO localize
-            Text("Target muscle", style = MaterialTheme.typography.h6)
+            Text("Target muscle", style = MaterialTheme.typography.titleLarge)
             IconButton(onClick = { pickingMuscle = false }) {
               Icon(Icons.Default.Close, "close")
             }
@@ -476,15 +496,15 @@ fun AddExercisePanel(
 private fun MuscleChip(label: String, selected: Boolean, onClick: () -> Unit) {
   Surface(
     shape = RoundedCornerShape(16.dp),
-    color = if (selected) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
-    contentColor = if (selected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface,
+    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+    contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
     border = if (selected) null else BorderStroke(
       1.dp,
-      MaterialTheme.colors.onSurface.copy(alpha = 0.23f)
+      MaterialTheme.colorScheme.onSurface.copy(alpha = 0.23f)
     ),
     modifier = Modifier.clickable(onClick = onClick)
   ) {
-    Text(label, Modifier.padding(horizontal = 14.dp, vertical = 6.dp), style = MaterialTheme.typography.body2)
+    Text(label, Modifier.padding(horizontal = 14.dp, vertical = 6.dp), style = MaterialTheme.typography.bodyMedium)
   }
 }
 
@@ -545,13 +565,13 @@ private fun BodyDiagram(selected: String, onSelect: (String) -> Unit, modifier: 
       BodyFigure(frontBodyParts, selected, onSelect)
       Spacer(Modifier.height(8.dp))
       // TODO localize
-      Text("FRONT", style = MaterialTheme.typography.overline)
+      Text("FRONT", style = MaterialTheme.typography.labelSmall)
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
       BodyFigure(backBodyParts, selected, onSelect)
       Spacer(Modifier.height(8.dp))
       // TODO localize
-      Text("BACK", style = MaterialTheme.typography.overline)
+      Text("BACK", style = MaterialTheme.typography.labelSmall)
     }
   }
 }
@@ -571,13 +591,13 @@ private fun BodyFigure(parts: List<BodyPart>, selected: String, onSelect: (Strin
             } else base
           }
           .background(
-            if (isSelected) MaterialTheme.colors.primary
-            else MaterialTheme.colors.onSurface.copy(alpha = 0.14f),
+            if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
             part.shape
           )
           .let { base ->
             if (isSelected) {
-              base.border(2.dp, MaterialTheme.colors.primary.copy(alpha = 0.4f), part.shape)
+              base.border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), part.shape)
             } else base
           }
       )

@@ -16,7 +16,12 @@ data class WorkoutPlan(
   val globalAlternateLabels: List<String> = emptyList(),
   val globalAlternate: Int? = null,
   val isCustom: Boolean = false,
-  val kind: PlanKind = PlanKind.PROGRAM
+  val kind: PlanKind = PlanKind.PROGRAM,
+  // Stable identity independent of `workout` - a rename changes the display name but must not
+  // change which row a UI list item's Compose key resolves to. Defaults to `workout` so every
+  // existing call site (network deserialization, previews, tests) is unaffected; only a
+  // persisted, already-created row can carry an `id` that differs from its current name.
+  val id: String = workout
 )
 
 /**

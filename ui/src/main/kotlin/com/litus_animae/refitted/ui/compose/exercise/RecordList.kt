@@ -20,28 +20,37 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AppBarDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -75,7 +85,8 @@ import com.litus_animae.refitted.ui.compose.charts.LineChart
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.util.LoadingView
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.appBarColors
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 import java.time.LocalDate
@@ -87,10 +98,17 @@ import kotlin.math.roundToInt
 private const val GapThresholdDays = 21L
 private const val MaxXLabels = 4
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun SetRecordList(
   modifier: Modifier = Modifier,
   history: SetHistory,
+  showBackButton: Boolean = false,
+  onBack: () -> Unit = {},
+  /** Whether a display cutout's actual bounds overlap this pane - see exercise/Main.kt, which
+   * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
+   * assuming a cutout affects whichever pane owns a given screen edge. */
+  affectedByCutout: Boolean = true,
   onUpdateRecord: (exercise: String, completed: Instant, weight: Double, reps: Int) -> Unit = { _, _, _, _ -> },
   onDeleteRecord: (exercise: String, completed: Instant) -> Unit = { _, _ -> }
 ) {
@@ -119,13 +137,24 @@ fun SetRecordList(
     }
   }
 
-  val sessions = remember(retained) {
-    retained.groupBy { it.completed.atZone(zone).toLocalDate() }
+  // Swiping the exercise pager points [history] at a brand-new paging flow, which restarts
+  // collectAsLazyPagingItems() from a Loading refresh - holding the previous exercise's
+  // retained rows until the new source's first page actually lands keeps the chart/list from
+  // blanking to a spinner on every swipe.
+  val isRefreshing = records.loadState.refresh is LoadState.Loading
+  val shownRetained = remember { mutableStateOf(retained) }
+  SideEffect {
+    if (!isRefreshing) shownRetained.value = retained
+  }
+  val displayRetained = if (isRefreshing) shownRetained.value else retained
+
+  val sessions = remember(displayRetained) {
+    displayRetained.groupBy { it.completed.atZone(zone).toLocalDate() }
       .map { (day, sets) -> SessionGroup(day, sets.sortedBy { it.completed }) }
   }
-  val series = remember(retained) { EffortModel.score(retained.map { it.toEffortSet() }) }
-  val sessionIndexByDay = remember(retained) {
-    retained.map { it.completed.atZone(zone).toLocalDate() }.distinct().sorted()
+  val series = remember(displayRetained) { EffortModel.score(displayRetained.map { it.toEffortSet() }) }
+  val sessionIndexByDay = remember(displayRetained) {
+    displayRetained.map { it.completed.atZone(zone).toLocalDate() }.distinct().sorted()
       .withIndex().associate { (i, day) -> day to i }
   }
   val bestBySessionIndex = remember(series) {
@@ -139,34 +168,118 @@ fun SetRecordList(
   fun isExpanded(day: LocalDate) =
     expandedOverrides[day.toEpochDay()] ?: (day == sessions.firstOrNull()?.day)
 
-  Column(modifier.fillMaxSize()) {
-    Row(
-      Modifier
-        .fillMaxWidth()
-        .background(MaterialTheme.colors.primary)
-        .windowInsetsPadding(
-          AppBarDefaults.topAppBarWindowInsets.union(
-            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
-          )
-        )
-        .padding(start = 10.dp, bottom = 10.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-      // TODO localize
-      Text(
-        "Set History", style = MaterialTheme.typography.h6, color = contentColorFor(
-          backgroundColor = MaterialTheme.colors.primary
-        )
-      )
-      IconButton({ records.refresh() }) {
-        Icon(
-          Icons.Default.Refresh,
+  val barColors = appBarColors()
+  val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+  // Width-compact portrait phones have plenty of height and should keep the default bar - only
+  // shrink it when height is actually the scarce dimension, independent of isLandscape (which is
+  // about the chart/list split above, not this).
+  val compactHeight = !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(480)
+  Scaffold(
+    modifier = modifier,
+    // Only the horizontal cutout inset - the session LazyColumn below already applies its own
+    // navigationBars-bottom contentPadding, so including navigationBars here too would double
+    // it up. Gated by affectedByCutout - a cutout over ExerciseMainPane's pane instead shouldn't
+    // cost this pane any width for it.
+    contentWindowInsets = if (affectedByCutout) {
+      WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+    } else {
+      WindowInsets(0, 0, 0, 0)
+    },
+    topBar = {
+      TopAppBar(
+        title = {
           // TODO localize
-          "refresh",
-          tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
-        )
+          Text("Set History")
+        },
+        // Matches ExerciseMainPane's top bar height when both are short on height - a portrait
+        // phone is width-compact too but has height to spare, so keeps the default bar.
+        expandedHeight = if (compactHeight) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
+        windowInsets = TopAppBarDefaults.windowInsets.union(
+          if (affectedByCutout) {
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          } else {
+            WindowInsets(0, 0, 0, 0)
+          }
+        ),
+        colors = barColors,
+        navigationIcon = {
+          if (showBackButton) {
+            IconButton(onBack) {
+              Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                // TODO localize
+                "back to exercise"
+              )
+            }
+          }
+        },
+        actions = {
+          Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            IconButton({ records.refresh() }) {
+              Icon(
+                Icons.Default.Refresh,
+                // TODO localize
+                "refresh"
+              )
+            }
+            if (isRefreshing) {
+              CircularProgressIndicator(Modifier.size(40.dp), strokeWidth = 2.dp)
+            }
+          }
+        }
+      )
+    }
+  ) { contentPadding ->
+    // A single spinner spanning the whole pane rather than one wedged into the list - the
+    // chart pane doesn't render at all yet during the initial load, so a list-only spinner left
+    // it looking broken beside an empty chart. Only for the genuine first load though - once
+    // shownRetained holds a previous exercise's rows, fall through and keep showing those
+    // instead of blanking to a spinner on every pager swipe.
+    if (isRefreshing && shownRetained.value.isEmpty()) {
+      Box(
+        Modifier.fillMaxSize().padding(contentPadding),
+        contentAlignment = Alignment.Center
+      ) {
+        LoadingView()
       }
+      return@Scaffold
+    }
+
+    // A permanently-mounted supporting pane (unlike a dismissable drawer) needs its own
+    // explanation for the zero-records case rather than an empty chart beside an empty list -
+    // on medium+ width this pane sits on screen the whole time a brand-new exercise is worked.
+    if (displayRetained.isEmpty() && appendDone) {
+      Box(
+        Modifier.fillMaxSize().padding(contentPadding),
+        contentAlignment = Alignment.Center
+      ) {
+        Column(
+          Modifier.padding(32.dp),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          Icon(
+            Icons.Default.History,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            modifier = Modifier.size(48.dp)
+          )
+          Text(
+            // TODO localize
+            "No sets logged yet",
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center
+          )
+          Text(
+            // TODO localize
+            "Complete a set to start building your history here",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+          )
+        }
+      }
+      return@Scaffold
     }
 
     // AdaptiveExercisePanes applies one ratio to both axes, but the list's good portrait
@@ -174,34 +287,29 @@ fun SetRecordList(
     // roughly that same absolute width, not 2/3 of a much wider screen) aren't the same
     // fraction - a landscape screen is wide enough that giving the chart a bigger share still
     // leaves the list at a comparable width to portrait's, rather than needlessly wide.
-    val chartSplitRatio = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+    val chartSplitRatio = if (isLandscape) {
       0.6f
     } else {
       1f / 3f
     }
 
     // Chart left / list right in landscape, chart top / list bottom in portrait - reuses the
-    // same reflow PagerExercise.kt uses for its instructions/set-detail split. In landscape a
-    // side-mounted camera cutout lands on whichever pane sits at that edge, so this needs the
-    // same horizontal cutout inset the header above already applies to itself - unlike the
-    // header, there's no app bar to carry it, so it's applied directly here. The chart pane
-    // must always emit exactly one composable (AdaptiveExercisePanes measures first() and
-    // second() as one child each), so the flag/empty-state branches below are wrapped in one
-    // outer Box rather than conditionally emitting nothing.
+    // same reflow PagerExercise.kt uses for its instructions/set-detail split.
     AdaptiveExercisePanes(
       Modifier
-        .fillMaxWidth()
-        .weight(1f)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
+        .fillMaxSize()
+        .padding(contentPadding),
       splitRatio = chartSplitRatio,
       first = {
         // Matches SessionRow's own horizontal inset (10.dp) so the chart pane doesn't sit
         // flush against the drawer edge or the header the way the list's Card rows don't
         // either - the elevated Card had no margin of its own in any orientation, most
         // visible in landscape where it touched both the header and the pane's bottom edge.
+        // windowInsetsPadding matches the list pane's own navigationBars-bottom protection below.
         Box(
           Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
             .padding(horizontal = 10.dp, vertical = 8.dp)
         ) {
           if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "effort") {
@@ -213,9 +321,9 @@ fun SetRecordList(
                 zone = zone
               )
             }
-          } else if (records.itemCount > 0) {
-            val items = remember(records.itemSnapshotList) {
-              records.itemSnapshotList.items.reversed()
+          } else if (displayRetained.isNotEmpty()) {
+            val items = remember(displayRetained) {
+              displayRetained.reversed()
             }
             if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.RECORD_CHART_TYPE] == "bubble-exploded") {
               val data = remember(items) {
@@ -243,32 +351,23 @@ fun SetRecordList(
           Modifier.fillMaxSize(),
           contentPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues()
         ) {
-          // TODO does this cause everything to recompose? Should we just overlay?
-          if (records.loadState.refresh is LoadState.Loading) {
+          items(sessions, key = { it.day.toEpochDay() }) { session ->
+            val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
+            SessionRow(
+              session = session,
+              isPR = scored != null && scored.capacity == bestCapacityOverall,
+              expanded = isExpanded(session.day),
+              onToggle = {
+                expandedOverrides = expandedOverrides +
+                  (session.day.toEpochDay() to !isExpanded(session.day))
+              },
+              onEditSet = { editingRecord = it }
+            )
+          }
+          if (records.loadState.append is LoadState.Loading) {
             item {
               Row(Modifier.fillMaxWidth()) {
                 LoadingView()
-              }
-            }
-          } else {
-            items(sessions, key = { it.day.toEpochDay() }) { session ->
-              val scored = bestBySessionIndex[sessionIndexByDay[session.day]]
-              SessionRow(
-                session = session,
-                isPR = scored != null && scored.capacity == bestCapacityOverall,
-                expanded = isExpanded(session.day),
-                onToggle = {
-                  expandedOverrides = expandedOverrides +
-                    (session.day.toEpochDay() to !isExpanded(session.day))
-                },
-                onEditSet = { editingRecord = it }
-              )
-            }
-            if (records.loadState.append is LoadState.Loading) {
-              item {
-                Row(Modifier.fillMaxWidth()) {
-                  LoadingView()
-                }
               }
             }
           }
@@ -325,7 +424,7 @@ private fun SessionRow(
     Modifier
       .fillMaxWidth()
       .padding(horizontal = 10.dp, vertical = 4.dp),
-    elevation = 1.dp
+    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
   ) {
     Column {
       Row(
@@ -341,15 +440,15 @@ private fun SessionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
           ) {
-            Text(dayFormat.format(session.day), style = MaterialTheme.typography.subtitle2)
+            Text(dayFormat.format(session.day), style = MaterialTheme.typography.titleSmall)
             if (isPR) {
               Text(
                 // TODO localize
                 "PR",
-                style = MaterialTheme.typography.caption,
-                color = Color.White,
+                style = MaterialTheme.typography.labelSmall,
+                color = ExtendedTheme.colors.goodAttention.onColor,
                 modifier = Modifier
-                  .background(Theme.goodAttention, RoundedCornerShape(4.dp))
+                  .background(ExtendedTheme.colors.goodAttention.color, RoundedCornerShape(4.dp))
                   .padding(horizontal = 4.dp, vertical = 1.dp)
               )
             }
@@ -357,11 +456,11 @@ private fun SessionRow(
           Text(
             // TODO localize
             "${session.sets.size} sets · ${String.format("%.0f", session.volume)} lbs volume",
-            style = MaterialTheme.typography.caption,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
           )
         }
-        Text(String.format("%.1f", session.topWeight), style = MaterialTheme.typography.button)
+        Text(String.format("%.1f", session.topWeight), style = MaterialTheme.typography.labelLarge)
         Icon(
           if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
           contentDescription = null
@@ -369,7 +468,7 @@ private fun SessionRow(
       }
       if (expanded) {
         session.sets.forEachIndexed { index, set ->
-          Divider()
+          HorizontalDivider()
           Row(
             Modifier
               .fillMaxWidth()
@@ -377,9 +476,9 @@ private fun SessionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
-            Text(timeFormat.format(set.completed), style = MaterialTheme.typography.caption)
-            Text(set.reps.toString(), style = MaterialTheme.typography.body2)
-            Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.body2)
+            Text(timeFormat.format(set.completed), style = MaterialTheme.typography.labelSmall)
+            Text(set.reps.toString(), style = MaterialTheme.typography.bodyMedium)
+            Text(String.format("%.1f", set.weight), style = MaterialTheme.typography.bodyMedium)
             IconButton(
               onClick = { onEditSet(set) },
               modifier = Modifier.size(32.dp)
@@ -472,13 +571,13 @@ private fun EffortHistoryCard(
     }
   }
 
-  Card(modifier, elevation = 2.dp) {
+  Card(modifier, elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
     Column(Modifier.padding(12.dp)) {
-      Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.subtitle2)
+      Text(stringResource(R.string.effort_label), style = MaterialTheme.typography.titleSmall)
       Text(
         stringResource(R.string.effort_chart_subtitle),
-        style = MaterialTheme.typography.caption,
-        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
       )
       EffortChart(
         Modifier
@@ -499,8 +598,8 @@ private fun EffortHistoryCard(
           .coerceAtLeast(1)
         Text(
           pluralStringResource(R.plurals.sessions_until_trend, remaining, remaining),
-          style = MaterialTheme.typography.caption,
-          color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
           modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp)
@@ -604,4 +703,24 @@ private fun PreviewSetRecordListEffortChartFewSessions() {
       SetHistory(flowOf(data))
     )
   }
+}
+
+@Preview
+@Composable
+private fun PreviewSetRecordListEmpty() {
+  val data = PagingData.empty<SetRecord>(
+    sourceLoadStates = LoadStates(
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true),
+      LoadState.NotLoading(true)
+    )
+  )
+
+  SetRecordList(
+    Modifier
+      .background(Color.White)
+      .height(500.dp)
+      .width(360.dp),
+    SetHistory(flowOf(data))
+  )
 }

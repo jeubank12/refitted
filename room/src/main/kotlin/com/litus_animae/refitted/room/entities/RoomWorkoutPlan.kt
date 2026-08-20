@@ -22,7 +22,10 @@ data class RoomWorkoutPlan(
     val globalAlternateLabels: List<String> = emptyList(),
     val globalAlternate: Int? = null,
     val isCustom: Boolean = false,
-    val kind: PlanKind = PlanKind.PROGRAM
+    val kind: PlanKind = PlanKind.PROGRAM,
+    // Stable identity independent of `workout` - see WorkoutPlan.id. Set once at row creation
+    // and never touched by renamePlan's UPDATE, so it survives a rename unchanged.
+    val id: String = workout
 ) {
     /**
      * Convert Room entity to domain model
@@ -37,7 +40,8 @@ data class RoomWorkoutPlan(
         globalAlternateLabels = globalAlternateLabels,
         globalAlternate = globalAlternate,
         isCustom = isCustom,
-        kind = kind
+        kind = kind,
+        id = id
     )
 
     companion object {
@@ -54,7 +58,8 @@ data class RoomWorkoutPlan(
             globalAlternateLabels = workoutPlan.globalAlternateLabels,
             globalAlternate = workoutPlan.globalAlternate,
             isCustom = workoutPlan.isCustom,
-            kind = workoutPlan.kind
+            kind = workoutPlan.kind,
+            id = workoutPlan.id
         )
     }
 }

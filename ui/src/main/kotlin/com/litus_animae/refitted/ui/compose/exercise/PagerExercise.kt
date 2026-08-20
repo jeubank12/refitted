@@ -13,32 +13,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.LocalContentColor
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Watch
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,8 +50,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.nonEmptyListOf
@@ -61,7 +64,7 @@ import com.litus_animae.refitted.ui.compose.state.ExerciseSetWithRecord
 import com.litus_animae.refitted.ui.compose.state.SetHistory
 import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.state.recordsByExerciseId
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
@@ -74,13 +77,21 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @FlowPreview
 @Composable
 fun PagerExerciseView(
   model: ExerciseViewModel = viewModel(),
   workoutPlan: WorkoutPlan?,
   contentPadding: PaddingValues,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so every consumer of the reclaimed
+   * space agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean,
+  /** Mirrors ExerciseMainPane's landscape+compactHeight top bar, which only spans the
+   * instructions pane's width - this clears the instructions pane's content of that overlay
+   * without pushing the controls pane (which gets no such bar) down too. */
+  firstPaneTopPadding: Dp = 0.dp,
   setHistoryList: (SetHistory) -> Unit,
   /** `collapsed` is decided by the bar itself, which knows how much room the title needs. */
   setContextMenu: (@Composable RowScope.(collapsed: Boolean) -> Unit) -> Unit,
@@ -159,9 +170,9 @@ fun PagerExerciseView(
           Icon(
             if (watchState is WatchState.Active) Icons.Default.Check else Icons.Default.Watch,
             tint = if (watchState is WatchState.Active) {
-              MaterialTheme.colors.secondary
+              MaterialTheme.colorScheme.secondary
             } else {
-              LocalContentColor.current.copy(alpha = if (watchConnected && appOpen) 1f else ContentAlpha.disabled)
+              LocalContentColor.current.copy(alpha = if (watchConnected && appOpen) 1f else 0.38f)
             },
             // TODO localize
             contentDescription = when {
@@ -222,24 +233,17 @@ fun PagerExerciseView(
   // instruction they should eventually resolve against.
   val showRefreshIndicator = isRefreshing ||
     (instructions.isNotEmpty() && (exerciseSet == null || currentSetRecord == null))
-  val pullRefreshState =
-    rememberPullRefreshState(
-      refreshing = showRefreshIndicator,
-      onRefresh = model::refreshExercises
-    )
 
-  Box(
+  PullToRefreshBox(
+    isRefreshing = showRefreshIndicator,
+    onRefresh = model::refreshExercises,
+    // consumeWindowInsets so anything further down reading WindowInsets.navigationBars directly
+    // (ExerciseSetView's rest timer growth, PagerDetailView's instructions-pane protection) sees
+    // it already reserved here rather than double-counting it - see ExerciseMainPane's Scaffold.
     modifier = Modifier
-      .pullRefresh(pullRefreshState)
       .padding(contentPadding)
+      .consumeWindowInsets(contentPadding)
   ) {
-    PullRefreshIndicator(
-      refreshing = showRefreshIndicator,
-      state = pullRefreshState,
-      Modifier
-        .align(Alignment.TopCenter)
-        .zIndex(100f)
-    )
     if (workoutPlan?.isCustom == true && instructions.isEmpty() && !isRefreshing) {
       EmptyCustomDay(onAddExercise = if (editing) onAddExercise else null)
     } else {
@@ -249,6 +253,8 @@ fun PagerExerciseView(
           pagerState = pagerState,
           activeSetWithRecord = currentSetRecord,
           displayedPage = displayedPage,
+          reclaimBottomInset = reclaimBottomInset,
+          firstPaneTopPadding = firstPaneTopPadding,
           globalAlternate = workoutPlan?.globalAlternate,
           workoutPlan = workoutPlan,
           onAlternateChange = onAlternateChange,
@@ -304,11 +310,11 @@ private fun EmptyCustomDay(onAddExercise: (() -> Unit)?, modifier: Modifier = Mo
       // TODO localize
       contentDescription = null,
       modifier = Modifier.size(56.dp),
-      tint = MaterialTheme.colors.onSurface.copy(alpha = 0.26f)
+      tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f)
     )
     Spacer(Modifier.height(12.dp))
     // TODO localize
-    Text("No exercises yet", style = MaterialTheme.typography.h5, textAlign = TextAlign.Center)
+    Text("No exercises yet", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
     Spacer(Modifier.height(8.dp))
     Text(
       // TODO localize
@@ -316,7 +322,7 @@ private fun EmptyCustomDay(onAddExercise: (() -> Unit)?, modifier: Modifier = Mo
         "Build this day as you train. There are no set limits the first time — targets fill in from what you complete."
       else
         "Open this day from edit mode on the calendar to add exercises.",
-      style = MaterialTheme.typography.body2,
+      style = MaterialTheme.typography.bodyMedium,
       textAlign = TextAlign.Center
     )
     if (onAddExercise != null) {
@@ -338,6 +344,14 @@ fun PagerDetailView(
   activeSetWithRecord: ExerciseSetWithRecord?,
   /** The page the detail pane reflects — commits on release rather than tracking the drag. */
   displayedPage: Int = pagerState.settledPage,
+  /** Mirrors ExerciseMainPane's Scaffold, which stops reserving the bottom nav-bar inset under
+   * this same condition - passed down rather than recomputed so every consumer of the reclaimed
+   * space agrees with the Scaffold's own decision in the same composition pass. */
+  reclaimBottomInset: Boolean = false,
+  /** Mirrors ExerciseMainPane's landscape+compactHeight top bar, which only spans the
+   * instructions pane's width - clears its content of that overlay without affecting the
+   * controls pane below, which gets no such bar. */
+  firstPaneTopPadding: Dp = 0.dp,
   /** Plan-wide alternate override for instructions with shared global alternate labels. */
   globalAlternate: Int? = null,
   /** Source of `globalAlternate` and any plan-wide alternate name overrides for the card's chip. */
@@ -392,20 +406,30 @@ fun PagerDetailView(
 
   AdaptiveExercisePanes(
     modifier = Modifier.fillMaxSize(),
-    splitRatio = 0.45f,
-    gap = 8.dp,
+    splitRatio = ExercisePanesSplitRatio,
+    gap = ExercisePanesGap,
     first = {
-      PagerExerciseInstructions(
-        instructions = instructions,
-        pagerState = pagerState,
-        alternateIndex = globalAlternate,
-        workoutPlan = workoutPlan,
-        onAlternateChange = onAlternateChange,
-        setRecords = setRecords,
-        editing = editing,
-        onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
-        onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
-      )
+      // A no-op when PagerExerciseView's PullToRefreshBox already consumed navigationBars
+      // (portrait, or landscape at medium+ height) - only actually reserves space when
+      // ExerciseMainPane's Scaffold left it unconsumed for ExerciseSetView's rest timer to grow
+      // into instead (reclaimBottomInset), since this pane isn't exempted from it.
+      Box(
+        Modifier
+          .padding(top = firstPaneTopPadding)
+          .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+      ) {
+        PagerExerciseInstructions(
+          instructions = instructions,
+          pagerState = pagerState,
+          alternateIndex = globalAlternate,
+          workoutPlan = workoutPlan,
+          onAlternateChange = onAlternateChange,
+          setRecords = setRecords,
+          editing = editing,
+          onDeleteExercise = { set -> onDeleteExercise(set.workout, set.day, set.step) },
+          onEditNote = { set, note -> onEditNote(set.workout, set.day, set.step, note) }
+        )
+      }
     },
     second = {
       if (activeSetWithRecord == null) {
@@ -416,6 +440,7 @@ fun PagerDetailView(
           modifier = Modifier
             .fillMaxSize()
             .padding(top= if(orientation == Configuration.ORIENTATION_LANDSCAPE) 16.dp else 0.dp, start=16.dp, end = 16.dp, bottom = 16.dp),
+          reclaimBottomInset = reclaimBottomInset,
           setWithRecord = activeSetWithRecord,
           currentIndex = displayedPage,
           maxIndex = instructions.size - 1,
@@ -481,7 +506,7 @@ fun PagerDetailView(
 @Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape", apiLevel = 36)
 @Composable
 private fun PreviewPagerDetailView(@PreviewParameter(ExampleExerciseProvider::class) exerciseSet: ExerciseSet) {
-  MaterialTheme(Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     val records = remember { mutableStateListOf<Record>() }
     val currentRecord =
       remember { mutableStateOf(Record(25.0, exerciseSet.reps(0), exerciseSet, Instant.now())) }

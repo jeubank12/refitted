@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,15 +14,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
+import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -45,7 +46,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.exercise.AdaptiveExercisePanes
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import java.time.Instant
 import java.time.LocalDate
@@ -58,7 +61,7 @@ import kotlin.math.ceil
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendar() {
-  MaterialTheme(colors = Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 4, Instant.now().minus(3, ChronoUnit.DAYS)), mapOf(
         Pair(1, Instant.ofEpochMilli(1L)),
@@ -72,7 +75,7 @@ fun PreviewCalendar() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewCalendarUnaligned() {
-  MaterialTheme(colors = Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     WorkoutCalendar(
       WorkoutPlan("test", 110, 1),
       emptyMap(),
@@ -87,6 +90,12 @@ fun WorkoutCalendar(
   plan: WorkoutPlan,
   completedDays: Map<Int, Instant>,
   contentPadding: PaddingValues,
+  // True when shown alongside WorkoutPlanListPane AND height is constrained (landscape) - moves
+  // the legend and "hide rest days" toggle into a vertical sidebar alongside the grid instead of
+  // stacking them above it, since landscape has width to spare but not much height. A Medium+
+  // width window with plenty of height (e.g. an unfolded phone in portrait) stays stacked, same
+  // as compact width.
+  wideLayout: Boolean = false,
   editMode: Boolean = false,
   onExitEdit: () -> Unit = {},
   onSaveStartDate: (LocalDate) -> Unit = {},
@@ -129,104 +138,136 @@ fun WorkoutCalendar(
   val weeks: List<List<LocalDate>> =
     (0 until totalCells).map { gridStart.plusDays(it.toLong()) }.chunked(7)
 
-  LazyColumn(
-    Modifier
-      .fillMaxWidth()
-      .padding(contentPadding)
-      .padding(10.dp, 10.dp)
-  ) {
-    item {
-      AnimatedVisibility(visible = !aligned, exit = shrinkVertically() + fadeOut()) {
-        StartDatePickerBanner(
-          pickedDate,
-          onSave = { onSaveStartDate(pickedDate) },
-          modifier = Modifier.padding(bottom = 12.dp)
-        )
-      }
-    }
-    item {
-      AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
-        EditModeBanner(
-          isEmpty = plan.totalDays == 0,
-          onDone = onExitEdit,
-          modifier = Modifier.padding(bottom = 12.dp)
-        )
-      }
-    }
-    item {
-      MonthNavRow(
-        displayedMonth,
-        onPrevious = { displayedMonthKey -= 1 },
-        onNext = { displayedMonthKey += 1 }
-      )
-    }
-    item { CalendarLegend() }
-    item { HideRestDaysRow(hideRestDays) { hideRestDays = it } }
-    item { WeekdayHeader() }
-    items(weeks) { week ->
-      Row(Modifier.fillMaxWidth()) {
-        week.forEach { cellDate ->
-          val workoutDay = ChronoUnit.DAYS.between(anchorDate, cellDate).toInt() + 1
-          val inDisplayedMonth = YearMonth.from(cellDate) == displayedMonth
-          // A plan day can fall in a leading/trailing cell that belongs to an adjacent month
-          // (e.g. June 29 shown at the top of July's grid) - it's still a real day of the
-          // plan and should be reachable without a month-nav round trip, just visually
-          // distinguished (see CalendarDayCell's dimmed param) from the displayed month.
-          val inPlanRange = workoutDay in 1..plan.totalDays
-          val isRestDay = inPlanRange && plan.restDays.contains(workoutDay)
-          // Edit mode needs rest days visible to manage them, even with "hide rest days" on.
-          val hidden = isRestDay && hideRestDays && !editMode
-          val onClick: (() -> Unit)? = when {
-            !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
-            editMode && inPlanRange && !hidden -> ({ editingDay = workoutDay })
-            aligned && inPlanRange && !hidden -> ({ navigateToDay(workoutDay) })
-            else -> null
+  // A local lambda (not a top-level composable) since it closes over all of the state above -
+  // shared between the plain stacked layout and the wideLayout AdaptiveExercisePanes split
+  // below, where it becomes the grid pane and the legend/toggle move into a separate sidebar
+  // pane instead of being items in this same list.
+  // Month/year nav, the legend, and the "hide rest days" toggle all move into the sidebar in
+  // wideLayout instead of appearing as items here - see CalendarSidebar below.
+  val gridContent: @Composable (Modifier, includeMonthLegendToggle: Boolean) -> Unit =
+    { gridModifier, includeMonthLegendToggle ->
+      LazyColumn(gridModifier) {
+        item {
+          AnimatedVisibility(visible = !aligned, exit = shrinkVertically() + fadeOut()) {
+            StartDatePickerBanner(
+              pickedDate,
+              onSave = { onSaveStartDate(pickedDate) },
+              modifier = Modifier.padding(bottom = 12.dp)
+            )
           }
-          val label = when {
-            !aligned && inDisplayedMonth ->
-              "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
-            editMode && inPlanRange -> "Edit day $workoutDay"
-            isRestDay -> "Rest day $workoutDay"
-            inPlanRange -> "Day $workoutDay"
-            else -> null
+        }
+        item {
+          AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
+            EditModeBanner(
+              isEmpty = plan.totalDays == 0,
+              onDone = onExitEdit,
+              modifier = Modifier.padding(bottom = 12.dp)
+            )
           }
-          Box(
-            Modifier
-              .weight(1f)
-              .height(52.dp)
-              .padding(3.dp)
-              .let { base ->
-                if (onClick != null) base.clickable(onClickLabel = label, onClick = onClick)
-                else base
+        }
+        if (includeMonthLegendToggle) {
+          item {
+            MonthNavRow(
+              displayedMonth,
+              onPrevious = { displayedMonthKey -= 1 },
+              onNext = { displayedMonthKey += 1 }
+            )
+          }
+          item { CalendarLegend() }
+          item { HideRestDaysRow(hideRestDays) { hideRestDays = it } }
+        }
+        item { WeekdayHeader() }
+        items(weeks) { week ->
+          Row(Modifier.fillMaxWidth()) {
+            week.forEach { cellDate ->
+              val workoutDay = ChronoUnit.DAYS.between(anchorDate, cellDate).toInt() + 1
+              val inDisplayedMonth = YearMonth.from(cellDate) == displayedMonth
+              // A plan day can fall in a leading/trailing cell that belongs to an adjacent month
+              // (e.g. June 29 shown at the top of July's grid) - it's still a real day of the
+              // plan and should be reachable without a month-nav round trip, just visually
+              // distinguished (see CalendarDayCell's dimmed param) from the displayed month.
+              val inPlanRange = workoutDay in 1..plan.totalDays
+              val isRestDay = inPlanRange && plan.restDays.contains(workoutDay)
+              // Edit mode needs rest days visible to manage them, even with "hide rest days" on.
+              val hidden = isRestDay && hideRestDays && !editMode
+              val onClick: (() -> Unit)? = when {
+                !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
+                editMode && inPlanRange && !hidden -> ({ editingDay = workoutDay })
+                aligned && inPlanRange && !hidden -> ({ navigateToDay(workoutDay) })
+                else -> null
               }
-          ) {
-            val isToday = cellDate == today
-            if (!inPlanRange) {
-              OutOfRangeDayCell(cellDate.dayOfMonth, isToday = isToday)
-            } else if (hidden) {
-              Box(Modifier.fillMaxSize())
-            } else {
-              CalendarDayCell(
-                cellDate.dayOfMonth,
-                workoutDay,
-                DayProperties(
-                  isCompletedDay = aligned && isDayComplete(
+              val label = when {
+                !aligned && inDisplayedMonth ->
+                  "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
+                editMode && inPlanRange -> "Edit day $workoutDay"
+                isRestDay -> "Rest day $workoutDay"
+                inPlanRange -> "Day $workoutDay"
+                else -> null
+              }
+              Box(
+                Modifier
+                  .weight(1f)
+                  .height(52.dp)
+                  .padding(3.dp)
+                  .let { base ->
+                    if (onClick != null) base.clickable(onClickLabel = label, onClick = onClick)
+                    else base
+                  }
+              ) {
+                val isToday = cellDate == today
+                if (!inPlanRange) {
+                  OutOfRangeDayCell(cellDate.dayOfMonth, isToday = isToday)
+                } else if (hidden) {
+                  Box(Modifier.fillMaxSize())
+                } else {
+                  CalendarDayCell(
+                    cellDate.dayOfMonth,
                     workoutDay,
-                    completedDays,
-                    plan.workoutStartDate
-                  ),
-                  isLastViewedDay = aligned && workoutDay == plan.lastViewedDay,
-                  isRestDay = isRestDay
-                ),
-                selected = !aligned && cellDate == pickedDate,
-                isToday = isToday,
-                dimmed = !inDisplayedMonth
-              )
+                    DayProperties(
+                      isCompletedDay = aligned && isDayComplete(
+                        workoutDay,
+                        completedDays,
+                        plan.workoutStartDate
+                      ),
+                      isLastViewedDay = aligned && workoutDay == plan.lastViewedDay,
+                      isRestDay = isRestDay
+                    ),
+                    selected = !aligned && cellDate == pickedDate,
+                    isToday = isToday,
+                    dimmed = !inDisplayedMonth
+                  )
+                }
+              }
             }
           }
         }
       }
     }
+  val bodyModifier = Modifier
+    .fillMaxWidth()
+    .padding(contentPadding)
+    .padding(10.dp, 10.dp)
+  if (wideLayout) {
+    // The grid gets the lion's share of the width; the sidebar just needs enough for the
+    // legend labels and the toggle - reuses the same reflow AdaptiveExercisePanes gives the
+    // exercise screen's instructions/detail and chart/list splits.
+    AdaptiveExercisePanes(
+      bodyModifier,
+      splitRatio = 0.74f,
+      gap = 12.dp,
+      first = { gridContent(Modifier.fillMaxSize(), false) },
+      second = {
+        CalendarSidebar(
+          displayedMonth,
+          onPrevious = { displayedMonthKey -= 1 },
+          onNext = { displayedMonthKey += 1 },
+          hideRestDays = hideRestDays,
+          onToggleHideRestDays = { hideRestDays = it }
+        )
+      }
+    )
+  } else {
+    gridContent(bodyModifier, true)
   }
 
   editingDay?.let { day ->
@@ -246,9 +287,9 @@ private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modif
   Surface(
     modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colors.primary,
-    contentColor = MaterialTheme.colors.onPrimary,
-    elevation = 1.dp
+    color = MaterialTheme.colorScheme.primary,
+    contentColor = MaterialTheme.colorScheme.onPrimary,
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -261,6 +302,9 @@ private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modif
       Text(
         if (isEmpty) "This is your new plan — tap + below to add your first day"
         else "Editing plan — tap a day to change it",
+        Modifier
+          .weight(1f)
+          .padding(end = 8.dp),
         fontSize = 13.sp
       )
       Button(onClick = onDone) {
@@ -280,9 +324,9 @@ private fun StartDatePickerBanner(
   Surface(
     modifier.fillMaxWidth(),
     shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colors.primary,
-    contentColor = MaterialTheme.colors.onPrimary,
-    elevation = 1.dp
+    color = MaterialTheme.colorScheme.primary,
+    contentColor = MaterialTheme.colorScheme.onPrimary,
+    shadowElevation = 1.dp
   ) {
     Column(Modifier.padding(14.dp)) {
       // TODO localize
@@ -316,13 +360,13 @@ private fun MonthNavRow(
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), elevation = 1.dp) {
+    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
       IconButton(onClick = onPrevious) {
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowLeft,
           // TODO localize
           "previous month",
-          tint = MaterialTheme.colors.primary
+          tint = MaterialTheme.colorScheme.primary
         )
       }
     }
@@ -331,13 +375,13 @@ private fun MonthNavRow(
       fontSize = 17.sp,
       fontWeight = FontWeight.SemiBold
     )
-    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), elevation = 1.dp) {
+    Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
       IconButton(onClick = onNext) {
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowRight,
           // TODO localize
           "next month",
-          tint = MaterialTheme.colors.primary
+          tint = MaterialTheme.colorScheme.primary
         )
       }
     }
@@ -351,7 +395,7 @@ private fun CalendarLegend() {
       .fillMaxWidth()
       .padding(bottom = 10.dp),
     shape = RoundedCornerShape(10.dp),
-    elevation = 1.dp
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -359,14 +403,94 @@ private fun CalendarLegend() {
         .padding(12.dp, 10.dp),
       horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-      LegendEntry("upcoming", MaterialTheme.colors.primary)
-      LegendEntry("completed", MaterialTheme.colors.secondary)
-      LegendEntry(
-        "last viewed",
-        MaterialTheme.colors.background,
-        outlineColor = MaterialTheme.colors.primaryVariant
+      CalendarLegendEntries()
+    }
+  }
+}
+
+@Composable
+private fun CalendarLegendEntries() {
+  val isDark = isSystemInDarkTheme()
+  LegendEntry("upcoming", MaterialTheme.colorScheme.primary)
+  LegendEntry(
+    "completed",
+    // Solid dark chip in light mode; matches the app's card surfaces in dark mode instead of
+    // standing out as a bright inverse chip (see CalendarDayCell's same choice) - outlined
+    // here so the legend swatch itself stays visible against its own matching background.
+    if (isDark) CardDefaults.cardColors().containerColor else MaterialTheme.colorScheme.inverseSurface,
+    outlineColor = if (isDark) MaterialTheme.colorScheme.outline else null
+  )
+  LegendEntry(
+    "last viewed",
+    MaterialTheme.colorScheme.background,
+    outlineColor = MaterialTheme.colorScheme.primaryContainer
+  )
+  LegendEntry("rest day", MaterialTheme.colorScheme.primary, alpha = 0.35f)
+}
+
+/**
+ * Month/year nav, [CalendarLegend], and [HideRestDaysRow] combined into a vertical bar alongside
+ * the grid instead of stacked above it - used when there's width to spare but not much height
+ * (see [WorkoutCalendar]'s wideLayout), via [AdaptiveExercisePanes].
+ */
+@Composable
+private fun CalendarSidebar(
+  displayedMonth: YearMonth,
+  onPrevious: () -> Unit,
+  onNext: () -> Unit,
+  hideRestDays: Boolean,
+  onToggleHideRestDays: (Boolean) -> Unit
+) {
+  Surface(
+    Modifier.fillMaxSize(),
+    shape = RoundedCornerShape(10.dp),
+    shadowElevation = 1.dp
+  ) {
+    Column(
+      Modifier
+        .fillMaxSize()
+        .padding(12.dp, 8.dp),
+      verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+      Text(
+        // Abbreviated - this bar is narrow, unlike MonthNavRow's full-width portrait home.
+        displayedMonth.format(DateTimeFormatter.ofPattern("MMM yy")),
+        Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        fontSize = 17.sp,
+        fontWeight = FontWeight.SemiBold
       )
-      LegendEntry("rest day", MaterialTheme.colors.primary, alpha = 0.35f)
+      Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
+      ) {
+        Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
+          IconButton(onClick = onPrevious) {
+            Icon(
+              Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+              // TODO localize
+              "previous month",
+              tint = MaterialTheme.colorScheme.primary
+            )
+          }
+        }
+        Surface(shape = CircleShape, modifier = Modifier.size(32.dp), shadowElevation = 1.dp) {
+          IconButton(onClick = onNext) {
+            Icon(
+              Icons.AutoMirrored.Filled.KeyboardArrowRight,
+              // TODO localize
+              "next month",
+              tint = MaterialTheme.colorScheme.primary
+            )
+          }
+        }
+      }
+      HorizontalDivider()
+      CalendarLegendEntries()
+      HorizontalDivider()
+      // TODO localize
+      Text("Hide rest days", fontSize = 14.sp)
+      Switch(checked = hideRestDays, onCheckedChange = onToggleHideRestDays)
     }
   }
 }
@@ -397,7 +521,7 @@ private fun HideRestDaysRow(hideRestDays: Boolean, onToggle: (Boolean) -> Unit) 
       .fillMaxWidth()
       .padding(bottom = 12.dp),
     shape = RoundedCornerShape(10.dp),
-    elevation = 1.dp
+    shadowElevation = 1.dp
   ) {
     Row(
       Modifier
@@ -425,7 +549,7 @@ private fun WeekdayHeader() {
         textAlign = TextAlign.Center,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+        color = MaterialTheme.colorScheme.onSurfaceVariant
       )
     }
   }
@@ -464,7 +588,7 @@ class DayPropertiesPreviewParameterProvider : PreviewParameterProvider<DayProper
 fun PreviewCalendarDayButton(
   @PreviewParameter(DayPropertiesPreviewParameterProvider::class) properties: DayProperties
 ) {
-  MaterialTheme(colors = Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     CalendarDayCell(1, 1, properties)
   }
 }
@@ -475,8 +599,8 @@ private fun OutOfRangeDayCell(dayOfMonth: Int, isToday: Boolean = false) {
     Text(
       "$dayOfMonth",
       fontSize = 13.sp,
-      color = if (isToday) Theme.goodAttention
-      else MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled),
+      color = if (isToday) ExtendedTheme.colors.goodAttention.color
+      else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
       fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
     )
   }
@@ -494,13 +618,26 @@ private fun CalendarDayCell(
   // Last-viewed (aligned) and selected-as-start (unaligned) are mutually exclusive - one
   // outline style covers "this is the reference day" in either mode.
   val highlighted = properties.isLastViewedDay || selected
+  val isDark = isSystemInDarkTheme()
   val backgroundColor = when {
-    highlighted -> MaterialTheme.colors.background
-    properties.isCompletedDay -> MaterialTheme.colors.secondary
-    else -> MaterialTheme.colors.primary
+    highlighted -> MaterialTheme.colorScheme.background
+    // Old M2 secondary (#212121) doubled as both the "secondary" role and the literal
+    // completed-day color; the generated M3 secondary doesn't preserve that. In light mode
+    // inverseSurface gives the same solid, high-emphasis dark chip (#2E3036, close to the
+    // original black). In dark mode that same chip would flip to a bright light color and read
+    // as shouting rather than "done" - use the same tonal container Cards render with instead,
+    // so completed cells blend with the rest of the app's card surfaces.
+    properties.isCompletedDay -> if (isDark) CardDefaults.cardColors().containerColor else MaterialTheme.colorScheme.inverseSurface
+    else -> MaterialTheme.colorScheme.primary
   }
-  val contentColor = contentColorFor(backgroundColor)
-  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colors.primaryVariant) else null
+  // contentColorFor(backgroundColor) doesn't resolve inverseSurface/inverseOnSurface (or the
+  // Card container tone) as a pair, so each branch picks its own "on" color explicitly.
+  val contentColor = when {
+    highlighted -> MaterialTheme.colorScheme.onBackground
+    properties.isCompletedDay -> if (isDark) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
+    else -> MaterialTheme.colorScheme.onPrimary
+  }
+  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer) else null
   // Rest-day and adjacent-month dimming both fade the same surface - multiply rather than
   // pick one, so a rest day that also falls outside the displayed month reads as both.
   val restDayAlpha = if (properties.isRestDay) 0.45f else 1f
@@ -523,7 +660,7 @@ private fun CalendarDayCell(
       Text(
         "$dayOfMonth",
         fontSize = 14.sp,
-        color = if (isToday) Theme.goodAttention else contentColor,
+        color = if (isToday) ExtendedTheme.colors.goodAttention.color else contentColor,
         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
       )
       Text(

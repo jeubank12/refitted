@@ -16,10 +16,15 @@ import com.litus_animae.refitted.util.SavedStateKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -52,6 +58,7 @@ class WorkoutViewModel @Inject constructor(
 
   companion object {
     private const val TAG = "WorkoutViewModel"
+    private const val LOADING_INDICATOR_DEBOUNCE_MILLIS = 250L
   }
 
   val savedStateLastWorkoutPlan: WorkoutPlan? by lazy {
@@ -73,10 +80,28 @@ class WorkoutViewModel @Inject constructor(
       else emptyFlow()
     }
 
+  // Raw signal for completedDays' loading state, debounced below into completedDaysLoading -
+  // a rename or reselecting the same plan resolves in a few ms locally, and RoomCacheExerciseRepository
+  // uses the same debounce idiom (see LOADING_INDICATOR_DEBOUNCE_MILLIS there) for the same reason:
+  // a blip that fast should never reach the spinner, only a genuinely slow load should.
+  private val completedDaysLoadingRaw = MutableStateFlow(false)
   var completedDaysLoading by mutableStateOf(false)
     private set
   var savedStateLoading by mutableStateOf(savedStateLastWorkoutPlan == null)
     private set
+
+  init {
+    viewModelScope.launch {
+      completedDaysLoadingRaw.collectLatest { isLoading ->
+        if (isLoading) {
+          delay(LOADING_INDICATOR_DEBOUNCE_MILLIS)
+          completedDaysLoading = true
+        } else {
+          completedDaysLoading = false
+        }
+      }
+    }
+  }
   private val _currentWorkout by lazy { MutableStateFlow(savedStateLastWorkoutPlan) }
   // storedStateLastWorkoutPlan can't emit a "cleared" value (see below), so a deletion
   // is tracked here and used to stop a stale `saved` from overriding the deletion.
@@ -90,9 +115,16 @@ class WorkoutViewModel @Inject constructor(
     // than emitting null - so nulls here are never a genuine "no plan selected" signal.
     emitAll(storedStateLastWorkoutPlan.mapNotNull { it })
   }.distinctUntilChanged()
-  val currentWorkout = combine(_currentWorkout, savedWorkout, _clearedPlanName) { current, saved, cleared ->
-    if (saved?.workout != null && saved.workout == cleared) current else (saved ?: current)
-  }.distinctUntilChanged()
+  // A hot StateFlow, not a plain combine() - callers that only need to check the current value
+  // (e.g. renameCustomWorkout) can read .value directly instead of calling .first(), which on a
+  // cold combine() would resubscribe this entire chain - including a fresh Room query inside
+  // storedStateLastWorkoutPlan - and suspend until it re-resolves, right in the middle of
+  // whatever write just triggered the check.
+  val currentWorkout: StateFlow<WorkoutPlan?> =
+    combine(_currentWorkout, savedWorkout, _clearedPlanName) { current, saved, cleared ->
+      if (saved?.workout != null && saved.workout == cleared) current else (saved ?: current)
+    }.distinctUntilChanged()
+      .stateIn(viewModelScope, SharingStarted.Eagerly, savedStateLastWorkoutPlan)
 
   private fun hydratePlan(
     name: String?,
@@ -109,17 +141,29 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
+  // Tracks which plan's records completedDays last loaded, by stable id rather than by name -
+  // read/written only from inside completedDays' flatMapLatest below, which flatMapLatest never
+  // runs concurrently for, so a plain field is safe here.
+  private var completedDaysPlanId: String? = null
+
   val completedDays: Flow<Map<Int, Instant>> =
-    currentWorkout.map { it?.workout }
-      .distinctUntilChanged()
+    currentWorkout
+      .distinctUntilChangedBy { it?.workout }
       .flatMapLatest { maybePlan ->
         maybePlan?.let { plan ->
-          completedDaysLoading = true
+          // A rename changes `workout` (the DAO query key, so the records lookup below must
+          // still be redone) but not `id` - the same underlying records are already on screen
+          // and correct, so only a genuine switch to a different plan should show the loading
+          // state that blanks the calendar pane.
+          if (completedDaysPlanId != plan.id) {
+            completedDaysLoadingRaw.value = true
+          }
+          completedDaysPlanId = plan.id
           log.d(TAG, "Loading completed days for $plan")
-          exerciseRepo.loadWorkoutRecords(plan)
+          exerciseRepo.loadWorkoutRecords(plan.workout)
         }
         exerciseRepo.workoutRecords.map { records ->
-          completedDaysLoading = false
+          completedDaysLoadingRaw.value = false
           records.groupBy { it.day }
             .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
             .mapKeys { it.key.toIntOrNull() ?: 0 }
@@ -228,7 +272,7 @@ class WorkoutViewModel @Inject constructor(
       log.d(TAG, "Renaming custom workout $oldName to $newName")
       workoutPlanRepo.renameCustomPlan(oldName, newName).fold(
         onSuccess = {
-          if (_currentWorkout.value?.workout == oldName) {
+          if (currentWorkout.value?.workout == oldName) {
             savedStateHandle[selectedPlan] = newName
             savedStateRepo.setState(selectedPlan, newName)
             workoutPlanRepo.workoutByName(newName).first()?.let { _currentWorkout.value = it }

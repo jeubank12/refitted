@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
-import androidx.compose.material.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.runtime.*
@@ -78,12 +78,12 @@ fun AlternateChip(
         // TODO localize
         contentDescription = stringResource(id = R.string.switch_to_alternate),
         modifier = Modifier.size(16.dp),
-        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
       )
       Text(
         label,
-        style = MaterialTheme.typography.caption,
-        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.padding(start = 4.dp)
@@ -111,7 +111,9 @@ private fun AlternatePickerDialog(
     // TODO localize
     title = { Text("Alternate Exercises") },
     text = { Text("Select from alternate exercises") },
-    buttons = {
+    // M3's AlertDialog has no raw "buttons" slot (M2's escape hatch for custom content in
+    // place of the confirm/dismiss row) - the alternate list goes entirely in confirmButton.
+    confirmButton = {
       val activeIndexFlow = remember(instruction, workoutPlan?.globalAlternate) {
         instruction.activeIndex(workoutPlan?.globalAlternate)
       }

@@ -3,10 +3,10 @@ package com.litus_animae.refitted.ui.compose.exercise
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -32,7 +32,7 @@ fun TargetStepper(
   label: String,
   value: Int,
   onChange: (Int) -> Unit,
-  valueStyle: TextStyle = MaterialTheme.typography.body2,
+  valueStyle: TextStyle = MaterialTheme.typography.bodyMedium,
   valueWidth: Dp = 28.dp,
   showLabel: Boolean = true
 ) {
@@ -58,7 +58,7 @@ fun TargetStepper(
       }
     }
     if (showLabel) {
-      Text(label, style = MaterialTheme.typography.overline)
+      Text(label, style = MaterialTheme.typography.labelSmall)
     }
   }
 }

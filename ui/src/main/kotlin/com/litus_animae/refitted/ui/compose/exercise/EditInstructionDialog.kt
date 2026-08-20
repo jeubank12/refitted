@@ -6,15 +6,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.LocalContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,13 +41,15 @@ fun EditInstructionDialog(
     text = {
       Column(Modifier.verticalScroll(rememberScrollState())) {
         if (!description.isNullOrBlank()) {
-          CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-            Text(description, style = MaterialTheme.typography.body2)
-          }
+          Text(
+            description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
           Spacer(Modifier.height(16.dp))
         }
         // TODO localize
-        Text("Your notes", style = MaterialTheme.typography.overline)
+        Text("Your notes", style = MaterialTheme.typography.labelSmall)
         OutlinedTextField(
           value = note,
           onValueChange = { note = it },

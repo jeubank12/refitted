@@ -4,14 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -20,7 +23,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.litus_animae.refitted.ui.compose.util.LoadingView
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import kotlinx.coroutines.flow.flowOf
 
@@ -40,62 +43,67 @@ fun WorkoutPlanPreview() {
     )
   )
     .collectAsLazyPagingItems()
-  MaterialTheme(Theme.darkColors) {
+  RefittedTheme(darkTheme = true) {
     Column {
-      WorkoutPlanMenu(lastRefresh = "Refreshed At", plans = data, workoutPlanError = null, onSelect = {})
+      WorkoutPlanMenu(
+        lastRefresh = "Refreshed At",
+        plans = data,
+        workoutPlanError = null,
+        selectedWorkoutName = "The second workout",
+        onSelect = {}
+      )
     }
   }
 }
 
 @Composable
-fun ColumnScope.WorkoutPlanMenu(
+fun WorkoutPlanMenu(
   modifier: Modifier = Modifier,
-  lastRefresh: String,
+  // Null when already shown elsewhere (e.g. the pane's own TopAppBar) - suppresses this row
+  // entirely rather than showing a redundant copy.
+  lastRefresh: String?,
   plans: LazyPagingItems<WorkoutPlan>,
   workoutPlanError: String?,
+  // The currently loaded plan (Calendar's WorkoutViewModel.currentWorkout) - highlighted so it
+  // stays identifiable in the Medium+ layout, where this list sits alongside its detail pane
+  // rather than being dismissed on selection like at Compact width.
+  selectedWorkoutName: String?,
+  onRefresh: (() -> Unit)? = null,
   onSelect: (WorkoutPlan) -> Unit,
   onCreateCustom: () -> Unit = {},
-  onRenameRequest: (WorkoutPlan) -> Unit = {}
+  onRenameRequest: (WorkoutPlan) -> Unit = {},
+  // Extra space at the bottom of the scrollable content - e.g. clearance for a floating overlay
+  // anchored below this list (see WorkoutPlanListPane's sign-in button).
+  contentPadding: PaddingValues = PaddingValues()
 ) {
-  LazyColumn(modifier) {
-    item {
-      Row(
-        Modifier
-          .fillMaxWidth()
-          .background(MaterialTheme.colors.primary)
-          .windowInsetsPadding(
-            WindowInsets.systemBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+  // lastRefresh is only non-null in the wide/landscape layout (see WorkoutPlanListPane) -
+  // reused here rather than adding a separate parameter, since it already encodes exactly the
+  // same "tight on vertical space" condition these rows need to shrink for.
+  val compact = lastRefresh != null
+  LazyColumn(modifier, contentPadding = contentPadding) {
+    if (lastRefresh != null) {
+      item {
+        Row(
+          Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp, top = 8.dp, bottom = 8.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Text(
+            "Last Refreshed At: $lastRefresh",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
           )
-          .padding(start = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-      ) {
-        Column {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            // TODO localize
-            Text(
-              "Workouts", style = MaterialTheme.typography.h6, color = contentColorFor(
-                backgroundColor = MaterialTheme.colors.primary
-              )
-            )
-            IconButton(onClick = { plans.refresh() }) {
-              Icon(
-                Icons.Default.Refresh,
-                // TODO localize
-                "refresh",
-                tint = contentColorFor(backgroundColor = MaterialTheme.colors.primary)
-              )
+          if (onRefresh != null) {
+            IconButton(onClick = onRefresh) {
+              // TODO localize
+              Icon(Icons.Default.Refresh, "refresh")
             }
-          }
-          Row {
-            Text(
-              "Last Refreshed At: $lastRefresh", color = contentColorFor(
-                backgroundColor = MaterialTheme.colors.primary
-              )
-            )
           }
         }
       }
+      item { HorizontalDivider() }
     }
 
     if (workoutPlanError != null) {
@@ -106,7 +114,7 @@ fun ColumnScope.WorkoutPlanMenu(
           Modifier
             .fillMaxWidth()
             .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-          style = MaterialTheme.typography.button
+          style = MaterialTheme.typography.labelLarge
         )
       }
     } else if (plans.loadState.refresh is LoadState.Loading) {
@@ -124,13 +132,25 @@ fun ColumnScope.WorkoutPlanMenu(
     } else {
       items(
         count = plans.itemCount,
-        key = plans.itemKey { it.workout }
+        // it.id, not it.workout - a rename changes the display name and this row's sort
+        // position, but must stay the same Compose item (a move), not read as a delete+insert.
+        key = plans.itemKey { it.id }
       ) { index ->
         val plan = plans[index]
         if (plan != null) {
-          // Custom plans sort after server plans (see WorkoutPlanDao.pagingSource) - this is
-          // the transition into that section, so it only ever renders once.
+          // Custom plans sort after server plans (see WorkoutPlanDao.pagingSource) - these two
+          // checks are each the transition into their section, so they only ever render once.
           val previousPlan = if (index > 0) plans[index - 1] else null
+          if (!plan.isCustom && previousPlan == null) {
+            // TODO localize
+            Text(
+              "FEATURED WORKOUTS",
+              Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, top = 10.dp, bottom = 4.dp),
+              style = MaterialTheme.typography.labelSmall
+            )
+          }
           if (plan.isCustom && previousPlan?.isCustom != true) {
             // TODO localize
             Text(
@@ -138,15 +158,16 @@ fun ColumnScope.WorkoutPlanMenu(
               Modifier
                 .fillMaxWidth()
                 .padding(start = 10.dp, top = 18.dp, bottom = 4.dp),
-              style = MaterialTheme.typography.overline
+              style = MaterialTheme.typography.labelSmall
             )
           }
           WorkoutPlanRow(
             plan = plan,
+            isSelected = plan.workout == selectedWorkoutName,
             onSelect = onSelect,
             onRenameRequest = onRenameRequest
           )
-          Divider()
+          HorizontalDivider()
         }
       }
       item {
@@ -154,19 +175,24 @@ fun ColumnScope.WorkoutPlanMenu(
           Modifier
             .fillMaxWidth()
             .clickable { onCreateCustom() }
-            .padding(start = 10.dp, end = 10.dp, top = 15.dp, bottom = 15.dp),
+            .padding(
+              start = 10.dp,
+              end = 10.dp,
+              top = if (compact) 10.dp else 15.dp,
+              bottom = if (compact) 10.dp else 15.dp
+            ),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colors.primary)
+          Icon(Icons.Default.Add, "create your own plan", tint = MaterialTheme.colorScheme.primary)
           Spacer(Modifier.width(8.dp))
           // TODO localize
           Text(
             "Create your own plan",
-            color = MaterialTheme.colors.primary,
-            style = MaterialTheme.typography.button
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelLarge
           )
         }
-        Divider()
+        HorizontalDivider()
       }
     }
   }
@@ -181,27 +207,45 @@ fun ColumnScope.WorkoutPlanMenu(
  */
 @Composable
 private fun WorkoutPlanRow(
+  modifier: Modifier = Modifier,
   plan: WorkoutPlan,
+  isSelected: Boolean,
   onSelect: (WorkoutPlan) -> Unit,
   onRenameRequest: (WorkoutPlan) -> Unit
 ) {
   Row(
-    Modifier
+    modifier
       .fillMaxWidth()
+      .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       .clickable { onSelect(plan) },
     verticalAlignment = Alignment.CenterVertically
   ) {
+    if (isSelected) {
+      Icon(
+        Icons.Default.Check,
+        // TODO localize
+        "currently selected plan",
+        Modifier.padding(start = 10.dp),
+        tint = MaterialTheme.colorScheme.onSecondaryContainer
+      )
+    }
     Text(
       plan.workout,
       Modifier
         .weight(1f)
-        .padding(start = 10.dp, top = 15.dp, bottom = 15.dp),
-      style = MaterialTheme.typography.button
+        .padding(
+          start = if (isSelected) 8.dp else 10.dp,
+          top = 15.dp,
+          bottom = 15.dp
+        ),
+      color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else Color.Unspecified,
+      fontWeight = if (isSelected) FontWeight.Bold else null,
+      style = MaterialTheme.typography.labelLarge
     )
     if (plan.isCustom) {
       IconButton(onClick = { onRenameRequest(plan) }) {
         // TODO localize
-        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colors.primary)
+        Icon(Icons.Default.Edit, "rename or delete plan", tint = MaterialTheme.colorScheme.primary)
       }
     }
   }

@@ -101,6 +101,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.compose.ui.util)
+    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.androidx.compose.material3.adaptive.layout)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.common)
@@ -113,11 +115,10 @@ dependencies {
     runtimeOnly(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
-    // Accompanist
-    implementation(libs.accompanist.adaptive)
 
     // Testing
     testImplementation(platform(libs.junit))
+    testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)

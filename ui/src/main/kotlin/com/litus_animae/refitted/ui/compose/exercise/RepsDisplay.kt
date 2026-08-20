@@ -15,13 +15,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Card
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
+import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
@@ -95,7 +95,9 @@ fun RepsDisplay(
       else -> "${setWithRecord.reps}" to ""
     }
 
-    val typography = MaterialTheme.typography.h3
+    // Shared by the NumberPicker digits, the static target-reps text, and RepsRangeStepper
+    // below - all three need to match, not just individually look right.
+    val typography = MaterialTheme.typography.displayMedium
     val currentRepsValue by reps.value
 
     Spacer(Modifier.weight(1f))
@@ -110,8 +112,8 @@ fun RepsDisplay(
     ) {
       reps.set(it)
     }
-    val lineColor = contentColorFor(MaterialTheme.colors.surface)
-    Divider(
+    val lineColor = contentColorFor(MaterialTheme.colorScheme.surface)
+    HorizontalDivider(
       Modifier.width(70.dp),
       color = lineColor,
       thickness = 3.dp
@@ -143,7 +145,7 @@ fun RepsDisplay(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
           ) {
-            Text(subtext, style = MaterialTheme.typography.h6)
+            Text(subtext, style = MaterialTheme.typography.titleLarge)
           }
         }
       }
@@ -154,7 +156,7 @@ fun RepsDisplay(
     Spacer(Modifier.weight(1f))
     Text(
       repsLabel,
-      style = MaterialTheme.typography.h5,
+      style = MaterialTheme.typography.headlineSmall,
       modifier = Modifier
         .heightIn(min = 30.dp)
         .align(Alignment.CenterHorizontally)
@@ -272,7 +274,7 @@ private fun LockToggle(
       if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
       contentDescription = contentDescription,
       modifier = Modifier.size(16.dp),
-      tint = if (locked) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+      tint = if (locked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
     )
   }
 }

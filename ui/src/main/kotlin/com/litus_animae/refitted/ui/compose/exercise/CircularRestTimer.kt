@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,12 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -45,7 +46,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
+import com.litus_animae.refitted.ui.compose.util.tertiaryLight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -168,10 +171,13 @@ fun CircularRestTimer(
     }
   }
 
-  val primaryColor = MaterialTheme.colors.primary
-  val amberColor = Theme.timerAmber
-  val successColor = Theme.goodAttention
-  val trackColor = Theme.timerTrack
+  val primaryColor = if (isSystemInDarkTheme()) tertiaryLight else MaterialTheme.colorScheme.primary
+  val primaryTextColor = MaterialTheme.colorScheme.primary
+  val amberColor = ExtendedTheme.colors.timerAmber.color
+  val successColor = ExtendedTheme.colors.goodAttention.color
+  // Muted track behind the arc - tied to onSurface so it reads correctly against both light and
+  // dark surfaces, rather than a fixed color that only worked on one.
+  val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
 
   Column(
     modifier = modifier.fillMaxSize(),
@@ -232,28 +238,28 @@ fun CircularRestTimer(
           if (isRunning) {
             Text(
               "${remainingSeconds}s",
-              style = MaterialTheme.typography.h4,
+              style = MaterialTheme.typography.headlineMedium,
               color = when {
                 isFinishFlashing -> successColor
                 isAlmostDone -> amberColor
-                else -> MaterialTheme.colors.onSurface
+                else -> MaterialTheme.colorScheme.onSurface
               }
             )
           } else {
             Text(
               "${restSeconds}s",
-              style = MaterialTheme.typography.h4,
-              color = primaryColor
+              style = MaterialTheme.typography.headlineMedium,
+              color = primaryTextColor
             )
           }
-          Text("rest", style = MaterialTheme.typography.caption)
+          Text("rest", style = MaterialTheme.typography.labelSmall)
           // Always emitted, idle or running (not conditionally included) so this line's
           // height is reserved at all times — otherwise the centre column shifts both
           // when a rest starts/stops and as nextRestSeconds appears/disappears mid-rest.
           Text(
             text = nextRestSeconds?.let { "next: ${it}s" } ?: "",
-            style = MaterialTheme.typography.overline,
-            color = MaterialTheme.colors.onSurface.copy(
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(
               alpha = if (isRunning && nextRestSeconds != null) 0.6f else 0f
             )
           )
@@ -277,7 +283,7 @@ fun CircularRestTimer(
         ) {
           Icon(Icons.Default.Remove, contentDescription = "decrease rest")
         }
-        Text("${restSeconds}s", style = MaterialTheme.typography.body2)
+        Text("${restSeconds}s", style = MaterialTheme.typography.bodyMedium)
         IconButton(
           onClick = { onAdjust(restSeconds + 5) },
           enabled = !isRunning
@@ -300,7 +306,7 @@ private class IdleFillRatioProvider : PreviewParameterProvider<Int> {
 fun PreviewCircularRestTimerIdle(
   @PreviewParameter(IdleFillRatioProvider::class) restSeconds: Int
 ) {
-  MaterialTheme(Theme.lightColors) {
+  RefittedTheme(darkTheme = false) {
     Card(Modifier.fillMaxSize()) {
       CircularRestTimer(
         restSeconds = restSeconds,
@@ -323,7 +329,7 @@ fun PreviewCircularRestTimerInteractive() {
   var restSeconds by remember { mutableIntStateOf(30) }
   val startedAt = remember(running) { Instant.now() }
 
-  MaterialTheme(Theme.lightColors) {
+  RefittedTheme(darkTheme = false) {
     Card(Modifier.fillMaxSize()) {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(220.dp)) {

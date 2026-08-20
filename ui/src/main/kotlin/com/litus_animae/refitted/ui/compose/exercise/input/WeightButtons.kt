@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -26,7 +26,7 @@ import com.litus_animae.refitted.ui.compose.state.Weight
 import com.litus_animae.refitted.ui.compose.util.ConstrainedButton
 import com.litus_animae.refitted.ui.compose.util.ConstrainedText
 import com.litus_animae.refitted.ui.compose.util.ConstrainedTextBox
-import com.litus_animae.refitted.ui.compose.util.Theme
+import com.litus_animae.refitted.ui.compose.util.RefittedTheme
 import java.text.DecimalFormat
 import kotlin.math.sign
 import kotlin.math.withSign
@@ -136,7 +136,7 @@ private fun WeightButton(weight: Double, onClick: (Double) -> Unit, size: Dp) {
 @Composable
 @Preview(heightDp = 300)
 fun PreviewWeightButtons() {
-  MaterialTheme(Theme.lightColors) {
+  RefittedTheme(darkTheme = false) {
     val weight = remember { Weight(10.5) }
     Column(Modifier.fillMaxSize()) {
       WeightButtons(weight)
@@ -147,7 +147,7 @@ fun PreviewWeightButtons() {
 @Composable
 @Preview(heightDp = 150, widthDp = 250)
 fun PreviewSmallWeightButtons() {
-  MaterialTheme(Theme.lightColors) {
+  RefittedTheme(darkTheme = false) {
     val weight = remember { Weight(10.5) }
     Column(Modifier.fillMaxSize()) {
       WeightButtons(weight)

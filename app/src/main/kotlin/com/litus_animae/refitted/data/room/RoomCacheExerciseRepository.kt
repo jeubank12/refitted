@@ -52,6 +52,7 @@ import java.lang.Integer.min
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @ExperimentalCoroutinesApi
@@ -78,6 +79,13 @@ class RoomCacheExerciseRepository @Inject constructor(
 
   private val exerciseState: MutableStateFlow<List<ExerciseSet>> = MutableStateFlow(emptyList())
   override val exercises = exerciseState.asStateFlow()
+
+  // getRecordsForLoadedExercises rebuilds an ExerciseRecord (and a fresh allSets Pager) for
+  // every exercise on every `exercises` re-emission, including ones Room's InvalidationTracker
+  // fired for an unrelated exercise. Without this cache, a Compose collector of allSets (the
+  // set-history pane) sees a new Flow identity - and restarts its paging subscription from
+  // Loading - on every such unrelated write, not just when the viewed exercise actually changes.
+  private val allSetsCache = ConcurrentHashMap<String, Flow<PagingData<SetRecord>>>()
 
   private val pagingDataDiffer = AsyncPagingDataDiffer(
     diffCallback = object : DiffUtil.ItemCallback<ExerciseSet>() {
@@ -454,13 +462,15 @@ class RoomCacheExerciseRepository @Inject constructor(
       e,
       defaultRecord,
       latestRecord,
-      // initialLoadSize defaults to pageSize * 3 - too little history for the effort
-      // chart's fit to be stable on first composition. A large first page means the
-      // trend only ever refines (recency-weighted, so old sessions barely move it) as
-      // later pages load, rather than visibly refitting.
-      Pager(config = PagingConfig(pageSize = 20, initialLoadSize = 400)) {
-        refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
-      }.flow.map { it.map { roomRecord -> roomRecord.toDomain() } },
+      allSetsCache.getOrPut(e.exerciseName) {
+        // initialLoadSize defaults to pageSize * 3 - too little history for the effort
+        // chart's fit to be stable on first composition. A large first page means the
+        // trend only ever refines (recency-weighted, so old sessions barely move it) as
+        // later pages load, rather than visibly refitting.
+        Pager(config = PagingConfig(pageSize = 20, initialLoadSize = 400)) {
+          refittedRoom.getExerciseDao().getAllSetRecord(e.exerciseName)
+        }.flow.map { it.map { roomRecord -> roomRecord.toDomain() } }
+      },
       currentRecords,
       // The DAO call itself is deferred inside this builder - like the Pager above - so
       // building an ExerciseRecord never queries Room unless recentSets is collected.

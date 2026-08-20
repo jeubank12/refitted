@@ -9,7 +9,7 @@ import com.litus_animae.refitted.room.entities.*
 
 @Database(
   entities = [RoomExercise::class, RoomExerciseSet::class, RoomSetRecord::class, RoomWorkoutPlan::class, RoomSavedState::class],
-  version = 14
+  version = 15
 )
 @TypeConverters(Converters::class)
 abstract class RefittedRoom : RoomDatabase() {
@@ -215,6 +215,18 @@ abstract class RefittedRoom : RoomDatabase() {
           "ALTER TABLE `workouts` " +
             "ADD COLUMN `kind` TEXT NOT NULL DEFAULT 'PROGRAM'"
         )
+      }
+    }
+
+    // Backfills every existing row's id to its current name - correct because no row can have
+    // been renamed since a separate id didn't exist before this migration.
+    val MIGRATION_14_15: Migration = object : Migration(14, 15) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+          "ALTER TABLE `workouts` " +
+            "ADD COLUMN `id` TEXT NOT NULL DEFAULT ''"
+        )
+        db.execSQL("UPDATE `workouts` SET `id` = `workout` WHERE `id` = ''")
       }
     }
   }

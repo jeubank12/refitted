@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +31,7 @@ fun ConstrainedTextBox(
   BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     val availableWidth = maxWidth
     with(LocalDensity.current) {
-      val maxSize = MaterialTheme.typography.button.fontSize
+      val maxSize = MaterialTheme.typography.labelLarge.fontSize
       val desiredSize = if (textContent.length >= 4) availableWidth.toSp() * 0.4f
       else if (textContent.length >= 3) availableWidth.toSp() * 0.6f
       else if (textContent.length >= 2) availableWidth.toSp() * 0.7f
@@ -49,7 +49,7 @@ fun ConstrainedText(
   BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     val availableWidth = maxWidth
     with(LocalDensity.current) {
-      val maxSize = MaterialTheme.typography.button.fontSize
+      val maxSize = MaterialTheme.typography.labelLarge.fontSize
       val desiredSize = if (textContent.length >= 4) availableWidth.toSp() * 0.4f
       else if (textContent.length >= 3) availableWidth.toSp() * 0.6f
       else if (textContent.length >= 2) availableWidth.toSp() * 0.7f

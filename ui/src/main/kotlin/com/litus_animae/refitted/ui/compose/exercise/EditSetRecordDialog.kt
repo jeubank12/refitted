@@ -10,14 +10,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -105,7 +104,10 @@ fun EditSetRecordDialog(
         )
       }
     },
-    buttons = {
+    // M3's AlertDialog has no raw "buttons" slot (M2's escape hatch for a custom button row) -
+    // this 3-button row (Delete/Cancel/Save) goes entirely in confirmButton, dismissButton left
+    // unset. Matches CustomPlanDialogs.kt's RenamePlanDialog.
+    confirmButton = {
       Row(
         Modifier
           .fillMaxWidth()
@@ -114,7 +116,7 @@ fun EditSetRecordDialog(
       ) {
         TextButton(
           onClick = onDelete,
-          colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+          colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
           // TODO localize
           Text("Delete")
@@ -191,8 +193,8 @@ fun DeleteSetRecordConfirmDialog(
       Button(
         onClick = onConfirm,
         colors = ButtonDefaults.buttonColors(
-          backgroundColor = MaterialTheme.colors.error,
-          contentColor = MaterialTheme.colors.onError
+          containerColor = MaterialTheme.colorScheme.error,
+          contentColor = MaterialTheme.colorScheme.onError
         )
       ) {
         // TODO localize
@@ -213,7 +215,7 @@ private fun DialogCancelButton(onClick: () -> Unit) {
   TextButton(
     onClick = onClick,
     colors = ButtonDefaults.textButtonColors(
-      contentColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+      contentColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
   ) {
     // TODO localize
