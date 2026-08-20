@@ -39,9 +39,11 @@ import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.R
+import com.litus_animae.refitted.ui.compose.charts.BandPoint
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
+import com.litus_animae.refitted.ui.compose.charts.collapseSessions
 import com.litus_animae.refitted.ui.compose.charts.zoneColor
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
@@ -215,13 +217,23 @@ fun SetTrendStrip(
           // Built from each set's own expectedWeight rather than a per-session lookup: the
           // bootstrap fit runs at set granularity, so its expectation genuinely moves set to
           // set, and keying off sessionIndex would flatten that into one step per day.
+          // A collapsed (SESSION-sourced) session is reduced to the single logical point its
+          // whole session shares, so the line connects session-to-session (or session-to-live-
+          // set) directly rather than redrawing the same flat value across every one of its
+          // sets and stepping at the boundary. A live/BOOTSTRAP point is never collapsed, so it
+          // always keeps its own per-set position - collapseSessions is a no-op there.
           val realTrend = remember(windowed) {
             buildTrendRuns(
-              windowed.mapIndexed { index, scored ->
-                index.toFloat() to scored.expectedWeight.takeIf {
-                  scored.expectationSource == ExpectationSource.SESSION
+              collapseSessions(
+                windowed.mapIndexed { index, scored ->
+                  BandPoint(
+                    index.toFloat(),
+                    scored.expectedWeight.takeIf { scored.expectationSource == ExpectationSource.SESSION },
+                    scored.sessionIndex,
+                    collapsed = true
+                  )
                 }
-              }
+              )
             )
           }
           val bootstrapTrend = remember(windowed) {
@@ -235,20 +247,38 @@ fun SetTrendStrip(
           }
           // The funnel background, driven off each set's own expectation (the capacity value
           // it was scored against) rather than expectedWeight - same source, converted at a
-          // literal heavy (4-rep) / light (15-rep) target instead of the fit's typical reps.
-          // One band shape covers both SESSION and BOOTSTRAP sets for now.
+          // literal heavy (4-rep) target and a light target instead of the fit's typical reps.
+          // The light target is normally 15 reps but drifts down toward the actually-repeated
+          // rep count (scored.lowAnchorReps) while weight and reps hold flat session over
+          // session, squeezing the band's floor without moving the 4-rep target.
+          // One band shape covers both SESSION and BOOTSTRAP sets - a collapsed (SESSION)
+          // stretch collapses to its one logical point same as realTrend above.
           val bandTop = remember(windowed) {
             buildTrendRuns(
-              windowed.mapIndexed { index, scored ->
-                index.toFloat() to scored.expectation?.let { EffortModel.weightForReps(it, 4) }
-              }
+              collapseSessions(
+                windowed.mapIndexed { index, scored ->
+                  BandPoint(
+                    index.toFloat(),
+                    scored.expectation?.let { EffortModel.weightForReps(it, 4) },
+                    scored.sessionIndex,
+                    collapsed = scored.expectationSource == ExpectationSource.SESSION
+                  )
+                }
+              )
             )
           }
           val bandBottom = remember(windowed) {
             buildTrendRuns(
-              windowed.mapIndexed { index, scored ->
-                index.toFloat() to scored.expectation?.let { EffortModel.weightForReps(it, 15) }
-              }
+              collapseSessions(
+                windowed.mapIndexed { index, scored ->
+                  BandPoint(
+                    index.toFloat(),
+                    scored.expectation?.let { EffortModel.weightForReps(it, scored.lowAnchorReps) },
+                    scored.sessionIndex,
+                    collapsed = scored.expectationSource == ExpectationSource.SESSION
+                  )
+                }
+              )
             )
           }
           // Not split by expectationSource, matching bandTop/bandBottom's own "one shape
@@ -257,7 +287,16 @@ fun SetTrendStrip(
           // rather than realTrend/bootstrapTrend's separate solid/dashed split.
           val bandMid = remember(windowed) {
             buildTrendRuns(
-              windowed.mapIndexed { index, scored -> index.toFloat() to scored.expectedWeight }
+              collapseSessions(
+                windowed.mapIndexed { index, scored ->
+                  BandPoint(
+                    index.toFloat(),
+                    scored.expectedWeight,
+                    scored.sessionIndex,
+                    collapsed = scored.expectationSource == ExpectationSource.SESSION
+                  )
+                }
+              )
             )
           }
           EffortChart(

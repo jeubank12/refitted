@@ -544,12 +544,16 @@ private fun EffortHistoryCard(
     buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, expectedWeightBySession)
   }
   // The funnel background: the weight range a session's fitted expectedCapacity implies at a
-  // heavy (4-rep) and a light (15-rep) target, connected with straight lines for now.
+  // heavy (4-rep) and a light target, connected with straight lines for now. The light target
+  // drifts down from 15 toward TrendPoint.lowAnchorReps while a stagnation streak holds.
   val bandTopBySession = remember(trend) {
     trend.associateBy({ it.sessionIndex }, { EffortModel.weightForReps(it.expectedCapacity, 4) })
   }
   val bandBottomBySession = remember(trend) {
-    trend.associateBy({ it.sessionIndex }, { EffortModel.weightForReps(it.expectedCapacity, 15) })
+    trend.associateBy(
+      { it.sessionIndex },
+      { EffortModel.weightForReps(it.expectedCapacity, it.lowAnchorReps) }
+    )
   }
   val bandTopRuns = remember(sortedEntries, bandTopBySession) {
     buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, bandTopBySession)
