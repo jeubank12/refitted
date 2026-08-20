@@ -71,6 +71,18 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
   — flipping the flag directly removes the sheet with no animation. See the add-exercise and
   weight-edit sheets in `exercise/Main.kt`.
 
+- **No Compose-native reactive API exists for raw `DisplayCutout.boundingRects`** — unlike
+  `WindowInsets.displayCutout`, which is a single flattened rect per edge, Compose has no
+  built-in way to observe the cutout's actual shape/position. Use
+  `rememberDisplayCutoutBoundingRects()` in `compose/util/CutoutBounds.kt` (backed by
+  `View.setOnApplyWindowInsetsListener`) rather than re-deriving that listener pattern per call
+  site. Its `cutoutAffects(paneBounds, cutoutRects)` helper turns a cutout's bounds and a pane's
+  measured `LayoutCoordinates.boundsInWindow()` into a plain on/off decision — see
+  `calendar/Main.kt` and `exercise/Main.kt`, which use it to decide whether each side-by-side
+  pane should consume `WindowInsets.displayCutout` at all, instead of guessing from which screen
+  edge a pane's role owns. The rects/bounds coordinate-space alignment can't be unit tested —
+  verify on a real cutout-configured device/emulator, not just `CutoutBoundsTest`.
+
 ## Testing
 
 ```bash

@@ -29,11 +29,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.litus_animae.refitted.data.models.WorkoutPlan
 import com.litus_animae.refitted.ui.compose.Changelog
+import com.litus_animae.refitted.ui.compose.util.cutoutAffects
+import com.litus_animae.refitted.ui.compose.util.rememberDisplayCutoutBoundingRects
 import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +124,16 @@ fun Calendar(
     planMenuOpen = false
   }
 
+  // Bounds-based, not edge-based - a cutout is compared against each pane's own measured window
+  // bounds rather than assumed from which screen edge a role owns, so it correctly resolves to
+  // "unaffected" even for cutouts WindowInsetsSides can't attribute to a side (e.g. a top-mounted
+  // punch-hole). null until first layout - cutoutAffects treats that as conservatively affected.
+  val cutoutRects = rememberDisplayCutoutBoundingRects()
+  var listPaneBounds by remember { mutableStateOf<Rect?>(null) }
+  var detailPaneBounds by remember { mutableStateOf<Rect?>(null) }
+  val listAffectedByCutout = cutoutAffects(listPaneBounds, cutoutRects)
+  val detailAffectedByCutout = cutoutAffects(detailPaneBounds, cutoutRects)
+
   Box(
     modifier
       .fillMaxSize()
@@ -128,7 +143,7 @@ fun Calendar(
       directive = directive,
       scaffoldState = paneScaffoldState,
       detailPane = {
-        AnimatedPane {
+        AnimatedPane(Modifier.onGloballyPositioned { detailPaneBounds = it.boundsInWindow() }) {
           WorkoutDetailPane(
             selectedWorkoutPlan = selectedWorkoutPlan,
             completedDays = completedDays,
@@ -147,18 +162,20 @@ fun Calendar(
             onOpenMenu = { planMenuOpen = true },
             workoutModel = workoutModel,
             userModel = userModel,
-            navigateToWorkoutDay = navigateToWorkoutDay
+            navigateToWorkoutDay = navigateToWorkoutDay,
+            affectedByCutout = detailAffectedByCutout
           )
         }
       },
       listPane = {
-        AnimatedPane {
+        AnimatedPane(Modifier.onGloballyPositioned { listPaneBounds = it.boundsInWindow() }) {
           WorkoutPlanListPane(
             workoutModel = workoutModel,
             userModel = userModel,
             snackbarHostState = snackbarHostState,
             showBackButton = !bothPanesFit,
             wideLayout = compactPaneLayout,
+            affectedByCutout = listAffectedByCutout,
             selectedWorkoutName = selectedWorkoutPlan?.workout,
             onBack = { planMenuOpen = false },
             onSelect = {

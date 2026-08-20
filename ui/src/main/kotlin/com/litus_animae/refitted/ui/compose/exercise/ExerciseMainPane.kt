@@ -80,6 +80,10 @@ fun ExerciseMainPane(
   onAddExercise: () -> Unit,
   onAddAlternate: (ExerciseSet) -> Unit,
   scrollToExerciseName: String?,
+  /** Whether a display cutout's actual bounds overlap this pane - see exercise/Main.kt, which
+   * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
+   * assuming a cutout affects whichever pane owns a given screen edge. */
+  affectedByCutout: Boolean = true,
 ) {
   var showWeightSheet by remember { mutableStateOf(false) }
   val weightSheetState = rememberModalBottomSheetState()
@@ -101,10 +105,15 @@ fun ExerciseMainPane(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
     // landscape — the two-pane exercise layout then splits content right up against it. Dropped
     // here when landscape+compact height so ExerciseSetView's rest timer can grow into it instead.
+    // The cutout term itself is gated by affectedByCutout - a cutout whose bounds don't actually
+    // overlap this pane (e.g. it's over SetRecordList's pane instead) shouldn't cost this pane
+    // any width/height for it.
     contentWindowInsets = if (splitTopBar) {
-      WindowInsets.displayCutout
+      if (affectedByCutout) WindowInsets.displayCutout else WindowInsets(0, 0, 0, 0)
     } else {
-      WindowInsets.navigationBars.union(WindowInsets.displayCutout)
+      WindowInsets.navigationBars.union(
+        if (affectedByCutout) WindowInsets.displayCutout else WindowInsets(0, 0, 0, 0)
+      )
     },
     topBar = {
       if (splitTopBar) {
@@ -125,7 +134,11 @@ fun ExerciseMainPane(
           showAddExercise = showAddExercise,
           expandedHeight = TopAppBarDefaults.TopAppBarExpandedHeight,
           windowInsets = TopAppBarDefaults.windowInsets.union(
-            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+            if (affectedByCutout) {
+              WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+            } else {
+              WindowInsets(0, 0, 0, 0)
+            }
           ),
           contextMenu = contextMenu,
           showHistoryButton = showHistoryButton,

@@ -33,11 +33,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CustomCredential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.litus_animae.refitted.ui.compose.util.cutoutAffects
+import com.litus_animae.refitted.ui.compose.util.rememberDisplayCutoutBoundingRects
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -124,6 +129,16 @@ fun Exercise(
     historyFocused = false
   }
 
+  // Bounds-based, not edge-based - a cutout is compared against each pane's own measured window
+  // bounds rather than assumed from which screen edge a role owns, so it correctly resolves to
+  // "unaffected" even for cutouts WindowInsetsSides can't attribute to a side (e.g. a top-mounted
+  // punch-hole). null until first layout - cutoutAffects treats that as conservatively affected.
+  val cutoutRects = rememberDisplayCutoutBoundingRects()
+  var mainPaneBounds by remember { mutableStateOf<Rect?>(null) }
+  var supportingPaneBounds by remember { mutableStateOf<Rect?>(null) }
+  val mainAffectedByCutout = cutoutAffects(mainPaneBounds, cutoutRects)
+  val supportingAffectedByCutout = cutoutAffects(supportingPaneBounds, cutoutRects)
+
   Box(
     Modifier
       .fillMaxSize()
@@ -133,7 +148,7 @@ fun Exercise(
       directive = directive,
       scaffoldState = paneScaffoldState,
       mainPane = {
-        AnimatedPane {
+        AnimatedPane(Modifier.onGloballyPositioned { mainPaneBounds = it.boundsInWindow() }) {
           ExerciseMainPane(
             day = day,
             workoutId = workoutId,
@@ -153,15 +168,17 @@ fun Exercise(
               alternateToStep = set.primaryStep
               showAddExercisePicker = true
             },
-            scrollToExerciseName = scrollToExerciseName
+            scrollToExerciseName = scrollToExerciseName,
+            affectedByCutout = mainAffectedByCutout
           )
         }
       },
       supportingPane = {
-        AnimatedPane {
+        AnimatedPane(Modifier.onGloballyPositioned { supportingPaneBounds = it.boundsInWindow() }) {
           SetRecordList(
             history = historyList,
             showBackButton = !bothPanesFit,
+            affectedByCutout = supportingAffectedByCutout,
             onBack = { historyFocused = false }
           )
         }

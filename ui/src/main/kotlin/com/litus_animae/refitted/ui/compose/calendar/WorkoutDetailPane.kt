@@ -74,18 +74,21 @@ fun WorkoutDetailPane(
   workoutModel: WorkoutViewModel,
   userModel: UserViewModel,
   navigateToWorkoutDay: (WorkoutPlan, Int, editing: Boolean) -> Unit,
+  /** Whether a display cutout's actual bounds overlap this pane - see calendar/Main.kt, which
+   * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
+   * assuming a cutout affects whichever pane owns a given screen edge. */
+  affectedByCutout: Boolean = true,
 ) {
   var showAddMenu by rememberSaveable { mutableStateOf(false) }
 
   Scaffold(
     // navigationBars alone leaves a side-mounted camera cutout unhandled once rotated to
-    // landscape. But when both panes are showing side by side, this pane only ever sits at the
-    // screen's End edge - WorkoutPlanListPane owns the Start edge - so consuming the full
-    // (both-sides) cutout here pads this pane's Start with a cutout that's nowhere near it,
-    // wasting width it doesn't need to give up and squishing its own content.
+    // landscape. But affectedByCutout (calendar/Main.kt, measured against this pane's actual
+    // bounds) is false whenever the cutout is nowhere near this pane - e.g. when both panes show
+    // side by side and it's over WorkoutPlanListPane instead - so consuming the full cutout here
+    // would pad width this pane doesn't need to give up and squish its own content for nothing.
     contentWindowInsets = WindowInsets.navigationBars.union(
-      if (showMenuButton) WindowInsets.displayCutout
-      else WindowInsets.displayCutout.only(WindowInsetsSides.End)
+      if (affectedByCutout) WindowInsets.displayCutout else WindowInsets(0, 0, 0, 0)
     ),
     topBar = {
       TopAppBar(
@@ -98,7 +101,11 @@ fun WorkoutDetailPane(
         // side by side and should read as one continuous bar.
         expandedHeight = if (wideLayout) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
         windowInsets = TopAppBarDefaults.windowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          if (affectedByCutout) {
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          } else {
+            WindowInsets(0, 0, 0, 0)
+          }
         ),
         colors = appBarColors(),
         navigationIcon = {

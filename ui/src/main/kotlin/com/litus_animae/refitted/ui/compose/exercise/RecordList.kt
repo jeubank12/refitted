@@ -103,7 +103,11 @@ fun SetRecordList(
   modifier: Modifier = Modifier,
   history: SetHistory,
   showBackButton: Boolean = false,
-  onBack: () -> Unit = {}
+  onBack: () -> Unit = {},
+  /** Whether a display cutout's actual bounds overlap this pane - see exercise/Main.kt, which
+   * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
+   * assuming a cutout affects whichever pane owns a given screen edge. */
+  affectedByCutout: Boolean = true,
 ) {
   val records = history.paged.collectAsLazyPagingItems()
   val zone = remember { ZoneId.systemDefault() }
@@ -165,8 +169,13 @@ fun SetRecordList(
     modifier = modifier,
     // Only the horizontal cutout inset - the session LazyColumn below already applies its own
     // navigationBars-bottom contentPadding, so including navigationBars here too would double
-    // it up.
-    contentWindowInsets = WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+    // it up. Gated by affectedByCutout - a cutout over ExerciseMainPane's pane instead shouldn't
+    // cost this pane any width for it.
+    contentWindowInsets = if (affectedByCutout) {
+      WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+    } else {
+      WindowInsets(0, 0, 0, 0)
+    },
     topBar = {
       TopAppBar(
         title = {
@@ -177,7 +186,11 @@ fun SetRecordList(
         // phone is width-compact too but has height to spare, so keeps the default bar.
         expandedHeight = if (compactHeight) 48.dp else TopAppBarDefaults.TopAppBarExpandedHeight,
         windowInsets = TopAppBarDefaults.windowInsets.union(
-          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          if (affectedByCutout) {
+            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)
+          } else {
+            WindowInsets(0, 0, 0, 0)
+          }
         ),
         colors = barColors,
         navigationIcon = {
