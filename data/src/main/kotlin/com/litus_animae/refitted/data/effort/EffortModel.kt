@@ -65,6 +65,19 @@ object EffortModel {
     return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
   }
 
+  /** Inverse of [capacity]'s weight side: the weight that yields [capacity] at [effectiveReps]. */
+  private fun weightForEffectiveReps(capacity: Double, effectiveReps: Double, config: EffortConfig) =
+    capacity / (1 + effectiveReps / config.epleyDivisor)
+
+  /**
+   * The weight that would yield [capacity] at a literal target rep count, e.g. the funnel
+   * band's heavy (low-rep) and light (high-rep) edges. Unlike the internal fit's typical-reps
+   * conversion, [reps] is taken as-is through [effectiveReps] rather than a recency-weighted
+   * estimate.
+   */
+  fun weightForReps(capacity: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
+    weightForEffectiveReps(capacity, effectiveReps(reps, config), config)
+
   fun bubbleSize(z: Double?): Float {
     if (z == null) return NEUTRAL_SIZE
     if (z <= HUMP_ANCHORS.first().first) return HUMP_ANCHORS.first().second.toFloat()
@@ -341,7 +354,7 @@ object EffortModel {
         residualScale = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
 
         val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
-        val wHat = cHat / (1 + rHat / config.epleyDivisor)
+        val wHat = weightForEffectiveReps(cHat, rHat, config)
         expectedWeight = wHat
         trendPoints.add(
           TrendPoint(

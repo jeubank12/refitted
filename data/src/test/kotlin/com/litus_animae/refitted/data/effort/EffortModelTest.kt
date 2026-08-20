@@ -66,6 +66,25 @@ class EffortModelTest {
   }
 
   @Nested
+  @DisplayName("weightForReps")
+  inner class WeightForReps {
+    @Test
+    fun `round-trips capacity back to the original weight at the same rep count`() {
+      listOf(80.0 to 15, 90.0 to 15, 130.0 to 3, 100.0 to 10, 180.0 to 5).forEach { (weight, reps) ->
+        val capacity = EffortModel.capacity(weight, reps)
+        assertThat(EffortModel.weightForReps(capacity, reps)).isWithin(1e-6).of(weight)
+      }
+    }
+
+    @Test
+    fun `is heavier at fewer reps for the same capacity`() {
+      val capacity = EffortModel.capacity(100.0, 10)
+      assertThat(EffortModel.weightForReps(capacity, 4))
+        .isGreaterThan(EffortModel.weightForReps(capacity, 15))
+    }
+  }
+
+  @Nested
   @DisplayName("effectiveReps")
   inner class RepSoftCap {
     @Test
