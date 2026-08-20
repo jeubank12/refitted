@@ -4,6 +4,9 @@
     <string-array name="changelog">
         <item>**v1.4.4</item>
         <item>Display refresh with new Material guidelines</item>
+        <item>Fixes a bug in copy day that would modify the prescribed sets and reps</item>
+        <item>Sending a workout to your garmin watch now provides weight suggestions</item>
+        <item>Garmin watches will no longer allow recording more sets than the day prescribes</item>
         <item>**v1.4.3</item>
         <item>Pair a Garmin watch to run your workout from your wrist: send today\'s plan, complete sets and rest right there, and it all syncs back to your phone automatically, even through a dropped connection</item>
         <item>**v1.4.1</item>
