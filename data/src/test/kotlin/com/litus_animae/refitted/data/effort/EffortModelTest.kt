@@ -778,9 +778,11 @@ class EffortModelTest {
     }
 
     @Test
-    fun `once real session count is reached, output matches score exactly`() {
-      val sets = (0..3).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
-        EffortSet(day(28), 108.0, 8)
+    fun `once real session count is reached, a completed session matches score exactly`() {
+      // Session 4 is completed (session 5, "today," follows it), so it should match the real
+      // fit exactly - unlike the live session (see the "always exploded" tests below).
+      val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        EffortSet(day(35), 110.0, 8)
       val real = EffortModel.score(sets)
       val bootstrapped = EffortModel.scoreWithBootstrap(sets)
 
@@ -789,6 +791,36 @@ class EffortModelTest {
       assertThat(bootstrappedFourth.map { it.expectation }).isEqualTo(realFourth.map { it.expectation })
       assertThat(bootstrappedFourth.map { it.z }).isEqualTo(realFourth.map { it.z })
       bootstrappedFourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.SESSION) }
+    }
+
+    @Test
+    fun `the live (most recent) session is always exploded, even once real session count is reached`() {
+      val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        (0 until 3).map { EffortSet(day(35).plusSeconds(it * 120L), 110.0, 8) }
+      val bootstrapped = EffortModel.scoreWithBootstrap(sets)
+
+      val live = bootstrapped.sets.filter { it.sessionIndex == 5 }
+      assertThat(live).isNotEmpty()
+      live.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP) }
+
+      // Genuinely per-set: three identical (weight, reps) sets still land on the exploded fit's
+      // own strictly-increasing set-sequence x, so their expectation isn't forced flat.
+      assertThat(live.map { it.expectation }.distinct().size).isGreaterThan(1)
+    }
+
+    @Test
+    fun `the live session's trend point comes from the exploded fit too`() {
+      val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        EffortSet(day(35), 110.0, 8)
+      val real = EffortModel.score(sets)
+      val bootstrapped = EffortModel.scoreWithBootstrap(sets)
+
+      // The real fit does have an opinion on session 5 (5 prior sessions, well past
+      // minPriorSessions) - scoreWithBootstrap has to deliberately override it rather than just
+      // passing it through, which is exactly what's under test here.
+      assertThat(real.trend.single { it.sessionIndex == 5 }.expectedCapacity).isFinite()
+      assertThat(bootstrapped.trend.single { it.sessionIndex == 5 }.expectationSource)
+        .isEqualTo(ExpectationSource.BOOTSTRAP)
     }
 
     @Test
@@ -805,13 +837,17 @@ class EffortModelTest {
 
     @Test
     fun `the trend does not jump at the handoff to the real fit`() {
+      // One extra trailing session ("today") past the historical handoff under test, excluded
+      // below - it's always exploded regardless of maturity (see the "live session" tests),
+      // which is a different rule than the completed-history handoff this test checks.
       val sets = (0..5).flatMap { session ->
         (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session * 2, 8) }
-      }
+      } + EffortSet(day(42), 112.0, 8)
       val series = EffortModel.scoreWithBootstrap(sets)
+      val completed = series.sets.filter { it.sessionIndex < 6 }
 
-      val lastBootstrap = series.sets.last { it.expectationSource == ExpectationSource.BOOTSTRAP }
-      val firstReal = series.sets.first { it.expectationSource == ExpectationSource.SESSION }
+      val lastBootstrap = completed.last { it.expectationSource == ExpectationSource.BOOTSTRAP }
+      val firstReal = completed.first { it.expectationSource == ExpectationSource.SESSION }
 
       // Different grains, so the numbers won't match exactly - but on a steady history the line
       // has to stay continuous where the strip switches from the dashed stand-in to the real
@@ -924,6 +960,68 @@ class EffortModelTest {
     @Test
     fun `empty input returns the shared Empty instance`() {
       assertThat(EffortModel.score(emptyList())).isSameInstanceAs(EffortSeries.Empty)
+    }
+  }
+
+  @Nested
+  @DisplayName("stagnation-biased low anchor")
+  inner class StagnationLowAnchor {
+    private val repCap = EffortConfig.Default.repCap.toDouble()
+
+    @Test
+    fun `holds at repCap with no repeated weight-and-reps streak`() {
+      // A different rep count every session - weight and reps never match the prior session, so
+      // the streak never starts.
+      val sets = (0 until 6).map { EffortSet(day(it * 7L), 100.0, 8 + it) }
+      val series = EffortModel.score(sets)
+      assertThat(series.sets.map { it.lowAnchorReps }.all { it == repCap }).isTrue()
+    }
+
+    @Test
+    fun `slides from repCap toward the repeated rep count as the streak grows`() {
+      // Same weight and reps every session - matches the hand-worked example: after five
+      // repeats of "10 reps" the anchor is (10*5 + 15) / 6.
+      val sets = (0..6).map { EffortSet(day(it * 7L), 95.0, 10) }
+      val series = EffortModel.score(sets)
+      val byIndex = series.sets.associateBy { it.sessionIndex }
+
+      assertThat(byIndex.getValue(0).lowAnchorReps).isEqualTo(repCap)
+      assertThat(byIndex.getValue(1).lowAnchorReps).isEqualTo(repCap)
+      assertThat(byIndex.getValue(2).lowAnchorReps).isWithin(1e-9).of((10.0 + 15.0) / 2.0)
+      assertThat(byIndex.getValue(6).lowAnchorReps).isWithin(1e-9).of((10.0 * 5 + 15.0) / 6.0)
+
+      // Monotonically sliding toward the repeated value (10), never overshooting past it.
+      val sequence = (0..6).map { byIndex.getValue(it).lowAnchorReps }
+      sequence.zipWithNext().forEach { (a, b) -> assertThat(b).isAtMost(a) }
+      assertThat(sequence.last()).isGreaterThan(10.0)
+    }
+
+    @Test
+    fun `resets to repCap the session after weight or reps changes`() {
+      val stagnant = (0..4).map { EffortSet(day(it * 7L), 95.0, 10) }
+      val broken = stagnant + listOf(
+        EffortSet(day(35), 95.0, 11), // reps improve - breaks the streak
+        EffortSet(day(42), 95.0, 10)  // back to the old reps, but the streak already reset
+      )
+      val series = EffortModel.score(broken)
+      val byIndex = series.sets.associateBy { it.sessionIndex }
+
+      assertThat(byIndex.getValue(4).lowAnchorReps).isLessThan(repCap)
+      assertThat(byIndex.getValue(6).lowAnchorReps).isEqualTo(repCap)
+    }
+
+    @Test
+    fun `the funnel band's low anchor never moves the target (4-rep) edge`() {
+      val sets = (0..6).map { EffortSet(day(it * 7L), 95.0, 10) }
+      val series = EffortModel.score(sets)
+      val stagnated = series.sets.last()
+      val expectation = stagnated.expectation!!
+      val target = EffortModel.weightForReps(expectation, 4)
+      val bottom = EffortModel.weightForReps(expectation, stagnated.lowAnchorReps)
+
+      assertThat(stagnated.lowAnchorReps).isLessThan(repCap)
+      assertThat(target).isGreaterThan(bottom)
+      assertThat(bottom).isGreaterThan(EffortModel.weightForReps(expectation, repCap))
     }
   }
 }

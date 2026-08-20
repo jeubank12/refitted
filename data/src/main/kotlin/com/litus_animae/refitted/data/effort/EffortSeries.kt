@@ -39,7 +39,12 @@ data class ScoredSet(
   val z: Double?,
   val size: Float,
   val zone: EffortZone,
-  val expectationSource: ExpectationSource? = null
+  val expectationSource: ExpectationSource? = null,
+  // The rep count the funnel band's bottom (light-load) edge should be evaluated at - starts at
+  // EffortConfig.repCap and drifts toward the actually-repeated rep count while weight and reps
+  // both hold flat session over session, so a plateau visibly squeezes the band's floor without
+  // moving the target/top edge. See EffortModel.scoreSessions' stagnation tracking.
+  val lowAnchorReps: Double = 15.0
 )
 
 /** The fitted expectation for one session, in both capacity and weight-at-typical-reps form. */
@@ -50,7 +55,8 @@ data class TrendPoint(
   val expectedCapacity: Double,
   val typicalReps: Double,
   val expectedWeight: Double,
-  val expectationSource: ExpectationSource? = null
+  val expectationSource: ExpectationSource? = null,
+  val lowAnchorReps: Double = 15.0
 )
 
 data class EffortSeries(
