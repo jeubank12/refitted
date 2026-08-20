@@ -367,8 +367,13 @@ fun EffortChart(
       // Interpolating the squared diameter and taking the root keeps size proportional to area.
       val clampedSize = point.size.coerceIn(0f, 1f)
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
-      val color = point.z?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor) }
-        ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
+      // Bubbles read as solid, unlike the funnel band behind them - force full opacity here
+      // rather than in effortColor/zoneColor themselves, since coldColor and the BELOW/ON_CURVE
+      // anchors are deliberately translucent for other uses (gap-mark lines, the legend).
+      val color = (
+        point.z?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor) }
+          ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
+        ).copy(alpha = 1f)
       val center = Offset(px(point.x), py(point.weight))
       drawPoints(listOf(center), PointMode.Points, color, diameter, StrokeCap.Round)
       if (point.emphasized) {
