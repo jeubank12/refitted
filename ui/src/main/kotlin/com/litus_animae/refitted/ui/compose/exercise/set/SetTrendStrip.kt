@@ -250,6 +250,15 @@ fun SetTrendStrip(
               }
             )
           }
+          // Not split by expectationSource, matching bandTop/bandBottom's own "one shape
+          // covers both SESSION and BOOTSTRAP" choice above - only positions the gradient's
+          // midline stop, so it should track the same combined domain as the band itself
+          // rather than realTrend/bootstrapTrend's separate solid/dashed split.
+          val bandMid = remember(windowed) {
+            buildTrendRuns(
+              windowed.mapIndexed { index, scored -> index.toFloat() to scored.expectedWeight }
+            )
+          }
           EffortChart(
             Modifier
               .fillMaxWidth()
@@ -259,6 +268,7 @@ fun SetTrendStrip(
             dashedTrend = bootstrapTrend,
             bandTop = bandTop,
             bandBottom = bandBottom,
+            bandMid = bandMid,
             yLabels = yLabels,
             gapMarks = sessionGapMarks,
             compact = true

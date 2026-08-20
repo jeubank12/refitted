@@ -606,6 +606,10 @@ private fun EffortHistoryCard(
         trend = trendRuns,
         bandTop = bandTopRuns,
         bandBottom = bandBottomRuns,
+        // Same source map as trendRuns (both keyed off expectedWeightBySession), and the same
+        // null pattern as bandTopBySession/bandBottomBySession (all three come from trend), so
+        // it lines up run-for-run with bandTop/bandBottom without needing its own build.
+        bandMid = trendRuns,
         xLabels = xLabels,
         yLabels = yLabels,
         gapMarks = gapMarks
