@@ -80,6 +80,12 @@ fun EffortChart(
   // of expectation (e.g. a coarser stand-in while there isn't enough history for the real
   // one) and want the dash itself to carry that distinction rather than a text label.
   dashedTrend: List<List<Pair<Float, Float>>> = emptyList(),
+  // The funnel background: [bandTop] and [bandBottom] are drawn beneath everything else as a
+  // filled ribbon per matching run pair (straight lines between points, no smoothing yet).
+  // Callers build both with the same run-breaking helper (`buildTrendRuns`) they already use
+  // for [trend], so a run's index/length always lines up between the two lists.
+  bandTop: List<List<Pair<Float, Float>>> = emptyList(),
+  bandBottom: List<List<Pair<Float, Float>>> = emptyList(),
   compact: Boolean = false,
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
@@ -90,6 +96,7 @@ fun EffortChart(
   coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
   trendColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
   emphasisColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+  funnelColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
   maxPointSize: Dp = if (compact) 16.dp else 30.dp,
   trendWidth: Dp = if (compact) 1.5.dp else 2.dp
@@ -101,17 +108,29 @@ fun EffortChart(
     return
   }
 
-  val minX = remember(points, trend, dashedTrend) {
-    minOf(points.minOf { it.x }, (trend + dashedTrend).flatten().minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY)
+  val minX = remember(points, trend, dashedTrend, bandTop, bandBottom) {
+    minOf(
+      points.minOf { it.x },
+      (trend + dashedTrend + bandTop + bandBottom).flatten().minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY
+    )
   }
-  val maxX = remember(points, trend, dashedTrend) {
-    maxOf(points.maxOf { it.x }, (trend + dashedTrend).flatten().maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY)
+  val maxX = remember(points, trend, dashedTrend, bandTop, bandBottom) {
+    maxOf(
+      points.maxOf { it.x },
+      (trend + dashedTrend + bandTop + bandBottom).flatten().maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY
+    )
   }
-  val minY = remember(points, trend, dashedTrend) {
-    minOf(points.minOf { it.weight }, (trend + dashedTrend).flatten().minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY)
+  val minY = remember(points, trend, dashedTrend, bandTop, bandBottom) {
+    minOf(
+      points.minOf { it.weight },
+      (trend + dashedTrend + bandTop + bandBottom).flatten().minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY
+    )
   }
-  val maxY = remember(points, trend, dashedTrend) {
-    maxOf(points.maxOf { it.weight }, (trend + dashedTrend).flatten().maxOfOrNull { it.second } ?: Float.NEGATIVE_INFINITY)
+  val maxY = remember(points, trend, dashedTrend, bandTop, bandBottom) {
+    maxOf(
+      points.maxOf { it.weight },
+      (trend + dashedTrend + bandTop + bandBottom).flatten().maxOfOrNull { it.second } ?: Float.NEGATIVE_INFINITY
+    )
   }
 
   val xSpan = maxX - minX
@@ -172,6 +191,22 @@ fun EffortChart(
 
     fun px(x: Float) = lerp(plotLeft, plotRight, nx(x))
     fun py(y: Float) = lerp(plotBottom, plotTop, ny(y))
+
+    // Drawn first and beneath everything else - the funnel is a backdrop, not a data series in
+    // its own right. Runs are paired by index with bandBottom, matching how the caller built
+    // both from the same underlying points via buildTrendRuns.
+    bandTop.zip(bandBottom).forEach { (top, bottom) ->
+      if (top.size < 2 || bottom.size < 2) return@forEach
+      val path = Path().apply {
+        top.forEachIndexed { index, (x, y) ->
+          val offset = Offset(px(x), py(y))
+          if (index == 0) moveTo(offset.x, offset.y) else lineTo(offset.x, offset.y)
+        }
+        bottom.asReversed().forEach { (x, y) -> lineTo(px(x), py(y)) }
+        close()
+      }
+      drawPath(path, funnelColor)
+    }
 
     gapMarks.forEach { x ->
       drawLine(
@@ -475,6 +510,52 @@ private fun PreviewEffortChartWithAxesAndGaps() {
       gapMarks = listOf(1.5f, 2.5f),
       xLabels = listOf(0f to "Nov '21", 2f to "Jan '23", 4f to "Jun '23"),
       yLabels = listOf(15f to "15", 40f to "40")
+    )
+  }
+}
+
+@Preview
+@Composable
+private fun PreviewEffortChartFunnelBand() {
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 92f, 0.45f, EffortZone.COLD),
+        EffortPoint(2f, 95f, 0.45f, EffortZone.COLD),
+        EffortPoint(3f, 98f, 0.70f, EffortZone.ON_CURVE),
+        EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH),
+        EffortPoint(5f, 103f, 0.60f, EffortZone.ON_CURVE)
+      ),
+      trend = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f)),
+      bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
+      bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f))
+    )
+  }
+}
+
+@Preview
+@Composable
+private fun PreviewEffortChartFunnelBandWithGap() {
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(2f, 98f, 0.60f, EffortZone.ON_CURVE),
+        EffortPoint(3f, 105f, 0.85f, EffortZone.GROWTH),
+        EffortPoint(4f, 108f, 0.85f, EffortZone.GROWTH)
+      ),
+      gapMarks = listOf(1.5f),
+      // Two disjoint bands, matching how a mid-history gap already breaks the trend line.
+      bandTop = listOf(listOf(0f to 100f, 1f to 104f), listOf(2f to 112f, 3f to 116f, 4f to 119f)),
+      bandBottom = listOf(listOf(0f to 80f, 1f to 84f), listOf(2f to 88f, 3f to 92f, 4f to 95f))
     )
   }
 }
