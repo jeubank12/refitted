@@ -40,21 +40,26 @@ import java.time.Duration
 import java.time.Instant
 import kotlin.math.roundToInt
 
-private const val TODAY_SET_COUNT = 2
-private const val DEFAULT_TOTAL = 9
-private const val PREVIOUS_SESSION_DAYS_AGO = 3L
-private const val DEFAULT_PREVIOUS_WEIGHT = 95.0
+private const val MIN_SESSIONS = 1
+private const val MAX_SESSIONS = 6
+private const val DEFAULT_SESSION_COUNT = 3
+private const val SESSION_SPACING_DAYS = 3L
+private const val MIN_SETS_PER_SESSION = 1
+private const val MAX_SETS_PER_SESSION = 8
+private const val DEFAULT_SETS_PER_SESSION = 3
 private const val DEFAULT_TODAY_WEIGHT = 100.0
+private const val DEFAULT_PREVIOUS_WEIGHT = 95.0
 private const val DEFAULT_REPS = 8
+private const val SET_SPACING_SECONDS = 120L
 
 /**
  * Manual harness for [SetTrendStrip]'s windowing/session-collapse behavior, which is driven by
  * the strip's actual measured width (see [SetTrendStrip]'s `BoxWithConstraints`) and can't be
- * exercised meaningfully from a fixed-width `@Preview` - it needs a real device screen. Lets
- * each historical set's own weight/reps be edited in place (not just how many there are), so a
- * single set's contribution to the strip's zone coloring and trend fit can be isolated.
- * Debug-only (registered in app/src/debug/AndroidManifest.xml), so it never reaches a release
- * build.
+ * exercised meaningfully from a fixed-width `@Preview` - it needs a real device screen. Both the
+ * session boundary (how many sessions, how many sets in each) and each individual set's own
+ * weight/reps are editable in place, so a single set's contribution to the strip's zone coloring
+ * and trend fit can be isolated. Debug-only (registered in app/src/debug/AndroidManifest.xml),
+ * so it never reaches a release build.
  */
 class StripChartTesterActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,106 +74,132 @@ class StripChartTesterActivity : ComponentActivity() {
 
 /**
  * One historical set's editable weight/reps, backed by its own snapshot state so a single row's
- * edit doesn't recompose the whole [rows] list.
+ * edit doesn't recompose the whole session list.
  */
 private class EditableSet(initialWeight: Double, initialReps: Int) {
   var weight by mutableStateOf(initialWeight)
   var reps by mutableIntStateOf(initialReps)
 }
 
-private fun defaultRow(daysAgo: Long) =
-  EditableSet(if (daysAgo == 0L) DEFAULT_TODAY_WEIGHT else DEFAULT_PREVIOUS_WEIGHT, DEFAULT_REPS)
+/** One historical session: an ordered, independently resizable list of [EditableSet]s. */
+private class EditableSession {
+  val sets = mutableStateListOf<EditableSet>()
+}
 
-/**
- * Grows/shrinks the previous-session portion of [rows] to match [target], preserving every
- * row's already-edited weight/reps - only the count slider adds or removes rows, editing a
- * value never does. The trailing [TODAY_SET_COUNT] rows are always "today" and are never
- * touched by resizing.
- */
-private fun resizeRows(rows: SnapshotStateList<EditableSet>, target: Int) {
-  while (rows.size < target) {
-    val insertIndex = (rows.size - TODAY_SET_COUNT).coerceAtLeast(0)
-    rows.add(insertIndex, defaultRow(PREVIOUS_SESSION_DAYS_AGO))
+private fun defaultWeight(daysAgo: Long) = if (daysAgo == 0L) DEFAULT_TODAY_WEIGHT else DEFAULT_PREVIOUS_WEIGHT
+
+/** Grows/shrinks [session]'s sets to [target], preserving already-edited rows. */
+private fun resizeSets(session: EditableSession, target: Int, daysAgo: Long) {
+  while (session.sets.size < target) {
+    session.sets.add(EditableSet(defaultWeight(daysAgo), DEFAULT_REPS))
   }
-  while (rows.size > target) {
-    val removeIndex = (rows.size - TODAY_SET_COUNT - 1).coerceAtLeast(0)
-    rows.removeAt(removeIndex)
+  while (session.sets.size > target) {
+    session.sets.removeAt(session.sets.lastIndex)
   }
 }
 
+/**
+ * Grows/shrinks [sessions] to [target]. New sessions are inserted at the front (older) and
+ * removed from the front when shrinking, so the most recent session - "today" - stays the last
+ * entry and keeps its own edited sets regardless of how many sessions exist.
+ */
+private fun resizeSessions(sessions: SnapshotStateList<EditableSession>, target: Int) {
+  while (sessions.size < target) {
+    sessions.add(0, EditableSession())
+  }
+  while (sessions.size > target) {
+    sessions.removeAt(0)
+  }
+}
+
+/** Days-ago for the session at [index] out of [sessionCount] total, most recent (today) last. */
+private fun sessionDaysAgo(index: Int, sessionCount: Int) = (sessionCount - 1 - index) * SESSION_SPACING_DAYS
+
 @Composable
 private fun StripChartTesterScreen() {
-  var historicalCount by remember { mutableFloatStateOf(DEFAULT_TOTAL.toFloat()) }
-  val total = historicalCount.roundToInt()
+  var sessionCountFloat by remember { mutableFloatStateOf(DEFAULT_SESSION_COUNT.toFloat()) }
+  val sessionCount = sessionCountFloat.roundToInt()
 
-  val rows = remember {
-    mutableStateListOf<EditableSet>().apply {
-      addAll((0 until DEFAULT_TOTAL - TODAY_SET_COUNT).map { defaultRow(PREVIOUS_SESSION_DAYS_AGO) })
-      addAll((0 until TODAY_SET_COUNT).map { defaultRow(0L) })
+  val sessions = remember { mutableStateListOf<EditableSession>() }
+  resizeSessions(sessions, sessionCount)
+  sessions.forEachIndexed { index, session ->
+    if (session.sets.isEmpty()) {
+      resizeSets(session, DEFAULT_SETS_PER_SESSION, sessionDaysAgo(index, sessionCount))
     }
   }
-  resizeRows(rows, total)
-  val previousSessionCount = rows.size - TODAY_SET_COUNT
 
-  val merged = remember(rows.map { it.weight to it.reps }) {
-    rows.mapIndexed { index, row ->
-      val isToday = index >= previousSessionCount
-      val daysAgo = if (isToday) 0L else PREVIOUS_SESSION_DAYS_AGO
-      val positionInSession = if (isToday) index - previousSessionCount else index
-      val completed = Instant.now()
-        .minus(Duration.ofDays(daysAgo))
-        .plusSeconds(positionInSession * 120L)
+  val merged = sessions.flatMapIndexed { sessionIndex, session ->
+    val daysAgo = sessionDaysAgo(sessionIndex, sessionCount)
+    session.sets.mapIndexed { setIndex, row ->
       SetRecord(
         weight = row.weight,
         reps = row.reps,
         workout = exampleExerciseSet.workout,
         targetSet = exampleExerciseSet.id,
-        completed = completed,
+        completed = Instant.now().minus(Duration.ofDays(daysAgo)).plusSeconds(setIndex * SET_SPACING_SECONDS),
         exercise = exampleExerciseSet.exerciseName
       )
-    }.map { it.toEffortSet() }
-  }
+    }
+  }.map { it.toEffortSet() }
 
   Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Text("Strip chart tester", style = MaterialTheme.typography.headlineLarge)
-    Text(
-      "Historical entries: $total " +
-        "(previous session: $previousSessionCount, today: $TODAY_SET_COUNT)"
-    )
+    Text("Sessions: $sessionCount, total sets: ${sessions.sumOf { it.sets.size }}")
     Slider(
-      value = historicalCount,
-      onValueChange = { historicalCount = it },
-      valueRange = 5f..15f,
-      steps = 9
+      value = sessionCountFloat,
+      onValueChange = { sessionCountFloat = it },
+      valueRange = MIN_SESSIONS.toFloat()..MAX_SESSIONS.toFloat(),
+      steps = MAX_SESSIONS - MIN_SESSIONS - 1
     )
     SetTrendStrip(
       Modifier.fillMaxWidth().height(88.dp),
       merged = merged
     )
     HorizontalDivider()
-    Text("Tap +/- to adjust each set's weight and reps", style = MaterialTheme.typography.labelMedium)
+    Text(
+      "+/- a session's set count, or a set's own weight/reps",
+      style = MaterialTheme.typography.labelMedium
+    )
     LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-      items(rows.size) { index ->
-        val row = rows[index]
-        val label = if (index >= previousSessionCount) {
-          "Today set ${index - previousSessionCount + 1}"
-        } else {
-          "Prev set ${index + 1}"
+      sessions.forEachIndexed { sessionIndex, session ->
+        val daysAgo = sessionDaysAgo(sessionIndex, sessionCount)
+        item {
+          Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            val sessionLabel = if (daysAgo == 0L) "Today" else "$daysAgo days ago"
+            Text(
+              sessionLabel,
+              Modifier.width(96.dp),
+              style = MaterialTheme.typography.titleSmall
+            )
+            Stepper(
+              label = "sets",
+              value = "${session.sets.size}",
+              onDecrement = {
+                resizeSets(session, (session.sets.size - 1).coerceAtLeast(MIN_SETS_PER_SESSION), daysAgo)
+              },
+              onIncrement = {
+                resizeSets(session, (session.sets.size + 1).coerceAtMost(MAX_SETS_PER_SESSION), daysAgo)
+              }
+            )
+          }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          Text(label, Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall)
-          Stepper(
-            label = "wt",
-            value = "${row.weight.roundToInt()}",
-            onDecrement = { row.weight = (row.weight - 5.0).coerceAtLeast(0.0) },
-            onIncrement = { row.weight += 5.0 }
-          )
-          Stepper(
-            label = "reps",
-            value = "${row.reps}",
-            onDecrement = { row.reps = (row.reps - 1).coerceAtLeast(0) },
-            onIncrement = { row.reps += 1 }
-          )
+        items(session.sets.size) { setIndex ->
+          val row = session.sets[setIndex]
+          Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Set ${setIndex + 1}", Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall)
+            Stepper(
+              label = "wt",
+              value = "${row.weight.roundToInt()}",
+              onDecrement = { row.weight = (row.weight - 5.0).coerceAtLeast(0.0) },
+              onIncrement = { row.weight += 5.0 }
+            )
+            Stepper(
+              label = "reps",
+              value = "${row.reps}",
+              onDecrement = { row.reps = (row.reps - 1).coerceAtLeast(0) },
+              onIncrement = { row.reps += 1 }
+            )
+          }
         }
       }
     }
