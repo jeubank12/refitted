@@ -1,6 +1,5 @@
 package com.litus_animae.refitted.ui.models
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +27,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 import javax.inject.Inject
 
@@ -139,11 +139,24 @@ class ExerciseViewModel @Inject constructor(
     val currentRecords = records.first()
     val resolvedSets = instructions.map { it.set(globalAlternate).first() }
     val firstSet = instructions.firstOrNull()?.sets?.head
+    // suggestedWeight must be synchronous, so latestRecord (a Flow) is resolved up front here
+    // rather than inside buildWatchPlan's lambda. latestRecord never emits at all for a set with
+    // no history anywhere (RoomCacheExerciseRepository.buildExerciseRecord's combine().mapNotNull{}
+    // drops the all-null case rather than completing), so first() is bounded by a timeout to fall
+    // through to defaultRecord instead of hanging sendPlanToWatch forever.
+    val suggestedWeights = resolvedSets.associate { set ->
+      val exerciseRecord = currentRecords.firstOrNull { it.targetSet.id == set.id }
+      val weight = exerciseRecord?.let { record ->
+        withTimeoutOrNull(RESOLVE_LATEST_WEIGHT_TIMEOUT_MS) { record.latestRecord.first().weight }
+      } ?: exerciseRecord?.defaultRecord?.weight
+        ?: 0.0
+      set.id to weight
+    }
     return buildWatchPlan(
       workout = firstSet?.workout.orEmpty(),
       day = firstSet?.day.orEmpty(),
       resolvedSets = resolvedSets
-    ) { set -> currentRecords.firstOrNull { it.targetSet.id == set.id }?.defaultRecord?.weight ?: 0.0 }
+    ) { set -> suggestedWeights[set.id] ?: 0.0 }
   }
 
   private fun getLastCompletedAlternateIndex(thisSets: NonEmptyList<ExerciseSet>): Flow<Int> {
@@ -224,11 +237,6 @@ class ExerciseViewModel @Inject constructor(
           val currentIndex =
             overrideIndex ?: if (idx < 0) lastCompletedIdx.coerceAtLeast(0)
             else idx
-          Log.v(
-            TAG,
-            "Resolved alternate for step ${sets.head.primaryStep} to index $currentIndex " +
-              "(planOverride=$overrideIndex, userSelected=$idx, lastCompleted=$lastCompletedIdx)"
-          )
           selection.viewedIndex.value = currentIndex
           currentIndex
         }.distinctUntilChanged()
@@ -426,5 +434,6 @@ class ExerciseViewModel @Inject constructor(
 
   companion object {
     private const val TAG = "ExerciseViewModel"
+    private const val RESOLVE_LATEST_WEIGHT_TIMEOUT_MS = 500L
   }
 }

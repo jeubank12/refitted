@@ -122,4 +122,5 @@ dependencies {
     testRuntimeOnly(libs.bundles.junit.runtime)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.truth)
 }
