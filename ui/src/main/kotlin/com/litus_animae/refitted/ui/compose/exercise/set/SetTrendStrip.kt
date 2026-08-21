@@ -35,6 +35,7 @@ import com.litus_animae.refitted.data.effort.EffortModel
 import com.litus_animae.refitted.data.effort.EffortSet
 import com.litus_animae.refitted.data.effort.EffortZone
 import com.litus_animae.refitted.data.effort.ExpectationSource
+import com.litus_animae.refitted.data.effort.ScoredSet
 import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
@@ -103,11 +104,22 @@ fun rememberEffortSets(
  * Compact effort trend for the most recent sets, sized to however many bubbles actually fit
  * legibly in [modifier]'s measured width rather than a fixed count. [onClick] opens the full
  * set-history drawer - this strip is a glance, not the place to read the whole history.
+ *
+ * [projected] is a not-yet-completed, hypothetical set (e.g. the weight/reps currently dialed
+ * in on the steppers below) previewed one step past [merged] - see
+ * [EffortModel.scoreWithBootstrap]'s kdoc for why appending and re-scoring it can't perturb
+ * anything already drawn. Ignored while [merged] is empty - a projection needs at least one real
+ * set to fit against, same as the all-COLD "locked" state that already covers a bare history.
+ * [EffortSet.completed] is re-stamped to strictly after every set in [merged] regardless of what
+ * the caller passed - [EffortModel]'s day-grain fit sorts by that timestamp, so a caller whose
+ * clock has drifted even slightly behind (e.g. a stale `remember`-captured `Instant.now()`) would
+ * otherwise sort the projection to the *front* of the session instead of the end.
  */
 @Composable
 fun SetTrendStrip(
   modifier: Modifier = Modifier,
   merged: List<EffortSet>,
+  projected: EffortSet? = null,
   onClick: () -> Unit = {}
 ) {
   BoxWithConstraints(modifier) {
@@ -116,6 +128,10 @@ fun SetTrendStrip(
     } else {
       MIN_WINDOW
     }
+    val effectiveProjected = projected.takeIf { merged.isNotEmpty() }?.let { p ->
+      val latest = merged.maxOf { it.completed }
+      if (p.completed > latest) p else p.copy(completed = latest.plusMillis(1))
+    }
 
     // scoreWithBootstrap augments score()'s output rather than replacing it - every session
     // past EffortConfig.minPriorSessions behaves identically, and a first-ever session stays
@@ -123,11 +139,51 @@ fun SetTrendStrip(
     // from). Kept empty (not an early return) when there's no data yet - the card and its
     // "locked" header still render below so the strip reserves its space and shows the same
     // locked message from the very first render, rather than popping in once data exists.
-    val windowed = if (merged.isEmpty()) {
-      emptyList()
+    //
+    // effectiveProjected, when present, is appended as one more trailing set before scoring and
+    // sliced back off before windowing - windowed (and everything built from it below) is left
+    // exactly as it'd be without a projection; projectedScored is that trailing entry alone.
+    data class TrendWindow(
+      val windowed: List<ScoredSet>,
+      val projectedScored: ScoredSet?,
+      // Fallback for when there's no real preceding data to extend the band into (see leadIn) -
+      // the actual first set of the whole history, so the band still visibly grows from a real
+      // coordinate instead of the run's own first sample appearing to start from nowhere.
+      val bandOrigin: Pair<Float, Float>?,
+      // Every real set before windowed, oldest first - feeds the band's leading edge (see its
+      // construction below) without ever getting its own plotted bubble. All of it, not a fixed
+      // reach-back count: a fixed count can land exactly on the cold/real boundary and capture
+      // only an isolated real point with more cold history behind it that it never sees - see
+      // EffortChart's bandOrigin/needsLeadFade kdoc for why that one real point alone isn't
+      // enough to know whether a fade-in from further back is still owed.
+      val leadIn: List<ScoredSet>
+    )
+
+    val trendWindow = if (merged.isEmpty()) {
+      TrendWindow(emptyList(), null, null, emptyList())
     } else {
-      remember(merged, window) { EffortModel.scoreWithBootstrap(merged).sets.takeLast(window) }
+      remember(merged, window, effectiveProjected) {
+        val scored = EffortModel.scoreWithBootstrap(
+          if (effectiveProjected != null) merged + effectiveProjected else merged
+        )
+        val committed = if (effectiveProjected != null) scored.sets.dropLast(1) else scored.sets
+        val windowedSets = committed.takeLast(window)
+        val leadIn = committed.dropLast(windowedSets.size)
+        val origin = committed.firstOrNull()?.let {
+          -(committed.size - windowedSets.size).toFloat() to it.source.weight.toFloat()
+        }
+        TrendWindow(
+          windowedSets,
+          if (effectiveProjected != null) scored.sets.lastOrNull() else null,
+          origin,
+          leadIn
+        )
+      }
     }
+    val windowed = trendWindow.windowed
+    val projectedScored = trendWindow.projectedScored
+    val bandOrigin = trendWindow.bandOrigin
+    val leadIn = trendWindow.leadIn
 
     Card(Modifier.fillMaxSize().clickable(onClick = onClick), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
       Column(Modifier.fillMaxSize()) {
@@ -186,8 +242,8 @@ fun SetTrendStrip(
           // Reserves the chart's own space so the card doesn't resize once real data arrives.
           Spacer(Modifier.fillMaxWidth().weight(1f))
         } else {
-          val points = remember(windowed) {
-            windowed.mapIndexed { index, scored ->
+          val points = remember(windowed, projectedScored) {
+            val real = windowed.mapIndexed { index, scored ->
               EffortPoint(
                 index.toFloat(),
                 scored.source.weight.toFloat(),
@@ -195,6 +251,18 @@ fun SetTrendStrip(
                 scored.zone,
                 z = scored.z,
                 emphasized = index == windowed.lastIndex
+              )
+            }
+            if (projectedScored == null) {
+              real
+            } else {
+              real + EffortPoint(
+                windowed.size.toFloat(),
+                projectedScored.source.weight.toFloat(),
+                EffortModel.repSize(projectedScored.source.reps),
+                projectedScored.zone,
+                z = projectedScored.z,
+                projected = true
               )
             }
           }
@@ -249,31 +317,63 @@ fun SetTrendStrip(
           // session, squeezing the band's floor without moving the 4-rep target.
           // One band shape covers both SESSION and BOOTSTRAP sets - a collapsed (SESSION)
           // stretch collapses to its one logical point same as realTrend above.
-          val bandTop = remember(windowed) {
+          //
+          // A projection extends each band by one more sample (never collapsed - same as any
+          // other live/BOOTSTRAP point) built from projectedScored's own expectation, which per
+          // scoreWithBootstrap's causality is derived only from merged - so this is a real
+          // extrapolation of the funnel to the projected point's x, not a shape the projection
+          // itself could move.
+          //
+          // leadIn supplies up to EXTRA_LEADING_POINTS real sets before windowed, x-shifted
+          // negative so windowed's own first entry still lands at x=0 - the band's leading edge
+          // is then real, causally-scored data continuing off-screen rather than a shape that
+          // appears to start from nothing at the window's edge. Never plotted as bubbles (only
+          // windowed feeds `points` above) and never used to bootstrap-fill a bandOrigin fade -
+          // when leadIn has too little real history to reach a negative x itself (near the very
+          // start of the whole history), EffortChart falls back to bandOrigin instead.
+          val bandTop = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
               collapseSessions(
-                windowed.mapIndexed { index, scored ->
+                (leadIn + windowed).mapIndexed { index, scored ->
                   BandPoint(
-                    index.toFloat(),
+                    (index - leadIn.size).toFloat(),
                     scored.expectation?.let { EffortModel.weightForReps(it, 4) },
                     scored.sessionIndex,
                     collapsed = scored.expectationSource == ExpectationSource.SESSION
                   )
-                }
+                } + listOfNotNull(
+                  projectedScored?.let {
+                    BandPoint(
+                      windowed.size.toFloat(),
+                      it.expectation?.let { e -> EffortModel.weightForReps(e, 4) },
+                      it.sessionIndex,
+                      collapsed = false
+                    )
+                  }
+                )
               )
             )
           }
-          val bandBottom = remember(windowed) {
+          val bandBottom = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
               collapseSessions(
-                windowed.mapIndexed { index, scored ->
+                (leadIn + windowed).mapIndexed { index, scored ->
                   BandPoint(
-                    index.toFloat(),
+                    (index - leadIn.size).toFloat(),
                     scored.expectation?.let { EffortModel.weightForReps(it, scored.lowAnchorReps) },
                     scored.sessionIndex,
                     collapsed = scored.expectationSource == ExpectationSource.SESSION
                   )
-                }
+                } + listOfNotNull(
+                  projectedScored?.let {
+                    BandPoint(
+                      windowed.size.toFloat(),
+                      it.expectation?.let { e -> EffortModel.weightForReps(e, it.lowAnchorReps) },
+                      it.sessionIndex,
+                      collapsed = false
+                    )
+                  }
+                )
               )
             )
           }
@@ -284,8 +384,15 @@ fun SetTrendStrip(
           // observed pair collapses to a single median point instead of fighting the gradient
           // labels for the same pixels - the gradient extremes win since they're what makes the
           // funnel's shape legible, and the median still says roughly where the actual sets sat.
-          val gradientMax = remember(bandTop) { bandTop.flatten().maxOfOrNull { it.second } }
-          val gradientMin = remember(bandBottom) { bandBottom.flatten().minOfOrNull { it.second } }
+          // Excludes leadIn's negative-x samples (bandTop/bandBottom now reach past x=0 into
+          // off-screen real data) - these labels describe the visible window, not data the user
+          // can't see.
+          val gradientMax = remember(bandTop) {
+            bandTop.flatten().filter { it.first >= 0f }.maxOfOrNull { it.second }
+          }
+          val gradientMin = remember(bandBottom) {
+            bandBottom.flatten().filter { it.first >= 0f }.minOfOrNull { it.second }
+          }
           val observedMin = remember(points) { points.minOf { it.weight } }
           val observedMax = remember(points) { points.maxOf { it.weight } }
           val overlaps = remember(observedMin, observedMax, gradientMin, gradientMax) {
@@ -316,17 +423,24 @@ fun SetTrendStrip(
           // covers both SESSION and BOOTSTRAP" choice above - only positions the gradient's
           // midline stop, so it should track the same combined domain as the band itself
           // rather than realTrend/bootstrapTrend's separate solid/dashed split.
-          val bandMid = remember(windowed) {
+          // Extended by leadIn same as bandTop/bandBottom above - EffortChart requires bandMid's
+          // run shape to match bandTop/bandBottom's exactly (same x-samples) or it falls back to
+          // a flat fill.
+          val bandMid = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
               collapseSessions(
-                windowed.mapIndexed { index, scored ->
+                (leadIn + windowed).mapIndexed { index, scored ->
                   BandPoint(
-                    index.toFloat(),
+                    (index - leadIn.size).toFloat(),
                     scored.expectedWeight,
                     scored.sessionIndex,
                     collapsed = scored.expectationSource == ExpectationSource.SESSION
                   )
-                }
+                } + listOfNotNull(
+                  projectedScored?.let {
+                    BandPoint(windowed.size.toFloat(), it.expectedWeight, it.sessionIndex, collapsed = false)
+                  }
+                )
               )
             )
           }
@@ -340,6 +454,7 @@ fun SetTrendStrip(
             bandTop = bandTop,
             bandBottom = bandBottom,
             bandMid = bandMid,
+            bandOrigin = bandOrigin,
             yLabels = yLabels,
             yLabelsRight = yLabelsRight,
             gapMarks = sessionGapMarks,
@@ -402,6 +517,19 @@ private fun PreviewSetTrendStripRealTrend() {
     Modifier.width(300.dp).height(88.dp),
     merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
       .map { it.toEffortSet() }
+  )
+}
+
+/** A hypothetical next set (heavier, fewer reps than the trend supports) previewed past a real
+ * history - dashed and dimmer than the solid dots, with the funnel visibly extending to it. */
+@Preview
+@Composable
+private fun PreviewSetTrendStripProjected() {
+  SetTrendStrip(
+    Modifier.width(300.dp).height(88.dp),
+    merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
+      .map { it.toEffortSet() },
+    projected = EffortSet(Instant.now(), weight = 125.0, reps = 4)
   )
 }
 
