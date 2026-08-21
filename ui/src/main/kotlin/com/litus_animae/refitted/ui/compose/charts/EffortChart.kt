@@ -58,6 +58,12 @@ import kotlin.math.sqrt
  * dot can be colored continuously - how far above/below expectation, not just which bucket -
  * matching the funnel band's own gradient instead of stepping between flat zone colors. `null`
  * (no expectation yet, i.e. [EffortZone.COLD]) falls back to a flat [zone] color.
+ *
+ * [projected] marks a not-yet-completed, hypothetical set (e.g. the strip previewing where the
+ * currently-dialed-in weight/reps would land) - colored/sized exactly like a real dot, but ringed
+ * with a dashed rather than solid outline, so it reads as provisional without needing a duller
+ * fill to say the same thing twice. Mutually exclusive with [emphasized] in practice - nothing
+ * marks a projection as "the set you just did".
  */
 data class EffortPoint(
   val x: Float,
@@ -65,7 +71,8 @@ data class EffortPoint(
   val size: Float,
   val zone: EffortZone,
   val z: Double? = null,
-  val emphasized: Boolean = false
+  val emphasized: Boolean = false,
+  val projected: Boolean = false
 )
 
 private val LabelPadding = 4.dp
@@ -108,6 +115,14 @@ fun EffortChart(
   // within the band. Must share [bandTop]/[bandBottom]'s run structure (same x-samples, same
   // run breaks); a segment with no matching bandMid run falls back to a flat [funnelColor].
   bandMid: List<List<Pair<Float, Float>>> = emptyList(),
+  // Where the funnel's leading fade-in should treat as its zero-height origin: the caller's
+  // actual first set, in the same x/weight coordinates as [points] - not necessarily the
+  // leftmost *plotted* point, since a width-driven window (see SetTrendStrip) can truncate older
+  // sets off the visible domain entirely. Deliberately excluded from the chart's own auto-ranging
+  // (unlike [points]/[trend]/the band lists) so a far-off-domain origin fades in off-canvas,
+  // clipped by the composable's own bounds, rather than stretching the visible plot to fit it.
+  // Falls back to the leftmost point in [points] when absent.
+  bandOrigin: Pair<Float, Float>? = null,
   compact: Boolean = false,
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
@@ -139,31 +154,25 @@ fun EffortChart(
     return
   }
 
-  val minX = remember(points, trend, dashedTrend, bandTop, bandBottom, bandMid) {
-    minOf(
-      points.minOf { it.x },
-      (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().minOfOrNull { it.first }
-        ?: Float.POSITIVE_INFINITY
-    )
+  // Excludes x<0 samples (the band's off-screen leading edge - see bandOrigin/the mesh loop
+  // below) from the visible domain entirely - they exist to feed the mesh's interpolation, not to
+  // stretch the plotted scale to fit data the user can't see.
+  val onDomain = remember(trend, dashedTrend, bandTop, bandBottom, bandMid) {
+    (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().filter { it.first >= 0f }
   }
-  val maxX = remember(points, trend, dashedTrend, bandTop, bandBottom, bandMid) {
-    maxOf(
-      points.maxOf { it.x },
-      (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().maxOfOrNull { it.first }
-        ?: Float.NEGATIVE_INFINITY
-    )
+  val minX = remember(points, onDomain) {
+    minOf(points.minOf { it.x }, onDomain.minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY)
   }
-  val minY = remember(points, trend, dashedTrend, bandTop, bandBottom, bandMid) {
-    minOf(
-      points.minOf { it.weight },
-      (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().minOfOrNull { it.second }
-        ?: Float.POSITIVE_INFINITY
-    )
+  val maxX = remember(points, onDomain) {
+    maxOf(points.maxOf { it.x }, onDomain.maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY)
   }
-  val maxY = remember(points, trend, dashedTrend, bandTop, bandBottom, bandMid) {
+  val minY = remember(points, onDomain) {
+    minOf(points.minOf { it.weight }, onDomain.minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY)
+  }
+  val maxY = remember(points, onDomain) {
     maxOf(
       points.maxOf { it.weight },
-      (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().maxOfOrNull { it.second }
+      onDomain.maxOfOrNull { it.second }
         ?: Float.NEGATIVE_INFINITY
     )
   }
@@ -237,6 +246,16 @@ fun EffortChart(
     fun px(x: Float) = lerp(plotLeft, plotRight, nx(x))
     fun py(y: Float) = lerp(plotBottom, plotTop, ny(y))
 
+    // Reused as the band's trailing fade-out width (see the mesh loop below) - proportional to
+    // the bubble size already tuned for this chart's density, rather than a new tunable.
+    val horizontalFadePx = maxPx
+
+    // The leading fade-in's zero-height origin (see the mesh loop below): [bandOrigin] when the
+    // caller supplied one (the caller's true first set, however far off-domain that is), else the
+    // leftmost plotted point - real coordinates either way, not a clamped/guarded position, so an
+    // off-domain origin fades in off-canvas rather than being pulled onto it.
+    val leadOrigin = bandOrigin ?: points.minByOrNull { it.x }?.let { it.x to it.weight }
+
     // Drawn first and beneath everything else - the funnel is a backdrop, not a data series in
     // its own right. Runs are paired by index with bandBottom (and bandMid, when present),
     // matching how the caller built all three from the same underlying points via
@@ -263,28 +282,43 @@ fun EffortChart(
       }
 
       val n = top.size
+      // Whether there's still real history further back than this run's first sample that the
+      // fade should represent growing out of - NOT simply "did the run reach a negative x at
+      // all." leadIn (see SetTrendStrip) can find real off-screen data while cold history still
+      // sits further back than that (a lone real set squeezed between a cold run and the window),
+      // in which case that one real sample still needs a fade converging into it rather than
+      // starting there as a hard, un-faded edge. Only when the run's first sample already reaches
+      // all the way back to (or past) leadOrigin - the caller's true first-ever set - is there
+      // truly nothing earlier left to fade in from.
+      val needsLeadFade = leadOrigin != null && leadOrigin.first < top[0].first
+      val leadCols = if (needsLeadFade) 1 else 0
+      // leadCols (0 or 1) bookends the real ones on the left when needed; the trailing fade-out
+      // always gets one more column past the run's last sample, carrying that end's own weights
+      // (so the band's vertical shape doesn't kink) but zero alpha - the band shrinks out of
+      // nothing there instead of stopping on a hard vertical edge, matching how the top edge
+      // already fades vertically (see [BandFadeInset]) rather than cutting off flat. Both this
+      // and a synthetic lead-in naturally get clipped by the composable's own bounds when their
+      // reach runs past it.
+      val cols = n + leadCols + 1
+      val verts = FloatArray(cols * 5 * 2)
+      val colors = IntArray(cols * 5)
+
       // 5 rows per column. Below the on-curve stop there's no separate "cold" color any more -
       // the on-curve blue itself just fades out (alpha only, same RGB) all the way down to the
       // band's bottom edge, so "under expectation" reads as this color thinning out rather than
       // a second hue taking over. The top still fades outward a few px *beyond* its edge (see
       // [BandFadeInset]) since a hard color->color edge there read fine, unlike the bottom.
-      val verts = FloatArray(n * 5 * 2)
-      val colors = IntArray(n * 5)
-      for (j in 0 until n) {
-        val (x, topWeight) = top[j]
-        val bottomWeight = bottom[j].second
-        val midWeight = mid[j].second
+      fun writeColumn(col: Int, xPx: Float, topWeight: Float, bottomWeight: Float, midWeight: Float, alphaScale: Float) {
         val span = topWeight - bottomWeight
         val fracTrend = if (span <= 0f) 0.5f else ((midWeight - bottomWeight) / span).coerceIn(0f, 1f)
         val fracGrowth = lerp(fracTrend, 1f, 0.5f)
-        val xPx = px(x)
         val bottomPx = py(bottomWeight)
         val topPx = py(topWeight)
         val onCurvePx = lerp(bottomPx, topPx, fracTrend)
         val growthPx = lerp(bottomPx, topPx, fracGrowth)
-        val baseColorArgb = baseColor.copy(alpha = bandAlpha).toArgb()
-        val peakColorArgb = peakColor.copy(alpha = bandAlpha).toArgb()
-        val punishedColorArgb = punishedColor.copy(alpha = bandAlpha).toArgb()
+        val baseColorArgb = baseColor.copy(alpha = bandAlpha * alphaScale).toArgb()
+        val peakColorArgb = peakColor.copy(alpha = bandAlpha * alphaScale).toArgb()
+        val punishedColorArgb = punishedColor.copy(alpha = bandAlpha * alphaScale).toArgb()
         // Ordered by increasing pixel y (screen-bottom to screen-top): the band's own bottom
         // edge (on-curve's color, faded to nothing), on-curve, growth, the real top edge,
         // beyond-top fade.
@@ -296,19 +330,35 @@ fun EffortChart(
           punishedColorArgb,
           punishedColorArgb and 0x00FFFFFF
         )
-        val base = j * 5
+        val base = col * 5
         for (row in rowY.indices) {
           verts[(base + row) * 2] = xPx
           verts[(base + row) * 2 + 1] = rowY[row]
           colors[base + row] = rowColors[row]
         }
       }
-      // 2 triangles per grid cell (4 row-bands x (n - 1) column-gaps), listed explicitly rather
-      // than as a single strip - a strip would need degenerate bridging triangles between runs,
-      // and this chart already draws one run at a time.
-      val indices = ShortArray((n - 1) * 4 * 6)
+
+      for (j in 0 until n) {
+        val (x, topWeight) = top[j]
+        writeColumn(j + leadCols, px(x), topWeight, bottom[j].second, mid[j].second, alphaScale = 1f)
+      }
+      if (needsLeadFade) {
+        // A zero-height point at [leadOrigin]'s coordinate (non-null - needsLeadFade already
+        // required it), not a translated copy of the run's own first sample's shape - the mesh
+        // naturally widens from that point out to the run's real top/bottom/mid as it reaches the
+        // first real column, rather than sliding an unrelated shape sideways.
+        val (leadX, leadWeight) = leadOrigin
+        writeColumn(0, px(leadX), leadWeight, leadWeight, leadWeight, alphaScale = 0f)
+      }
+      val (xLast, topLast) = top[n - 1]
+      writeColumn(cols - 1, px(xLast) + horizontalFadePx, topLast, bottom[n - 1].second, mid[n - 1].second, alphaScale = 0f)
+
+      // 2 triangles per grid cell (4 row-bands x (cols - 1) column-gaps), listed explicitly
+      // rather than as a single strip - a strip would need degenerate bridging triangles between
+      // runs, and this chart already draws one run at a time.
+      val indices = ShortArray((cols - 1) * 4 * 6)
       var ii = 0
-      for (j in 0 until n - 1) {
+      for (j in 0 until cols - 1) {
         for (row in 0 until 4) {
           val tl = (j * 5 + row).toShort()
           val bl = (j * 5 + row + 1).toShort()
@@ -380,13 +430,35 @@ fun EffortChart(
       // Interpolating the squared diameter and taking the root keeps size proportional to area.
       val clampedSize = point.size.coerceIn(0f, 1f)
       val diameter = sqrt(lerp(minPx * minPx, maxPx * maxPx, clampedSize))
+      // A projected point is colored from where its own weight falls within the funnel band at
+      // its x, not z - the band there is causally derived from real history alone (see
+      // SetTrendStrip's kdoc), so this is a real, stable read of "where does this land," and it
+      // guarantees the dot always agrees with the gradient drawn under it. z is a good match for
+      // an already-*completed* set (it says how that specific rep/rest/recency combination
+      // compared to expectation) but a poor one for a hypothetical - a projection swinging to an
+      // aggressive rep count can produce a z on a completely different footing than the band's
+      // own rep-target anchors, reading as a jump relative to the band even when the weight
+      // itself sits right where the band would predict. Falls through to the normal z/zone path
+      // when there's no matching band tail to read (e.g. still COLD).
+      val bandColor = if (point.projected) {
+        val top = bandTop.lastOrNull()?.lastOrNull()?.second
+        val bottom = bandBottom.lastOrNull()?.lastOrNull()?.second
+        val mid = bandMid.lastOrNull()?.lastOrNull()?.second
+        if (top != null && bottom != null && mid != null) {
+          bandRelativeColor(point.weight, top, bottom, mid, baseColor, peakColor, punishedColor)
+        } else {
+          null
+        }
+      } else {
+        null
+      }
       // Bubbles with a z-score read as solid, unlike the funnel band behind them - force full
       // opacity here rather than in effortColor itself, whose below-on-curve anchors carry real
       // white-blended RGB (not alpha) specifically so they stay visible once forced opaque. A
       // COLD dot (no expectation yet, z null) has no such RGB fade - it keeps zoneColor's true
       // alpha instead, since there's no band underneath it to fight for legibility against.
-      val color = point.z
-        ?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor).copy(alpha = 1f) }
+      val color = bandColor
+        ?: point.z?.let { effortColor(it, baseColor, peakColor, punishedColor, coldColor).copy(alpha = 1f) }
         ?: zoneColor(point.zone, baseColor, peakColor, punishedColor, coldColor)
       val center = Offset(px(point.x), py(point.weight))
       drawPoints(listOf(center), PointMode.Points, color, diameter, StrokeCap.Round)
@@ -405,6 +477,20 @@ fun EffortChart(
           radius = diameter / 2f + emphasisGapPx,
           center = center,
           style = Stroke(width = emphasisWidthPx)
+        )
+      }
+      if (point.projected) {
+        // Dashed, matching dashedTrend's own "dashed = not the real/committed thing" language -
+        // a projected dot and the bootstrap trend line are both stand-ins, so they read as the
+        // same kind of provisional rather than inventing a second visual vocabulary.
+        drawCircle(
+          emphasisColor,
+          radius = diameter / 2f + emphasisGapPx,
+          center = center,
+          style = Stroke(
+            width = emphasisWidthPx,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx / 2f, gapDashPx / 2f))
+          )
         )
       }
     }
@@ -536,6 +622,41 @@ internal fun effortColor(
     val (zHi, colorHi) = anchors[i + 1]
     if (clamped <= zHi) {
       val t = if (zHi <= zLo) 0f else ((clamped - zLo) / (zHi - zLo)).toFloat()
+      return lerp(colorLo, colorHi, t)
+    }
+  }
+  return punishedColor
+}
+
+/** Colors a point the same way the funnel band's own gradient mesh would at [weight]'s height
+ * between [bottomWeight] and [topWeight] - see the caller in [EffortChart]'s point-drawing loop.
+ * Mirrors the mesh's own row semantics (same [midWeight]-derived on-curve/growth breakpoints as
+ * the mesh loop, so the two can't diverge): flat [baseColor] at and below the on-curve stop (the
+ * mesh has no second hue fading in there either - see the mesh loop's own comment), [baseColor]
+ * to [peakColor] up to the growth stop, then [peakColor] to [punishedColor] beyond it to the top
+ * edge, clamped flat past either edge (a hypothetical past the heavy/4-rep edge reads exactly
+ * like the mesh's own top edge does, not some off-scale extreme).
+ */
+private fun bandRelativeColor(
+  weight: Float,
+  topWeight: Float,
+  bottomWeight: Float,
+  midWeight: Float,
+  baseColor: Color,
+  peakColor: Color,
+  punishedColor: Color
+): Color {
+  val span = topWeight - bottomWeight
+  if (span <= 0f) return baseColor
+  val fracTrend = ((midWeight - bottomWeight) / span).coerceIn(0f, 1f)
+  val fracGrowth = lerp(fracTrend, 1f, 0.5f)
+  val frac = ((weight - bottomWeight) / span).coerceIn(0f, 1f)
+  val anchors = listOf(0f to baseColor, fracTrend to baseColor, fracGrowth to peakColor, 1f to punishedColor)
+  for (i in 0 until anchors.size - 1) {
+    val (fLo, colorLo) = anchors[i]
+    val (fHi, colorHi) = anchors[i + 1]
+    if (frac <= fHi) {
+      val t = if (fHi <= fLo) 0f else (frac - fLo) / (fHi - fLo)
       return lerp(colorLo, colorHi, t)
     }
   }
@@ -841,6 +962,33 @@ private fun PreviewEffortChartFunnelGradientDark() {
         EffortPoint(5f, 103f, 0.60f, EffortZone.ON_CURVE)
       ),
       trend = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f)),
+      bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
+      bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
+      bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
+    )
+  }
+}
+
+/** A projected (not-yet-completed) dot sitting off the funnel gradient - higher weight, fewer
+ * reps than the trend supports, so it should read as dimmer/dashed and clearly below-curve
+ * relative to the solid, already-scored dots around it. */
+@Preview
+@Composable
+private fun PreviewEffortChartProjectedPoint() {
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = listOf(
+        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
+        EffortPoint(1f, 92f, 0.45f, EffortZone.COLD),
+        EffortPoint(2f, 95f, 0.45f, EffortZone.COLD),
+        EffortPoint(3f, 98f, 0.70f, EffortZone.ON_CURVE),
+        EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH, emphasized = true),
+        EffortPoint(5f, 115f, 0.30f, EffortZone.BELOW, z = -1.5, projected = true)
+      ),
+      trend = listOf(listOf(3f to 96f, 4f to 98f)),
       bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
       bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
       bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
