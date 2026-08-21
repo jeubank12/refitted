@@ -925,6 +925,39 @@ class EffortModelTest {
     fun `empty input returns the shared Empty instance`() {
       assertThat(EffortModel.scoreWithBootstrap(emptyList())).isSameInstanceAs(EffortSeries.Empty)
     }
+
+    @Test
+    fun `appending one trailing hypothetical set leaves every earlier scored set unchanged`() {
+      // The strip's live-projection preview relies on exactly this: scoring a not-yet-completed
+      // set by appending it and re-scoring must not perturb anything already drawn. setsInSession
+      // is deliberately excluded from the comparison - the hypothetical genuinely does join the
+      // live day's session count, so that one bookkeeping field is expected to differ; every
+      // score-relevant field (expectation/z/size/zone/expectedWeight) must not.
+      val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        (0 until 3).map { EffortSet(day(35).plusSeconds(it * 120L), 110.0, 8) }
+      val hypothetical = EffortSet(day(35).plusSeconds(600L), 115.0, 6)
+
+      val without = EffortModel.scoreWithBootstrap(sets)
+      val with = EffortModel.scoreWithBootstrap(sets + hypothetical)
+
+      assertThat(with.sets.dropLast(1).map { it.copy(setsInSession = 0) })
+        .isEqualTo(without.sets.map { it.copy(setsInSession = 0) })
+    }
+
+    @Test
+    fun `appending one trailing hypothetical set scores it like any other live-session set`() {
+      val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
+        EffortSet(day(35), 110.0, 8)
+      val hypothetical = EffortSet(day(35).plusSeconds(600L), 115.0, 6)
+
+      val series = EffortModel.scoreWithBootstrap(sets + hypothetical)
+      val projected = series.sets.last()
+
+      assertThat(projected.source).isEqualTo(hypothetical)
+      assertThat(projected.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP)
+      assertThat(projected.expectation).isNotNull()
+      assertThat(projected.zone).isNotEqualTo(EffortZone.COLD)
+    }
   }
 
   @Nested

@@ -527,6 +527,12 @@ object EffortModel {
    * rather than freezing to one value the session-best fit already committed to before the
    * session existed. Every earlier session, being necessarily complete, keeps using the real
    * fit as soon as it's mature enough to have one.
+   *
+   * This causality also makes [sets] safe to extend with one hypothetical, not-yet-completed set
+   * dated after everything real (e.g. a strip previewing where the currently-dialed-in weight/
+   * reps would land): every earlier [ScoredSet] is derived only from sets strictly before it, so
+   * appending one trailing entry and re-scoring can only ever add a new last [ScoredSet], never
+   * change any of the ones before it.
    */
   fun scoreWithBootstrap(
     sets: List<EffortSet>,
