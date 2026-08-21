@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.litus_animae.refitted.data.effort.EffortSet
 import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
@@ -51,6 +52,8 @@ private const val DEFAULT_TODAY_WEIGHT = 100.0
 private const val DEFAULT_PREVIOUS_WEIGHT = 95.0
 private const val DEFAULT_REPS = 8
 private const val SET_SPACING_SECONDS = 120L
+private const val DEFAULT_PROJECTED_WEIGHT = 105.0
+private const val DEFAULT_PROJECTED_REPS = 8
 
 /**
  * Manual harness for [SetTrendStrip]'s windowing/session-collapse behavior, which is driven by
@@ -58,8 +61,10 @@ private const val SET_SPACING_SECONDS = 120L
  * exercised meaningfully from a fixed-width `@Preview` - it needs a real device screen. Both the
  * session boundary (how many sessions, how many sets in each) and each individual set's own
  * weight/reps are editable in place, so a single set's contribution to the strip's zone coloring
- * and trend fit can be isolated. Debug-only (registered in app/src/debug/AndroidManifest.xml),
- * so it never reaches a release build.
+ * and trend fit can be isolated. A separate weight/reps stepper drives the strip's `projected`
+ * point - the same live-preview dot the real exercise screen feeds from its own steppers - so its
+ * dashed styling and the funnel's one-step extension to it can be tuned the same way. Debug-only
+ * (registered in app/src/debug/AndroidManifest.xml), so it never reaches a release build.
  */
 class StripChartTesterActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,6 +147,10 @@ private fun StripChartTesterScreen() {
     }
   }.map { it.toEffortSet() }
 
+  var projectedWeight by remember { mutableStateOf(DEFAULT_PROJECTED_WEIGHT) }
+  var projectedReps by remember { mutableIntStateOf(DEFAULT_PROJECTED_REPS) }
+  val projectedAt = remember { Instant.now() }
+
   Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Text("Strip chart tester", style = MaterialTheme.typography.headlineLarge)
     Text("Sessions: $sessionCount, total sets: ${sessions.sumOf { it.sets.size }}")
@@ -153,8 +162,24 @@ private fun StripChartTesterScreen() {
     )
     SetTrendStrip(
       Modifier.fillMaxWidth().height(88.dp),
-      merged = merged
+      merged = merged,
+      projected = EffortSet(projectedAt, projectedWeight, projectedReps)
     )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Text("Projected next set", Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall)
+      Stepper(
+        label = "wt",
+        value = "${projectedWeight.roundToInt()}",
+        onDecrement = { projectedWeight = (projectedWeight - 5.0).coerceAtLeast(0.0) },
+        onIncrement = { projectedWeight += 5.0 }
+      )
+      Stepper(
+        label = "reps",
+        value = "$projectedReps",
+        onDecrement = { projectedReps = (projectedReps - 1).coerceAtLeast(0) },
+        onIncrement = { projectedReps += 1 }
+      )
+    }
     HorizontalDivider()
     Text(
       "+/- a session's set count, or a set's own weight/reps",
@@ -220,7 +245,7 @@ private fun Stepper(label: String, value: String, onDecrement: () -> Unit, onInc
  * windowing/session-collapse behavior this activity exists to test on-device; see the
  * activity's kdoc.
  */
-@Preview(showBackground = true, widthDp = 450)
+@Preview(showBackground = true, widthDp = 450, heightDp = 1200)
 @Composable
 private fun PreviewStripChartTesterScreen() {
   RefittedTheme {
