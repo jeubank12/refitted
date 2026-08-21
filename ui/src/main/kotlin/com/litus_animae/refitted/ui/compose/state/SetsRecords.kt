@@ -2,7 +2,6 @@ package com.litus_animae.refitted.ui.compose.state
 
 import android.util.Log
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
@@ -81,10 +80,14 @@ fun recordsByExerciseId(allRecords: List<ExerciseRecord>): Map<String, ExerciseS
       val todayRecords by currentSetRecord.currentRecords.collectAsState(initial = emptyList())
 
       // TODO if one already exists in the state, use it instead of this one?
-      // hasSyncedInitialRecord is rememberSaveable so it comes back true after rotation,
-      // limiting currentRecord to one real sync from latestRecord instead of re-deriving (and
-      // stomping an in-progress edit) on every rotation's resubscription replay.
-      val hasSyncedInitialRecord = rememberSaveable(currentSet.id) { mutableStateOf(false) }
+      // hasSyncedInitialRecord must reset together with currentRecord (both plain remember, not
+      // rememberSaveable) - currentRecord itself doesn't survive rotation, so if this flag did
+      // survive it would report "already synced" while currentRecord sat at defaultRecord,
+      // stranding weight/reps at their defaults instead of the last matching set. Plain remember
+      // still protects against the original problem this guarded against - stomping an
+      // in-progress edit on every latestRecord resubscription replay within the same composition
+      // lifetime - since it only re-syncs once per currentSet.id either way.
+      val hasSyncedInitialRecord = remember(currentSet.id) { mutableStateOf(false) }
       val currentRecord = remember(currentSet.id) {
         mutableStateOf(currentSetRecord.defaultRecord.copy(stored = false))
       }
