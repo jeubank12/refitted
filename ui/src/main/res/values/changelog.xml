@@ -2,8 +2,12 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.4.5</item>
         <item>**v1.4.4</item>
         <item>Display refresh with new Material guidelines</item>
+        <item>Fixes a bug in copy day that would modify the prescribed sets and reps</item>
+        <item>Sending a workout to your garmin watch now provides weight suggestions</item>
+        <item>Garmin watches will no longer allow recording more sets than the day prescribes</item>
         <item>**v1.4.3</item>
         <item>Pair a Garmin watch to run your workout from your wrist: send today\'s plan, complete sets and rest right there, and it all syncs back to your phone automatically, even through a dropped connection</item>
         <item>**v1.4.1</item>
@@ -15,8 +19,6 @@
         <item>Effort chart: see how each set compares to your training trend, right on the exercise screen</item>
         <item>Set history now groups your sets by session, with per-session totals and PR badges</item>
         <item>Calendar now aligns to real dates</item>
-        <item>**v1.3.0</item>
-        <item>Updated Exercise UI</item>
     </string-array>
     <string-array name="dismiss_changelog">
         <item>Awesome</item>
