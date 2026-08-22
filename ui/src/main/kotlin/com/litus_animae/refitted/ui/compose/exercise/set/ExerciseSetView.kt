@@ -167,6 +167,10 @@ fun ColumnScope.ExerciseSetView(
     saver = Repetitions.Saver,
     inputs = arrayOf(exerciseSet.id, record)
   ) { Repetitions(if (exerciseSet.repsAreSequenced) setWithRecord.reps else record.reps) }
+  // Stable per target set, like weight/reps above - stamping Instant.now() directly into the
+  // projected EffortSet below would re-date (and needlessly re-score) it on every unrelated
+  // recomposition instead of only when the user actually moves to a new target set.
+  val projectedAt = remember(exerciseSet.id, record) { Instant.now() }
 
   // Local timer state used as fallback for the legacy ExerciseView path
   val timerRunning = rememberSaveable { mutableStateOf(false) }
@@ -296,6 +300,9 @@ fun ColumnScope.ExerciseSetView(
       } else {
         null
       }
+      // The weight/reps currently dialed in on the steppers below, previewed on the strip one
+      // step past the last real set - not yet what onSave will persist.
+      val projectedSet = if (showStrip) EffortSet(projectedAt, saveWeight, saveReps) else null
       // Reflects the current exercise's data - real, empty/"locked", or (while effortSets is
       // still null, mid-flow-transition) whatever the previous exercise last showed, so a pager
       // swipe doesn't flash blank before the new exercise's history round-trips through Room.
@@ -325,6 +332,7 @@ fun ColumnScope.ExerciseSetView(
                 .fillMaxWidth()
                 .height(stripHeight ?: StripPreferredHeight),
               merged = shownTrend.value?.sets.orEmpty(),
+              projected = projectedSet,
               onClick = onOpenHistory
             )
             Spacer(Modifier.height(8.dp))

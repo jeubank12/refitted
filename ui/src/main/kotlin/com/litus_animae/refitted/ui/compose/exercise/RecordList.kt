@@ -528,7 +528,13 @@ private fun EffortHistoryCard(
 
   val points = remember(sortedEntries) {
     sortedEntries.map { (sessionIndex, scored) ->
-      EffortPoint(sessionIndex.toFloat(), scored.source.weight.toFloat(), scored.size, scored.zone)
+      EffortPoint(
+        sessionIndex.toFloat(),
+        scored.source.weight.toFloat(),
+        EffortModel.repSize(scored.source.reps),
+        scored.zone,
+        z = scored.z
+      )
     }
   }
   val expectedWeightBySession = remember(trend) {
@@ -536,6 +542,24 @@ private fun EffortHistoryCard(
   }
   val trendRuns = remember(sortedEntries, expectedWeightBySession) {
     buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, expectedWeightBySession)
+  }
+  // The funnel background: the weight range a session's fitted expectedCapacity implies at a
+  // heavy (4-rep) and a light target, connected with straight lines for now. The light target
+  // drifts down from 15 toward TrendPoint.lowAnchorReps while a stagnation streak holds.
+  val bandTopBySession = remember(trend) {
+    trend.associateBy({ it.sessionIndex }, { EffortModel.weightForReps(it.expectedCapacity, 4) })
+  }
+  val bandBottomBySession = remember(trend) {
+    trend.associateBy(
+      { it.sessionIndex },
+      { EffortModel.weightForReps(it.expectedCapacity, it.lowAnchorReps) }
+    )
+  }
+  val bandTopRuns = remember(sortedEntries, bandTopBySession) {
+    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, bandTopBySession)
+  }
+  val bandBottomRuns = remember(sortedEntries, bandBottomBySession) {
+    buildTrendRuns(sortedEntries.map { it.key.toFloat() to it.key }, bandBottomBySession)
   }
   val gapMarks = remember(sortedEntries) {
     sortedEntries.zipWithNext().mapNotNull { (a, b) ->
@@ -584,7 +608,11 @@ private fun EffortHistoryCard(
           .fillMaxWidth()
           .weight(1f),
         points = points,
-        trend = trendRuns,
+        bandTop = bandTopRuns,
+        bandBottom = bandBottomRuns,
+        // Same source map as bandTopBySession/bandBottomBySession, so it lines up run-for-run
+        // with bandTop/bandBottom without needing its own build.
+        bandMid = trendRuns,
         xLabels = xLabels,
         yLabels = yLabels,
         gapMarks = gapMarks

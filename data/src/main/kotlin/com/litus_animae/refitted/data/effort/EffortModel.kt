@@ -65,6 +65,47 @@ object EffortModel {
     return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
   }
 
+  /** [effectiveReps] for a fractional rep count - see [weightForReps]'s `Double` overload. */
+  fun effectiveReps(reps: Double, config: EffortConfig = EffortConfig.Default): Double {
+    val clamped = reps.coerceAtLeast(0.0)
+    if (clamped <= config.repCap || config.repSoftCapScale <= 0.0) {
+      return min(clamped, config.repCap.toDouble())
+    }
+    val excess = clamped - config.repCap
+    return config.repCap + config.repSoftCapScale * ln(1 + excess / config.repSoftCapScale)
+  }
+
+  /** Inverse of [capacity]'s weight side: the weight that yields [capacity] at [effectiveReps]. */
+  private fun weightForEffectiveReps(capacity: Double, effectiveReps: Double, config: EffortConfig) =
+    capacity / (1 + effectiveReps / config.epleyDivisor)
+
+  /**
+   * The weight that would yield [capacity] at a literal target rep count, e.g. the funnel
+   * band's heavy (low-rep) and light (high-rep) edges. Unlike the internal fit's typical-reps
+   * conversion, [reps] is taken as-is through [effectiveReps] rather than a recency-weighted
+   * estimate.
+   */
+  fun weightForReps(capacity: Double, reps: Int, config: EffortConfig = EffortConfig.Default): Double =
+    weightForEffectiveReps(capacity, effectiveReps(reps, config), config)
+
+  /**
+   * [weightForReps] for a fractional rep target, e.g. [ScoredSet.lowAnchorReps]/
+   * [TrendPoint.lowAnchorReps] once a stagnation streak has pulled it below the integral
+   * constant it starts at.
+   */
+  fun weightForReps(capacity: Double, reps: Double, config: EffortConfig = EffortConfig.Default): Double =
+    weightForEffectiveReps(capacity, effectiveReps(reps, config), config)
+
+  /**
+   * Reps mapped to `[0, 1]` for chart bubble size - a display-only alternative to [bubbleSize].
+   * Effort's z-score clusters most working sets near "on curve," so its bubble size barely
+   * varies across a real chart; reps vary far more per set and read as a visible size
+   * difference at a glance. [EffortConfig.repCap] is the natural ceiling already used to cap
+   * reps' contribution to capacity.
+   */
+  fun repSize(reps: Int, config: EffortConfig = EffortConfig.Default): Float =
+    (reps.toFloat() / config.repCap).coerceIn(0f, 1f)
+
   fun bubbleSize(z: Double?): Float {
     if (z == null) return NEUTRAL_SIZE
     if (z <= HUMP_ANCHORS.first().first) return HUMP_ANCHORS.first().second.toFloat()
@@ -253,7 +294,12 @@ object EffortModel {
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
     if (sets.isEmpty()) return EffortSeries.Empty
-    return scoreSessions(daySessions(sets, zone), config, config.maxExtrapolationDays.toDouble())
+    return scoreSessions(
+      daySessions(sets, zone),
+      config,
+      config.maxExtrapolationDays.toDouble(),
+      trackStagnation = true
+    )
   }
 
   /**
@@ -266,7 +312,8 @@ object EffortModel {
     sessions: List<FitSession>,
     config: EffortConfig,
     maxExtrapolation: Double,
-    skipWarmUps: Boolean = false
+    skipWarmUps: Boolean = false,
+    trackStagnation: Boolean = false
   ): EffortSeries {
     if (sessions.isEmpty()) return EffortSeries.Empty
 
@@ -291,6 +338,15 @@ object EffortModel {
     var lastPriorX = 0.0
     var runningBest = 0.0
 
+    // Stagnation tracking (day-grain only - see trackStagnation). stagnationRepsSum/Count are
+    // a running average of reps across a streak of sessions whose session-best weight and reps
+    // both exactly matched the one before, so it reads back as (sum + repCap) / (count + 1):
+    // repCap alone with no streak, sliding toward the repeated value the longer it runs.
+    var stagnationRepsSum = 0.0
+    var stagnationCount = 0
+    var lastStagnationWeight: Double? = null
+    var lastStagnationReps: Int? = null
+
     val scoredSets = mutableListOf<ScoredSet>()
     val trendPoints = mutableListOf<TrendPoint>()
 
@@ -301,6 +357,8 @@ object EffortModel {
       var peakIndex = 0
       var bestCapacity = capacities[0]
       var bestReps = effectiveReps(sessionSets[0].set.reps, config)
+      var bestRawReps = sessionSets[0].set.reps
+      var bestWeight = sessionSets[0].set.weight
       for (i in 1 until sessionSets.size) {
         val c = capacities[i]
         val r = effectiveReps(sessionSets[i].set.reps, config)
@@ -308,9 +366,20 @@ object EffortModel {
           peakIndex = i
           bestCapacity = c
           bestReps = r
+          bestRawReps = sessionSets[i].set.reps
+          bestWeight = sessionSets[i].set.weight
         }
       }
       val sessionValue = bestCapacity * sustainFactor(capacities, peakIndex, bestCapacity, config)
+
+      // Causal, like the rest of this loop's state: the streak read here reflects sessions
+      // strictly before this one, and is only updated for this session's own outcome further
+      // down, after scoring.
+      val lowAnchorReps = if (trackStagnation) {
+        (stagnationRepsSum + config.repCap) / (stagnationCount + 1)
+      } else {
+        config.repCap.toDouble()
+      }
 
       var expectedCapacity: Double? = null
       var expectedWeight: Double? = null
@@ -341,7 +410,7 @@ object EffortModel {
         residualScale = max(fittedResidualScale, max(config.residualScaleFloorFraction * cHat, 1e-6))
 
         val rHat = (sumRepsWr / sumRepsW).coerceIn(1.0, config.repSoftCapMax)
-        val wHat = cHat / (1 + rHat / config.epleyDivisor)
+        val wHat = weightForEffectiveReps(cHat, rHat, config)
         expectedWeight = wHat
         trendPoints.add(
           TrendPoint(
@@ -350,7 +419,8 @@ object EffortModel {
             at = sessionSets.first().set.completed,
             expectedCapacity = cHat,
             typicalReps = rHat,
-            expectedWeight = wHat
+            expectedWeight = wHat,
+            lowAnchorReps = lowAnchorReps
           )
         )
       }
@@ -372,7 +442,8 @@ object EffortModel {
             expectedWeight = expectedWeight,
             z = z,
             size = bubbleSize(z),
-            zone = zoneOf(z)
+            zone = zoneOf(z),
+            lowAnchorReps = lowAnchorReps
           )
         )
       }
@@ -385,6 +456,21 @@ object EffortModel {
       val isWarmUp = skipWarmUps && sessionValue < config.workingSetFraction * runningBest
       runningBest = max(runningBest, sessionValue)
       if (isWarmUp) return@forEach
+
+      if (trackStagnation) {
+        val previousWeight = lastStagnationWeight
+        if (previousWeight != null && abs(bestWeight - previousWeight) < 1e-6 &&
+          bestRawReps == lastStagnationReps
+        ) {
+          stagnationRepsSum += bestRawReps
+          stagnationCount += 1
+        } else {
+          stagnationRepsSum = 0.0
+          stagnationCount = 0
+        }
+        lastStagnationWeight = bestWeight
+        lastStagnationReps = bestRawReps
+      }
 
       // Fold this session in *after* using it for prediction/scoring, so a session's
       // outcome (a PR or a bad day) never influences its own expectation.
@@ -435,6 +521,18 @@ object EffortModel {
    * COLD. The exploded fit is causal at set grain, so it needs
    * [EffortConfig.minPriorSetsForBootstrap] strictly-prior sets - which the current session's
    * own earlier sets can supply, so a brand-new exercise warms up within its first session.
+   *
+   * The most recent session is forced onto the exploded fit even once the real fit has an
+   * opinion on it - it's still open, so a chart showing it should react as each set is logged
+   * rather than freezing to one value the session-best fit already committed to before the
+   * session existed. Every earlier session, being necessarily complete, keeps using the real
+   * fit as soon as it's mature enough to have one.
+   *
+   * This causality also makes [sets] safe to extend with one hypothetical, not-yet-completed set
+   * dated after everything real (e.g. a strip previewing where the currently-dialed-in weight/
+   * reps would land): every earlier [ScoredSet] is derived only from sets strictly before it, so
+   * appending one trailing entry and re-scoring can only ever add a new last [ScoredSet], never
+   * change any of the ones before it.
    */
   fun scoreWithBootstrap(
     sets: List<EffortSet>,
@@ -454,11 +552,16 @@ object EffortModel {
       skipWarmUps = true
     )
 
+    // Sets are chronological (score()/daySessions sort ascending), so the last entry belongs to
+    // the most recent - the only session that can still be open.
+    val liveSessionIndex = real.sets.last().sessionIndex
+
     // Both grains walk the same completed-sorted sets in the same order, so the two set lists
     // line up 1:1 and can be zipped by position.
     val scoredSets = real.sets.mapIndexed { index, scored ->
       when {
-        scored.expectation != null -> scored.copy(expectationSource = ExpectationSource.SESSION)
+        scored.expectation != null && scored.sessionIndex != liveSessionIndex ->
+          scored.copy(expectationSource = ExpectationSource.SESSION)
         else -> {
           val fallback = exploded.sets[index]
           if (fallback.expectation == null) {
@@ -479,14 +582,18 @@ object EffortModel {
 
     // One trend point per calendar session either way - per-set detail rides on each
     // ScoredSet.expectedWeight instead, which is what lets the strip draw a line that moves
-    // within a session rather than stepping once per day.
+    // within a session rather than stepping once per day. The live session is excluded from
+    // realBySession the same way it's excluded above, so it builds its trend point from its own
+    // (exploded) scored sets instead of the real fit's frozen one.
     val realBySession = real.trend.associateBy { it.sessionIndex }
     val trendPoints = scoredSets
       .filter { it.expectationSource != null }
       .groupBy { it.sessionIndex }
       .toSortedMap()
       .map { (sessionIndex, sessionScored) ->
-        realBySession[sessionIndex]?.copy(expectationSource = ExpectationSource.SESSION)
+        realBySession[sessionIndex]
+          ?.takeIf { sessionIndex != liveSessionIndex }
+          ?.copy(expectationSource = ExpectationSource.SESSION)
           ?: sessionScored.first().let { first ->
             val cHat = first.expectation!!
             val wHat = first.expectedWeight!!
@@ -497,7 +604,8 @@ object EffortModel {
               expectedCapacity = cHat,
               typicalReps = (cHat / wHat - 1) * config.epleyDivisor,
               expectedWeight = wHat,
-              expectationSource = ExpectationSource.BOOTSTRAP
+              expectationSource = ExpectationSource.BOOTSTRAP,
+              lowAnchorReps = first.lowAnchorReps
             )
           }
       }
