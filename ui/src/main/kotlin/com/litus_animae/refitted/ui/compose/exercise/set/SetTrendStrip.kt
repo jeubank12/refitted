@@ -120,7 +120,10 @@ fun SetTrendStrip(
   modifier: Modifier = Modifier,
   merged: List<EffortSet>,
   projected: EffortSet? = null,
-  onClick: () -> Unit = {}
+  onClick: () -> Unit = {},
+  // Forwarded straight to EffortChart's own debug aid - see its kdoc. Off by default and costs
+  // nothing unused; StripChartTesterActivity is the only caller that flips it on.
+  showBandVertices: Boolean = false
 ) {
   BoxWithConstraints(modifier) {
     val window = if (maxWidth != Dp.Infinity) {
@@ -458,7 +461,8 @@ fun SetTrendStrip(
             yLabels = yLabels,
             yLabelsRight = yLabelsRight,
             gapMarks = sessionGapMarks,
-            compact = true
+            compact = true,
+            showBandVertices = showBandVertices
           )
         }
       }

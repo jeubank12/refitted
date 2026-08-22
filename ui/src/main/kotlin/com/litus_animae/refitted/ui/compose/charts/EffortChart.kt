@@ -1,7 +1,13 @@
 package com.litus_animae.refitted.ui.compose.charts
 
 import android.graphics.Canvas as NativeCanvas
+import android.graphics.Color as NativeColor
+import android.graphics.LinearGradient
 import android.graphics.Paint as NativePaint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
+import android.graphics.Shader
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,9 +23,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,6 +58,7 @@ import com.litus_animae.refitted.data.effort.EffortZone
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
 import com.litus_animae.refitted.ui.compose.util.RefittedTheme
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -81,6 +93,19 @@ private val EmphasisRingGap = 3.dp
 private val EmphasisRingWidth = 1.5.dp
 private val BandFadeInset = 4.dp
 private val FadeOutlineWidth = 1.dp
+private val DebugVertexRadius = 3.dp
+
+// Tuned against PreviewEffortChartGradientBandingTester: 8 divisions stayed clean at fade widths
+// down to ~30px, well under horizontalFadePx's actual size, so it has margin at this fade's real
+// (larger) width too.
+private const val FadeOutSteps = 8
+
+// Fixed, theme-independent colors for showBandVertices - deliberately loud/high-contrast rather
+// than derived from the chart's own palette, since these markers exist to stand out from
+// whatever they're overlaid on, not to blend in.
+private val DebugTopVertexColor = Color(0xFFFF1744)
+private val DebugBottomVertexColor = Color(0xFF2979FF)
+private val DebugSyntheticVertexColor = Color(0xFFFFEA00)
 
 /**
  * Effort-scored sets as bubbles (radius by rep count, color by demonstrated capacity vs.
@@ -132,6 +157,11 @@ fun EffortChart(
   // Empty by default and costs nothing unused.
   yLabelsRight: List<Pair<Float, String>> = emptyList(),
   gapMarks: List<Float> = emptyList(),
+  // Debug aid: marks every real bandTop/bandBottom vertex plus the synthetic lead-in/fade-out
+  // points the mesh adds on top of them, so the funnel's actual control points can be inspected
+  // directly instead of inferred from the rendered gradient. Off by default and costs nothing
+  // unused - see StripChartTesterActivity for the only caller that flips it on.
+  showBandVertices: Boolean = false,
   baseColor: Color = MaterialTheme.colorScheme.primary,
   peakColor: Color = ExtendedTheme.colors.goodAttention.color,
   punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
@@ -200,6 +230,7 @@ fun EffortChart(
   val emphasisWidthPx = with(density) { EmphasisRingWidth.toPx() }
   val bandFadePx = with(density) { BandFadeInset.toPx() }
   val fadeOutlinePx = with(density) { FadeOutlineWidth.toPx() }
+  val debugVertexRadiusPx = with(density) { DebugVertexRadius.toPx() }
 
   val textMeasurer = rememberTextMeasurer()
   val labelStyle = TextStyle(fontSize = 9.sp, color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
@@ -294,11 +325,14 @@ fun EffortChart(
       val leadCols = if (needsLeadFade) 1 else 0
       // leadCols (0 or 1) bookends the real ones on the left when needed; the trailing fade-out
       // always gets one more column past the run's last sample, carrying that end's own weights
-      // (so the band's vertical shape doesn't kink) but zero alpha - the band shrinks out of
-      // nothing there instead of stopping on a hard vertical edge, matching how the top edge
-      // already fades vertically (see [BandFadeInset]) rather than cutting off flat. Both this
-      // and a synthetic lead-in naturally get clipped by the composable's own bounds when their
-      // reach runs past it.
+      // (so the band's vertical shape doesn't kink) - the column itself is drawn fully opaque
+      // (see the fade-out-prime writeColumn call below), with the actual fade to nothing applied
+      // afterward as a shader-based DST_IN mask rather than baked into vertex alpha. Vertex-color
+      // alpha interpolation in drawVertices produces a real diagonal color-darkening artifact
+      // (confirmed via isolated flat-band previews - see PreviewEffortChartFlatBandHorizontal-
+      // VertexAlphaFade vs ...ShaderAlphaFade); a shader gradient doesn't have that problem. Both
+      // this and a synthetic lead-in naturally get clipped by the composable's own bounds when
+      // their reach runs past it.
       val cols = n + leadCols + 1
       val verts = FloatArray(cols * 5 * 2)
       val colors = IntArray(cols * 5)
@@ -338,7 +372,10 @@ fun EffortChart(
         }
       }
 
-      for (j in 0 until n) {
+      // Every real column except the last renders as-is. The last one (typically the live/
+      // projected point) is handled specially below - see the "provisional-prime"/"fade-out-
+      // prime" comment - so it's excluded here rather than written and then overwritten.
+      for (j in 0 until n - 1) {
         val (x, topWeight) = top[j]
         writeColumn(j + leadCols, px(x), topWeight, bottom[j].second, mid[j].second, alphaScale = 1f)
       }
@@ -350,8 +387,46 @@ fun EffortChart(
         val (leadX, leadWeight) = leadOrigin
         writeColumn(0, px(leadX), leadWeight, leadWeight, leadWeight, alphaScale = 0f)
       }
+
+      // The run's true last sample (usually the live/projected point) often sits right where a
+      // stagnation-narrowed low anchor (see EffortModel.lowAnchorReps) has pulled bandBottom
+      // close to bandTop - rendered at its own x at full opacity, that reads as a sudden pinch
+      // right at a real, fully-visible column. "fade-out-prime" carries that same real value but
+      // relocated to where the mesh fades to nothing (xLast + horizontalFadePx, via the DST_IN
+      // mask below) - so the pinch still exists, but only ever at (or near) zero alpha, never
+      // fully seen. "provisional-prime" takes over the last sample's own x at full opacity
+      // instead, valued as a straight-line interpolation between the second-to-last real column
+      // and fade-out-prime - i.e. the same slope the real data was already on, just stretched
+      // over the extra horizontalFadePx of run instead of snapping to the pinched value within
+      // one column's width. This also fixes the previous flat provisional->fade-out block's
+      // uneven color steps as a side effect: top/bottom/mid now interpolate along one line
+      // instead of jumping independently.
       val (xLast, topLast) = top[n - 1]
-      writeColumn(cols - 1, px(xLast) + horizontalFadePx, topLast, bottom[n - 1].second, mid[n - 1].second, alphaScale = 0f)
+      val bottomLast = bottom[n - 1].second
+      val midLast = mid[n - 1].second
+      val fadeOutPrimeXPx = px(xLast) + horizontalFadePx
+
+      val (xFinal, topFinal) = top[n - 2]
+      val bottomFinal = bottom[n - 2].second
+      val midFinal = mid[n - 2].second
+      val xFinalPx = px(xFinal)
+
+      val provisionalPrimeXPx = px(xLast)
+      val fadeSpanPx = fadeOutPrimeXPx - xFinalPx
+      val t = if (fadeSpanPx != 0f) (provisionalPrimeXPx - xFinalPx) / fadeSpanPx else 1f
+      val topProvisionalPrime = lerp(topFinal, topLast, t)
+      val bottomProvisionalPrime = lerp(bottomFinal, bottomLast, t)
+      val midProvisionalPrime = lerp(midFinal, midLast, t)
+
+      writeColumn(
+        n - 1 + leadCols,
+        provisionalPrimeXPx,
+        topProvisionalPrime,
+        bottomProvisionalPrime,
+        midProvisionalPrime,
+        alphaScale = 1f
+      )
+      writeColumn(cols - 1, fadeOutPrimeXPx, topLast, bottomLast, midLast, alphaScale = 1f)
 
       // 2 triangles per grid cell (4 row-bands x (cols - 1) column-gaps), listed explicitly
       // rather than as a single strip - a strip would need degenerate bridging triangles between
@@ -369,6 +444,8 @@ fun EffortChart(
         }
       }
       drawIntoCanvas { canvas ->
+        val bounds = RectF(0f, 0f, size.width, size.height)
+        val layerId = canvas.nativeCanvas.saveLayer(bounds, null)
         canvas.nativeCanvas.drawVertices(
           NativeCanvas.VertexMode.TRIANGLES,
           verts.size,
@@ -382,6 +459,61 @@ fun EffortChart(
           0,
           indices.size,
           meshPaint
+        )
+        // Fades the trailing edge (provisionalPrimeXPx to fadeOutPrimeXPx) to nothing via a
+        // shader-based DST_IN mask instead of vertex alpha - see the writeColumn calls above for
+        // why. CLAMP holds the mask at fully opaque before provisionalPrimeXPx and fully
+        // transparent past fadeOutPrimeXPx, so nothing earlier in this run is affected.
+        // Smoothstep-eased stops (not a plain 2-stop linear ramp) avoid a Mach band at the
+        // ramp-to-plateau edges - see smoothstepAlphaStops's kdoc; 8 divisions was tuned against
+        // PreviewEffortChartGradientBandingTester to stay clean at this fade's actual pixel width.
+        val (fadeColors, fadePositions) = smoothstepAlphaStops(FadeOutSteps)
+        val fadeMaskPaint = NativePaint().apply {
+          shader = LinearGradient(
+            provisionalPrimeXPx, 0f, fadeOutPrimeXPx, 0f,
+            fadeColors, fadePositions, Shader.TileMode.CLAMP
+          )
+          xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        canvas.nativeCanvas.drawRect(bounds, fadeMaskPaint)
+        canvas.nativeCanvas.restoreToCount(layerId)
+      }
+
+      if (showBandVertices) {
+        // Real vertices actually rendered as-is: every sample except the run's last, which
+        // writeColumn above replaces with provisional-prime rather than its own raw value -
+        // marking the raw top[n-1]/bottom[n-1] here would show a point the mesh no longer draws.
+        for (j in 0 until n - 1) {
+          drawCircle(DebugTopVertexColor, debugVertexRadiusPx, Offset(px(top[j].first), py(top[j].second)))
+          drawCircle(DebugBottomVertexColor, debugVertexRadiusPx, Offset(px(bottom[j].first), py(bottom[j].second)))
+        }
+        // Synthetic points the mesh adds on top of the real data (see needsLeadFade and
+        // provisional-prime/fade-out-prime above) - hollow rings, distinct from the filled
+        // real-vertex dots. provisional-prime is drawn filled (it's still full alpha, unlike the
+        // true fade-out point) but in the synthetic color, since its value is interpolated, not
+        // the run's own raw sample.
+        if (needsLeadFade) {
+          val (leadX, leadWeight) = leadOrigin
+          drawCircle(
+            DebugSyntheticVertexColor,
+            debugVertexRadiusPx,
+            Offset(px(leadX), py(leadWeight)),
+            style = Stroke(width = fadeOutlinePx)
+          )
+        }
+        drawCircle(DebugSyntheticVertexColor, debugVertexRadiusPx, Offset(provisionalPrimeXPx, py(topProvisionalPrime)))
+        drawCircle(DebugSyntheticVertexColor, debugVertexRadiusPx, Offset(provisionalPrimeXPx, py(bottomProvisionalPrime)))
+        drawCircle(
+          DebugSyntheticVertexColor,
+          debugVertexRadiusPx,
+          Offset(fadeOutPrimeXPx, py(topLast)),
+          style = Stroke(width = fadeOutlinePx)
+        )
+        drawCircle(
+          DebugSyntheticVertexColor,
+          debugVertexRadiusPx,
+          Offset(fadeOutPrimeXPx, py(bottomLast)),
+          style = Stroke(width = fadeOutlinePx)
         )
       }
     }
@@ -868,6 +1000,370 @@ private fun PreviewEffortChartFunnelBand() {
       bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
       bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
     )
+  }
+}
+
+/** Isolates whether the mesh's diagonal color banding comes from tilted (sloped) quads being
+ * triangulated, by removing all slope: bandTop/bandBottom/bandMid are each a constant value
+ * across every column, so every mesh cell is an axis-aligned rectangle. A rectangle split into
+ * 2 triangles is mathematically guaranteed to reproduce an exact linear gradient with no seam -
+ * so if a diagonal is still visible here, the tilted-quad theory is wrong and something else
+ * (e.g. non-premultiplied alpha interpolation in drawVertices) is the real cause. */
+@Preview
+@Composable
+private fun PreviewEffortChartFlatBandArtifactIsolation() {
+  RefittedTheme(darkTheme = darkTheme) {
+    EffortChart(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer),
+      points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.45f, EffortZone.ON_CURVE) },
+      bandTop = listOf((0..6).map { it.toFloat() to 120f }),
+      bandBottom = listOf((0..6).map { it.toFloat() to 80f }),
+      bandMid = listOf((0..6).map { it.toFloat() to 100f })
+    )
+  }
+}
+
+/**
+ * Same triangle-mesh drawVertices rendering as [PreviewEffortChartFlatBandArtifactIsolation],
+ * but every vertex is fully opaque - hue-only interpolation, no alpha baked into any vertex
+ * color at all. The top/bottom fade-to-transparent look that the real mesh gets from its
+ * alpha-0 rows is reproduced afterward instead, via a real [LinearGradient] (an SkShader,
+ * documented to interpolate premultiplied correctly - unlike drawVertices' own straight-alpha
+ * per-vertex interpolation) composited over the opaque mesh with [PorterDuff.Mode.DST_IN].
+ *
+ * If this renders clean where the vertex-alpha version banded, it confirms vertex-color alpha
+ * interpolation as the culprit, and this pattern - opaque mesh, alpha applied as a separate
+ * shader-based mask - as the fix to carry into the real chart.
+ */
+@Preview
+@Composable
+private fun PreviewEffortChartFlatBandHueOnlyWithAlphaOverlay() {
+  RefittedTheme(darkTheme = darkTheme) {
+    val baseColor = MaterialTheme.colorScheme.primary
+    val peakColor = ExtendedTheme.colors.goodAttention.color
+    val punishedColor = ExtendedTheme.colors.timerAmber.color
+    val meshPaint = remember { NativePaint() }
+    Canvas(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer)
+        .padding(8.dp)
+    ) {
+      val bottomPx = size.height - 8f
+      val topPx = 8f
+      val midPx = lerp(bottomPx, topPx, 0.6f)
+
+      val cols = 7
+      val verts = FloatArray(cols * 3 * 2)
+      val colors = IntArray(cols * 3)
+      val rowColors = intArrayOf(baseColor.toArgb(), peakColor.toArgb(), punishedColor.toArgb())
+      for (col in 0 until cols) {
+        val xPx = lerp(0f, size.width, col / (cols - 1).toFloat())
+        val rowY = floatArrayOf(bottomPx, midPx, topPx)
+        val base = col * 3
+        for (row in rowY.indices) {
+          verts[(base + row) * 2] = xPx
+          verts[(base + row) * 2 + 1] = rowY[row]
+          colors[base + row] = rowColors[row]
+        }
+      }
+      val indices = ShortArray((cols - 1) * 2 * 6)
+      var ii = 0
+      for (j in 0 until cols - 1) {
+        for (row in 0 until 2) {
+          val tl = (j * 3 + row).toShort()
+          val bl = (j * 3 + row + 1).toShort()
+          val tr = ((j + 1) * 3 + row).toShort()
+          val br = ((j + 1) * 3 + row + 1).toShort()
+          indices[ii++] = tl; indices[ii++] = bl; indices[ii++] = tr
+          indices[ii++] = bl; indices[ii++] = br; indices[ii++] = tr
+        }
+      }
+      drawIntoCanvas { canvas ->
+        val bounds = RectF(0f, 0f, size.width, size.height)
+        val layerId = canvas.nativeCanvas.saveLayer(bounds, null)
+        canvas.nativeCanvas.drawVertices(
+          NativeCanvas.VertexMode.TRIANGLES, verts.size, verts, 0, null, 0, colors, 0, indices, 0, indices.size, meshPaint
+        )
+        val maskPaint = NativePaint().apply {
+          shader = LinearGradient(
+            0f, bottomPx, 0f, topPx,
+            intArrayOf(NativeColor.TRANSPARENT, NativeColor.BLACK, NativeColor.BLACK, NativeColor.TRANSPARENT),
+            floatArrayOf(0f, 0.4f, 0.6f, 1f),
+            Shader.TileMode.CLAMP
+          )
+          xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        canvas.nativeCanvas.drawRect(bounds, maskPaint)
+        canvas.nativeCanvas.restoreToCount(layerId)
+      }
+    }
+  }
+}
+
+/**
+ * Isolates the *horizontal* fade specifically - the direction the original screenshots that
+ * started this investigation were actually about (the right-edge fade-out-prime region), not
+ * the vertical top/bottom fade [PreviewEffortChartFlatBandHueOnlyWithAlphaOverlay] tested. Same
+ * flat, hue-only mesh, fully opaque everywhere except the last 2 of 7 columns, whose vertex
+ * alpha is baked directly into the color ints ramping toward 0 - i.e. exactly how production's
+ * fade-out-prime column works today, just isolated from any vertical alpha or slope. If a
+ * diagonal shows up here, horizontal vertex-alpha interpolation is (at least part of) the real
+ * culprit independent of the vertical case already tested.
+ */
+@Preview
+@Composable
+private fun PreviewEffortChartFlatBandHorizontalVertexAlphaFade() {
+  RefittedTheme(darkTheme = darkTheme) {
+    val baseColor = MaterialTheme.colorScheme.primary
+    val peakColor = ExtendedTheme.colors.goodAttention.color
+    val punishedColor = ExtendedTheme.colors.timerAmber.color
+    val meshPaint = remember { NativePaint() }
+    Canvas(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer)
+        .padding(8.dp)
+    ) {
+      val bottomPx = size.height - 8f
+      val topPx = 8f
+      val midPx = lerp(bottomPx, topPx, 0.6f)
+
+      val cols = 7
+      // Full alpha through column 4, ramping to 0 across the last 2 columns - baked straight
+      // into the vertex color ints, matching how fade-out-prime bakes alpha today.
+      val colAlpha = (0 until cols).map { col -> ((cols - 1 - col).toFloat() / 2f).coerceIn(0f, 1f) }
+
+      val verts = FloatArray(cols * 3 * 2)
+      val colors = IntArray(cols * 3)
+      for (col in 0 until cols) {
+        val xPx = lerp(0f, size.width, col / (cols - 1).toFloat())
+        val rowY = floatArrayOf(bottomPx, midPx, topPx)
+        val a = colAlpha[col]
+        val rowColors = intArrayOf(
+          baseColor.copy(alpha = a).toArgb(),
+          peakColor.copy(alpha = a).toArgb(),
+          punishedColor.copy(alpha = a).toArgb()
+        )
+        val base = col * 3
+        for (row in rowY.indices) {
+          verts[(base + row) * 2] = xPx
+          verts[(base + row) * 2 + 1] = rowY[row]
+          colors[base + row] = rowColors[row]
+        }
+      }
+      val indices = ShortArray((cols - 1) * 2 * 6)
+      var ii = 0
+      for (j in 0 until cols - 1) {
+        for (row in 0 until 2) {
+          val tl = (j * 3 + row).toShort()
+          val bl = (j * 3 + row + 1).toShort()
+          val tr = ((j + 1) * 3 + row).toShort()
+          val br = ((j + 1) * 3 + row + 1).toShort()
+          indices[ii++] = tl; indices[ii++] = bl; indices[ii++] = tr
+          indices[ii++] = bl; indices[ii++] = br; indices[ii++] = tr
+        }
+      }
+      drawIntoCanvas { canvas ->
+        canvas.nativeCanvas.drawVertices(
+          NativeCanvas.VertexMode.TRIANGLES, verts.size, verts, 0, null, 0, colors, 0, indices, 0, indices.size, meshPaint
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Same setup as [PreviewEffortChartFlatBandHorizontalVertexAlphaFade], but the horizontal fade
+ * is applied afterward via a horizontal [LinearGradient] + [PorterDuff.Mode.DST_IN] mask instead
+ * of vertex alpha - every vertex in the mesh itself is fully opaque. If this one renders clean
+ * where the vertex-alpha version bands, the shader-mask fix generalizes to the horizontal
+ * direction too, not just the vertical one already confirmed.
+ */
+@Preview
+@Composable
+private fun PreviewEffortChartFlatBandHorizontalShaderAlphaFade() {
+  RefittedTheme(darkTheme = darkTheme) {
+    val baseColor = MaterialTheme.colorScheme.primary
+    val peakColor = ExtendedTheme.colors.goodAttention.color
+    val punishedColor = ExtendedTheme.colors.timerAmber.color
+    val meshPaint = remember { NativePaint() }
+    Canvas(
+      Modifier
+        .size(300.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainer)
+        .padding(8.dp)
+    ) {
+      val bottomPx = size.height - 8f
+      val topPx = 8f
+      val midPx = lerp(bottomPx, topPx, 0.6f)
+
+      val cols = 7
+      val verts = FloatArray(cols * 3 * 2)
+      val colors = IntArray(cols * 3)
+      val rowColors = intArrayOf(baseColor.toArgb(), peakColor.toArgb(), punishedColor.toArgb())
+      for (col in 0 until cols) {
+        val xPx = lerp(0f, size.width, col / (cols - 1).toFloat())
+        val rowY = floatArrayOf(bottomPx, midPx, topPx)
+        val base = col * 3
+        for (row in rowY.indices) {
+          verts[(base + row) * 2] = xPx
+          verts[(base + row) * 2 + 1] = rowY[row]
+          colors[base + row] = rowColors[row]
+        }
+      }
+      val indices = ShortArray((cols - 1) * 2 * 6)
+      var ii = 0
+      for (j in 0 until cols - 1) {
+        for (row in 0 until 2) {
+          val tl = (j * 3 + row).toShort()
+          val bl = (j * 3 + row + 1).toShort()
+          val tr = ((j + 1) * 3 + row).toShort()
+          val br = ((j + 1) * 3 + row + 1).toShort()
+          indices[ii++] = tl; indices[ii++] = bl; indices[ii++] = tr
+          indices[ii++] = bl; indices[ii++] = br; indices[ii++] = tr
+        }
+      }
+      drawIntoCanvas { canvas ->
+        val bounds = RectF(0f, 0f, size.width, size.height)
+        val layerId = canvas.nativeCanvas.saveLayer(bounds, null)
+        canvas.nativeCanvas.drawVertices(
+          NativeCanvas.VertexMode.TRIANGLES, verts.size, verts, 0, null, 0, colors, 0, indices, 0, indices.size, meshPaint
+        )
+        val maskPaint = NativePaint().apply {
+          shader = LinearGradient(
+            size.width * 5f / 7f, 0f, size.width, 0f,
+            intArrayOf(NativeColor.BLACK, NativeColor.TRANSPARENT),
+            null,
+            Shader.TileMode.CLAMP
+          )
+          xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+        }
+        canvas.nativeCanvas.drawRect(bounds, maskPaint)
+        canvas.nativeCanvas.restoreToCount(layerId)
+      }
+    }
+  }
+}
+
+/** Smoothstep-eased (colors, positions) for a LinearGradient's DST_IN alpha mask, ramping from
+ * fully opaque at t=0 to fully transparent at t=1 across [steps] linear segments - RGB is
+ * irrelevant for a DST_IN mask, only alpha matters, so every stop is packed as alpha-only black.
+ * Approximating smoothstep (zero slope at both ends) rather than a single linear segment is what
+ * lets the ramp meet a flat plateau tangentially instead of at a hard corner - see
+ * PreviewEffortChartGradientBandingTester's kdoc for why a hard corner there reads as a visible
+ * Mach band. */
+private fun smoothstepAlphaStops(steps: Int): Pair<IntArray, FloatArray> {
+  val colors = IntArray(steps + 1)
+  val positions = FloatArray(steps + 1)
+  for (i in 0..steps) {
+    val t = i / steps.toFloat()
+    val eased = t * t * (3f - 2f * t)
+    val alpha = (255 * (1f - eased)).roundToInt().coerceIn(0, 255)
+    positions[i] = t
+    colors[i] = alpha shl 24
+  }
+  return colors to positions
+}
+
+/**
+ * Interactive (Android Studio Interactive Preview) harness for tuning the funnel band's alpha
+ * fade edge. Renders the same hue-only (fully opaque vertex colors) triangle mesh as
+ * [PreviewEffortChartFlatBandHorizontalShaderAlphaFade], with the fade applied afterward via
+ * [smoothstepAlphaStops] instead of a fixed 2-stop linear ramp - fade width, position, and stop
+ * count are all live sliders, so the minimum stop count needed to avoid a visible Mach band at a
+ * given width can be found empirically instead of guessed. A single linear segment (steps = 1)
+ * reproduces the hard-edged Mach band from [PreviewEffortChartFlatBandHorizontalShaderAlphaFade]
+ * for comparison; raising steps should visibly soften it without needing to widen the fade.
+ */
+@Preview(showBackground = true, widthDp = 360, heightDp = 500)
+@Composable
+private fun PreviewEffortChartGradientBandingTester() {
+  RefittedTheme(darkTheme = darkTheme) {
+    var fadeStartPx by remember { mutableFloatStateOf(150f) }
+    var fadeWidthPx by remember { mutableFloatStateOf(60f) }
+    var steps by remember { mutableIntStateOf(1) }
+
+    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text("Fade start: ${fadeStartPx.roundToInt()}px", style = MaterialTheme.typography.labelSmall)
+      Slider(value = fadeStartPx, onValueChange = { fadeStartPx = it }, valueRange = 0f..300f)
+      Text("Fade width: ${fadeWidthPx.roundToInt()}px", style = MaterialTheme.typography.labelSmall)
+      Slider(value = fadeWidthPx, onValueChange = { fadeWidthPx = it }, valueRange = 4f..200f)
+      Text("Divisions (stops): $steps", style = MaterialTheme.typography.labelSmall)
+      Slider(
+        value = steps.toFloat(),
+        onValueChange = { steps = it.roundToInt() },
+        valueRange = 1f..32f,
+        steps = 30
+      )
+
+      val baseColor = MaterialTheme.colorScheme.primary
+      val peakColor = ExtendedTheme.colors.goodAttention.color
+      val punishedColor = ExtendedTheme.colors.timerAmber.color
+      val meshPaint = remember { NativePaint() }
+
+      Canvas(
+        Modifier
+          .fillMaxWidth()
+          .height(220.dp)
+          .background(MaterialTheme.colorScheme.surfaceContainer)
+      ) {
+        val cols = 20
+        val bottomPx = size.height - 8f
+        val topPx = 8f
+        val midPx = lerp(bottomPx, topPx, 0.6f)
+        val verts = FloatArray(cols * 3 * 2)
+        val colors = IntArray(cols * 3)
+        // Matches EffortChart's own default bandAlpha - the tester is only for the fade-out
+        // segment's stop count/width, not for re-litigating the funnel's baseline translucency.
+        val rowColors = intArrayOf(
+          baseColor.copy(alpha = 0.45f).toArgb(),
+          peakColor.copy(alpha = 0.45f).toArgb(),
+          punishedColor.copy(alpha = 0.45f).toArgb()
+        )
+        for (col in 0 until cols) {
+          val xPx = lerp(0f, size.width, col / (cols - 1).toFloat())
+          val rowY = floatArrayOf(bottomPx, midPx, topPx)
+          val base = col * 3
+          for (row in rowY.indices) {
+            verts[(base + row) * 2] = xPx
+            verts[(base + row) * 2 + 1] = rowY[row]
+            colors[base + row] = rowColors[row]
+          }
+        }
+        val indices = ShortArray((cols - 1) * 2 * 6)
+        var ii = 0
+        for (j in 0 until cols - 1) {
+          for (row in 0 until 2) {
+            val tl = (j * 3 + row).toShort()
+            val bl = (j * 3 + row + 1).toShort()
+            val tr = ((j + 1) * 3 + row).toShort()
+            val br = ((j + 1) * 3 + row + 1).toShort()
+            indices[ii++] = tl; indices[ii++] = bl; indices[ii++] = tr
+            indices[ii++] = bl; indices[ii++] = br; indices[ii++] = tr
+          }
+        }
+
+        drawIntoCanvas { canvas ->
+          val bounds = RectF(0f, 0f, size.width, size.height)
+          val layerId = canvas.nativeCanvas.saveLayer(bounds, null)
+          canvas.nativeCanvas.drawVertices(
+            NativeCanvas.VertexMode.TRIANGLES, verts.size, verts, 0, null, 0, colors, 0, indices, 0, indices.size, meshPaint
+          )
+          val (maskColors, maskPositions) = smoothstepAlphaStops(steps)
+          val fadeStart = fadeStartPx.coerceIn(0f, size.width)
+          val fadeEnd = (fadeStartPx + fadeWidthPx).coerceIn(0f, size.width)
+          val maskPaint = NativePaint().apply {
+            shader = LinearGradient(fadeStart, 0f, fadeEnd, 0f, maskColors, maskPositions, Shader.TileMode.CLAMP)
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+          }
+          canvas.nativeCanvas.drawRect(bounds, maskPaint)
+          canvas.nativeCanvas.restoreToCount(layerId)
+        }
+      }
+    }
   }
 }
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -150,6 +151,7 @@ private fun StripChartTesterScreen() {
   var projectedWeight by remember { mutableStateOf(DEFAULT_PROJECTED_WEIGHT) }
   var projectedReps by remember { mutableIntStateOf(DEFAULT_PROJECTED_REPS) }
   val projectedAt = remember { Instant.now() }
+  var showBandVertices by remember { mutableStateOf(false) }
 
   Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Text("Strip chart tester", style = MaterialTheme.typography.headlineLarge)
@@ -163,8 +165,13 @@ private fun StripChartTesterScreen() {
     SetTrendStrip(
       Modifier.fillMaxWidth().height(88.dp),
       merged = merged,
-      projected = EffortSet(projectedAt, projectedWeight, projectedReps)
+      projected = EffortSet(projectedAt, projectedWeight, projectedReps),
+      showBandVertices = showBandVertices
     )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Text("Show band control points", Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall)
+      Switch(checked = showBandVertices, onCheckedChange = { showBandVertices = it })
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
       Text("Projected next set", Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall)
       Stepper(
