@@ -150,7 +150,7 @@ fun EffortChart(
   // Debug aid: marks every real bandTop/bandBottom vertex plus the synthetic lead-in/fade-out
   // points the mesh adds on top of them, so the funnel's actual control points can be inspected
   // directly instead of inferred from the rendered gradient. Off by default and costs nothing
-  // unused - see StripChartTesterActivity for the only caller that flips it on.
+  // unused - see StripChartTester in app/src/debug for the only caller that flips it on.
   showBandVertices: Boolean = false,
   baseColor: Color = MaterialTheme.colorScheme.primary,
   peakColor: Color = ExtendedTheme.colors.goodAttention.color,

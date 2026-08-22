@@ -1,8 +1,5 @@
 package com.litus_animae.refitted
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,28 +54,6 @@ private const val DEFAULT_PROJECTED_WEIGHT = 105.0
 private const val DEFAULT_PROJECTED_REPS = 8
 
 /**
- * Manual harness for [SetTrendStrip]'s windowing/session-collapse behavior, which is driven by
- * the strip's actual measured width (see [SetTrendStrip]'s `BoxWithConstraints`) and can't be
- * exercised meaningfully from a fixed-width `@Preview` - it needs a real device screen. Both the
- * session boundary (how many sessions, how many sets in each) and each individual set's own
- * weight/reps are editable in place, so a single set's contribution to the strip's zone coloring
- * and trend fit can be isolated. A separate weight/reps stepper drives the strip's `projected`
- * point - the same live-preview dot the real exercise screen feeds from its own steppers - so its
- * dashed styling and the funnel's one-step extension to it can be tuned the same way. Debug-only
- * (registered in app/src/debug/AndroidManifest.xml), so it never reaches a release build.
- */
-class StripChartTesterActivity : ComponentActivity() {
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContent {
-      RefittedTheme {
-        StripChartTesterScreen()
-      }
-    }
-  }
-}
-
-/**
  * One historical set's editable weight/reps, backed by its own snapshot state so a single row's
  * edit doesn't recompose the whole session list.
  */
@@ -121,6 +96,18 @@ private fun resizeSessions(sessions: SnapshotStateList<EditableSession>, target:
 /** Days-ago for the session at [index] out of [sessionCount] total, most recent (today) last. */
 private fun sessionDaysAgo(index: Int, sessionCount: Int) = (sessionCount - 1 - index) * SESSION_SPACING_DAYS
 
+/**
+ * Manual harness for [SetTrendStrip]'s windowing/session-collapse behavior, which is driven by
+ * the strip's actual measured width (see [SetTrendStrip]'s `BoxWithConstraints`) and can't be
+ * exercised meaningfully from a fixed-width `@Preview` - it needs a real, resizable canvas. Both
+ * the session boundary (how many sessions, how many sets in each) and each individual set's own
+ * weight/reps are editable in place, so a single set's contribution to the strip's zone coloring
+ * and trend fit can be isolated. A separate weight/reps stepper drives the strip's `projected`
+ * point - the same live-preview dot the real exercise screen feeds from its own steppers - so its
+ * dashed styling and the funnel's one-step extension to it can be tuned the same way. Debug-only
+ * (this source set is never merged into the release build) - run via the interactive `@Preview`
+ * below rather than a launcher activity.
+ */
 @Composable
 private fun StripChartTesterScreen() {
   var sessionCountFloat by remember { mutableFloatStateOf(DEFAULT_SESSION_COUNT.toFloat()) }
@@ -247,11 +234,6 @@ private fun Stepper(label: String, value: String, onDecrement: () -> Unit, onInc
   }
 }
 
-/**
- * Static layout check only - a fixed-width `@Preview` can't exercise the width-driven
- * windowing/session-collapse behavior this activity exists to test on-device; see the
- * activity's kdoc.
- */
 @Preview(showBackground = true, widthDp = 450, heightDp = 1200)
 @Composable
 private fun PreviewStripChartTesterScreen() {
