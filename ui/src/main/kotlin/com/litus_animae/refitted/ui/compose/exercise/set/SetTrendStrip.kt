@@ -277,41 +277,6 @@ fun SetTrendStrip(
               if (a.sessionIndex != b.sessionIndex) index + 0.5f else null
             }
           }
-          // Split by source rather than text-labeling the two - EffortChart draws dashedTrend
-          // beneath trend, so the dash itself is the only signal a segment is the coarser,
-          // strip-only stand-in rather than the real session-based fit.
-          //
-          // Built from each set's own expectedWeight rather than a per-session lookup: the
-          // bootstrap fit runs at set granularity, so its expectation genuinely moves set to
-          // set, and keying off sessionIndex would flatten that into one step per day.
-          // A collapsed (SESSION-sourced) session is reduced to the single logical point its
-          // whole session shares, so the line connects session-to-session (or session-to-live-
-          // set) directly rather than redrawing the same flat value across every one of its
-          // sets and stepping at the boundary. A live/BOOTSTRAP point is never collapsed, so it
-          // always keeps its own per-set position - collapseSessions is a no-op there.
-          val realTrend = remember(windowed) {
-            buildTrendRuns(
-              collapseSessions(
-                windowed.mapIndexed { index, scored ->
-                  BandPoint(
-                    index.toFloat(),
-                    scored.expectedWeight.takeIf { scored.expectationSource == ExpectationSource.SESSION },
-                    scored.sessionIndex,
-                    collapsed = true
-                  )
-                }
-              )
-            )
-          }
-          val bootstrapTrend = remember(windowed) {
-            buildTrendRuns(
-              windowed.mapIndexed { index, scored ->
-                index.toFloat() to scored.expectedWeight.takeIf {
-                  scored.expectationSource == ExpectationSource.BOOTSTRAP
-                }
-              }
-            )
-          }
           // The funnel background, driven off each set's own expectation (the capacity value
           // it was scored against) rather than expectedWeight - same source, converted at a
           // literal heavy (4-rep) target and a light target instead of the fit's typical reps.
@@ -319,7 +284,7 @@ fun SetTrendStrip(
           // rep count (scored.lowAnchorReps) while weight and reps hold flat session over
           // session, squeezing the band's floor without moving the 4-rep target.
           // One band shape covers both SESSION and BOOTSTRAP sets - a collapsed (SESSION)
-          // stretch collapses to its one logical point same as realTrend above.
+          // stretch collapses to its one logical point, same as bandMid below.
           //
           // A projection extends each band by one more sample (never collapsed - same as any
           // other live/BOOTSTRAP point) built from projectedScored's own expectation, which per
@@ -424,8 +389,7 @@ fun SetTrendStrip(
           }
           // Not split by expectationSource, matching bandTop/bandBottom's own "one shape
           // covers both SESSION and BOOTSTRAP" choice above - only positions the gradient's
-          // midline stop, so it should track the same combined domain as the band itself
-          // rather than realTrend/bootstrapTrend's separate solid/dashed split.
+          // midline stop, so it should track the same combined domain as the band itself.
           // Extended by leadIn same as bandTop/bandBottom above - EffortChart requires bandMid's
           // run shape to match bandTop/bandBottom's exactly (same x-samples) or it falls back to
           // a flat fill.
@@ -452,8 +416,6 @@ fun SetTrendStrip(
               .fillMaxWidth()
               .weight(1f),
             points = points,
-            trend = realTrend,
-            dashedTrend = bootstrapTrend,
             bandTop = bandTop,
             bandBottom = bandBottom,
             bandMid = bandMid,
@@ -503,7 +465,7 @@ private fun PreviewSetTrendStripFirstSession() {
   )
 }
 
-/** A second session, first had 3+ sets: bootstrap trend dashed, dots colored immediately. */
+/** A second session, first had 3+ sets: bootstrap-fit funnel, dots colored immediately. */
 @Preview
 @Composable
 private fun PreviewSetTrendStripBootstrap() {
@@ -513,10 +475,10 @@ private fun PreviewSetTrendStripBootstrap() {
   )
 }
 
-/** Long real history: solid trend, no dash. */
+/** Long real history: session-fit funnel. */
 @Preview
 @Composable
-private fun PreviewSetTrendStripRealTrend() {
+private fun PreviewSetTrendStripLongHistory() {
   SetTrendStrip(
     Modifier.width(300.dp).height(88.dp),
     merged = previewSets(daysAgo = (0L..9L).map { it * 3 }.reversed(), setsPerDay = 3)
@@ -524,7 +486,7 @@ private fun PreviewSetTrendStripRealTrend() {
   )
 }
 
-/** A hypothetical next set (heavier, fewer reps than the trend supports) previewed past a real
+/** A hypothetical next set (heavier, fewer reps than the funnel supports) previewed past a real
  * history - dashed and dimmer than the solid dots, with the funnel visibly extending to it. */
 @Preview
 @Composable

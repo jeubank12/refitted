@@ -109,11 +109,7 @@ private val DebugSyntheticVertexColor = Color(0xFFFFEA00)
 
 /**
  * Effort-scored sets as bubbles (radius by rep count, color by demonstrated capacity vs.
- * expectation) plus the adaptive expectation curve.
- *
- * [trend] is a list of runs rather than one flat polyline - a run breaks wherever the caller's
- * domain has no prediction (cold start, or a skipped index in a compact window), and each run
- * is drawn as its own connected segment rather than one line bridging the gap.
+ * expectation) plus the funnel band showing the adaptive expectation range.
  *
  * [xLabels] and [yLabels] are axis ticks in the caller's domain (`domain value to display
  * text`); [gapMarks] are x-domain positions for a dashed rule (e.g. between sessions with a
@@ -124,27 +120,21 @@ private val DebugSyntheticVertexColor = Color(0xFFFFEA00)
 fun EffortChart(
   modifier: Modifier = Modifier,
   points: List<EffortPoint>,
-  trend: List<List<Pair<Float, Float>>> = emptyList(),
-  // A second trend line, drawn dashed and beneath [trend] - for callers that fit two kinds
-  // of expectation (e.g. a coarser stand-in while there isn't enough history for the real
-  // one) and want the dash itself to carry that distinction rather than a text label.
-  dashedTrend: List<List<Pair<Float, Float>>> = emptyList(),
   // The funnel background: [bandTop] and [bandBottom] are drawn beneath everything else as a
   // filled ribbon per matching run pair (straight lines between points, no smoothing yet).
-  // Callers build both with the same run-breaking helper (`buildTrendRuns`) they already use
-  // for [trend], so a run's index/length always lines up between the two lists.
+  // Callers build both with the same run-breaking helper (`buildTrendRuns`).
   bandTop: List<List<Pair<Float, Float>>> = emptyList(),
   bandBottom: List<List<Pair<Float, Float>>> = emptyList(),
-  // The trend/expectation weight at each of [bandTop]/[bandBottom]'s x-samples - the same
-  // values [trend] draws, reused here only to position the gradient's midline color stop
-  // within the band. Must share [bandTop]/[bandBottom]'s run structure (same x-samples, same
-  // run breaks); a segment with no matching bandMid run falls back to a flat [funnelColor].
+  // The trend/expectation weight at each of [bandTop]/[bandBottom]'s x-samples - positions the
+  // gradient's midline color stop within the band. Must share [bandTop]/[bandBottom]'s run
+  // structure (same x-samples, same run breaks); a segment with no matching bandMid run falls
+  // back to a flat [funnelColor].
   bandMid: List<List<Pair<Float, Float>>> = emptyList(),
   // Where the funnel's leading fade-in should treat as its zero-height origin: the caller's
   // actual first set, in the same x/weight coordinates as [points] - not necessarily the
   // leftmost *plotted* point, since a width-driven window (see SetTrendStrip) can truncate older
   // sets off the visible domain entirely. Deliberately excluded from the chart's own auto-ranging
-  // (unlike [points]/[trend]/the band lists) so a far-off-domain origin fades in off-canvas,
+  // (unlike [points]/the band lists) so a far-off-domain origin fades in off-canvas,
   // clipped by the composable's own bounds, rather than stretching the visible plot to fit it.
   // Falls back to the leftmost point in [points] when absent.
   bandOrigin: Pair<Float, Float>? = null,
@@ -166,16 +156,15 @@ fun EffortChart(
   peakColor: Color = ExtendedTheme.colors.goodAttention.color,
   punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
   coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-  trendColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
   emphasisColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
   funnelColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
   // How opaque the gradient fill is - the flat backdrop this replaced was a wash at 8% (see
   // [funnelColor]); a 4-color gradient needs more presence than that to read at all, but should
-  // still sit behind the trend line, dots, and gridlines rather than fighting them for contrast.
+  // still sit behind the dots and gridlines rather than fighting them for contrast.
   bandAlpha: Float = 0.45f,
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
   maxPointSize: Dp = if (compact) 16.dp else 30.dp,
-  trendWidth: Dp = if (compact) 1.5.dp else 2.dp
+  gapMarkWidth: Dp = if (compact) 1.5.dp else 2.dp
 ) {
   // rangeOf (used by the other charts) throws on empty input, and those charts only survive
   // because their caller happens to gate on itemCount > 0 - guard here instead of relying on it.
@@ -187,8 +176,8 @@ fun EffortChart(
   // Excludes x<0 samples (the band's off-screen leading edge - see bandOrigin/the mesh loop
   // below) from the visible domain entirely - they exist to feed the mesh's interpolation, not to
   // stretch the plotted scale to fit data the user can't see.
-  val onDomain = remember(trend, dashedTrend, bandTop, bandBottom, bandMid) {
-    (trend + dashedTrend + bandTop + bandBottom + bandMid).flatten().filter { it.first >= 0f }
+  val onDomain = remember(bandTop, bandBottom, bandMid) {
+    (bandTop + bandBottom + bandMid).flatten().filter { it.first >= 0f }
   }
   val minX = remember(points, onDomain) {
     minOf(points.minOf { it.x }, onDomain.minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY)
@@ -223,7 +212,7 @@ fun EffortChart(
   val density = LocalDensity.current
   val minPx = with(density) { minPointSize.toPx() }
   val maxPx = with(density) { maxPointSize.toPx() }
-  val trendPx = with(density) { trendWidth.toPx() }
+  val gapMarkPx = with(density) { gapMarkWidth.toPx() }
   val labelPaddingPx = with(density) { LabelPadding.toPx() }
   val gapDashPx = with(density) { GapMarkDash.toPx() }
   val emphasisGapPx = with(density) { EmphasisRingGap.toPx() }
@@ -523,36 +512,8 @@ fun EffortChart(
         coldColor,
         Offset(px(x), plotTop),
         Offset(px(x), plotBottom),
-        strokeWidth = trendPx / 2f,
+        strokeWidth = gapMarkPx / 2f,
         pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx, gapDashPx))
-      )
-    }
-
-    // Drawn first, and beneath the solid trend below, so a solid segment starting exactly
-    // where a dashed one ends (the bootstrap-to-real handoff) renders over it cleanly.
-    dashedTrend.forEach { run ->
-      if (run.size < 2) return@forEach
-      val path = Path().apply {
-        run.forEachIndexed { index, (x, y) ->
-          val offset = Offset(px(x), py(y))
-          if (index == 0) moveTo(offset.x, offset.y) else lineTo(offset.x, offset.y)
-        }
-      }
-      drawPath(
-        path,
-        trendColor,
-        style = Stroke(width = trendPx, pathEffect = PathEffect.dashPathEffect(floatArrayOf(gapDashPx, gapDashPx)))
-      )
-    }
-
-    trend.forEach { run ->
-      if (run.size < 2) return@forEach
-      val offsets = run.map { (x, y) -> Offset(px(x), py(y)) }
-      drawPoints(
-        offsets.zipWithNext().flatMap { sequenceOf(it.first, it.second) },
-        PointMode.Lines,
-        trendColor,
-        trendPx
       )
     }
 
@@ -612,9 +573,8 @@ fun EffortChart(
         )
       }
       if (point.projected) {
-        // Dashed, matching dashedTrend's own "dashed = not the real/committed thing" language -
-        // a projected dot and the bootstrap trend line are both stand-ins, so they read as the
-        // same kind of provisional rather than inventing a second visual vocabulary.
+        // Dashed ring - "not the real/committed thing" - so a hypothetical dot reads as
+        // provisional rather than inventing a second visual vocabulary.
         drawCircle(
           emphasisColor,
           radius = diameter / 2f + emphasisGapPx,
@@ -872,9 +832,6 @@ private fun PreviewEffortChartLongHistoryWithSpike() {
         EffortPoint(5f, 130f, 0.40f, EffortZone.IMPLAUSIBLE),
         EffortPoint(6f, 103f, 0.60f, EffortZone.ON_CURVE),
         EffortPoint(7f, 105f, 1.00f, EffortZone.GROWTH)
-      ),
-      trend = listOf(
-        listOf(3f to 96f, 4f to 98f, 5f to 100f, 6f to 101f, 7f to 103f)
       )
     )
   }
@@ -901,37 +858,13 @@ private fun PreviewEffortChartEmphasizedNewest() {
 
 @Preview
 @Composable
-private fun PreviewEffortChartDashedTrendHandoff() {
-  RefittedTheme(darkTheme = darkTheme) {
-    EffortChart(
-      Modifier
-        .size(300.dp)
-        .background(MaterialTheme.colorScheme.surfaceContainer),
-      points = listOf(
-        EffortPoint(0f, 90f, 0.45f, EffortZone.COLD),
-        EffortPoint(1f, 95f, 0.60f, EffortZone.ON_CURVE),
-        EffortPoint(2f, 98f, 0.60f, EffortZone.ON_CURVE),
-        EffortPoint(3f, 100f, 0.70f, EffortZone.ON_CURVE),
-        EffortPoint(4f, 103f, 0.85f, EffortZone.GROWTH)
-      ),
-      // The bootstrap (dashed) run hands off to the real (solid) run at x=2 - the solid
-      // segment should render cleanly over the dash where they overlap.
-      dashedTrend = listOf(listOf(1f to 94f, 2f to 97f)),
-      trend = listOf(listOf(2f to 97f, 3f to 99f, 4f to 101f))
-    )
-  }
-}
-
-@Preview
-@Composable
 private fun PreviewEffortChartFlatHistory() {
   RefittedTheme(darkTheme = darkTheme) {
     EffortChart(
       Modifier
         .size(300.dp)
         .background(MaterialTheme.colorScheme.surfaceContainer),
-      points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.60f, EffortZone.ON_CURVE) },
-      trend = listOf((3..6).map { it.toFloat() to 100f })
+      points = (0..6).map { EffortPoint(it.toFloat(), 100f, 0.60f, EffortZone.ON_CURVE) }
     )
   }
 }
@@ -971,7 +904,6 @@ private fun PreviewEffortChartWithAxesAndGaps() {
         EffortPoint(3f, 35f, 0.85f, EffortZone.GROWTH),
         EffortPoint(4f, 40f, 1.00f, EffortZone.GROWTH)
       ),
-      trend = listOf(listOf(3f to 33f, 4f to 38f)),
       gapMarks = listOf(1.5f, 2.5f),
       xLabels = listOf(0f to "Nov '21", 2f to "Jan '23", 4f to "Jun '23"),
       yLabels = listOf(15f to "15", 40f to "40")
@@ -995,7 +927,6 @@ private fun PreviewEffortChartFunnelBand() {
         EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH),
         EffortPoint(5f, 103f, 0.60f, EffortZone.ON_CURVE)
       ),
-      trend = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f)),
       bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
       bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
       bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
@@ -1457,7 +1388,6 @@ private fun PreviewEffortChartFunnelGradientDark() {
         EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH),
         EffortPoint(5f, 103f, 0.60f, EffortZone.ON_CURVE)
       ),
-      trend = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f)),
       bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
       bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
       bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
@@ -1466,7 +1396,7 @@ private fun PreviewEffortChartFunnelGradientDark() {
 }
 
 /** A projected (not-yet-completed) dot sitting off the funnel gradient - higher weight, fewer
- * reps than the trend supports, so it should read as dimmer/dashed and clearly below-curve
+ * reps than the band supports, so it should read as dimmer/dashed and clearly below-curve
  * relative to the solid, already-scored dots around it. */
 @Preview
 @Composable
@@ -1484,7 +1414,6 @@ private fun PreviewEffortChartProjectedPoint() {
         EffortPoint(4f, 100f, 0.85f, EffortZone.GROWTH, emphasized = true),
         EffortPoint(5f, 115f, 0.30f, EffortZone.BELOW, z = -1.5, projected = true)
       ),
-      trend = listOf(listOf(3f to 96f, 4f to 98f)),
       bandTop = listOf(listOf(3f to 110f, 4f to 113f, 5f to 116f)),
       bandBottom = listOf(listOf(3f to 82f, 4f to 84f, 5f to 86f)),
       bandMid = listOf(listOf(3f to 96f, 4f to 98f, 5f to 100f))
