@@ -60,6 +60,20 @@ fun WatchSyncDialog(
     plan = model.previewWatchPlan(globalAlternate)
   }
 
+  // GarminWatchService.refresh() already auto-selects the first known device into watchState
+  // before this dialog ever opens (see garmin/CLAUDE.md) - without this, a device that's already
+  // connected shows no radio selected and the summary/Send stay hidden until a redundant tap on
+  // the row that's already the active target.
+  LaunchedEffect(devices, watchState) {
+    if (selectedDeviceId != null) return@LaunchedEffect
+    val activeDeviceName = when (val currentState = watchState) {
+      is WatchState.Idle -> currentState.deviceName
+      is WatchState.Active -> currentState.deviceName
+      else -> null
+    } ?: return@LaunchedEffect
+    selectedDeviceId = devices.firstOrNull { it.name == activeDeviceName }?.id
+  }
+
   val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
   val sessionActive = watchState is WatchState.Active
   val canSend = selectedDeviceId != null && appOpen && plan != null && !sessionActive
