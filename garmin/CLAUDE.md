@@ -29,9 +29,12 @@ service; this module never touches `BluetoothAdapter` directly.
   `ServiceUnavailableException` at the boundary onto `WatchState.NoDevice` / `WatchState.Unsupported`
   - these must never escape into `:ui`, which has no way to name them. `refresh()` populates
   `availableDevices` from every `ConnectIQ.knownDevices` entry (not just the first - see Gotchas)
-  and, for backward-compatible convenience, still auto-selects the first known device into `state`
-  the same way it always did. `selectDevice(id)` is the explicit path `:ui`'s device-picker dialog
-  uses to switch `state` to a different known device; both it and `refresh()` share
+  and only falls back to auto-selecting the first known device into `state` when nothing is
+  currently selected - a device already selected, whether by an earlier `refresh()` or by an
+  explicit `selectDevice(id)`, survives repeat `refresh()` calls (one per `ExerciseViewModel`
+  init, plus one per watch-sync dialog open) rather than being silently reset back to device 0.
+  `selectDevice(id)` is the explicit path `:ui`'s device-picker dialog uses to switch `state` to a
+  different known device; both it and `refresh()` share
   `registerDeviceListeners`, which unregisters the previously selected device's listeners before
   registering `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)`
   alongside device events for the new one - this service is `@Singleton` but `refresh()` runs once

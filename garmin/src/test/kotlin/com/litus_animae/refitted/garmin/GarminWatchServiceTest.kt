@@ -229,6 +229,24 @@ class GarminWatchServiceTest {
       verify { connectIQ.unregisterForDeviceEvents(device) }
       verify { connectIQ.unregisterForApplicationEvents(device, watchApp) }
     }
+
+    @Test
+    fun `refresh preserves an explicit selectDevice choice instead of resetting to the first device`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+      freshService.selectDevice(secondDeviceId)
+
+      // ExerciseViewModel.init and WatchSyncDialog's open both call refresh() again on an
+      // already-running singleton - it must not silently swap the send target back to device 0.
+      freshService.refresh()
+
+      assertThat((freshService.state.value as WatchState.Idle).deviceName).isEqualTo("Fenix")
+    }
   }
 
   @Nested

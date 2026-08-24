@@ -86,10 +86,19 @@ class GarminWatchService @Inject constructor(
       knownIQDevices = allKnownDevices
       _availableDevices.value = allKnownDevices.map { it.toWatchDevice() }
 
+      // refresh() runs on every ExerciseViewModel init (one per nav destination) and every
+      // WatchSyncDialog open, not just the first time - a device already selected here, whether
+      // by an earlier refresh() or by an explicit selectDevice(id), must survive those repeat
+      // calls. Re-defaulting to firstOrNull() every time would silently swap the send target back
+      // to device 0 out from under a user who picked a different paired watch.
+      val previouslySelected = device
+      if (previouslySelected != null &&
+        allKnownDevices.any { it.deviceIdentifier == previouslySelected.deviceIdentifier }
+      ) {
+        return@withContext
+      }
+
       val knownDevice = allKnownDevices.firstOrNull()
-      // ExerciseViewModel (scoped per nav destination) calls this on every init, but this
-      // service is a @Singleton - unregister a prior device's listeners first, or repeated
-      // navigation piles up registrations and every incoming message gets handled N times.
       unregisterDeviceListeners(connectIQ)
       device = knownDevice
       _state.value = if (knownDevice == null) {
