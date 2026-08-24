@@ -6,6 +6,8 @@ import com.garmin.android.connectiq.IQDevice
 import com.garmin.android.connectiq.exception.InvalidStateException
 import com.garmin.android.connectiq.exception.ServiceUnavailableException
 import com.litus_animae.refitted.data.device.SetRecordSink
+import com.litus_animae.refitted.data.device.WatchDevice
+import com.litus_animae.refitted.data.device.WatchDeviceStatus
 import com.litus_animae.refitted.data.device.WatchPlan
 import com.litus_animae.refitted.data.device.WatchProtocol
 import com.litus_animae.refitted.data.device.WatchService
@@ -54,11 +56,18 @@ class GarminWatchService @Inject constructor(
   private val _state = MutableStateFlow<WatchState>(WatchState.NoDevice)
   override val state: StateFlow<WatchState> = _state.asStateFlow()
 
+  private val _availableDevices = MutableStateFlow<List<WatchDevice>>(emptyList())
+  override val availableDevices: StateFlow<List<WatchDevice>> = _availableDevices.asStateFlow()
+
   // Owned here rather than reusing a caller's scope - incoming SET_DONE messages can arrive at
   // any point in this @Singleton's lifetime, not just while a ViewModel is collecting state.
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
   private var device: IQDevice? = null
+  // The IQDevice objects backing the last refresh()'s _availableDevices - selectDevice(id) needs
+  // the real IQDevice to register listeners against, not just the plain WatchDevice DTO exposed
+  // to :ui/:data.
+  private var knownIQDevices: List<IQDevice> = emptyList()
   private var session: WatchSessionState? = null
   private var lastHelloAt: Instant? = null
   private var appOpenPollerJob: Job? = null
@@ -70,7 +79,14 @@ class GarminWatchService @Inject constructor(
     awaitReady()
     try {
       val connectIQ = connection.connectIQ
-      val knownDevice = connectIQ.knownDevices.orEmpty().firstOrNull()
+      // Previously .firstOrNull() discarded every device past the first known one, so a second
+      // paired watch was invisible and there was no way to see it existed. Surface all of them -
+      // selectDevice(id) is what actually switches which one state/session tracks.
+      val allKnownDevices = connectIQ.knownDevices.orEmpty()
+      knownIQDevices = allKnownDevices
+      _availableDevices.value = allKnownDevices.map { it.toWatchDevice() }
+
+      val knownDevice = allKnownDevices.firstOrNull()
       // ExerciseViewModel (scoped per nav destination) calls this on every init, but this
       // service is a @Singleton - unregister a prior device's listeners first, or repeated
       // navigation piles up registrations and every incoming message gets handled N times.
@@ -79,18 +95,36 @@ class GarminWatchService @Inject constructor(
       _state.value = if (knownDevice == null) {
         WatchState.NoDevice
       } else {
-        connectIQ.registerForDeviceEvents(knownDevice) { _, _ -> }
-        connectIQ.registerForAppEvents(knownDevice, watchApp) { _, _, message, status ->
-          onMessageReceived(message, status)
-        }
-        startAppOpenPoller()
+        registerDeviceListeners(connectIQ, knownDevice)
         WatchState.Idle(knownDevice.friendlyName, appInstalled = true, appOpen = false)
       }
     } catch (e: InvalidStateException) {
+      knownIQDevices = emptyList()
+      _availableDevices.value = emptyList()
       _state.value = WatchState.NoDevice
     } catch (e: ServiceUnavailableException) {
+      knownIQDevices = emptyList()
+      _availableDevices.value = emptyList()
       _state.value = WatchState.Unsupported
     }
+  }
+
+  override suspend fun selectDevice(deviceId: String) = withContext(Dispatchers.IO) {
+    awaitReady()
+    val target = knownIQDevices.firstOrNull { it.watchDeviceId() == deviceId } ?: return@withContext
+    val connectIQ = connection.connectIQ
+    unregisterDeviceListeners(connectIQ)
+    device = target
+    registerDeviceListeners(connectIQ, target)
+    _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
+  }
+
+  private fun registerDeviceListeners(connectIQ: ConnectIQ, target: IQDevice) {
+    connectIQ.registerForDeviceEvents(target) { _, _ -> }
+    connectIQ.registerForAppEvents(target, watchApp) { _, _, message, status ->
+      onMessageReceived(message, status)
+    }
+    startAppOpenPoller()
   }
 
   private fun unregisterDeviceListeners(connectIQ: ConnectIQ) {
@@ -243,3 +277,16 @@ class GarminWatchService @Inject constructor(
     }
   }
 }
+
+private fun IQDevice.watchDeviceId(): String = deviceIdentifier.toString()
+
+private fun IQDevice.toWatchDevice(): WatchDevice = WatchDevice(
+  id = watchDeviceId(),
+  name = friendlyName,
+  status = when (status) {
+    IQDevice.IQDeviceStatus.CONNECTED -> WatchDeviceStatus.CONNECTED
+    IQDevice.IQDeviceStatus.NOT_CONNECTED -> WatchDeviceStatus.NOT_CONNECTED
+    IQDevice.IQDeviceStatus.NOT_PAIRED -> WatchDeviceStatus.NOT_PAIRED
+    else -> WatchDeviceStatus.UNKNOWN
+  }
+)

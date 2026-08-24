@@ -18,6 +18,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -178,6 +179,55 @@ class GarminWatchServiceTest {
       )
 
       assertThat((freshService.state.value as WatchState.Idle).appOpen).isTrue()
+    }
+  }
+
+  @Nested
+  @DisplayName("multiple known devices")
+  inner class MultiDeviceTests {
+
+    private val secondDevice = IQDevice(2L, "Fenix")
+
+    @Test
+    fun `refresh surfaces every known device, not just the first`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+
+      assertThat(freshService.availableDevices.value.map { it.name })
+        .containsExactly("Forerunner", "Fenix")
+    }
+
+    @Test
+    fun `selectDevice switches state to the chosen device`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      assertThat((freshService.state.value as WatchState.Idle).deviceName).isEqualTo("Fenix")
+    }
+
+    @Test
+    fun `selectDevice unregisters the previously selected device's listeners`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      verify { connectIQ.unregisterForDeviceEvents(device) }
+      verify { connectIQ.unregisterForApplicationEvents(device, watchApp) }
     }
   }
 

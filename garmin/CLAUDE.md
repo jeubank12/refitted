@@ -27,12 +27,16 @@ service; this module never touches `BluetoothAdapter` directly.
   (`VmPolicy.detectLeakedClosableObjects().penaltyDeath()`), so this pairing must stay exact.
 - `GarminWatchService.kt` - Implements `WatchService`. Maps every `InvalidStateException` /
   `ServiceUnavailableException` at the boundary onto `WatchState.NoDevice` / `WatchState.Unsupported`
-  - these must never escape into `:ui`, which has no way to name them. `refresh()` unregisters the
-  previously known device's listeners before registering
-  `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)` alongside device
-  events for the current one - this service is `@Singleton` but `refresh()` runs once per
-  `ExerciseViewModel` init (scoped per nav destination), so skipping the unregister would pile up
-  listeners on repeated navigation. Incoming messages are decoded via `WatchProtocol.decode` and, for
+  - these must never escape into `:ui`, which has no way to name them. `refresh()` populates
+  `availableDevices` from every `ConnectIQ.knownDevices` entry (not just the first - see Gotchas)
+  and, for backward-compatible convenience, still auto-selects the first known device into `state`
+  the same way it always did. `selectDevice(id)` is the explicit path `:ui`'s device-picker dialog
+  uses to switch `state` to a different known device; both it and `refresh()` share
+  `registerDeviceListeners`, which unregisters the previously selected device's listeners before
+  registering `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)`
+  alongside device events for the new one - this service is `@Singleton` but `refresh()` runs once
+  per `ExerciseViewModel` init (scoped per nav destination), so skipping the unregister would pile
+  up listeners on repeated navigation. Incoming messages are decoded via `WatchProtocol.decode` and, for
   `SetDone`, resolved against the session's `WatchSessionState` (`toSetRecord`) and written through
   `SetRecordSink` on a service-owned `CoroutineScope` - this class is `@Singleton`, so it can't rely
   on a caller's scope living as long as an incoming message might arrive. `SessionEnded` (sent once
@@ -42,6 +46,14 @@ service; this module never touches `BluetoothAdapter` directly.
   showing a checkmark until the app restarts.
 
 ## Gotchas
+
+- **`ConnectIQ.knownDevices` returns every paired device, not just the active one.** Early on,
+  `GarminWatchService.refresh()` took `.firstOrNull()` and discarded the rest, so a second paired
+  watch was simply invisible with no way to see it existed - the phone's "send to watch" icon
+  looked broken with no indication why. `refresh()` now maps the full list into
+  `WatchDevice`/`availableDevices` for `:ui` to render as a picker, while `device` (the one `state`
+  and `startSession` actually target) is still chosen explicitly - either `refresh()`'s
+  first-known-device default or a later `selectDevice(id)` call.
 
 - **`sendMessage`'s `IQMessageStatus.SUCCESS` is not an app-level ack.** It only means Garmin
   Connect Mobile accepted the payload for BLE delivery to the *device* - it says nothing about
