@@ -146,10 +146,21 @@ class GarminWatchService @Inject constructor(
     }
   }
 
+  // Atomic w.r.t. its own two SDK calls: if registerForDeviceEvents succeeds but
+  // registerForAppEvents then throws, the first registration is unregistered here before
+  // rethrowing - callers only track cleanup via the nullable `device` field, which they null out
+  // on failure, so a listener this function left half-registered against `target` would never be
+  // reachable again through unregisterDeviceListeners (it reads `device`, now null) and would leak
+  // for the @Singleton's lifetime.
   private fun registerDeviceListeners(connectIQ: ConnectIQ, target: IQDevice) {
     connectIQ.registerForDeviceEvents(target) { _, _ -> }
-    connectIQ.registerForAppEvents(target, watchApp) { _, _, message, status ->
-      onMessageReceived(message, status)
+    try {
+      connectIQ.registerForAppEvents(target, watchApp) { _, _, message, status ->
+        onMessageReceived(message, status)
+      }
+    } catch (e: Exception) {
+      runCatching { connectIQ.unregisterForDeviceEvents(target) }
+      throw e
     }
     startAppOpenPoller()
   }

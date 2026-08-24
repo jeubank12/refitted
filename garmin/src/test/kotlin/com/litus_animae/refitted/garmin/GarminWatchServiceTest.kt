@@ -269,6 +269,26 @@ class GarminWatchServiceTest {
     }
 
     @Test
+    fun `a partial registration failure unregisters the device-events listener it did register`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every {
+        connectIQ.registerForAppEvents(secondDevice, any(), any())
+      } throws InvalidStateException("connect IQ not ready")
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      // registerForDeviceEvents(secondDevice) succeeded before registerForAppEvents threw - it
+      // must not be left registered just because `device` ends up null on this failure path.
+      verify { connectIQ.unregisterForDeviceEvents(secondDevice) }
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
+    }
+
+    @Test
     fun `a refresh failure clears the send target along with state, not just state`() = runTest {
       // First refresh succeeds and selects a device...
       val freshService = GarminWatchService(connection, setRecordSink, log)

@@ -74,6 +74,16 @@ fun WatchSyncDialog(
     selectedDeviceId = devices.firstOrNull { it.name == activeDeviceName }?.id
   }
 
+  // A selectWatchDevice failure regresses watchState to NoDevice/Unsupported (GarminWatchService's
+  // own error handling) without clearing selectedDeviceId - without this, the picked row keeps
+  // rendering "connected, waiting on app" via deviceStatusLabel(isSelected = true) instead of
+  // reflecting that the selection actually failed.
+  LaunchedEffect(watchState) {
+    if (watchState is WatchState.NoDevice || watchState is WatchState.Unsupported) {
+      selectedDeviceId = null
+    }
+  }
+
   val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
   val sessionActive = watchState is WatchState.Active
   val canSend = selectedDeviceId != null && appOpen && plan != null && !sessionActive

@@ -37,9 +37,12 @@ service; this module never touches `BluetoothAdapter` directly.
   different known device; it only reassigns `device`/`state` once `registerDeviceListeners`
   actually succeeds, wrapped in the same `InvalidStateException`/`ServiceUnavailableException`
   handling as `refresh()` - a mid-switch failure resets to `NoDevice`/`Unsupported` rather than
-  leaving `device` pointed at a target whose listeners never registered. Both it and `refresh()` share
-  `registerDeviceListeners`, which unregisters the previously selected device's listeners before
-  registering `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)`
+  leaving `device` pointed at a target whose listeners never registered. Both it and `refresh()`
+  null out `device` on that failure, and both share `registerDeviceListeners`, which is atomic
+  w.r.t. its own two SDK calls (see Gotchas) since neither caller's cleanup can reach a listener
+  registration that isn't reachable through `device`. It unregisters the previously selected
+  device's listeners before registering
+  `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)`
   alongside device events for the new one - this service is `@Singleton` but `refresh()` runs once
   per `ExerciseViewModel` init (scoped per nav destination), so skipping the unregister would pile
   up listeners on repeated navigation. Incoming messages are decoded via `WatchProtocol.decode` and, for
@@ -52,6 +55,17 @@ service; this module never touches `BluetoothAdapter` directly.
   showing a checkmark until the app restarts.
 
 ## Gotchas
+
+- **`registerDeviceListeners`'s two SDK calls must stay atomic, or a partial failure leaks a
+  listener registration for the `@Singleton`'s lifetime.** `registerForDeviceEvents` and
+  `registerForAppEvents` are two separate calls; if the first succeeds but the second throws
+  (`InvalidStateException`/`ServiceUnavailableException` - plausible if Connect IQ drops mid-call),
+  the caller (`refresh()` or `selectDevice()`) nulls out `device` in its own catch block (see
+  device/state consistency above). `unregisterDeviceListeners` reads `device` to know what to
+  unregister, so once it's `null` there's no way back to the registration that *did* succeed -
+  it's orphaned forever. `registerDeviceListeners` unregisters its own first call before
+  rethrowing if the second one throws, so it never hands a caller a state where the device is
+  half-registered - don't add a third SDK call here without extending that same rollback.
 
 - **`ConnectIQ.knownDevices` returns every paired device, not just the active one.** Early on,
   `GarminWatchService.refresh()` took `.firstOrNull()` and discarded the rest, so a second paired
