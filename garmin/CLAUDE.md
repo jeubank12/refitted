@@ -34,7 +34,10 @@ service; this module never touches `BluetoothAdapter` directly.
   explicit `selectDevice(id)`, survives repeat `refresh()` calls (one per `ExerciseViewModel`
   init, plus one per watch-sync dialog open) rather than being silently reset back to device 0.
   `selectDevice(id)` is the explicit path `:ui`'s device-picker dialog uses to switch `state` to a
-  different known device; both it and `refresh()` share
+  different known device; it only reassigns `device`/`state` once `registerDeviceListeners`
+  actually succeeds, wrapped in the same `InvalidStateException`/`ServiceUnavailableException`
+  handling as `refresh()` - a mid-switch failure resets to `NoDevice`/`Unsupported` rather than
+  leaving `device` pointed at a target whose listeners never registered. Both it and `refresh()` share
   `registerDeviceListeners`, which unregisters the previously selected device's listeners before
   registering `ConnectIQ.registerForAppEvents(IQDevice, IQApp, IQApplicationEventListener)`
   alongside device events for the new one - this service is `@Singleton` but `refresh()` runs once

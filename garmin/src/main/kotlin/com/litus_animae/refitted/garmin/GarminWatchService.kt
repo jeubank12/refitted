@@ -123,9 +123,21 @@ class GarminWatchService @Inject constructor(
     val target = knownIQDevices.firstOrNull { it.watchDeviceId() == deviceId } ?: return@withContext
     val connectIQ = connection.connectIQ
     unregisterDeviceListeners(connectIQ)
-    device = target
-    registerDeviceListeners(connectIQ, target)
-    _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
+    // device/state are only updated once registration actually succeeds - mirrors refresh()'s
+    // handling of the same SDK calls, so a mid-switch InvalidStateException/
+    // ServiceUnavailableException can't leave device pointed at a target whose listeners never
+    // registered while _state still shows the previous (now-unregistered) one as Idle.
+    try {
+      registerDeviceListeners(connectIQ, target)
+      device = target
+      _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
+    } catch (e: InvalidStateException) {
+      device = null
+      _state.value = WatchState.NoDevice
+    } catch (e: ServiceUnavailableException) {
+      device = null
+      _state.value = WatchState.Unsupported
+    }
   }
 
   private fun registerDeviceListeners(connectIQ: ConnectIQ, target: IQDevice) {

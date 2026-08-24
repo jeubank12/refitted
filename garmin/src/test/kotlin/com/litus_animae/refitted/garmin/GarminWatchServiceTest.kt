@@ -3,6 +3,7 @@ package com.litus_animae.refitted.garmin
 import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
+import com.garmin.android.connectiq.exception.InvalidStateException
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.device.WatchExercise
@@ -246,6 +247,25 @@ class GarminWatchServiceTest {
       freshService.refresh()
 
       assertThat((freshService.state.value as WatchState.Idle).deviceName).isEqualTo("Fenix")
+    }
+
+    @Test
+    fun `selectDevice leaves state and the send target consistent when registration throws`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every {
+        connectIQ.registerForDeviceEvents(secondDevice, any())
+      } throws InvalidStateException("connect IQ not ready")
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      // device must not silently point at a target whose listeners never registered - state
+      // reflects that no device is actually selected any more, matching refresh()'s own handling
+      // of the same exception.
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
     }
   }
 
