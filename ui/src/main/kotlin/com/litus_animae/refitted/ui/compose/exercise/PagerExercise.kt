@@ -157,30 +157,31 @@ fun PagerExerciseView(
       // exercise is known - it lands next to the add-exercise icon either way.
       if (LocalFeatures.current.flags[ConfigProvider.Companion.Feature.WATCH_SYNC] == "enabled") {
         val watchState by model.watchState.collectAsStateWithLifecycle()
-        // NoDevice/Unsupported stay visible (this doubles as the connection-status affordance)
-        // but disabled - tapping send when there's nothing to send to silently no-oped before.
-        // Active is also disabled - a session is already running on the watch, so re-sending the
-        // plan would just be a confusing no-op there too.
-        val watchConnected = watchState is WatchState.Idle || watchState is WatchState.Active
-        val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
-        IconButton(
-          { model.sendPlanToWatch(workoutPlan?.globalAlternate) },
-          enabled = watchState is WatchState.Idle && appOpen
-        ) {
+        var showWatchSync by remember { mutableStateOf(false) }
+        // Always tappable - the old enabled/disabled gating hid *why* nothing happened when
+        // there was no device or the watch app wasn't open. Now every tap opens the dialog,
+        // which shows that status directly instead of just refusing the tap.
+        IconButton({ showWatchSync = true }) {
           Icon(
             if (watchState is WatchState.Active) Icons.Default.Check else Icons.Default.Watch,
             tint = if (watchState is WatchState.Active) {
               MaterialTheme.colorScheme.secondary
             } else {
-              LocalContentColor.current.copy(alpha = if (watchConnected && appOpen) 1f else 0.38f)
+              LocalContentColor.current
             },
             // TODO localize
-            contentDescription = when {
-              watchState is WatchState.Active -> "watch session in progress"
-              watchState is WatchState.Idle && appOpen -> "send plan to watch"
-              watchState is WatchState.Idle -> "watch app not open"
-              else -> "no watch connected"
+            contentDescription = if (watchState is WatchState.Active) {
+              "watch session in progress"
+            } else {
+              "send plan to watch"
             }
+          )
+        }
+        if (showWatchSync) {
+          WatchSyncDialog(
+            model = model,
+            globalAlternate = workoutPlan?.globalAlternate,
+            onDismissRequest = { showWatchSync = false }
           )
         }
       }

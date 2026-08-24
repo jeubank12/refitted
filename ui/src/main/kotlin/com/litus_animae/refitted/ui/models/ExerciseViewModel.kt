@@ -11,6 +11,7 @@ import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
+import com.litus_animae.refitted.data.device.WatchDevice
 import com.litus_animae.refitted.data.device.WatchPlan
 import com.litus_animae.refitted.data.device.WatchService
 import com.litus_animae.refitted.data.device.WatchState
@@ -97,6 +98,7 @@ class ExerciseViewModel @Inject constructor(
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
   val watchState: StateFlow<WatchState> = watchService.state
+  val watchDevices: StateFlow<List<WatchDevice>> = watchService.availableDevices
 
   // The rest timer arbitration lives here (rather than being read directly off watchState by the
   // UI) because Top.kt scopes ViewModels per nav destination - this state must outlive navigation.
@@ -127,6 +129,24 @@ class ExerciseViewModel @Inject constructor(
       }
     }
   }
+
+  /** Switches which known device [watchState]/[sendPlanToWatch] target - the watch-sync dialog's device row tap. */
+  fun selectWatchDevice(deviceId: String) {
+    viewModelScope.launch {
+      try {
+        watchService.selectDevice(deviceId)
+      } catch (ex: Throwable) {
+        log.e(TAG, "error selecting watch device", ex)
+      }
+    }
+  }
+
+  /**
+   * Builds the same [WatchPlan] [sendPlanToWatch] would send, for the watch-sync dialog's
+   * exercise-list preview - lets the dialog show exactly what's about to go out before the user
+   * commits, without duplicating [resolveWatchPlan]'s alternate/weight-resolution logic.
+   */
+  suspend fun previewWatchPlan(globalAlternate: Int?): WatchPlan = resolveWatchPlan(globalAlternate)
 
   /**
    * Resolves the currently displayed instructions - `.set(globalAlternate)` is the same call
