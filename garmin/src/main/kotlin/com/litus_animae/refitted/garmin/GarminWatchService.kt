@@ -108,10 +108,16 @@ class GarminWatchService @Inject constructor(
         WatchState.Idle(knownDevice.friendlyName, appInstalled = true, appOpen = false)
       }
     } catch (e: InvalidStateException) {
+      // device must be cleared alongside _state here - startSession()/endSession() read device
+      // directly, and would otherwise keep targeting a stale device the UI is now showing as
+      // NoDevice/Unsupported (the same device/state consistency selectDevice() below now enforces
+      // on its own failure path).
+      device = null
       knownIQDevices = emptyList()
       _availableDevices.value = emptyList()
       _state.value = WatchState.NoDevice
     } catch (e: ServiceUnavailableException) {
+      device = null
       knownIQDevices = emptyList()
       _availableDevices.value = emptyList()
       _state.value = WatchState.Unsupported

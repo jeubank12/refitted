@@ -267,6 +267,23 @@ class GarminWatchServiceTest {
       // of the same exception.
       assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
     }
+
+    @Test
+    fun `a refresh failure clears the send target along with state, not just state`() = runTest {
+      // First refresh succeeds and selects a device...
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      assertThat(freshService.state.value).isInstanceOf(WatchState.Idle::class.java)
+
+      // ...then Garmin Connect Mobile becomes unavailable on a later refresh.
+      every { connectIQ.knownDevices } throws InvalidStateException("connect IQ not ready")
+      freshService.refresh()
+
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
+      // startSession must not silently target the now-stale device the UI no longer shows.
+      val result = freshService.startSession(plan)
+      assertThat(result.isFailure).isTrue()
+    }
   }
 
   @Nested
