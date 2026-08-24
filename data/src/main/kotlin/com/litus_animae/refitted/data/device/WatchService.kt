@@ -11,7 +11,14 @@ sealed interface WatchState {
 
 interface WatchService {
   val state: StateFlow<WatchState>
+
+  /** Every device Connect IQ currently knows about, populated by [refresh] - not just the one [state] tracks. */
+  val availableDevices: StateFlow<List<WatchDevice>>
+
   suspend fun refresh()
+
+  /** Switches [state] to track the device with this [WatchDevice.id], from the last [refresh]. */
+  suspend fun selectDevice(deviceId: String)
   suspend fun startSession(plan: WatchPlan): Result<Unit>
   suspend fun endSession()
 }
