@@ -105,8 +105,8 @@ fun WatchSyncDialog(
             CircularProgressIndicator(Modifier.padding(16.dp))
           } else {
             LazyColumn(Modifier.heightIn(max = 240.dp)) {
-              items(currentPlan.exercises, key = { it.name }) { exercise ->
-                WatchExerciseRow(exercise)
+              items(currentPlan.exercises.indices.toList(), key = { currentPlan.ids[it] }) { index ->
+                WatchExerciseRow(currentPlan.exercises[index])
               }
             }
           }
