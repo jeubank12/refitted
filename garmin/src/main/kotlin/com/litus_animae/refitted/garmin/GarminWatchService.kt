@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
@@ -63,6 +65,16 @@ class GarminWatchService @Inject constructor(
   // any point in this @Singleton's lifetime, not just while a ViewModel is collecting state.
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+  // Serializes refresh()/selectDevice() against each other - both read-modify-write device,
+  // knownIQDevices, and the SDK's listener registration for `device` on Dispatchers.IO's
+  // multi-threaded pool. Before this PR refresh() was the only mutator and ran once per
+  // ExerciseViewModel init, so interleaving was unlikely; WatchSyncDialog now fires a second
+  // refresh() on open (which can race the one from ExerciseViewModel.init) and a device row tap
+  // fires selectDevice() that can race either - without this, two interleaved calls could each
+  // register/unregister listeners against a stale read of `device`, leaking or double-registering
+  // them, and leave device/_state pointed at whichever call happened to finish last.
+  private val deviceMutex = Mutex()
+
   private var device: IQDevice? = null
   // The IQDevice objects backing the last refresh()'s _availableDevices - selectDevice(id) needs
   // the real IQDevice to register listeners against, not just the plain WatchDevice DTO exposed
@@ -77,72 +89,76 @@ class GarminWatchService @Inject constructor(
   // dispatcher so it can't jank the caller.
   override suspend fun refresh() = withContext(Dispatchers.IO) {
     awaitReady()
-    try {
-      val connectIQ = connection.connectIQ
-      // Previously .firstOrNull() discarded every device past the first known one, so a second
-      // paired watch was invisible and there was no way to see it existed. Surface all of them -
-      // selectDevice(id) is what actually switches which one state/session tracks.
-      val allKnownDevices = connectIQ.knownDevices.orEmpty()
-      knownIQDevices = allKnownDevices
-      _availableDevices.value = allKnownDevices.map { it.toWatchDevice() }
+    deviceMutex.withLock {
+      try {
+        val connectIQ = connection.connectIQ
+        // Previously .firstOrNull() discarded every device past the first known one, so a second
+        // paired watch was invisible and there was no way to see it existed. Surface all of them -
+        // selectDevice(id) is what actually switches which one state/session tracks.
+        val allKnownDevices = connectIQ.knownDevices.orEmpty()
+        knownIQDevices = allKnownDevices
+        _availableDevices.value = allKnownDevices.map { it.toWatchDevice() }
 
-      // refresh() runs on every ExerciseViewModel init (one per nav destination) and every
-      // WatchSyncDialog open, not just the first time - a device already selected here, whether
-      // by an earlier refresh() or by an explicit selectDevice(id), must survive those repeat
-      // calls. Re-defaulting to firstOrNull() every time would silently swap the send target back
-      // to device 0 out from under a user who picked a different paired watch.
-      val previouslySelected = device
-      if (previouslySelected != null &&
-        allKnownDevices.any { it.deviceIdentifier == previouslySelected.deviceIdentifier }
-      ) {
-        return@withContext
-      }
+        // refresh() runs on every ExerciseViewModel init (one per nav destination) and every
+        // WatchSyncDialog open, not just the first time - a device already selected here, whether
+        // by an earlier refresh() or by an explicit selectDevice(id), must survive those repeat
+        // calls. Re-defaulting to firstOrNull() every time would silently swap the send target
+        // back to device 0 out from under a user who picked a different paired watch.
+        val previouslySelected = device
+        if (previouslySelected != null &&
+          allKnownDevices.any { it.deviceIdentifier == previouslySelected.deviceIdentifier }
+        ) {
+          return@withLock
+        }
 
-      val knownDevice = allKnownDevices.firstOrNull()
-      unregisterDeviceListeners(connectIQ)
-      device = knownDevice
-      _state.value = if (knownDevice == null) {
-        WatchState.NoDevice
-      } else {
-        registerDeviceListeners(connectIQ, knownDevice)
-        WatchState.Idle(knownDevice.friendlyName, appInstalled = true, appOpen = false)
+        val knownDevice = allKnownDevices.firstOrNull()
+        unregisterDeviceListeners(connectIQ)
+        device = knownDevice
+        _state.value = if (knownDevice == null) {
+          WatchState.NoDevice
+        } else {
+          registerDeviceListeners(connectIQ, knownDevice)
+          WatchState.Idle(knownDevice.friendlyName, appInstalled = true, appOpen = false)
+        }
+      } catch (e: InvalidStateException) {
+        // device must be cleared alongside _state here - startSession()/endSession() read device
+        // directly, and would otherwise keep targeting a stale device the UI is now showing as
+        // NoDevice/Unsupported (the same device/state consistency selectDevice() below now
+        // enforces on its own failure path).
+        device = null
+        knownIQDevices = emptyList()
+        _availableDevices.value = emptyList()
+        _state.value = WatchState.NoDevice
+      } catch (e: ServiceUnavailableException) {
+        device = null
+        knownIQDevices = emptyList()
+        _availableDevices.value = emptyList()
+        _state.value = WatchState.Unsupported
       }
-    } catch (e: InvalidStateException) {
-      // device must be cleared alongside _state here - startSession()/endSession() read device
-      // directly, and would otherwise keep targeting a stale device the UI is now showing as
-      // NoDevice/Unsupported (the same device/state consistency selectDevice() below now enforces
-      // on its own failure path).
-      device = null
-      knownIQDevices = emptyList()
-      _availableDevices.value = emptyList()
-      _state.value = WatchState.NoDevice
-    } catch (e: ServiceUnavailableException) {
-      device = null
-      knownIQDevices = emptyList()
-      _availableDevices.value = emptyList()
-      _state.value = WatchState.Unsupported
     }
   }
 
   override suspend fun selectDevice(deviceId: String) = withContext(Dispatchers.IO) {
     awaitReady()
-    val target = knownIQDevices.firstOrNull { it.watchDeviceId() == deviceId } ?: return@withContext
-    val connectIQ = connection.connectIQ
-    unregisterDeviceListeners(connectIQ)
-    // device/state are only updated once registration actually succeeds - mirrors refresh()'s
-    // handling of the same SDK calls, so a mid-switch InvalidStateException/
-    // ServiceUnavailableException can't leave device pointed at a target whose listeners never
-    // registered while _state still shows the previous (now-unregistered) one as Idle.
-    try {
-      registerDeviceListeners(connectIQ, target)
-      device = target
-      _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
-    } catch (e: InvalidStateException) {
-      device = null
-      _state.value = WatchState.NoDevice
-    } catch (e: ServiceUnavailableException) {
-      device = null
-      _state.value = WatchState.Unsupported
+    deviceMutex.withLock {
+      val target = knownIQDevices.firstOrNull { it.watchDeviceId() == deviceId } ?: return@withLock
+      val connectIQ = connection.connectIQ
+      unregisterDeviceListeners(connectIQ)
+      // device/state are only updated once registration actually succeeds - mirrors refresh()'s
+      // handling of the same SDK calls, so a mid-switch InvalidStateException/
+      // ServiceUnavailableException can't leave device pointed at a target whose listeners never
+      // registered while _state still shows the previous (now-unregistered) one as Idle.
+      try {
+        registerDeviceListeners(connectIQ, target)
+        device = target
+        _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
+      } catch (e: InvalidStateException) {
+        device = null
+        _state.value = WatchState.NoDevice
+      } catch (e: ServiceUnavailableException) {
+        device = null
+        _state.value = WatchState.Unsupported
+      }
     }
   }
 

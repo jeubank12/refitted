@@ -56,6 +56,17 @@ service; this module never touches `BluetoothAdapter` directly.
 
 ## Gotchas
 
+- **`refresh()`/`selectDevice()` share `deviceMutex` because both read-modify-write `device` and
+  `knownIQDevices` on `Dispatchers.IO`, a real multi-threaded pool.** Before device selection
+  existed, `refresh()` was the only mutator and ran once per `ExerciseViewModel` init, so two
+  calls landing concurrently was unlikely. `WatchSyncDialog` opening now fires its own `refresh()`
+  that can race the one from `ExerciseViewModel.init`, and a device row tap fires `selectDevice()`
+  that can race either - without the lock, two interleaved calls could each register/unregister
+  listeners against a stale read of `device`, leaking or double-registering them, and leave
+  `device`/`_state` pointed at whichever call happened to finish last. `awaitReady()` deliberately
+  sits *outside* the lock (each caller waits for SDK readiness independently, so a slow/never-ready
+  SDK can't starve one caller behind another that got the lock first while waiting).
+
 - **`registerDeviceListeners`'s two SDK calls must stay atomic, or a partial failure leaks a
   listener registration for the `@Singleton`'s lifetime.** `registerForDeviceEvents` and
   `registerForAppEvents` are two separate calls; if the first succeeds but the second throws
