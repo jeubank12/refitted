@@ -97,7 +97,7 @@ private fun resizeSessions(sessions: SnapshotStateList<EditableSession>, target:
 private fun sessionDaysAgo(index: Int, sessionCount: Int) = (sessionCount - 1 - index) * SESSION_SPACING_DAYS
 
 /**
- * Manual harness for [SetTrendStrip]'s windowing/session-collapse behavior, which is driven by
+ * Manual harness for [SetTrendStrip]'s width-driven windowing behavior, which is driven by
  * the strip's actual measured width (see [SetTrendStrip]'s `BoxWithConstraints`) and can't be
  * exercised meaningfully from a fixed-width `@Preview` - it needs a real, resizable canvas. Both
  * the session boundary (how many sessions, how many sets in each) and each individual set's own
