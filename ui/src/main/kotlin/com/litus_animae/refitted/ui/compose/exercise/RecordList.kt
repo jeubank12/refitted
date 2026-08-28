@@ -108,6 +108,7 @@ fun SetRecordList(
   modifier: Modifier = Modifier,
   history: SetHistory,
   showBackButton: Boolean = false,
+  isAdmin: Boolean = false,
   onBack: () -> Unit = {},
   /** Whether a display cutout's actual bounds overlap this pane - see exercise/Main.kt, which
    * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
@@ -222,21 +223,23 @@ fun SetRecordList(
           // Exports whatever's currently loaded/retained (see displayRetained above), not the
           // exercise's full remote history - scroll to load more sessions first if the anomaly
           // being diagnosed is further back than what's already on screen.
-          IconButton(
-            {
-              val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, displayRetained.toCsv())
-              }
-              context.startActivity(Intent.createChooser(intent, null))
-            },
-            enabled = displayRetained.isNotEmpty()
-          ) {
-            Icon(
-              Icons.Default.Share,
-              // TODO localize
-              "share set history"
-            )
+          if (isAdmin) {
+            IconButton(
+              {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                  type = "text/plain"
+                  putExtra(Intent.EXTRA_TEXT, displayRetained.toCsv())
+                }
+                context.startActivity(Intent.createChooser(intent, null))
+              },
+              enabled = displayRetained.isNotEmpty()
+            ) {
+              Icon(
+                Icons.Default.Share,
+                // TODO localize
+                "share set history"
+              )
+            }
           }
           Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             IconButton({ records.refresh() }) {
