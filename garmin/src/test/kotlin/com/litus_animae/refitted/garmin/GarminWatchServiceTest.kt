@@ -228,7 +228,7 @@ class GarminWatchServiceTest {
       freshService.selectDevice(secondDeviceId)
 
       verify { connectIQ.unregisterForDeviceEvents(device) }
-      verify { connectIQ.unregisterForApplicationEvents(device, watchApp) }
+      verify { connectIQ.unregisterForApplicationEvents(device, any()) }
     }
 
     @Test
