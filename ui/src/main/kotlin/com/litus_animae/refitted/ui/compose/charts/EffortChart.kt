@@ -58,6 +58,9 @@ import com.litus_animae.refitted.data.effort.EffortZone
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
 import com.litus_animae.refitted.ui.compose.util.RefittedTheme
+import com.litus_animae.refitted.ui.compose.util.goodAttentionLight
+import com.litus_animae.refitted.ui.compose.util.primaryContainerLight
+import com.litus_animae.refitted.ui.compose.util.timerAmberLight
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -107,6 +110,15 @@ private val DebugTopVertexColor = Color(0xFFFF1744)
 private val DebugBottomVertexColor = Color(0xFF2979FF)
 private val DebugSyntheticVertexColor = Color(0xFFFFEA00)
 
+// The funnel gradient and the bubbles colored to match it are pinned to the light-theme palette
+// regardless of the active theme: the dark-theme primary/goodAttention/timerAmber are tuned for
+// text-on-surface contrast and collapse into a muddy, low-separation gradient here, where the
+// stops are large translucent fills read against each other rather than against the surface.
+internal val GradientBaseColor = primaryContainerLight
+internal val GradientPeakColor = goodAttentionLight
+internal val GradientPunishedColor = timerAmberLight
+internal val GradientColdColor = primaryContainerLight.copy(alpha = 0.25f)
+
 /**
  * Effort-scored sets as bubbles (radius by rep count, color by demonstrated capacity vs.
  * expectation) plus the funnel band showing the adaptive expectation range.
@@ -152,10 +164,10 @@ fun EffortChart(
   // directly instead of inferred from the rendered gradient. Off by default and costs nothing
   // unused - see StripChartTester in app/src/debug for the only caller that flips it on.
   showBandVertices: Boolean = false,
-  baseColor: Color = MaterialTheme.colorScheme.primary,
-  peakColor: Color = ExtendedTheme.colors.goodAttention.color,
-  punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
-  coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+  baseColor: Color = GradientBaseColor,
+  peakColor: Color = GradientPeakColor,
+  punishedColor: Color = GradientPunishedColor,
+  coldColor: Color = GradientColdColor,
   emphasisColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
   funnelColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
   // How opaque the gradient fill is - the flat backdrop this replaced was a wash at 8% (see
@@ -610,10 +622,10 @@ fun EffortChart(
 @Composable
 fun EffortLegend(
   modifier: Modifier = Modifier,
-  baseColor: Color = MaterialTheme.colorScheme.primary,
-  peakColor: Color = ExtendedTheme.colors.goodAttention.color,
-  punishedColor: Color = ExtendedTheme.colors.timerAmber.color,
-  coldColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+  baseColor: Color = GradientBaseColor,
+  peakColor: Color = GradientPeakColor,
+  punishedColor: Color = GradientPunishedColor,
+  coldColor: Color = GradientColdColor
 ) {
   FlowRow(
     modifier,
