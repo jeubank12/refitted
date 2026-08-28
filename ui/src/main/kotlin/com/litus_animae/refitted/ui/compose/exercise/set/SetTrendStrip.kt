@@ -42,11 +42,14 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
+import com.litus_animae.refitted.ui.compose.charts.GradientBaseColor
+import com.litus_animae.refitted.ui.compose.charts.GradientColdColor
+import com.litus_animae.refitted.ui.compose.charts.GradientPeakColor
+import com.litus_animae.refitted.ui.compose.charts.GradientPunishedColor
 import com.litus_animae.refitted.ui.compose.charts.effortChartMinSlotWidth
 import com.litus_animae.refitted.ui.compose.charts.zoneColor
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
-import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -234,10 +237,10 @@ fun SetTrendStrip(
                   .background(
                     zoneColor(
                       latestZone,
-                      MaterialTheme.colorScheme.primary,
-                      ExtendedTheme.colors.goodAttention.color,
-                      ExtendedTheme.colors.timerAmber.color,
-                      MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                      GradientBaseColor,
+                      GradientPeakColor,
+                      GradientPunishedColor,
+                      GradientColdColor
                     ),
                     CircleShape
                   )
