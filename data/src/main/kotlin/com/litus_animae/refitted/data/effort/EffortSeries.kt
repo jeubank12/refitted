@@ -5,10 +5,14 @@ import java.time.Instant
 enum class EffortZone { COLD, BELOW, ON_CURVE, GROWTH, IMPLAUSIBLE }
 
 /**
- * Which regression produced a non-null expectation: [SESSION] is [EffortModel.score]'s real,
- * session-best fit; [BOOTSTRAP] is [EffortModel.scoreWithBootstrap]'s strip-only, per-set
- * stand-in used while there isn't enough session history to trust the real one yet. `null`
- * on the [ScoredSet]/[TrendPoint] this decorates means no expectation exists at all (COLD).
+ * Which regression produced a non-null expectation. [BOOTSTRAP] is
+ * [EffortModel.scoreWithBootstrap]'s strip-only, per-set fit - the only source it ever produces,
+ * for every session, so a session's displayed value can't retroactively swap once it stops being
+ * "current" (see that function's kdoc). [SESSION] would name [EffortModel.score]'s own
+ * session-best fit, but [score] doesn't tag its output at all - nothing currently produces
+ * [SESSION]; it's kept for a caller that wants to distinguish the two regressions explicitly.
+ * `null` on the [ScoredSet]/[TrendPoint] this decorates means no expectation exists at all
+ * (COLD).
  */
 enum class ExpectationSource { SESSION, BOOTSTRAP }
 

@@ -503,30 +503,25 @@ object EffortModel {
   }
 
   /**
-   * Strip-only augmentation of [score]: where the real, session-best fit is still COLD (fewer
-   * than [EffortConfig.minPriorSessions] prior calendar-day sessions), fills in from a second
-   * run of the very same fit at set granularity - every set treated as its own session - so a
-   * chart with too little history to trust a session-best fit still has something real to show
-   * rather than a screen of neutral grey.
+   * Strip-only fit: the same machinery as [score], run at set granularity instead of session
+   * granularity - every set treated as its own session, causal and recency-weighted exactly
+   * like the real fit. Every [ScoredSet]/[TrendPoint] this produces is tagged
+   * [ExpectationSource.BOOTSTRAP] (or stays COLD, same as [score]); nothing here ever reads
+   * [score]'s own output.
    *
-   * Running the identical machinery at a finer grain, rather than a separate hand-rolled
-   * regression, is what keeps the two comparable: both shrink toward the recency-weighted mean
-   * and both derive a *fitted* residual scale rather than always falling back to the floor. The
-   * floor-only stand-in this replaced produced systematically larger |z| than the real fit, so
-   * bubble sizes and zones visibly jumped at the handoff for identical work.
+   * This used to merge in [score]'s session-best fit for any session mature enough to have one,
+   * reserving the set-grain fit for the currently-open session alone - so the funnel band could
+   * still move set to set while a session was in progress. The two fits are different
+   * regressions and can disagree, and the moment a session stopped being "current" it flipped
+   * from one to the other, which could silently swap an already-drawn session's expectation to
+   * a visibly different value the instant the *next* session's first set was logged - nothing
+   * about that session's own sets had changed. Scoring every session the same way, always, means
+   * a session's displayed value can never move again once its own sets stop changing.
    *
-   * [score] itself is untouched - the drawer still sees only the session-best fit. Sets the
-   * real fit already covers are passed through tagged [ExpectationSource.SESSION]; sets the
-   * exploded fit covers are tagged [ExpectationSource.BOOTSTRAP]; anything neither covers stays
-   * COLD. The exploded fit is causal at set grain, so it needs
+   * [score] itself is untouched - the drawer still sees only the session-best fit, so this
+   * strip-only choice can't affect it. The exploded fit is causal at set grain, so it needs
    * [EffortConfig.minPriorSetsForBootstrap] strictly-prior sets - which the current session's
    * own earlier sets can supply, so a brand-new exercise warms up within its first session.
-   *
-   * The most recent session is forced onto the exploded fit even once the real fit has an
-   * opinion on it - it's still open, so a chart showing it should react as each set is logged
-   * rather than freezing to one value the session-best fit already committed to before the
-   * session existed. Every earlier session, being necessarily complete, keeps using the real
-   * fit as soon as it's mature enough to have one.
    *
    * This causality also makes [sets] safe to extend with one hypothetical, not-yet-completed set
    * dated after everything real (e.g. a strip previewing where the currently-dialed-in weight/
@@ -539,8 +534,7 @@ object EffortModel {
     zone: ZoneId = ZoneId.systemDefault(),
     config: EffortConfig = EffortConfig.Default
   ): EffortSeries {
-    val real = score(sets, zone, config)
-    if (real.sets.isEmpty()) return real
+    if (sets.isEmpty()) return EffortSeries.Empty
 
     val exploded = scoreSessions(
       explodedSessions(sets, zone),
@@ -549,66 +543,14 @@ object EffortModel {
       // calendar quantity and means nothing in this domain. Skipped warm-ups don't advance
       // lastPriorX while session.x keeps counting, so the gap here tracks set volume, not time.
       maxExtrapolation = config.maxExtrapolationSets,
-      skipWarmUps = true
+      skipWarmUps = true,
+      trackStagnation = true
     )
 
-    // Sets are chronological (score()/daySessions sort ascending), so the last entry belongs to
-    // the most recent - the only session that can still be open.
-    val liveSessionIndex = real.sets.last().sessionIndex
-
-    // Both grains walk the same completed-sorted sets in the same order, so the two set lists
-    // line up 1:1 and can be zipped by position.
-    val scoredSets = real.sets.mapIndexed { index, scored ->
-      when {
-        scored.expectation != null && scored.sessionIndex != liveSessionIndex ->
-          scored.copy(expectationSource = ExpectationSource.SESSION)
-        else -> {
-          val fallback = exploded.sets[index]
-          if (fallback.expectation == null) {
-            scored
-          } else {
-            scored.copy(
-              expectation = fallback.expectation,
-              expectedWeight = fallback.expectedWeight,
-              z = fallback.z,
-              size = fallback.size,
-              zone = fallback.zone,
-              expectationSource = ExpectationSource.BOOTSTRAP
-            )
-          }
-        }
-      }
+    val scoredSets = exploded.sets.map {
+      if (it.expectation == null) it else it.copy(expectationSource = ExpectationSource.BOOTSTRAP)
     }
-
-    // One trend point per calendar session either way - per-set detail rides on each
-    // ScoredSet.expectedWeight instead, which is what lets the strip draw a line that moves
-    // within a session rather than stepping once per day. The live session is excluded from
-    // realBySession the same way it's excluded above, so it builds its trend point from its own
-    // (exploded) scored sets instead of the real fit's frozen one.
-    val realBySession = real.trend.associateBy { it.sessionIndex }
-    val trendPoints = scoredSets
-      .filter { it.expectationSource != null }
-      .groupBy { it.sessionIndex }
-      .toSortedMap()
-      .map { (sessionIndex, sessionScored) ->
-        realBySession[sessionIndex]
-          ?.takeIf { sessionIndex != liveSessionIndex }
-          ?.copy(expectationSource = ExpectationSource.SESSION)
-          ?: sessionScored.first().let { first ->
-            val cHat = first.expectation!!
-            val wHat = first.expectedWeight!!
-            TrendPoint(
-              sessionIndex = sessionIndex,
-              dayOffset = first.dayOffset,
-              at = first.source.completed,
-              expectedCapacity = cHat,
-              typicalReps = (cHat / wHat - 1) * config.epleyDivisor,
-              expectedWeight = wHat,
-              expectationSource = ExpectationSource.BOOTSTRAP,
-              lowAnchorReps = first.lowAnchorReps
-            )
-          }
-      }
+    val trendPoints = exploded.trend.map { it.copy(expectationSource = ExpectationSource.BOOTSTRAP) }
 
     return EffortSeries(scoredSets, trendPoints)
   }

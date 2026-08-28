@@ -778,23 +778,34 @@ class EffortModelTest {
     }
 
     @Test
-    fun `once real session count is reached, a completed session matches score exactly`() {
-      // Session 4 is completed (session 5, "today," follows it), so it should match the real
-      // fit exactly - unlike the live session (see the "always exploded" tests below).
+    fun `a completed session stays BOOTSTRAP-sourced even once it's well past minPriorSessions`() {
+      // Session 4 is completed (session 5, "today," follows it). Unlike the pre-fix model, this
+      // never switches to score()'s session-best fit - only BOOTSTRAP is ever produced.
       val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
         EffortSet(day(35), 110.0, 8)
-      val real = EffortModel.score(sets)
       val bootstrapped = EffortModel.scoreWithBootstrap(sets)
 
-      val realFourth = real.sets.filter { it.sessionIndex == 4 }
-      val bootstrappedFourth = bootstrapped.sets.filter { it.sessionIndex == 4 }
-      assertThat(bootstrappedFourth.map { it.expectation }).isEqualTo(realFourth.map { it.expectation })
-      assertThat(bootstrappedFourth.map { it.z }).isEqualTo(realFourth.map { it.z })
-      bootstrappedFourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.SESSION) }
+      val fourth = bootstrapped.sets.filter { it.sessionIndex == 4 }
+      assertThat(fourth).isNotEmpty()
+      fourth.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP) }
     }
 
     @Test
-    fun `the live (most recent) session is always exploded, even once real session count is reached`() {
+    fun `a session already scored never changes once a later session is logged`() {
+      // The bug this guards: session 4's expectation used to be recomputed (SESSION-sourced)
+      // the moment session 5 existed, even though nothing about session 4's own sets changed.
+      val history = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) }
+      val withoutNext = EffortModel.scoreWithBootstrap(history)
+      val withNext = EffortModel.scoreWithBootstrap(history + EffortSet(day(35), 110.0, 8))
+
+      val fourthBefore = withoutNext.sets.filter { it.sessionIndex == 4 }
+      val fourthAfter = withNext.sets.filter { it.sessionIndex == 4 }
+      assertThat(fourthAfter.map { it.expectation }).isEqualTo(fourthBefore.map { it.expectation })
+      assertThat(fourthAfter.map { it.expectationSource }).isEqualTo(fourthBefore.map { it.expectationSource })
+    }
+
+    @Test
+    fun `the live (most recent) session is genuinely per-set, not frozen to one value`() {
       val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
         (0 until 3).map { EffortSet(day(35).plusSeconds(it * 120L), 110.0, 8) }
       val bootstrapped = EffortModel.scoreWithBootstrap(sets)
@@ -809,18 +820,13 @@ class EffortModelTest {
     }
 
     @Test
-    fun `the live session's trend point comes from the exploded fit too`() {
+    fun `every trend point comes from the exploded fit`() {
       val sets = (0..4).map { EffortSet(day(it * 7L), 100.0 + it * 2, 8) } +
         EffortSet(day(35), 110.0, 8)
-      val real = EffortModel.score(sets)
       val bootstrapped = EffortModel.scoreWithBootstrap(sets)
 
-      // The real fit does have an opinion on session 5 (5 prior sessions, well past
-      // minPriorSessions) - scoreWithBootstrap has to deliberately override it rather than just
-      // passing it through, which is exactly what's under test here.
-      assertThat(real.trend.single { it.sessionIndex == 5 }.expectedCapacity).isFinite()
-      assertThat(bootstrapped.trend.single { it.sessionIndex == 5 }.expectationSource)
-        .isEqualTo(ExpectationSource.BOOTSTRAP)
+      assertThat(bootstrapped.trend).isNotEmpty()
+      bootstrapped.trend.forEach { assertThat(it.expectationSource).isEqualTo(ExpectationSource.BOOTSTRAP) }
     }
 
     @Test
@@ -833,29 +839,6 @@ class EffortModelTest {
 
       assertThat(bootstrapped.sets.map { it.source }).isEqualTo(real.sets.map { it.source })
       assertThat(bootstrapped.sets.map { it.sessionIndex }).isEqualTo(real.sets.map { it.sessionIndex })
-    }
-
-    @Test
-    fun `the trend does not jump at the handoff to the real fit`() {
-      // One extra trailing session ("today") past the historical handoff under test, excluded
-      // below - it's always exploded regardless of maturity (see the "live session" tests),
-      // which is a different rule than the completed-history handoff this test checks.
-      val sets = (0..5).flatMap { session ->
-        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session * 2, 8) }
-      } + EffortSet(day(42), 112.0, 8)
-      val series = EffortModel.scoreWithBootstrap(sets)
-      val completed = series.sets.filter { it.sessionIndex < 6 }
-
-      val lastBootstrap = completed.last { it.expectationSource == ExpectationSource.BOOTSTRAP }
-      val firstReal = completed.first { it.expectationSource == ExpectationSource.SESSION }
-
-      // Different grains, so the numbers won't match exactly - but on a steady history the line
-      // has to stay continuous where the strip switches from the dashed stand-in to the real
-      // fit, rather than stepping to a visibly different level.
-      assertThat(firstReal.expectation!!)
-        .isWithin(0.1 * lastBootstrap.expectation!!).of(lastBootstrap.expectation)
-      assertThat(firstReal.expectedWeight!!)
-        .isWithin(0.1 * lastBootstrap.expectedWeight!!).of(lastBootstrap.expectedWeight)
     }
 
     @Test
