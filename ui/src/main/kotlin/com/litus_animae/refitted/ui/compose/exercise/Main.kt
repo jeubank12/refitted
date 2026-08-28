@@ -175,9 +175,11 @@ fun Exercise(
       },
       supportingPane = {
         AnimatedPane(Modifier.onGloballyPositioned { supportingPaneBounds = it.boundsInWindow() }) {
+          val isAdmin by userModel.userIsAdmin.collectAsStateWithLifecycle(initialValue = false)
           SetRecordList(
             history = historyList,
             showBackButton = !bothPanesFit,
+            isAdmin = isAdmin,
             affectedByCutout = supportingAffectedByCutout,
             onBack = { historyFocused = false },
             onUpdateRecord = exerciseModel::updateSetRecord,

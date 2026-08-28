@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -72,6 +75,7 @@ import com.litus_animae.refitted.data.effort.ScoredSet
 import com.litus_animae.refitted.data.effort.TrendPoint
 import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.SetRecord
+import com.litus_animae.refitted.data.models.toCsv
 import com.litus_animae.refitted.identity.ConfigProvider
 import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.LocalFeatures
@@ -104,6 +108,7 @@ fun SetRecordList(
   modifier: Modifier = Modifier,
   history: SetHistory,
   showBackButton: Boolean = false,
+  isAdmin: Boolean = false,
   onBack: () -> Unit = {},
   /** Whether a display cutout's actual bounds overlap this pane - see exercise/Main.kt, which
    * measures both panes' real bounds against `rememberDisplayCutoutBoundingRects()` rather than
@@ -214,6 +219,28 @@ fun SetRecordList(
           }
         },
         actions = {
+          val context = LocalContext.current
+          // Exports whatever's currently loaded/retained (see displayRetained above), not the
+          // exercise's full remote history - scroll to load more sessions first if the anomaly
+          // being diagnosed is further back than what's already on screen.
+          if (isAdmin) {
+            IconButton(
+              {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                  type = "text/plain"
+                  putExtra(Intent.EXTRA_TEXT, displayRetained.toCsv())
+                }
+                context.startActivity(Intent.createChooser(intent, null))
+              },
+              enabled = displayRetained.isNotEmpty()
+            ) {
+              Icon(
+                Icons.Default.Share,
+                // TODO localize
+                "share set history"
+              )
+            }
+          }
           Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             IconButton({ records.refresh() }) {
               Icon(
