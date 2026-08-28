@@ -94,23 +94,9 @@ private val LabelPadding = 4.dp
 private val GapMarkDash = 4.dp
 private val EmphasisRingGap = 3.dp
 private val EmphasisRingWidth = 1.5.dp
-private val CompactMaxPointSize = 16.dp
-private val RegularMaxPointSize = 30.dp
 private val BandFadeInset = 4.dp
 private val FadeOutlineWidth = 1.dp
 private val DebugVertexRadius = 3.dp
-
-/**
- * Minimum center-to-center x spacing at which two adjacent [EffortChart] bubbles - drawn at
- * [maxPointSize] with the emphasis/projected outline ring around them - still read as separate,
- * plus 2dp of clear air. Width-driven callers (see [SetTrendStrip]) size their visible-set
- * window off this rather than a hand-tuned constant, so the strip never plots more bubbles than
- * can sit un-overlapped at its measured pixel width.
- */
-fun effortChartMinSlotWidth(compact: Boolean = false): Dp {
-  val maxPoint = if (compact) CompactMaxPointSize else RegularMaxPointSize
-  return maxPoint + EmphasisRingGap * 2 + EmphasisRingWidth + 2.dp
-}
 
 // Tuned against PreviewEffortChartGradientBandingTester: 8 divisions stayed clean at fade widths
 // down to ~30px, well under horizontalFadePx's actual size, so it has margin at this fade's real
@@ -189,7 +175,7 @@ fun EffortChart(
   // still sit behind the dots and gridlines rather than fighting them for contrast.
   bandAlpha: Float = 0.45f,
   minPointSize: Dp = if (compact) 4.dp else 8.dp,
-  maxPointSize: Dp = if (compact) CompactMaxPointSize else RegularMaxPointSize,
+  maxPointSize: Dp = if (compact) 16.dp else 30.dp,
   gapMarkWidth: Dp = if (compact) 1.5.dp else 2.dp
 ) {
   // rangeOf (used by the other charts) throws on empty input, and those charts only survive
