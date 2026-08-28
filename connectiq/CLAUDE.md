@@ -110,17 +110,11 @@ keep it on. `<sdk-root>` is wherever SDK Manager installed the active SDK
 `Sdks/` if more than one version is installed.
 
 A `BUILD SUCCESSFUL` line (pre-existing warnings about the missing `<iq:languages>` and launcher
-icon scaling are fine to ignore) means the source compiled cleanly.
+icon scaling are fine to ignore) means the source compiled cleanly. Sideload to real hardware to
+verify behavior - this project does not use the Connect IQ Simulator for testing.
 
 **Verify unfamiliar Monkey C APIs against the local SDK docs (`<sdk-root>/doc/`) and, ideally, an
 actual SDK sample (`<sdk-root>/samples/`) before writing code that uses them** - don't assume a
 Kotlin/Java-shaped API surface exists. Guessing has cost multiple rounds of compile/on-device
 errors in this file tree already (missing `String.split()`, wrong `Menu2` constructor shapes, the
 `NumberPicker`/`method()` gotchas above).
-
-## Simulator Limitations
-
-The Connect IQ Simulator's tethered/ADB transport (`IQConnectType.TETHERED`) is unreliable for
-watch-initiated `Communications.transmit` - known SDK bugs, confirmed via Garmin's forums, not a
-bug in this app's code. Phone-initiated `sendMessage` (`PLAN`/`END`) is fine against the simulator;
-trust real hardware for anything watch → phone (`SET_DONE`, `SESSION_ENDED`, `HELLO`, `BUFFER`).

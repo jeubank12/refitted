@@ -124,10 +124,8 @@ service; this module never touches `BluetoothAdapter` directly.
 ./gradlew :garmin:test
 ```
 
-Development without hardware: the SDK supports `IQConnectType.TETHERED` against the Connect IQ
-simulator over ADB. Note the simulator's tethered transport is unreliable for watch-initiated
-`transmit` (known SDK bugs, confirmed via Garmin's forums) - trust real hardware for that
-direction; phone-initiated `sendMessage` (used here for `PLAN`/`END`) is fine against the simulator.
+Behavior against a real watch app must be verified on real hardware - this project does not use
+the Connect IQ Simulator for testing.
 
 ## Used By
 

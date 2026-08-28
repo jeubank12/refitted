@@ -217,11 +217,10 @@ class GarminWatchService @Inject constructor(
     }
   }
 
-  // The SDK's send-status callback can fire more than once for a single sendMessage call (Phase
-  // 0's finding that ConnectIQAdbStrategy unconditionally fires FAILURE_UNKNOWN after SUCCESS over
-  // the simulator's tethered transport - confirmed here happening over real BLE too, via a crash:
-  // resuming an already-resumed CancellableContinuation throws IllegalStateException and crashes
-  // the whole app). Every branch must check isActive before resuming, not just the failure one.
+  // The SDK's send-status callback can fire more than once for a single sendMessage call -
+  // confirmed on real hardware over BLE via a crash: resuming an already-resumed
+  // CancellableContinuation throws IllegalStateException and crashes the whole app. Every branch
+  // must check isActive before resuming, not just the failure one.
   private suspend fun sendMessage(targetDevice: IQDevice, payload: List<Any>) {
     suspendCancellableCoroutine { continuation ->
       try {
