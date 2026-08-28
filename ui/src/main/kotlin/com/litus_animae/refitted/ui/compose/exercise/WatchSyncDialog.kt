@@ -35,6 +35,7 @@ import com.litus_animae.refitted.data.device.WatchExercise
 import com.litus_animae.refitted.data.device.WatchPlan
 import com.litus_animae.refitted.data.device.WatchState
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
+import kotlinx.coroutines.FlowPreview
 
 /**
  * Replaces the old single-tap "send to watch" icon action: picking a device and reviewing what's
@@ -44,6 +45,7 @@ import com.litus_animae.refitted.ui.models.ExerciseViewModel
  * them) - selecting a device just reveals the summary below it; only the final Send is a
  * distinct action.
  */
+@OptIn(FlowPreview::class)
 @Composable
 fun WatchSyncDialog(
   model: ExerciseViewModel,
