@@ -3,6 +3,7 @@ package com.litus_animae.refitted.garmin
 import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
+import com.garmin.android.connectiq.exception.InvalidStateException
 import com.google.common.truth.Truth.assertThat
 import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.device.WatchExercise
@@ -18,6 +19,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -178,6 +180,129 @@ class GarminWatchServiceTest {
       )
 
       assertThat((freshService.state.value as WatchState.Idle).appOpen).isTrue()
+    }
+  }
+
+  @Nested
+  @DisplayName("multiple known devices")
+  inner class MultiDeviceTests {
+
+    private val secondDevice = IQDevice(2L, "Fenix")
+
+    @Test
+    fun `refresh surfaces every known device, not just the first`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+
+      assertThat(freshService.availableDevices.value.map { it.name })
+        .containsExactly("Forerunner", "Fenix")
+    }
+
+    @Test
+    fun `selectDevice switches state to the chosen device`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      assertThat((freshService.state.value as WatchState.Idle).deviceName).isEqualTo("Fenix")
+    }
+
+    @Test
+    fun `selectDevice unregisters the previously selected device's listeners`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      verify { connectIQ.unregisterForDeviceEvents(device) }
+      verify { connectIQ.unregisterForApplicationEvents(device, any()) }
+    }
+
+    @Test
+    fun `refresh preserves an explicit selectDevice choice instead of resetting to the first device`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every { connectIQ.registerForAppEvents(secondDevice, any(), any()) } just Runs
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+      freshService.selectDevice(secondDeviceId)
+
+      // ExerciseViewModel.init and WatchSyncDialog's open both call refresh() again on an
+      // already-running singleton - it must not silently swap the send target back to device 0.
+      freshService.refresh()
+
+      assertThat((freshService.state.value as WatchState.Idle).deviceName).isEqualTo("Fenix")
+    }
+
+    @Test
+    fun `selectDevice leaves state and the send target consistent when registration throws`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every {
+        connectIQ.registerForDeviceEvents(secondDevice, any())
+      } throws InvalidStateException("connect IQ not ready")
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      // device must not silently point at a target whose listeners never registered - state
+      // reflects that no device is actually selected any more, matching refresh()'s own handling
+      // of the same exception.
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
+    }
+
+    @Test
+    fun `a partial registration failure unregisters the device-events listener it did register`() = runTest {
+      every { connectIQ.knownDevices } returns listOf(device, secondDevice)
+      every { connectIQ.registerForDeviceEvents(secondDevice, any()) } just Runs
+      every {
+        connectIQ.registerForAppEvents(secondDevice, any(), any())
+      } throws InvalidStateException("connect IQ not ready")
+
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      val secondDeviceId = freshService.availableDevices.value.last().id
+
+      freshService.selectDevice(secondDeviceId)
+
+      // registerForDeviceEvents(secondDevice) succeeded before registerForAppEvents threw - it
+      // must not be left registered just because `device` ends up null on this failure path.
+      verify { connectIQ.unregisterForDeviceEvents(secondDevice) }
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
+    }
+
+    @Test
+    fun `a refresh failure clears the send target along with state, not just state`() = runTest {
+      // First refresh succeeds and selects a device...
+      val freshService = GarminWatchService(connection, setRecordSink, log)
+      freshService.refresh()
+      assertThat(freshService.state.value).isInstanceOf(WatchState.Idle::class.java)
+
+      // ...then Garmin Connect Mobile becomes unavailable on a later refresh.
+      every { connectIQ.knownDevices } throws InvalidStateException("connect IQ not ready")
+      freshService.refresh()
+
+      assertThat(freshService.state.value).isEqualTo(WatchState.NoDevice)
+      // startSession must not silently target the now-stale device the UI no longer shows.
+      val result = freshService.startSession(plan)
+      assertThat(result.isFailure).isTrue()
     }
   }
 

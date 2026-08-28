@@ -12,6 +12,7 @@ import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.util.LogUtil
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -149,6 +150,35 @@ class ExerciseViewModelTest {
       advanceUntilIdle()
 
       assertThat(planSlot.captured.exercises.single().suggestedWeight).isEqualTo(25.0)
+    }
+  }
+
+  @Nested
+  @DisplayName("Watch-sync dialog support")
+  inner class WatchSyncDialogSupport {
+    @Test
+    fun `selectWatchDevice delegates to the watch service`() = runTest(mainDispatcher) {
+      val model = ExerciseViewModel(exerciseRepo, workoutPlanRepo, watchService, log)
+
+      model.selectWatchDevice("device-1")
+      advanceUntilIdle()
+
+      coVerify { watchService.selectDevice("device-1") }
+    }
+
+    @Test
+    fun `previewWatchPlan resolves the same plan sendPlanToWatch would send`() = runTest(mainDispatcher) {
+      val set = exerciseSet()
+      every { exerciseRepo.exercises } returns flowOf(listOf(set))
+      every { exerciseRepo.records } returns flowOf(emptyList())
+
+      val model = ExerciseViewModel(exerciseRepo, workoutPlanRepo, watchService, log)
+      backgroundScope.launch { model.exercises.collect {} }
+      advanceUntilIdle()
+
+      val plan = model.previewWatchPlan(null)
+
+      assertThat(plan.exercises.single().name).isEqualTo(set.exerciseName)
     }
   }
 }
