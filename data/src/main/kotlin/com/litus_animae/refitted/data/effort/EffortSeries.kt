@@ -6,15 +6,13 @@ enum class EffortZone { COLD, BELOW, ON_CURVE, GROWTH, IMPLAUSIBLE }
 
 /**
  * Which regression produced a non-null expectation. [BOOTSTRAP] is
- * [EffortModel.scoreWithBootstrap]'s strip-only, per-set fit - the only source it ever produces,
- * for every session, so a session's displayed value can't retroactively swap once it stops being
- * "current" (see that function's kdoc). [SESSION] would name [EffortModel.score]'s own
- * session-best fit, but [score] doesn't tag its output at all - nothing currently produces
- * [SESSION]; it's kept for a caller that wants to distinguish the two regressions explicitly.
- * `null` on the [ScoredSet]/[TrendPoint] this decorates means no expectation exists at all
- * (COLD).
+ * [EffortModel.scoreWithBootstrap]'s strip-only, per-set fit - currently the only source, tagged
+ * on every session (not just the live one) so a session's displayed value can't retroactively
+ * swap once it stops being "current" (see that function's kdoc for why that used to happen).
+ * [EffortModel.score] doesn't tag its own output at all. `null` on the [ScoredSet]/[TrendPoint]
+ * this decorates means no expectation exists at all (COLD).
  */
-enum class ExpectationSource { SESSION, BOOTSTRAP }
+enum class ExpectationSource { BOOTSTRAP }
 
 /**
  * One completed set, scored against its session's expectation.

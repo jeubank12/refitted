@@ -34,13 +34,11 @@ import androidx.compose.ui.unit.dp
 import com.litus_animae.refitted.data.effort.EffortModel
 import com.litus_animae.refitted.data.effort.EffortSet
 import com.litus_animae.refitted.data.effort.EffortZone
-import com.litus_animae.refitted.data.effort.ExpectationSource
 import com.litus_animae.refitted.data.effort.ScoredSet
 import com.litus_animae.refitted.data.effort.toEffortSet
 import com.litus_animae.refitted.data.models.Record
 import com.litus_animae.refitted.data.models.SetRecord
 import com.litus_animae.refitted.ui.R
-import com.litus_animae.refitted.ui.compose.charts.BandPoint
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
@@ -48,7 +46,7 @@ import com.litus_animae.refitted.ui.compose.charts.GradientBaseColor
 import com.litus_animae.refitted.ui.compose.charts.GradientColdColor
 import com.litus_animae.refitted.ui.compose.charts.GradientPeakColor
 import com.litus_animae.refitted.ui.compose.charts.GradientPunishedColor
-import com.litus_animae.refitted.ui.compose.charts.collapseSessions
+import com.litus_animae.refitted.ui.compose.charts.effortChartMinSlotWidth
 import com.litus_animae.refitted.ui.compose.charts.zoneColor
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
@@ -62,9 +60,15 @@ import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val MinSlotWidth = 20.dp
 private const val MIN_WINDOW = 5
 private const val MAX_WINDOW = 14
+
+// Real sets kept just before the window to give the funnel band's leading edge a real slope to
+// grow out of - never plotted as bubbles. Capped rather than "every prior set" so a long history
+// (recentSets fetches up to a few hundred) doesn't feed hundreds of mostly-off-screen mesh
+// columns per frame; bandOrigin still anchors the fade-in to the true first set however far back
+// it is.
+private const val EXTRA_LEADING_POINTS = 3
 
 /**
  * `null` until [history] has emitted for this exercise. Keyed on the flow instance so an
@@ -130,7 +134,9 @@ fun SetTrendStrip(
 ) {
   BoxWithConstraints(modifier) {
     val window = if (maxWidth != Dp.Infinity) {
-      (((maxWidth - 12.dp).value / MinSlotWidth.value).toInt()).coerceIn(MIN_WINDOW, MAX_WINDOW)
+      ((maxWidth - 12.dp) / effortChartMinSlotWidth(compact = true))
+        .toInt()
+        .coerceIn(MIN_WINDOW, MAX_WINDOW)
     } else {
       MIN_WINDOW
     }
@@ -156,12 +162,12 @@ fun SetTrendStrip(
       // the actual first set of the whole history, so the band still visibly grows from a real
       // coordinate instead of the run's own first sample appearing to start from nowhere.
       val bandOrigin: Pair<Float, Float>?,
-      // Every real set before windowed, oldest first - feeds the band's leading edge (see its
-      // construction below) without ever getting its own plotted bubble. All of it, not a fixed
-      // reach-back count: a fixed count can land exactly on the cold/real boundary and capture
-      // only an isolated real point with more cold history behind it that it never sees - see
-      // EffortChart's bandOrigin/needsLeadFade kdoc for why that one real point alone isn't
-      // enough to know whether a fade-in from further back is still owed.
+      // Up to [EXTRA_LEADING_POINTS] real sets immediately before windowed, oldest first - feeds
+      // the band's leading edge (see its construction below) a real slope without ever getting a
+      // plotted bubble. When this can't reach far enough back to cover all earlier history (an
+      // isolated real point with cold history still behind it, or simply the very start of the
+      // log), [bandOrigin] takes over the fade-in - see EffortChart's bandOrigin/needsLeadFade
+      // kdoc.
       val leadIn: List<ScoredSet>
     )
 
@@ -174,7 +180,7 @@ fun SetTrendStrip(
         )
         val committed = if (effectiveProjected != null) scored.sets.dropLast(1) else scored.sets
         val windowedSets = committed.takeLast(window)
-        val leadIn = committed.dropLast(windowedSets.size)
+        val leadIn = committed.dropLast(windowedSets.size).takeLast(EXTRA_LEADING_POINTS)
         val origin = committed.firstOrNull()?.let {
           -(committed.size - windowedSets.size).toFloat() to it.source.weight.toFloat()
         }
@@ -286,65 +292,46 @@ fun SetTrendStrip(
           // The light target is normally 15 reps but drifts down toward the actually-repeated
           // rep count (scored.lowAnchorReps) while weight and reps hold flat session over
           // session, squeezing the band's floor without moving the 4-rep target.
-          // One band shape covers both SESSION and BOOTSTRAP sets - a collapsed (SESSION)
-          // stretch collapses to its one logical point, same as bandMid below.
+          // Always one band sample per set - EffortModel.scoreWithBootstrap scores every session
+          // (live or completed) with the same per-set fit, so there's no coarser SESSION-sourced
+          // stretch to collapse to a single point any more.
           //
-          // A projection extends each band by one more sample (never collapsed - same as any
-          // other live/BOOTSTRAP point) built from projectedScored's own expectation, which per
-          // scoreWithBootstrap's causality is derived only from merged - so this is a real
-          // extrapolation of the funnel to the projected point's x, not a shape the projection
-          // itself could move.
+          // A projection extends each band by one more sample built from projectedScored's own
+          // expectation, which per scoreWithBootstrap's causality is derived only from merged -
+          // so this is a real extrapolation of the funnel to the projected point's x, not a
+          // shape the projection itself could move.
           //
           // leadIn supplies up to EXTRA_LEADING_POINTS real sets before windowed, x-shifted
           // negative so windowed's own first entry still lands at x=0 - the band's leading edge
           // is then real, causally-scored data continuing off-screen rather than a shape that
           // appears to start from nothing at the window's edge. Never plotted as bubbles (only
           // windowed feeds `points` above) and never used to bootstrap-fill a bandOrigin fade -
-          // when leadIn has too little real history to reach a negative x itself (near the very
-          // start of the whole history), EffortChart falls back to bandOrigin instead.
+          // when leadIn can't reach far enough back itself, EffortChart falls back to bandOrigin.
           val bandTop = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
-              collapseSessions(
-                (leadIn + windowed).mapIndexed { index, scored ->
-                  BandPoint(
-                    (index - leadIn.size).toFloat(),
-                    scored.expectation?.let { EffortModel.weightForReps(it, 4) },
-                    scored.sessionIndex,
-                    collapsed = scored.expectationSource == ExpectationSource.SESSION
-                  )
-                } + listOfNotNull(
-                  projectedScored?.let {
-                    BandPoint(
-                      windowed.size.toFloat(),
-                      it.expectation?.let { e -> EffortModel.weightForReps(e, 4) },
-                      it.sessionIndex,
-                      collapsed = false
-                    )
-                  }
-                )
+              (leadIn + windowed).mapIndexed { index, scored ->
+                (index - leadIn.size).toFloat() to scored.expectation?.let {
+                  EffortModel.weightForReps(it, 4)
+                }
+              } + listOfNotNull(
+                projectedScored?.let {
+                  windowed.size.toFloat() to it.expectation?.let { e -> EffortModel.weightForReps(e, 4) }
+                }
               )
             )
           }
           val bandBottom = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
-              collapseSessions(
-                (leadIn + windowed).mapIndexed { index, scored ->
-                  BandPoint(
-                    (index - leadIn.size).toFloat(),
-                    scored.expectation?.let { EffortModel.weightForReps(it, scored.lowAnchorReps) },
-                    scored.sessionIndex,
-                    collapsed = scored.expectationSource == ExpectationSource.SESSION
-                  )
-                } + listOfNotNull(
-                  projectedScored?.let {
-                    BandPoint(
-                      windowed.size.toFloat(),
-                      it.expectation?.let { e -> EffortModel.weightForReps(e, it.lowAnchorReps) },
-                      it.sessionIndex,
-                      collapsed = false
-                    )
+              (leadIn + windowed).mapIndexed { index, scored ->
+                (index - leadIn.size).toFloat() to scored.expectation?.let {
+                  EffortModel.weightForReps(it, scored.lowAnchorReps)
+                }
+              } + listOfNotNull(
+                projectedScored?.let {
+                  windowed.size.toFloat() to it.expectation?.let { e ->
+                    EffortModel.weightForReps(e, it.lowAnchorReps)
                   }
-                )
+                }
               )
             )
           }
@@ -390,27 +377,16 @@ fun SetTrendStrip(
           val yLabelsRight = remember(gradientMin, gradientMax) {
             listOfNotNull(gradientMin, gradientMax).distinct().map { it to it.roundToInt().toString() }
           }
-          // Not split by expectationSource, matching bandTop/bandBottom's own "one shape
-          // covers both SESSION and BOOTSTRAP" choice above - only positions the gradient's
-          // midline stop, so it should track the same combined domain as the band itself.
-          // Extended by leadIn same as bandTop/bandBottom above - EffortChart requires bandMid's
-          // run shape to match bandTop/bandBottom's exactly (same x-samples) or it falls back to
-          // a flat fill.
+          // Positions the gradient's midline stop only, so it tracks the same combined domain as
+          // the band itself. Built per-set and extended by leadIn exactly like bandTop/bandBottom
+          // above - EffortChart requires bandMid's run shape to match theirs (same x-samples) or
+          // it falls back to a flat fill.
           val bandMid = remember(leadIn, windowed, projectedScored) {
             buildTrendRuns(
-              collapseSessions(
-                (leadIn + windowed).mapIndexed { index, scored ->
-                  BandPoint(
-                    (index - leadIn.size).toFloat(),
-                    scored.expectedWeight,
-                    scored.sessionIndex,
-                    collapsed = scored.expectationSource == ExpectationSource.SESSION
-                  )
-                } + listOfNotNull(
-                  projectedScored?.let {
-                    BandPoint(windowed.size.toFloat(), it.expectedWeight, it.sessionIndex, collapsed = false)
-                  }
-                )
+              (leadIn + windowed).mapIndexed { index, scored ->
+                (index - leadIn.size).toFloat() to scored.expectedWeight
+              } + listOfNotNull(
+                projectedScored?.let { windowed.size.toFloat() to it.expectedWeight }
               )
             )
           }
