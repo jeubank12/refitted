@@ -74,6 +74,14 @@ updates:
         - "io.mockk*"
         - "app.cash.turbine*"
 
+    # GRADLE BUILD TOOLING (AGP and the Gradle wrapper version move in lockstep)
+    gradle-build-tooling:
+      patterns:
+        - "gradle"
+        - "com.android.tools.build:gradle"
+        - "com.android.application"
+        - "com.android.library"
+
     # ANDROIDX CORE (fallback for remaining androidx libs)
     androidx-core:
       patterns:
