@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Run Claude Code Review
         id: claude-review
@@ -55,8 +55,17 @@ jobs:
                Evaluate against: code quality and best practices, potential bugs, performance,
                security concerns, and test coverage. Use the repository's CLAUDE.md for style guidance.
 
+               Before flagging something as removed, deleted, or reverted, check the commit messages:
+               git log --oneline ${{ github.event.pull_request.base.sha }}..HEAD
+               If a commit message states the removal/revert was intentional (e.g. "revert X",
+               "remove unused Y", "undo Z"), do not flag it — treat the stated intent as authoritative
+               and move on rather than second-guessing it. Only flag a removal when nothing in the
+               commit history explains it, or when the explanation doesn't match what the diff actually
+               does.
+
             3. Filter your findings:
                - Exclude anything already flagged in a prior review comment that has since been resolved
+               - Exclude removals/reverts that a commit message explains as intentional (see step 2)
                - Include findings that are EITHER:
                  a) Brand new — not mentioned in any prior review comment
                  b) Still-present blockers — previously flagged, still clearly unresolved in the diff
@@ -80,5 +89,5 @@ jobs:
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(git log:*)"'
 
