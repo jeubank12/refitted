@@ -29,6 +29,7 @@ fun buildTrendRuns(
   }
   return runs
 }
+
 /**
  * Same run-breaking semantics as the session-keyed overload, for callers that already carry a
  * per-point expected weight and so don't need the session-index indirection. A null expectation

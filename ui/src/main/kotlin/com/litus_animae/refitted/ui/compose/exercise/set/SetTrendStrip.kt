@@ -42,14 +42,11 @@ import com.litus_animae.refitted.ui.R
 import com.litus_animae.refitted.ui.compose.charts.EffortChart
 import com.litus_animae.refitted.ui.compose.charts.EffortPoint
 import com.litus_animae.refitted.ui.compose.charts.buildTrendRuns
-import com.litus_animae.refitted.ui.compose.charts.GradientBaseColor
-import com.litus_animae.refitted.ui.compose.charts.GradientColdColor
-import com.litus_animae.refitted.ui.compose.charts.GradientPeakColor
-import com.litus_animae.refitted.ui.compose.charts.GradientPunishedColor
 import com.litus_animae.refitted.ui.compose.charts.effortChartMinSlotWidth
 import com.litus_animae.refitted.ui.compose.charts.zoneColor
 import com.litus_animae.refitted.ui.compose.charts.zoneLabelRes
 import com.litus_animae.refitted.ui.compose.exercise.exampleExerciseSet
+import com.litus_animae.refitted.ui.compose.util.ExtendedTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -237,10 +234,10 @@ fun SetTrendStrip(
                   .background(
                     zoneColor(
                       latestZone,
-                      GradientBaseColor,
-                      GradientPeakColor,
-                      GradientPunishedColor,
-                      GradientColdColor
+                      MaterialTheme.colorScheme.primary,
+                      ExtendedTheme.colors.goodAttention.color,
+                      ExtendedTheme.colors.timerAmber.color,
+                      MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                     ),
                     CircleShape
                   )
@@ -292,10 +289,9 @@ fun SetTrendStrip(
           // The light target is normally 15 reps but drifts down toward the actually-repeated
           // rep count (scored.lowAnchorReps) while weight and reps hold flat session over
           // session, squeezing the band's floor without moving the 4-rep target.
-          // Always one band sample per set - the funnel is never collapsed to a single
-          // per-session point, so a mature (SESSION-sourced) stretch and the live BOOTSTRAP
-          // stretch render with the same per-set column spacing and the gradient reads
-          // continuously across the boundary between them instead of stepping.
+          // Always one band sample per set - EffortModel.scoreWithBootstrap scores every session
+          // (live or completed) with the same per-set fit, so there's no coarser SESSION-sourced
+          // stretch to collapse to a single point any more.
           //
           // A projection extends each band by one more sample built from projectedScored's own
           // expectation, which per scoreWithBootstrap's causality is derived only from merged -
