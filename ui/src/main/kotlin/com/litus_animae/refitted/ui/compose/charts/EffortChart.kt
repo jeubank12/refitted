@@ -100,14 +100,13 @@ private val DebugVertexRadius = 3.dp
 /**
  * Minimum center-to-center x spacing at which two adjacent [EffortChart] bubbles - drawn at
  * [maxPointSize] with the emphasis/projected outline ring around them - still read as separate,
- * plus 8dp of clear air so neighboring bubbles read as individually spaced rather than just
- * touching at their rings. Width-driven callers (see [SetTrendStrip]) size their visible-set
+ * plus 2dp of clear air. Width-driven callers (see [SetTrendStrip]) size their visible-set
  * window off this rather than a hand-tuned constant, so the strip never plots more bubbles than
  * can sit un-overlapped at its measured pixel width.
  */
 fun effortChartMinSlotWidth(compact: Boolean = false): Dp {
   val maxPoint = if (compact) CompactMaxPointSize else RegularMaxPointSize
-  return maxPoint + EmphasisRingGap * 2 + EmphasisRingWidth + 8.dp
+  return maxPoint + EmphasisRingGap * 2 + EmphasisRingWidth + 2.dp
 }
 
 // Tuned against PreviewEffortChartGradientBandingTester: 8 divisions stayed clean at fade widths
