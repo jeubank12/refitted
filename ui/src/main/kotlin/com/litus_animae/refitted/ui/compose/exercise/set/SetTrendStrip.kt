@@ -396,6 +396,11 @@ fun SetTrendStrip(
             bandBottom = bandBottom,
             bandMid = bandMid,
             bandOrigin = bandOrigin,
+            // Pins the x-scale to the strip's full window width rather than however many real
+            // sets currently fill it, so a sparse history (e.g. the first couple of sets of a
+            // brand-new exercise) sits at the same per-bubble spacing the window was sized for
+            // instead of stretching 2 points across the entire card - see xDomainMax's kdoc.
+            xDomainMax = (window - 1).toFloat(),
             yLabels = yLabels,
             yLabelsRight = yLabelsRight,
             gapMarks = sessionGapMarks,
