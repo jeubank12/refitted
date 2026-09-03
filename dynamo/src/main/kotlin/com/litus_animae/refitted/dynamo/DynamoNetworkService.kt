@@ -36,6 +36,7 @@ internal class DynamoNetworkService(
   // TODO this needs to be called again when the user changes...
   suspend fun getDb(): DynamoDBMapper {
     log.d(TAG, "getting Dynamo db")
+    // todo fails when you logout
     val idToken = authProvider.getIdToken() ?: error("No authenticated user")
     val logins = mapOf(Pair(openIdSource, idToken.token))
     credentialsProvider.logins = logins
