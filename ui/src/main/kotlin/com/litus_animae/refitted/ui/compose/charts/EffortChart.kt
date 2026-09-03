@@ -152,6 +152,14 @@ fun EffortChart(
   // clipped by the composable's own bounds, rather than stretching the visible plot to fit it.
   // Falls back to the leftmost point in [points] when absent.
   bandOrigin: Pair<Float, Float>? = null,
+  // Overrides the auto-computed x-domain max (min still comes from [points]/band data). Without
+  // this, a width-driven caller (see SetTrendStrip) whose window has more slots than it currently
+  // has real sets to fill still stretches those few points across the composable's *entire*
+  // measured width - min/max always land exactly on the plot edges regardless of point count, so
+  // 2 real points in an 8-slot window end up flung to the far corners instead of sitting together
+  // at their intended per-slot spacing with empty room left over. Pass the *intended* slot count's
+  // max x (e.g. `window - 1`) to keep spacing constant as real data fills in.
+  xDomainMax: Float? = null,
   compact: Boolean = false,
   xLabels: List<Pair<Float, String>> = emptyList(),
   yLabels: List<Pair<Float, String>> = emptyList(),
@@ -196,8 +204,12 @@ fun EffortChart(
   val minX = remember(points, onDomain) {
     minOf(points.minOf { it.x }, onDomain.minOfOrNull { it.first } ?: Float.POSITIVE_INFINITY)
   }
-  val maxX = remember(points, onDomain) {
-    maxOf(points.maxOf { it.x }, onDomain.maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY)
+  val maxX = remember(points, onDomain, xDomainMax) {
+    maxOf(
+      points.maxOf { it.x },
+      onDomain.maxOfOrNull { it.first } ?: Float.NEGATIVE_INFINITY,
+      xDomainMax ?: Float.NEGATIVE_INFINITY
+    )
   }
   val minY = remember(points, onDomain) {
     minOf(points.minOf { it.weight }, onDomain.minOfOrNull { it.second } ?: Float.POSITIVE_INFINITY)
