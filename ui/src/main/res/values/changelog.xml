@@ -2,7 +2,7 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
-        <item>**v1.4.7</item>
+        <item>**v1.4.8</item>
         <item>**v1.4.3</item>
         <item>Pair a Garmin watch to run your workout from your wrist: send today\'s plan, complete sets and rest right there, and it all syncs back to your phone automatically, even through a dropped connection</item>
     </string-array>
