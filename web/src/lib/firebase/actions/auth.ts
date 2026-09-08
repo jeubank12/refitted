@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { adminAuth, adminAppCheck } from '../admin'
+import { ADMIN_BASE_PATH } from '../../adminPath'
 
 export async function login(
   idToken: string,
@@ -69,7 +70,7 @@ export async function serverLogout() {
     }
   }
   // server logout needs to tell the client to also logout
-  redirect('/admin/logout')
+  redirect(`${ADMIN_BASE_PATH}/logout`)
 }
 
 export async function validateAppCheck(

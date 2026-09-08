@@ -5,9 +5,11 @@ import { usePathname } from 'next/navigation'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 
+import { ADMIN_BASE_PATH } from 'src/lib/adminPath'
+
 const NAV_ITEMS = [
-  { label: 'Users', href: '/admin/users' },
-  { label: 'Plans', href: '/admin/workouts' },
+  { label: 'Users', href: `${ADMIN_BASE_PATH}/users` },
+  { label: 'Plans', href: `${ADMIN_BASE_PATH}/workouts` },
 ]
 
 export default function AdminNavLinks() {
