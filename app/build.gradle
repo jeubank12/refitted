@@ -67,6 +67,13 @@ android {
             matchingFallbacks = ['debug']
         }
     }
+    sourceSets {
+        // release and minifiedDebug both ship the production (Play Integrity) App Check
+        // provider; AGP build types don't share source dirs, so point both at one shared
+        // set. (debug supplies its own Debug-provider variant in src/debug/kotlin.)
+        release { kotlin.srcDir 'src/appCheckProd/kotlin' }
+        minifiedDebug { kotlin.srcDir 'src/appCheckProd/kotlin' }
+    }
     buildFeatures {
         dataBinding = true
         compose = true
@@ -145,6 +152,9 @@ dependencies {
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.analytics
     implementation libs.firebase.crashlytics
+    releaseImplementation libs.firebase.appcheck.playintegrity
+    minifiedDebugImplementation libs.firebase.appcheck.playintegrity
+    debugImplementation libs.firebase.appcheck.debug
 
     // Compose (Activity uses CompositionLocalProvider)
     implementation platform(libs.androidx.compose.bom)
