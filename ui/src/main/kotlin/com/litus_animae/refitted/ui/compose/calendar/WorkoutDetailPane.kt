@@ -65,7 +65,9 @@ fun WorkoutDetailPane(
   onEditModeChange: (Boolean) -> Unit,
   onRenameRequest: (String) -> Unit,
   onDeleteRequest: (String) -> Unit,
-  onCopyDayRequest: () -> Unit,
+  copyMode: Boolean,
+  onCopyModeChange: (Boolean) -> Unit,
+  onCopyFromDay: (day: Int) -> Unit,
   showMenuButton: Boolean,
   // True when shown alongside WorkoutPlanListPane AND height is constrained (landscape) - the
   // calendar's legend and "hide rest days" toggle move into a vertical sidebar instead of
@@ -217,7 +219,9 @@ fun WorkoutDetailPane(
       )
     },
     floatingActionButton = {
-      if (selectedWorkoutPlan?.isCustom == true && editMode) {
+      // Hidden mid-copy - the grid itself is the picker while copyMode is active, and the FAB's
+      // own add-menu (new day / copy from… / rest day) would just be a distraction on top of it.
+      if (selectedWorkoutPlan?.isCustom == true && editMode && !copyMode) {
         // FAB + its menu need to share one layout node in this slot - as two loose siblings,
         // Scaffold measured the slot's width from both and threw the FAB's End position off,
         // rendering it on the left.
@@ -246,7 +250,7 @@ fun WorkoutDetailPane(
                   .fillMaxWidth()
                   .clickable {
                     showAddMenu = false
-                    onCopyDayRequest()
+                    onCopyModeChange(true)
                   }
                   .padding(start = 5.dp, end = 15.dp)
                   .padding(vertical = 5.dp))
@@ -300,7 +304,10 @@ fun WorkoutDetailPane(
         onEditDay = { day ->
           navigateToWorkoutDay(selectedWorkoutPlan, day, true)
           workoutModel.setLastViewedDay(selectedWorkoutPlan, day)
-        }
+        },
+        copyMode = copyMode,
+        onCancelCopy = { onCopyModeChange(false) },
+        onCopyFromDay = onCopyFromDay
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan, it, false)
         workoutModel.setLastViewedDay(selectedWorkoutPlan, it)

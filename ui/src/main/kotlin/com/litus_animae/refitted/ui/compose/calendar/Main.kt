@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +44,7 @@ import com.litus_animae.refitted.ui.models.UserViewModel
 import com.litus_animae.refitted.ui.models.WorkoutViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -53,9 +55,12 @@ fun Calendar(
   userModel: UserViewModel = viewModel()
 ) {
   val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
   var showCreateCustomDialog by rememberSaveable { mutableStateOf(false) }
-  var showCopyDayDialog by rememberSaveable { mutableStateOf(false) }
   var editMode by rememberSaveable { mutableStateOf(false) }
+  // Whether the user is currently picking a source day for "copy from…" - see
+  // WorkoutDetailPane's onCopyModeChange and Calendar.kt's copyMode-gated tap routing.
+  var copyMode by rememberSaveable { mutableStateOf(false) }
   // True once the user explicitly opens the plan menu at Compact width - the calendar is always
   // the default/home screen, this is only ever set by an explicit tap, never derived from
   // selection state, so there's no state where the menu accidentally becomes the landing screen.
@@ -156,7 +161,19 @@ fun Calendar(
               renameError = null
             },
             onDeleteRequest = { deleteTarget = it },
-            onCopyDayRequest = { showCopyDayDialog = true },
+            copyMode = copyMode,
+            onCopyModeChange = { copyMode = it },
+            onCopyFromDay = { fromDay ->
+              selectedWorkoutPlan?.let { plan ->
+                val newDayNumber = plan.totalDays + 1
+                workoutModel.copyDay(plan, fromDay)
+                copyMode = false
+                scope.launch {
+                  // TODO localize
+                  snackbarHostState.showSnackbar("Copied Day $fromDay to Day $newDayNumber")
+                }
+              }
+            },
             showMenuButton = !bothPanesFit,
             wideLayout = compactPaneLayout,
             onOpenMenu = { planMenuOpen = true },
@@ -182,6 +199,7 @@ fun Calendar(
               planMenuOpen = false
               if (it.workout != selectedWorkoutPlan?.workout) {
                 editMode = false
+                copyMode = false
                 workoutModel.loadWorkoutDaysCompleted(it)
               }
             },
@@ -206,17 +224,6 @@ fun Calendar(
       onCreate = {
         workoutModel.createCustomWorkout(it)
         showCreateCustomDialog = false
-      }
-    )
-  }
-
-  if (showCopyDayDialog && selectedWorkoutPlan != null) {
-    CopyDayDialog(
-      totalDays = selectedWorkoutPlan!!.totalDays,
-      onDismissRequest = { showCopyDayDialog = false },
-      onCopy = { fromDay ->
-        workoutModel.copyDay(selectedWorkoutPlan!!, fromDay)
-        showCopyDayDialog = false
       }
     )
   }
@@ -254,6 +261,7 @@ fun Calendar(
         workoutModel.deleteCustomWorkout(target)
         if (selectedWorkoutPlan?.workout == target) {
           editMode = false
+          copyMode = false
         }
         deleteTarget = null
       }

@@ -102,6 +102,11 @@ fun WorkoutCalendar(
   onClearDay: (day: Int) -> Unit = {},
   onSetDayRest: (day: Int, isRest: Boolean) -> Unit = { _, _ -> },
   onEditDay: (day: Int) -> Unit = {},
+  // True while the user is picking a source day for "copy from…" - overrides editMode's own
+  // tap-to-edit banner/routing below so the same grid can be reused as the day picker.
+  copyMode: Boolean = false,
+  onCancelCopy: () -> Unit = {},
+  onCopyFromDay: (day: Int) -> Unit = {},
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -158,11 +163,15 @@ fun WorkoutCalendar(
         }
         item {
           AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
-            EditModeBanner(
-              isEmpty = plan.totalDays == 0,
-              onDone = onExitEdit,
-              modifier = Modifier.padding(bottom = 12.dp)
-            )
+            if (copyMode) {
+              CopyModeBanner(onCancel = onCancelCopy, modifier = Modifier.padding(bottom = 12.dp))
+            } else {
+              EditModeBanner(
+                isEmpty = plan.totalDays == 0,
+                onDone = onExitEdit,
+                modifier = Modifier.padding(bottom = 12.dp)
+              )
+            }
           }
         }
         if (includeMonthLegendToggle) {
@@ -192,6 +201,7 @@ fun WorkoutCalendar(
               val hidden = isRestDay && hideRestDays && !editMode
               val onClick: (() -> Unit)? = when {
                 !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
+                copyMode && inPlanRange && !hidden -> ({ onCopyFromDay(workoutDay) })
                 editMode && inPlanRange && !hidden -> ({ editingDay = workoutDay })
                 aligned && inPlanRange && !hidden -> ({ navigateToDay(workoutDay) })
                 else -> null
@@ -199,6 +209,7 @@ fun WorkoutCalendar(
               val label = when {
                 !aligned && inDisplayedMonth ->
                   "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
+                copyMode && inPlanRange -> "Copy from day $workoutDay"
                 editMode && inPlanRange -> "Edit day $workoutDay"
                 isRestDay -> "Rest day $workoutDay"
                 inPlanRange -> "Day $workoutDay"
@@ -310,6 +321,38 @@ private fun EditModeBanner(isEmpty: Boolean, onDone: () -> Unit, modifier: Modif
       Button(onClick = onDone) {
         // TODO localize
         Text("Done")
+      }
+    }
+  }
+}
+
+@Composable
+private fun CopyModeBanner(onCancel: () -> Unit, modifier: Modifier = Modifier) {
+  Surface(
+    modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(10.dp),
+    color = MaterialTheme.colorScheme.primary,
+    contentColor = MaterialTheme.colorScheme.onPrimary,
+    shadowElevation = 1.dp
+  ) {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .padding(14.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      // TODO localize
+      Text(
+        "Copying a day — tap the day you want to copy from",
+        Modifier
+          .weight(1f)
+          .padding(end = 8.dp),
+        fontSize = 13.sp
+      )
+      Button(onClick = onCancel) {
+        // TODO localize
+        Text("Cancel")
       }
     }
   }

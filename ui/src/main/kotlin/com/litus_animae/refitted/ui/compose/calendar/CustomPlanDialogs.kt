@@ -12,19 +12,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -193,52 +187,6 @@ private fun DialogCancelButton(onClick: () -> Unit) {
     // TODO localize
     Text("Cancel")
   }
-}
-
-/**
- * Copy-day dialog (design 1e, minus the per-exercise preview list, Move day, and the
- * append/overwrite choice - copy is always non-destructive and always appends a new day). Lets
- * the user pick which existing day to copy from.
- */
-@Composable
-fun CopyDayDialog(
-  totalDays: Int,
-  onDismissRequest: () -> Unit,
-  onCopy: (fromDay: Int) -> Unit
-) {
-  var fromDay by rememberSaveable { mutableIntStateOf(1.coerceAtMost(totalDays.coerceAtLeast(1))) }
-  val newDayNumber = totalDays + 1
-  AlertDialog(
-    onDismissRequest = onDismissRequest,
-    // TODO localize
-    title = { Text("Copy a Day") },
-    text = {
-      Column {
-        Text(
-          "Adds Day $newDayNumber with the same exercises as the day you pick below. Set and rep targets come from the sets you completed.",
-          style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          IconButton(
-            onClick = { fromDay = (fromDay - 1).coerceAtLeast(1) },
-            enabled = fromDay > 1
-          ) { Icon(Icons.Default.Remove, "previous day") }
-          Text("Day $fromDay", style = MaterialTheme.typography.titleMedium)
-          IconButton(
-            onClick = { fromDay = (fromDay + 1).coerceAtMost(totalDays) },
-            enabled = fromDay < totalDays
-          ) { Icon(Icons.Default.Add, "next day") }
-        }
-      }
-    },
-    confirmButton = {
-      Button(onClick = { onCopy(fromDay) }) {
-        Text("Copy")
-      }
-    },
-    dismissButton = { DialogCancelButton(onDismissRequest) }
-  )
 }
 
 /**
