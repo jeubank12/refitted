@@ -2,6 +2,7 @@
 <resources>
     <string name="changelog_version_header">**</string>
     <string-array name="changelog">
+        <item>**v1.4.9</item>
         <item>**v1.4.8</item>
         <item>Copying a day is now a mode: tap "Copy from…" then just tap the day you want to copy, right on the calendar</item>
         <item>**v1.4.3</item>
