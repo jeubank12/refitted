@@ -56,6 +56,39 @@ service; this module never touches `BluetoothAdapter` directly.
 
 ## Gotchas
 
+- **Only one Android app may hold a live `registerForAppEvents` registration for a given
+  watch-app id at a time - documented, not inferred.** Garmin's Mobile SDK for Android docs
+  ("Core Topics" -> "Mobile SDK for Android" -> "Receiving Messages",
+  `developer.garmin.com/connect-iq/core-topics/mobile-sdk-for-android/` - the page is a
+  client-rendered SPA, `WebFetch`/`curl` both return an empty shell, so verifying this meant
+  having the page's text pasted in rather than fetching it) state plainly: "A companion app may
+  register to receive messages from multiple apps across many devices. However, **multiple
+  companion apps cannot be registered to receive messages from the same ConnectIQ application.
+  The SDK will override any previous registrations with each call to
+  `registerForAppEvents()`.**" `REFITTED_WATCH_APP_ID` is one hardcoded UUID shared by every
+  Android build variant of this app (debug/minifiedDebug/release, all installable side by side on
+  one phone) - installing more than one and letting each call `registerForAppEvents` for it means
+  whichever variant registered *last* silently wins, and every other variant's listener is
+  orphaned with **zero error on either side**: the watch's `Communications.transmit()` still
+  reports `onComplete()` (that only confirms delivery to Garmin Connect Mobile, not to a specific
+  registered listener - see the `sendMessage` gotcha below for the mirror-image case), and the
+  losing app's `onMessageReceived` callback simply never fires. This was the root cause of a
+  multi-week intermittent "watch says HELLO sent, phone never shows connected" investigation -
+  confirmed by testing a freshly-registered debug variant while a previously-registered release
+  build's listener silently went stale. Fixed here by only ever letting `release` register at all:
+  `:app`'s `WatchServiceModule` is split per build type (`src/release/kotlin` binds the real
+  `GarminWatchService`; `src/watchSyncDisabled/kotlin`, shared by `debug` and `minifiedDebug` via
+  `app/build.gradle`'s `sourceSets`, binds a no-op `DisabledWatchService` that reports
+  `WatchState.Unsupported` and never touches `registerForAppEvents`) - so at most one installed
+  variant can ever hold the registration. Don't add a debug-only "also enable watch sync for
+  testing" toggle without re-reading this: any second variant registering, even transiently, can
+  silently steal or lose the slot from whichever is currently live. A separate, official
+  Garmin-acknowledged bug
+  (`forums.garmin.com/developer/connect-iq/i/bug-reports/gcm-5-27-3-android-accepts-communications-transmit-messages-from-watch-app-but-never-delivers-them-to-the-companion-app`)
+  describes the same silent-non-delivery symptom occurring even with a single, correctly
+  registered companion app on GCM 5.27.3+ - treat the two as separate, compounding possibilities,
+  not alternatives; ruling out the multi-registration issue does not rule out this one.
+
 - **`refresh()`/`selectDevice()` share `deviceMutex` because both read-modify-write `device` and
   `knownIQDevices` on `Dispatchers.IO`, a real multi-threaded pool.** Before device selection
   existed, `refresh()` was the only mutator and ran once per `ExerciseViewModel` init, so two

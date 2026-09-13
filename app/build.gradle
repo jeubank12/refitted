@@ -73,6 +73,12 @@ android {
         // set. (debug supplies its own Debug-provider variant in src/debug/kotlin.)
         release { kotlin.srcDir 'src/appCheckProd/kotlin' }
         minifiedDebug { kotlin.srcDir 'src/appCheckProd/kotlin' }
+        // Watch sync only runs in release - see src/watchSyncDisabled's WatchServiceModule for
+        // why. Same reason as the appCheckProd split above: src/release/ is gitignored, so the
+        // real binding can't live there either - it needs its own tracked source set name.
+        release { kotlin.srcDir 'src/watchSyncEnabled/kotlin' }
+        debug { kotlin.srcDir 'src/watchSyncDisabled/kotlin' }
+        minifiedDebug { kotlin.srcDir 'src/watchSyncDisabled/kotlin' }
     }
     buildFeatures {
         dataBinding = true
