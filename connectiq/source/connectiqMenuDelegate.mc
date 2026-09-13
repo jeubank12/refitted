@@ -9,7 +9,8 @@ class connectiqMenuDelegate extends WatchUi.MenuInputDelegate {
 
     function onMenuItem(item as Symbol) as Void {
         if (item == :item_1) {
-            WatchUi.pushView(new DiagnosticsView(), new DiagnosticsDelegate(), WatchUi.SLIDE_LEFT);
+            var view = new DiagnosticsView();
+            WatchUi.pushView(view, new DiagnosticsDelegate(view), WatchUi.SLIDE_LEFT);
         }
     }
 
