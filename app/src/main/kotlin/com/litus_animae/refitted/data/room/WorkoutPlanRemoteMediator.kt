@@ -12,6 +12,7 @@ import com.litus_animae.refitted.room.entities.RoomSavedState
 import com.litus_animae.refitted.room.entities.RoomWorkoutPlan
 import com.litus_animae.refitted.util.LogUtil
 import com.litus_animae.refitted.util.SavedStateKeys
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -52,30 +53,39 @@ class WorkoutPlanRemoteMediator(
       else -> {}
     }
     log.d(TAG, "Reading plans")
-    val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
-    database.withTransaction {
-      val currentPlansByName = workoutPlanDao.getAll().map { it.toDomain() }.associateBy { it.workout }
-      workoutPlanDao.clearServerPlans()
-      val upsertPlans = plans.map { newPlan ->
-        val existingPlan = currentPlansByName[newPlan.workout] ?: return@map RoomWorkoutPlan.fromDomain(newPlan)
-        RoomWorkoutPlan.fromDomain(existingPlan.copy(
-          totalDays = newPlan.totalDays,
-          restDays = newPlan.restDays,
-          description = newPlan.description,
-          globalAlternateLabels = newPlan.globalAlternateLabels,
-          globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate,
-          kind = newPlan.kind
-        ))
-      }
-      workoutPlanDao.insertAll(upsertPlans)
-      savedStateDao.insert(
-        RoomSavedState(
-          SavedStateKeys.CacheTimeKey,
-          Instant.now().toEpochMilli().toString()
+    return try {
+      val plans: List<WorkoutPlan> = networkService.getWorkoutPlans()
+      database.withTransaction {
+        val currentPlansByName = workoutPlanDao.getAll().map { it.toDomain() }.associateBy { it.workout }
+        workoutPlanDao.clearServerPlans()
+        val upsertPlans = plans.map { newPlan ->
+          val existingPlan = currentPlansByName[newPlan.workout] ?: return@map RoomWorkoutPlan.fromDomain(newPlan)
+          RoomWorkoutPlan.fromDomain(existingPlan.copy(
+            totalDays = newPlan.totalDays,
+            restDays = newPlan.restDays,
+            description = newPlan.description,
+            globalAlternateLabels = newPlan.globalAlternateLabels,
+            globalAlternate = existingPlan.globalAlternate ?: newPlan.globalAlternate,
+            kind = newPlan.kind
+          ))
+        }
+        workoutPlanDao.insertAll(upsertPlans)
+        savedStateDao.insert(
+          RoomSavedState(
+            SavedStateKeys.CacheTimeKey,
+            Instant.now().toEpochMilli().toString()
+          )
         )
-      )
+      }
+      MediatorResult.Success(endOfPaginationReached = true)
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      // RemoteMediator.load() isn't wrapped by Paging internally - an uncaught throw here
+      // (e.g. authProvider.getIdToken() briefly returning null mid-sign-out) crashes the app.
+      log.w(TAG, "Failed to load workout plans", e)
+      MediatorResult.Error(e)
     }
-    return MediatorResult.Success(endOfPaginationReached = true)
   }
 
   companion object {

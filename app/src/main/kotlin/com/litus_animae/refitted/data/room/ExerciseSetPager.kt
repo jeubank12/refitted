@@ -16,6 +16,7 @@ import com.litus_animae.refitted.room.RefittedRoomProvider
 import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.util.LogUtil
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -51,16 +52,25 @@ class ExerciseSetPager(
         LoadType.APPEND, LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
         else -> {}
       }
-      val networkSets = networkService.getExerciseSets(dayAndWorkout)
-      log.d(TAG, "Storing to cache: $networkSets")
-      val (exercises, sets) = networkSets.map { networkSet ->
-        val roomExerciseSet = RoomExerciseSet.fromDomain(networkSet.set)
-        val roomExercise = RoomExercise.fromDomain(networkSet.exercise)
-        log.d(TAG, "Saving ${networkSet.exercise}, $roomExerciseSet")
-        Pair(roomExercise, roomExerciseSet)
-      }.unzip()
-      exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
-      return MediatorResult.Success(endOfPaginationReached = true)
+      return try {
+        val networkSets = networkService.getExerciseSets(dayAndWorkout)
+        log.d(TAG, "Storing to cache: $networkSets")
+        val (exercises, sets) = networkSets.map { networkSet ->
+          val roomExerciseSet = RoomExerciseSet.fromDomain(networkSet.set)
+          val roomExercise = RoomExercise.fromDomain(networkSet.exercise)
+          log.d(TAG, "Saving ${networkSet.exercise}, $roomExerciseSet")
+          Pair(roomExercise, roomExerciseSet)
+        }.unzip()
+        exerciseDao.storeExercisesAndSets(dayAndWorkout, exercises, sets)
+        MediatorResult.Success(endOfPaginationReached = true)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        // RemoteMediator.load() isn't wrapped by Paging internally - an uncaught throw here
+        // (e.g. authProvider.getIdToken() briefly returning null mid-sign-out) crashes the app.
+        log.w(TAG, "Failed to load exercise sets", e)
+        MediatorResult.Error(e)
+      }
     }
   }
 
