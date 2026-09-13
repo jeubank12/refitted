@@ -37,7 +37,10 @@ import kotlin.coroutines.resume
 
 /**
  * Pairing key with `connectiq/manifest.xml`'s `<iq:application id="...">`, generated once by the
- * Connect IQ project scaffold - both sides ship it hardcoded (Open Question 5, resolved).
+ * Connect IQ project scaffold - both sides ship it hardcoded (Open Question 5, resolved). Only
+ * one Android app may hold a live [ConnectIQ.registerForAppEvents] registration for this id at a
+ * time - see the "single registration per watch-app id" gotcha in `garmin/CLAUDE.md` before
+ * assuming a second installed build variant can safely register it too.
  */
 private const val REFITTED_WATCH_APP_ID = "7fb7b276-65e1-47df-a7d2-0d31553e0b4d"
 private const val TAG = "GarminWatchService"
@@ -129,11 +132,13 @@ class GarminWatchService @Inject constructor(
         // directly, and would otherwise keep targeting a stale device the UI is now showing as
         // NoDevice/Unsupported (the same device/state consistency selectDevice() below now
         // enforces on its own failure path).
+        log.w(TAG, "refresh(): ConnectIQ in an invalid state, falling back to NoDevice", e)
         device = null
         knownIQDevices = emptyList()
         _availableDevices.value = emptyList()
         _state.value = WatchState.NoDevice
       } catch (e: ServiceUnavailableException) {
+        log.w(TAG, "refresh(): Connect IQ service unavailable, falling back to Unsupported", e)
         device = null
         knownIQDevices = emptyList()
         _availableDevices.value = emptyList()
@@ -161,9 +166,11 @@ class GarminWatchService @Inject constructor(
         lastHelloAt = null
         _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
       } catch (e: InvalidStateException) {
+        log.w(TAG, "selectDevice($deviceId): ConnectIQ in an invalid state, falling back to NoDevice", e)
         device = null
         _state.value = WatchState.NoDevice
       } catch (e: ServiceUnavailableException) {
+        log.w(TAG, "selectDevice($deviceId): Connect IQ service unavailable, falling back to Unsupported", e)
         device = null
         _state.value = WatchState.Unsupported
       }
@@ -182,7 +189,9 @@ class GarminWatchService @Inject constructor(
       connectIQ.registerForAppEvents(target, watchApp) { _, _, message, status ->
         onMessageReceived(message, status)
       }
+      log.d(TAG, "registered app event listener for ${target.friendlyName}")
     } catch (e: Exception) {
+      log.e(TAG, "registerForAppEvents failed for ${target.friendlyName}", e)
       runCatching { connectIQ.unregisterForDeviceEvents(target) }
       throw e
     }
@@ -254,6 +263,12 @@ class GarminWatchService @Inject constructor(
   // A message outside an active session (stale device, ended workout) is silently dropped rather
   // than crashing.
   private fun onMessageReceived(message: List<Any>, status: ConnectIQ.IQMessageStatus) {
+    // Unconditional and first thing in the function on purpose - status/message get logged before
+    // the early-return below can silently eat a non-SUCCESS delivery, and before decode() can
+    // throw. Without this, "nothing in logcat" is indistinguishable from "this callback was never
+    // invoked at all" - the two point at completely different layers (this app's decode logic vs.
+    // Garmin Connect Mobile never relaying the message here in the first place).
+    log.d(TAG, "onMessageReceived: status=$status, message=$message")
     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
     // A watch's Communications.transmit() arrives here wrapped in an extra List layer, unlike a
     // phone's sendMessage() payload on the watch's registerForPhoneAppMessages side - confirmed
