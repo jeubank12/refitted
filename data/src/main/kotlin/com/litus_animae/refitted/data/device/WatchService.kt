@@ -1,11 +1,20 @@
 package com.litus_animae.refitted.data.device
 
 import kotlinx.coroutines.flow.StateFlow
+import java.time.Instant
 
 sealed interface WatchState {
   data object Unsupported : WatchState
   data object NoDevice : WatchState
-  data class Idle(val deviceName: String, val appInstalled: Boolean, val appOpen: Boolean) : WatchState
+
+  /** [lastHelloAt] is null until the watch's HELLO heartbeat has arrived at least once for this device. */
+  data class Idle(
+    val deviceName: String,
+    val appInstalled: Boolean,
+    val appOpen: Boolean,
+    val lastHelloAt: Instant? = null
+  ) : WatchState
+
   data class Active(val deviceName: String, val workout: String, val day: String) : WatchState
 }
 
