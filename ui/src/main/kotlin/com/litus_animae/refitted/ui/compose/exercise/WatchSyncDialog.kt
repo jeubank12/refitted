@@ -36,6 +36,10 @@ import com.litus_animae.refitted.data.device.WatchPlan
 import com.litus_animae.refitted.data.device.WatchState
 import com.litus_animae.refitted.ui.models.ExerciseViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Replaces the old single-tap "send to watch" icon action: picking a device and reviewing what's
@@ -87,8 +91,19 @@ fun WatchSyncDialog(
   }
 
   val appOpen = (watchState as? WatchState.Idle)?.appOpen == true
+  val lastHelloAt = (watchState as? WatchState.Idle)?.lastHelloAt
   val sessionActive = watchState is WatchState.Active
   val canSend = selectedDeviceId != null && appOpen && plan != null && !sessionActive
+
+  // deviceStatusLabel's "no response for Ns" wording needs to keep counting up on its own, not
+  // just when watchState changes (a stalled HELLO is exactly the case where no new state arrives).
+  var now by remember { mutableStateOf(Instant.now()) }
+  LaunchedEffect(Unit) {
+    while (isActive) {
+      delay(1_000)
+      now = Instant.now()
+    }
+  }
 
   AlertDialog(
     onDismissRequest = onDismissRequest,
@@ -111,6 +126,8 @@ fun WatchSyncDialog(
                 device = device,
                 isSelected = device.id == selectedDeviceId,
                 appOpen = appOpen,
+                lastHelloAt = lastHelloAt,
+                now = now,
                 onSelect = {
                   selectedDeviceId = device.id
                   model.selectWatchDevice(device.id)
@@ -159,6 +176,8 @@ private fun DeviceRow(
   device: WatchDevice,
   isSelected: Boolean,
   appOpen: Boolean,
+  lastHelloAt: Instant?,
+  now: Instant,
   onSelect: () -> Unit
 ) {
   Row(
@@ -172,7 +191,7 @@ private fun DeviceRow(
     Column {
       Text(device.name, style = MaterialTheme.typography.bodyLarge)
       Text(
-        deviceStatusLabel(device.status, isSelected, appOpen),
+        deviceStatusLabel(device.status, isSelected, appOpen, lastHelloAt, now),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
@@ -195,9 +214,21 @@ private fun WatchExerciseRow(exercise: WatchExercise) {
 }
 
 // TODO localize
-private fun deviceStatusLabel(status: WatchDeviceStatus, isSelected: Boolean, appOpen: Boolean): String {
+private fun deviceStatusLabel(
+  status: WatchDeviceStatus,
+  isSelected: Boolean,
+  appOpen: Boolean,
+  lastHelloAt: Instant?,
+  now: Instant
+): String {
   if (isSelected) {
-    return if (appOpen) "connected, app open" else "connected, waiting on app"
+    return when {
+      appOpen -> "connected, app open"
+      // Heard from it before and lost contact - distinct from never having heard from it at all,
+      // since the fix differs (reopen the watch app vs. check its Diagnostics screen).
+      lastHelloAt != null -> "connected, no response for ${Duration.between(lastHelloAt, now).seconds}s"
+      else -> "connected, waiting on app"
+    }
   }
   return when (status) {
     WatchDeviceStatus.CONNECTED -> "connected"
