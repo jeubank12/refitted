@@ -22,6 +22,15 @@ class connectiqApp extends Application.AppBase {
     private var activeSession as ActivityRecording.Session?;
     private var helloTimer as Timer.Timer?;
 
+    // HELLO diagnostics, surfaced by DiagnosticsView - tracked here rather than on the view itself
+    // since HelloTransmitListener's result can land while a different screen (or none) is on top.
+    private var helloAttempts as Number = 0;
+    private var helloSuccesses as Number = 0;
+    private var helloErrors as Number = 0;
+    private var lastHelloAttemptMs as Number?;
+    private var lastHelloResult as Symbol?; // :success or :error, null before any result lands
+    private var lastHelloResultMs as Number?;
+
     function initialize() {
         AppBase.initialize();
         activeSession = null;
@@ -54,12 +63,39 @@ class connectiqApp extends Application.AppBase {
     }
 
     function sendHello() as Void {
+        helloAttempts += 1;
+        lastHelloAttemptMs = System.getTimer();
         Communications.transmit(
             WatchProtocol.encodeHello(WATCH_APP_VERSION, WatchProtocol.PROTOCOL_VERSION),
             {},
             new HelloTransmitListener()
         );
+        // Redraws whichever view is on top - harmless if that's not DiagnosticsView (see
+        // ActiveWorkout.mc's identical use of a from-anywhere requestUpdate()).
+        WatchUi.requestUpdate();
     }
+
+    // Called by HelloTransmitListener once the SDK reports the transmit's outcome - a
+    // ConnectionListener has no reference back to whichever screen is on top, so route the result
+    // through this singleton instead of trying to reach DiagnosticsView directly.
+    function recordHelloResult(success as Boolean) as Void {
+        lastHelloResultMs = System.getTimer();
+        if (success) {
+            helloSuccesses += 1;
+            lastHelloResult = :success;
+        } else {
+            helloErrors += 1;
+            lastHelloResult = :error;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function getHelloAttempts() as Number { return helloAttempts; }
+    function getHelloSuccesses() as Number { return helloSuccesses; }
+    function getHelloErrors() as Number { return helloErrors; }
+    function getLastHelloAttemptMs() as Number? { return lastHelloAttemptMs; }
+    function getLastHelloResult() as Symbol? { return lastHelloResult; }
+    function getLastHelloResultMs() as Number? { return lastHelloResultMs; }
 
     function setActiveSession(session as ActivityRecording.Session) as Void {
         activeSession = session;
@@ -104,7 +140,8 @@ function getApp() as connectiqApp {
 
 // transmit() takes a ConnectionListener instance, not a Method reference (see
 // PendingSetBuffer.mc's PendingBufferTransmitListener for the same pattern). A dropped HELLO just
-// means the phone's next heartbeat window catches up - nothing to retry here.
+// means the phone's next heartbeat window catches up - nothing to retry here beyond recording the
+// result for DiagnosticsView.
 class HelloTransmitListener extends Communications.ConnectionListener {
 
     function initialize() {
@@ -112,9 +149,11 @@ class HelloTransmitListener extends Communications.ConnectionListener {
     }
 
     function onComplete() as Void {
+        getApp().recordHelloResult(true);
     }
 
     function onError() as Void {
+        getApp().recordHelloResult(false);
     }
 
 }

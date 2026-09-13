@@ -1,5 +1,4 @@
 import Toybox.Lang;
-import Toybox.System;
 import Toybox.WatchUi;
 
 class connectiqMenuDelegate extends WatchUi.MenuInputDelegate {
@@ -10,9 +9,7 @@ class connectiqMenuDelegate extends WatchUi.MenuInputDelegate {
 
     function onMenuItem(item as Symbol) as Void {
         if (item == :item_1) {
-            System.println("item 1");
-        } else if (item == :item_2) {
-            System.println("item 2");
+            WatchUi.pushView(new DiagnosticsView(), new DiagnosticsDelegate(), WatchUi.SLIDE_LEFT);
         }
     }
 
