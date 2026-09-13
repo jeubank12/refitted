@@ -18,11 +18,43 @@ See `PLAN-garmin.md` at the repo root for the full architecture, wire protocol, 
 - `ActiveWorkout.mc` - the in-workout screen and its `InputDelegate` (button handling - see Gotchas)
 - `SetAdjustPicker.mc` - the reps/weight adjust `Picker` shown before a set counts as complete
 - `ExitConfirmMenu.mc` - Save/Discard `Menu2`, shown on exit mid-workout
+- `DiagnosticsView.mc` - HELLO pairing diagnostics (attempt/success/error counts, time since last
+  attempt/result), reachable from the idle screen's menu (`onMenu` -> `MainMenu` -> "Diagnostics").
+  `DiagnosticsDelegate.onSelect` forces an immediate HELLO resend rather than waiting for the next
+  `HELLO_INTERVAL_MS` tick; `onNextPage`/`onPreviousPage` (up/down buttons) scroll the content by
+  one line on the rare device/content combination where it doesn't fit - see the round-bezel and
+  TextWrap gotchas below
 - `TextWrap.mc` - shared word-wrap helper (no layout `<label>` or SDK API wraps text on its own);
   used by both `connectiqView.mc`'s idle prompt and `ActiveWorkout.mc`'s exercise name
 - `WatchProtocol.mc` - wire format encode/decode, mirrors `data/.../device/WatchProtocol.kt` exactly
 
 ## Gotchas
+
+- **On a round device (`screenShape == SCREEN_SHAPE_ROUND`, true for both this app's targets), the
+  usable width at a given row shrinks to 0 as that row approaches y=0 or y=height - it's a circle,
+  not a rectangle - so text anchored near either edge gets clipped by the bezel even though it's
+  well within `Dc`'s rectangular coordinate bounds.** A row drawn at literally `dc.getHeight() -
+  lineHeight` (the obvious way to pin something to "the bottom") is almost always inside that
+  clipped band once the row is more than a couple of characters wide - this is what made
+  `DiagnosticsView`'s footer instructions read as "falls off the bottom of the screen" on real
+  hardware, not an actual vertical overflow. Fix by inset, not by moving text to y=0: pick the
+  widest string the screen will draw, and solve the circle-chord equation for how much vertical
+  margin makes that width fit (`radius - sqrt(radius² - (width/2)²)`) - see
+  `DiagnosticsView.onUpdate`'s `verticalMargin` for a worked example. Skip the inset entirely on a
+  rectangular `screenShape` - it doesn't need it and margin math for a shape it isn't would just
+  waste vertical space.
+
+- **`TextWrap.wrapText` only wraps horizontally - it has no idea how tall the screen is, so a
+  manually-drawn screen with variable-length or unbounded content (an error count, a device name,
+  anything that can grow) can still, separately from the round-bezel margin above, produce more
+  wrapped lines than fit in the vertical space that margin leaves.** There's no SDK-provided
+  scrollable text view for manually-drawn content, so a screen with genuinely unbounded content
+  needs its own vertical clamp/scroll on top of `TextWrap`'s horizontal one. `DiagnosticsView.mc` is
+  the reference implementation: it clips the content region with `Dc.setClip` above the (inset)
+  footer line, and `DiagnosticsDelegate`'s `onNextPage`/`onPreviousPage` (up/down buttons) adjust a
+  line-based scroll offset and call `WatchUi.requestUpdate()` - note that's the *module-level*
+  `WatchUi.requestUpdate()`, not a method on `View` (an easy guess to get wrong, since
+  `View.onUpdate` reads like the counterpart).
 
 - **Physical button → `KEY_*` mapping is per-device, and the SDK's `WatchUi.KEY_*` enum existing
   does not mean a given device delivers it.** `WatchUi.BehaviorDelegate` collapses buttons into

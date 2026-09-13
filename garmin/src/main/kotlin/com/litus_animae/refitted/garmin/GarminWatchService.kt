@@ -37,7 +37,10 @@ import kotlin.coroutines.resume
 
 /**
  * Pairing key with `connectiq/manifest.xml`'s `<iq:application id="...">`, generated once by the
- * Connect IQ project scaffold - both sides ship it hardcoded (Open Question 5, resolved).
+ * Connect IQ project scaffold - both sides ship it hardcoded (Open Question 5, resolved). Only
+ * one Android app may hold a live [ConnectIQ.registerForAppEvents] registration for this id at a
+ * time - see the "single registration per watch-app id" gotcha in `garmin/CLAUDE.md` before
+ * assuming a second installed build variant can safely register it too.
  */
 private const val REFITTED_WATCH_APP_ID = "7fb7b276-65e1-47df-a7d2-0d31553e0b4d"
 private const val TAG = "GarminWatchService"
@@ -114,6 +117,10 @@ class GarminWatchService @Inject constructor(
         val knownDevice = allKnownDevices.firstOrNull()
         unregisterDeviceListeners(connectIQ)
         device = knownDevice
+        // Reaching here means this isn't just re-confirming the same previously selected device
+        // (see the early return above) - whatever lastHelloAt was tracking may belong to a
+        // different physical device, so don't carry a stale "last seen" reading over to this one.
+        lastHelloAt = null
         _state.value = if (knownDevice == null) {
           WatchState.NoDevice
         } else {
@@ -125,11 +132,13 @@ class GarminWatchService @Inject constructor(
         // directly, and would otherwise keep targeting a stale device the UI is now showing as
         // NoDevice/Unsupported (the same device/state consistency selectDevice() below now
         // enforces on its own failure path).
+        log.w(TAG, "refresh(): ConnectIQ in an invalid state, falling back to NoDevice", e)
         device = null
         knownIQDevices = emptyList()
         _availableDevices.value = emptyList()
         _state.value = WatchState.NoDevice
       } catch (e: ServiceUnavailableException) {
+        log.w(TAG, "refresh(): Connect IQ service unavailable, falling back to Unsupported", e)
         device = null
         knownIQDevices = emptyList()
         _availableDevices.value = emptyList()
@@ -151,11 +160,17 @@ class GarminWatchService @Inject constructor(
       try {
         registerDeviceListeners(connectIQ, target)
         device = target
+        // A switch to a different physical device hasn't heard from it yet - carrying over the
+        // previous device's lastHelloAt would show a stale "last seen Ns ago" for a device that's
+        // never actually said hello.
+        lastHelloAt = null
         _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
       } catch (e: InvalidStateException) {
+        log.w(TAG, "selectDevice($deviceId): ConnectIQ in an invalid state, falling back to NoDevice", e)
         device = null
         _state.value = WatchState.NoDevice
       } catch (e: ServiceUnavailableException) {
+        log.w(TAG, "selectDevice($deviceId): Connect IQ service unavailable, falling back to Unsupported", e)
         device = null
         _state.value = WatchState.Unsupported
       }
@@ -174,7 +189,9 @@ class GarminWatchService @Inject constructor(
       connectIQ.registerForAppEvents(target, watchApp) { _, _, message, status ->
         onMessageReceived(message, status)
       }
+      log.d(TAG, "registered app event listener for ${target.friendlyName}")
     } catch (e: Exception) {
+      log.e(TAG, "registerForAppEvents failed for ${target.friendlyName}", e)
       runCatching { connectIQ.unregisterForDeviceEvents(target) }
       throw e
     }
@@ -202,8 +219,9 @@ class GarminWatchService @Inject constructor(
   override suspend fun endSession() {
     val targetDevice = device ?: return
     runCatching { sendMessage(targetDevice, WatchProtocol.encodeEnd()) }
+      .onFailure { log.e(TAG, "failed to send END to watch", it) }
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true, lastHelloAt = lastHelloAt)
   }
 
   // GarminConnection.initialize() is async - onSdkReady() can land well after this service is
@@ -245,6 +263,12 @@ class GarminWatchService @Inject constructor(
   // A message outside an active session (stale device, ended workout) is silently dropped rather
   // than crashing.
   private fun onMessageReceived(message: List<Any>, status: ConnectIQ.IQMessageStatus) {
+    // Unconditional and first thing in the function on purpose - status/message get logged before
+    // the early-return below can silently eat a non-SUCCESS delivery, and before decode() can
+    // throw. Without this, "nothing in logcat" is indistinguishable from "this callback was never
+    // invoked at all" - the two point at completely different layers (this app's decode logic vs.
+    // Garmin Connect Mobile never relaying the message here in the first place).
+    log.d(TAG, "onMessageReceived: status=$status, message=$message")
     if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
     // A watch's Communications.transmit() arrives here wrapped in an extra List layer, unlike a
     // phone's sendMessage() payload on the watch's registerForPhoneAppMessages side - confirmed
@@ -258,8 +282,8 @@ class GarminWatchService @Inject constructor(
         is WatchProtocol.Hello -> {
           lastHelloAt = Instant.now()
           val currentState = _state.value
-          if (currentState is WatchState.Idle && !currentState.appOpen) {
-            _state.value = currentState.copy(appOpen = true)
+          if (currentState is WatchState.Idle) {
+            _state.value = currentState.copy(appOpen = true, lastHelloAt = lastHelloAt)
           }
           log.d(TAG, "watch hello: app v${envelope.watchAppVersion}, max protocol v${envelope.maxProtocolVersion}")
         }
@@ -299,6 +323,7 @@ class GarminWatchService @Inject constructor(
   private suspend fun sendAck(highestSeqPersisted: Int) {
     val targetDevice = device ?: return
     runCatching { sendMessage(targetDevice, WatchProtocol.encodeAck(highestSeqPersisted)) }
+      .onFailure { log.e(TAG, "failed to send ACK($highestSeqPersisted) to watch", it) }
   }
 
   // The watch sends this once, right before exiting, whether the user saved or discarded from
@@ -308,7 +333,7 @@ class GarminWatchService @Inject constructor(
     val targetDevice = device ?: return
     session = null
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true, lastHelloAt = lastHelloAt)
   }
 
   // The watch's HELLO heartbeat (connectiqApp.mc, ~10s while foreground) is the only signal the
@@ -325,6 +350,7 @@ class GarminWatchService @Inject constructor(
         if (currentState !is WatchState.Idle || !currentState.appOpen) continue
         val lastHello = lastHelloAt
         if (lastHello == null || Duration.between(lastHello, Instant.now()) > HELLO_TIMEOUT) {
+          log.w(TAG, "no HELLO from watch within $HELLO_TIMEOUT, marking app closed")
           _state.value = currentState.copy(appOpen = false)
         }
       }
