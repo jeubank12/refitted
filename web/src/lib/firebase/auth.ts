@@ -14,6 +14,7 @@ import { getToken } from 'firebase/app-check'
 
 import { app, useAppCheck } from './firebaseApp'
 import { login, logout } from 'src/lib/firebase/actions/auth'
+import { ADMIN_BASE_PATH } from '../adminPath'
 
 const provider = new GoogleAuthProvider()
 
@@ -102,7 +103,7 @@ export const useLogin = () => {
             // Navigate explicitly rather than relying on login() to redirect —
             // a redirect() thrown from a directly-invoked (non-<form>) action
             // isn't reliably picked up by the router in this Next version.
-            router.push('/admin/users')
+            router.push(`${ADMIN_BASE_PATH}/users`)
           } catch (err) {
             // Full detail to the console for debugging; only a generic,
             // mechanism-agnostic message goes to setError for display.
@@ -142,8 +143,8 @@ export const useUserSession = () => {
     await logout()
     await auth.authStateReady()
     await auth.signOut()
-    console.debug('Logged out, redirecting to /admin')
-    router.push('/admin')
+    console.debug(`Logged out, redirecting to ${ADMIN_BASE_PATH}`)
+    router.push(ADMIN_BASE_PATH)
   }, [router])
 
   return { logout: doLogout, firebaseUser }
