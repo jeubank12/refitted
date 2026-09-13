@@ -121,6 +121,27 @@
   margin-left: 0.5rem;
 }
 
+.emailRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.emailLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.emailInput {
+  min-width: 220px;
+  padding: 0.4rem 0.6rem;
+  font-size: 1rem;
+}
+
 @media (max-width: 600px) {
   .grid {
     width: 100%;
