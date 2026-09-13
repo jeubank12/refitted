@@ -114,6 +114,10 @@ class GarminWatchService @Inject constructor(
         val knownDevice = allKnownDevices.firstOrNull()
         unregisterDeviceListeners(connectIQ)
         device = knownDevice
+        // Reaching here means this isn't just re-confirming the same previously selected device
+        // (see the early return above) - whatever lastHelloAt was tracking may belong to a
+        // different physical device, so don't carry a stale "last seen" reading over to this one.
+        lastHelloAt = null
         _state.value = if (knownDevice == null) {
           WatchState.NoDevice
         } else {
@@ -151,6 +155,10 @@ class GarminWatchService @Inject constructor(
       try {
         registerDeviceListeners(connectIQ, target)
         device = target
+        // A switch to a different physical device hasn't heard from it yet - carrying over the
+        // previous device's lastHelloAt would show a stale "last seen Ns ago" for a device that's
+        // never actually said hello.
+        lastHelloAt = null
         _state.value = WatchState.Idle(target.friendlyName, appInstalled = true, appOpen = false)
       } catch (e: InvalidStateException) {
         device = null
@@ -202,8 +210,9 @@ class GarminWatchService @Inject constructor(
   override suspend fun endSession() {
     val targetDevice = device ?: return
     runCatching { sendMessage(targetDevice, WatchProtocol.encodeEnd()) }
+      .onFailure { log.e(TAG, "failed to send END to watch", it) }
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true, lastHelloAt = lastHelloAt)
   }
 
   // GarminConnection.initialize() is async - onSdkReady() can land well after this service is
@@ -258,8 +267,8 @@ class GarminWatchService @Inject constructor(
         is WatchProtocol.Hello -> {
           lastHelloAt = Instant.now()
           val currentState = _state.value
-          if (currentState is WatchState.Idle && !currentState.appOpen) {
-            _state.value = currentState.copy(appOpen = true)
+          if (currentState is WatchState.Idle) {
+            _state.value = currentState.copy(appOpen = true, lastHelloAt = lastHelloAt)
           }
           log.d(TAG, "watch hello: app v${envelope.watchAppVersion}, max protocol v${envelope.maxProtocolVersion}")
         }
@@ -299,6 +308,7 @@ class GarminWatchService @Inject constructor(
   private suspend fun sendAck(highestSeqPersisted: Int) {
     val targetDevice = device ?: return
     runCatching { sendMessage(targetDevice, WatchProtocol.encodeAck(highestSeqPersisted)) }
+      .onFailure { log.e(TAG, "failed to send ACK($highestSeqPersisted) to watch", it) }
   }
 
   // The watch sends this once, right before exiting, whether the user saved or discarded from
@@ -308,7 +318,7 @@ class GarminWatchService @Inject constructor(
     val targetDevice = device ?: return
     session = null
     connection.sessionActive = false
-    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true)
+    _state.value = WatchState.Idle(targetDevice.friendlyName, appInstalled = true, appOpen = true, lastHelloAt = lastHelloAt)
   }
 
   // The watch's HELLO heartbeat (connectiqApp.mc, ~10s while foreground) is the only signal the
@@ -325,6 +335,7 @@ class GarminWatchService @Inject constructor(
         if (currentState !is WatchState.Idle || !currentState.appOpen) continue
         val lastHello = lastHelloAt
         if (lastHello == null || Duration.between(lastHello, Instant.now()) > HELLO_TIMEOUT) {
+          log.w(TAG, "no HELLO from watch within $HELLO_TIMEOUT, marking app closed")
           _state.value = currentState.copy(appOpen = false)
         }
       }

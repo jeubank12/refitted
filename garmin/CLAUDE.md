@@ -99,7 +99,12 @@ service; this module never touches `BluetoothAdapter` directly.
   within `HELLO_TIMEOUT`. There is no explicit watch->phone "goodbye" message on close - a reliable
   transmit from a tearing-down `onStop` isn't guaranteed, so staleness timeout is the only signal,
   which means `appOpen` can lag reality by up to `HELLO_TIMEOUT` after the watch app actually
-  closes.
+  closes. `lastHelloAt` is also threaded through to `WatchState.Idle` itself (not just the private
+  field) so `:ui` can render "no response for Ns" instead of a flat "waiting on app" once contact
+  is lost - every site that reassigns `device` to a *different* physical device (the `refresh()`
+  branch past the early-return, and `selectDevice()`) resets it to `null` first, since a stale
+  timestamp from the previous device would otherwise look like a fresh heartbeat from one that's
+  never actually said hello.
 
 - **A watch's `Communications.transmit()` arrives wrapped in an extra `List` layer.** Confirmed
   on-device (crash log: `message[0] as Number` threw `ClassCastException: ArrayList cannot be cast

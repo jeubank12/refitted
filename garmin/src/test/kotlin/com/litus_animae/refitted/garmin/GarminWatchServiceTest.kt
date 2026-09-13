@@ -167,7 +167,9 @@ class GarminWatchServiceTest {
       val freshService = GarminWatchService(connection, setRecordSink, log)
       freshService.refresh()
 
-      assertThat((freshService.state.value as WatchState.Idle).appOpen).isFalse()
+      val idleBeforeHello = freshService.state.value as WatchState.Idle
+      assertThat(idleBeforeHello.appOpen).isFalse()
+      assertThat(idleBeforeHello.lastHelloAt).isNull()
 
       // No phone-side encodeHello exists - only the watch ever sends one (see TYPE_BUFFER's
       // comment above) - so hand-build the raw envelope the same way.
@@ -179,7 +181,9 @@ class GarminWatchServiceTest {
         ConnectIQ.IQMessageStatus.SUCCESS
       )
 
-      assertThat((freshService.state.value as WatchState.Idle).appOpen).isTrue()
+      val idleAfterHello = freshService.state.value as WatchState.Idle
+      assertThat(idleAfterHello.appOpen).isTrue()
+      assertThat(idleAfterHello.lastHelloAt).isNotNull()
     }
   }
 
