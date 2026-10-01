@@ -167,6 +167,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
             exerciseDao.renameExerciseWorkout(oldName, newName)
             exerciseDao.renameExerciseSetWorkout(oldName, newName)
             exerciseDao.renameSetRecordWorkout(oldName, newName)
+            exerciseDao.renameDayCompletionWorkout(oldName, newName)
             Result.success(Unit)
         }
     }
@@ -176,6 +177,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         database.withTransaction {
             exerciseDao.deleteExerciseSetsForWorkout(name)
             exerciseDao.deleteSetRecordsForWorkout(name)
+            exerciseDao.deleteDayCompletionsForWorkout(name)
             exerciseDao.deleteExercisesForWorkout(name)
             workoutPlanDao.deletePlan(name)
         }

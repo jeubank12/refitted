@@ -367,6 +367,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
       coEvery { exerciseDao.renameExerciseWorkout(workoutName, newName) } returns Unit
       coEvery { exerciseDao.renameExerciseSetWorkout(workoutName, newName) } returns Unit
       coEvery { exerciseDao.renameSetRecordWorkout(workoutName, newName) } returns Unit
+      coEvery { exerciseDao.renameDayCompletionWorkout(workoutName, newName) } returns Unit
 
       // When
       val result = subject.renameCustomPlan(workoutName, newName)
@@ -377,6 +378,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
       coVerify { exerciseDao.renameExerciseWorkout(workoutName, newName) }
       coVerify { exerciseDao.renameExerciseSetWorkout(workoutName, newName) }
       coVerify { exerciseDao.renameSetRecordWorkout(workoutName, newName) }
+      coVerify { exerciseDao.renameDayCompletionWorkout(workoutName, newName) }
     }
 
     @Test
@@ -400,10 +402,11 @@ class RoomCacheWorkoutPlanRepositoryTest {
   @DisplayName("deleteCustomPlan")
   inner class DeleteCustomPlan {
     @Test
-    fun `deletes exercise sets, set records, exercises, and the plan row, in that order`() = runTest {
+    fun `deletes exercise sets, set records, day completions, exercises, and the plan row, in that order`() = runTest {
       // Given
       coEvery { exerciseDao.deleteExerciseSetsForWorkout(workoutName) } returns Unit
       coEvery { exerciseDao.deleteSetRecordsForWorkout(workoutName) } returns Unit
+      coEvery { exerciseDao.deleteDayCompletionsForWorkout(workoutName) } returns Unit
       coEvery { exerciseDao.deleteExercisesForWorkout(workoutName) } returns Unit
       coEvery { workoutPlanDao.deletePlan(workoutName) } returns Unit
 
@@ -414,6 +417,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
       coVerifyOrder {
         exerciseDao.deleteExerciseSetsForWorkout(workoutName)
         exerciseDao.deleteSetRecordsForWorkout(workoutName)
+        exerciseDao.deleteDayCompletionsForWorkout(workoutName)
         exerciseDao.deleteExercisesForWorkout(workoutName)
         workoutPlanDao.deletePlan(workoutName)
       }
