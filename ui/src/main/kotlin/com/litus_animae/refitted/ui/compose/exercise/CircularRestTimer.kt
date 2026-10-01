@@ -181,20 +181,12 @@ fun CircularRestTimer(
   val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
 
   val arcColor by animateColorAsState(
-    targetValue = when {
-      isFinishFlashing -> successColor
-      isAlmostDone -> amberColor
-      else -> primaryColor
-    },
+    targetValue = if (isAlmostDone) amberColor else primaryColor,
     animationSpec = tween(400),
     label = "restArcColor"
   )
   val countdownTextColor by animateColorAsState(
-    targetValue = when {
-      isFinishFlashing -> successColor
-      isAlmostDone -> amberColor
-      else -> MaterialTheme.colorScheme.onSurface
-    },
+    targetValue = if (isAlmostDone) amberColor else MaterialTheme.colorScheme.onSurface,
     animationSpec = tween(400),
     label = "restTextColor"
   )
@@ -238,7 +230,7 @@ fun CircularRestTimer(
           }
           if (sweep != 0f) {
             drawArc(
-              color = arcColor,
+              color = if (isFinishFlashing) successColor else arcColor,
               startAngle = -90f,
               sweepAngle = sweep,
               useCenter = false,
@@ -255,7 +247,7 @@ fun CircularRestTimer(
             Text(
               "${remainingSeconds}s",
               style = MaterialTheme.typography.headlineMedium,
-              color = countdownTextColor
+              color = if (isFinishFlashing) successColor else countdownTextColor
             )
           } else {
             Text(
