@@ -68,6 +68,8 @@ fun WorkoutDetailPane(
   copyMode: Boolean,
   onCopyModeChange: (Boolean) -> Unit,
   onCopyFromDay: (day: Int) -> Unit,
+  deleteMode: Boolean,
+  onDeleteModeChange: (Boolean) -> Unit,
   showMenuButton: Boolean,
   // True when shown alongside WorkoutPlanListPane AND height is constrained (landscape) - the
   // calendar's legend and "hide rest days" toggle move into a vertical sidebar instead of
@@ -221,7 +223,7 @@ fun WorkoutDetailPane(
     floatingActionButton = {
       // Hidden mid-copy - the grid itself is the picker while copyMode is active, and the FAB's
       // own add-menu (new day / copy from… / rest day) would just be a distraction on top of it.
-      if (selectedWorkoutPlan?.isCustom == true && editMode && !copyMode) {
+      if (selectedWorkoutPlan?.isCustom == true && editMode && !copyMode && !deleteMode) {
         // FAB + its menu need to share one layout node in this slot - as two loose siblings,
         // Scaffold measured the slot's width from both and threw the FAB's End position off,
         // rendering it on the left.
@@ -251,6 +253,19 @@ fun WorkoutDetailPane(
                   .clickable {
                     showAddMenu = false
                     onCopyModeChange(true)
+                  }
+                  .padding(start = 5.dp, end = 15.dp)
+                  .padding(vertical = 5.dp))
+            }
+            if (selectedWorkoutPlan.totalDays > 0) {
+              Text(
+                // TODO localize
+                "Delete days…",
+                Modifier
+                  .fillMaxWidth()
+                  .clickable {
+                    showAddMenu = false
+                    onDeleteModeChange(true)
                   }
                   .padding(start = 5.dp, end = 15.dp)
                   .padding(vertical = 5.dp))
@@ -307,7 +322,10 @@ fun WorkoutDetailPane(
         },
         copyMode = copyMode,
         onCancelCopy = { onCopyModeChange(false) },
-        onCopyFromDay = onCopyFromDay
+        onCopyFromDay = onCopyFromDay,
+        deleteMode = deleteMode,
+        onCancelDelete = { onDeleteModeChange(false) },
+        onDeleteDays = { days -> workoutModel.deleteDays(selectedWorkoutPlan, days) }
       ) {
         navigateToWorkoutDay(selectedWorkoutPlan, it, false)
         workoutModel.setLastViewedDay(selectedWorkoutPlan, it)

@@ -334,6 +334,14 @@ class WorkoutViewModel @Inject constructor(
     }
   }
 
+  fun deleteDays(workout: WorkoutPlan, days: Set<Int>) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Deleting days $days of custom plan ${workout.workout}")
+      workoutPlanRepo.deleteCustomDays(workout, days)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
   fun setDayRest(workout: WorkoutPlan, day: Int, isRest: Boolean) {
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Setting day $day rest=$isRest for custom plan ${workout.workout}")
