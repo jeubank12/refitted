@@ -51,6 +51,13 @@ interface WorkoutPlanRepository {
   suspend fun clearCustomDay(workoutPlan: WorkoutPlan, day: Int)
 
   /**
+   * Removes [days] from a custom plan and renumbers the days after them to close the gaps. Only
+   * the plan's exercise sets move - set records are left as they were, so the plan's completion
+   * is reset (start date back to unaligned, like a workout reset) rather than mis-attributed.
+   */
+  suspend fun deleteCustomDays(workoutPlan: WorkoutPlan, days: Set<Int>)
+
+  /**
    * Marks or unmarks [day] of a custom plan as a rest day. Marking a day as rest also clears its
    * exercises.
    */

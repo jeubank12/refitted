@@ -209,6 +209,117 @@ class RoomCacheWorkoutPlanRepositoryTest {
   }
 
   @Nested
+  @DisplayName("deleteCustomDays")
+  inner class DeleteCustomDays {
+    private val aligned = Instant.ofEpochMilli(1_000_000)
+
+    @BeforeEach
+    fun stubDao() {
+      coEvery { exerciseDao.clearDay(any(), any()) } returns Unit
+      coEvery { exerciseDao.moveDay(any(), any(), any()) } returns Unit
+    }
+
+    @Test
+    fun `clears the deleted days and renumbers the later ones in ascending order`() = runTest {
+      // Given
+      val existingPlan = RoomWorkoutPlan(
+        workout = workoutName, totalDays = 6, isCustom = true, workoutStartDate = aligned
+      )
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.deleteCustomDays(existingPlan.toDomain(), setOf(2, 5))
+
+      // Then - survivors 1,3,4,6 become 1,2,3,4
+      coVerify { exerciseDao.clearDay("2", workoutName) }
+      coVerify { exerciseDao.clearDay("5", workoutName) }
+      coVerifyOrder {
+        exerciseDao.moveDay(workoutName, "3", "2")
+        exerciseDao.moveDay(workoutName, "4", "3")
+        exerciseDao.moveDay(workoutName, "6", "4")
+      }
+      coVerify(exactly = 3) { exerciseDao.moveDay(any(), any(), any()) }
+    }
+
+    @Test
+    fun `shrinks totalDays, shifts restDays and lastViewedDay, and resets the start date`() = runTest {
+      // Given
+      val existingPlan = RoomWorkoutPlan(
+        workout = workoutName,
+        totalDays = 6,
+        isCustom = true,
+        restDays = listOf(2, 4, 6),
+        lastViewedDay = 6,
+        workoutStartDate = aligned
+      )
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.deleteCustomDays(existingPlan.toDomain(), setOf(2, 5))
+
+      // Then - rest day 2 was deleted; 4 and 6 are now 3 and 4
+      coVerify {
+        workoutPlanDao.update(
+          existingPlan.copy(
+            totalDays = 4,
+            restDays = listOf(3, 4),
+            lastViewedDay = 4,
+            workoutStartDate = Instant.ofEpochMilli(0)
+          )
+        )
+      }
+    }
+
+    @Test
+    fun `never touches set records`() = runTest {
+      // Given
+      val existingPlan = RoomWorkoutPlan(workout = workoutName, totalDays = 3, isCustom = true)
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.deleteCustomDays(existingPlan.toDomain(), setOf(1))
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.deleteSetRecordsForWorkout(any()) }
+      coVerify(exactly = 0) { exerciseDao.renameSetRecordWorkout(any(), any()) }
+    }
+
+    @Test
+    fun `deleting every day leaves an empty plan with lastViewedDay at 1`() = runTest {
+      // Given
+      val existingPlan = RoomWorkoutPlan(
+        workout = workoutName, totalDays = 2, isCustom = true, lastViewedDay = 2
+      )
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.deleteCustomDays(existingPlan.toDomain(), setOf(1, 2))
+
+      // Then
+      coVerify(exactly = 0) { exerciseDao.moveDay(any(), any(), any()) }
+      coVerify {
+        workoutPlanDao.update(
+          existingPlan.copy(
+            totalDays = 0,
+            lastViewedDay = 1,
+            workoutStartDate = Instant.ofEpochMilli(0)
+          )
+        )
+      }
+    }
+
+    @Test
+    fun `is a no-op for an empty selection`() = runTest {
+      // When
+      subject.deleteCustomDays(WorkoutPlan(workoutName, totalDays = 3, isCustom = true), emptySet())
+
+      // Then
+      coVerify(exactly = 0) { workoutPlanDao.update(any()) }
+      coVerify(exactly = 0) { exerciseDao.clearDay(any(), any()) }
+    }
+  }
+
+  @Nested
   @DisplayName("setCustomDayRest")
   inner class SetCustomDayRest {
     @Test

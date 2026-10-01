@@ -109,6 +109,37 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
         database.getExerciseDao().clearDay(day.toString(), workoutPlan.workout)
     }
 
+    override suspend fun deleteCustomDays(workoutPlan: WorkoutPlan, days: Set<Int>) {
+        if (days.isEmpty()) return
+        val exerciseDao = database.getExerciseDao()
+        val workout = workoutPlan.workout
+        database.withTransaction {
+            val currentPlan = workoutPlanDao.getByName(workout)
+                ?: RoomWorkoutPlan.fromDomain(workoutPlan)
+            val survivors = (1..currentPlan.totalDays).filterNot { it in days }
+
+            days.forEach { exerciseDao.clearDay(it.toString(), workout) }
+            // Ascending, so each move lands on a day number that is already free - day is part
+            // of the primary key.
+            survivors.forEachIndexed { index, oldDay ->
+                val newDay = index + 1
+                if (newDay != oldDay) exerciseDao.moveDay(workout, oldDay.toString(), newDay.toString())
+            }
+
+            val lastViewed = currentPlan.lastViewedDay - days.count { it < currentPlan.lastViewedDay }
+            workoutPlanDao.update(
+                currentPlan.copy(
+                    totalDays = survivors.size,
+                    restDays = survivors.withIndex()
+                        .filter { it.value in currentPlan.restDays }
+                        .map { it.index + 1 },
+                    lastViewedDay = lastViewed.coerceIn(1, maxOf(1, survivors.size)),
+                    workoutStartDate = Instant.ofEpochMilli(0)
+                )
+            )
+        }
+    }
+
     override suspend fun setCustomDayRest(workoutPlan: WorkoutPlan, day: Int, isRest: Boolean) {
         val currentPlan = workoutPlanDao.getByName(workoutPlan.workout)
             ?: RoomWorkoutPlan.fromDomain(workoutPlan)
