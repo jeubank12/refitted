@@ -53,6 +53,9 @@ interface ExerciseDao {
   @Query("delete from exerciseset where day = :day and workout = :workout")
   suspend fun clearDay(day: String, workout: String)
 
+  @Query("update exerciseset set day = :newDay where day = :oldDay and workout = :workout")
+  suspend fun moveDay(workout: String, oldDay: String, newDay: String)
+
   /**
    * Deletes a single exercise set. Leaves gaps in [RoomExerciseSet.primaryStep] rather than
    * renumbering every other step on the day.
