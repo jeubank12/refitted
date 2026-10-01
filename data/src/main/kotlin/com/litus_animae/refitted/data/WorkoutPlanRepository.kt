@@ -19,6 +19,13 @@ interface WorkoutPlanRepository {
    * to order/section that list by [WorkoutPlan.kind].
    */
   val accessibleWorkouts: Flow<List<WorkoutPlan>>
+
+  /**
+   * When each day of [workout] was last completed, by day number - days never completed are
+   * absent. Whether a completion still counts for the plan is up to the plan's start date.
+   */
+  fun completedDays(workout: String): Flow<Map<Int, Instant>>
+
   suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
   suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
   suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)

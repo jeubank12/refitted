@@ -48,6 +48,11 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
     override val accessibleWorkouts: Flow<List<WorkoutPlan>> =
         workoutPlanDao.getServerPlans().map { plans -> plans.map { it.toDomain() } }
 
+    override fun completedDays(workout: String): Flow<Map<Int, Instant>> =
+        database.getExerciseDao().getDayCompletions(workout).map { completions ->
+            completions.associate { it.day to it.completed }
+        }
+
     override suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int) {
         return workoutPlanDao.update(RoomWorkoutPlan.fromDomain(workoutPlan.copy(lastViewedDay = day)))
     }

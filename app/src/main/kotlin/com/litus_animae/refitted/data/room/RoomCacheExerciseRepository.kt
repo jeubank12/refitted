@@ -13,7 +13,6 @@ import com.litus_animae.refitted.data.device.SetRecordSink
 import com.litus_animae.refitted.data.network.ExerciseSetNetworkService
 import com.litus_animae.refitted.data.models.DayAndWorkout
 import com.litus_animae.refitted.data.models.Exercise
-import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.MuscleGroup
@@ -39,7 +38,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -64,18 +62,6 @@ class RoomCacheExerciseRepository @Inject constructor(
   private val log: LogUtil
 ) : ExerciseRepository {
   private val refittedRoom by lazy { roomProvider.refittedRoom }
-
-  private val currentWorkout = MutableStateFlow("")
-  override val workoutRecords = currentWorkout.flatMapLatest {
-    refittedRoom.getExerciseDao().getDayCompletedSets(it).map { daoRecords ->
-      daoRecords.map { daoRecord ->
-        ExerciseCompletionRecord(
-          latestCompletion = daoRecord.latestCompletion,
-          dayAndSet = daoRecord.dayAndSet
-        )
-      }
-    }
-  }
 
   private val exerciseState: MutableStateFlow<List<ExerciseSet>> = MutableStateFlow(emptyList())
   override val exercises = exerciseState.asStateFlow()
@@ -218,10 +204,6 @@ class RoomCacheExerciseRepository @Inject constructor(
     withContext(Dispatchers.IO) {
       refittedRoom.getExerciseDao().deleteSetRecord(exercise, completed)
     }
-  }
-
-  override fun loadWorkoutRecords(workoutId: String) {
-    currentWorkout.value = workoutId
   }
 
   override suspend fun addCustomExercise(

@@ -149,12 +149,6 @@ interface ExerciseDao {
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 
-  @Query(
-    "select max(completed) as latest_completion, target_set from setrecord " +
-      "where workout = :workout group by target_set"
-  )
-  fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
-
   @Query("UPDATE Exercise SET exercise_workout = :newName WHERE exercise_workout = :oldName")
   suspend fun renameExerciseWorkout(oldName: String, newName: String)
 
@@ -219,12 +213,4 @@ interface ExerciseDao {
    */
   @Query("DELETE FROM SetRecord WHERE exercise = :exercise AND completed = :completed")
   suspend fun deleteSetRecord(exercise: String, completed: Instant)
-
-  data class ExerciseCompletionRecord(
-    @ColumnInfo(name = "latest_completion") val latestCompletion: Instant,
-    @ColumnInfo(name = "target_set") val dayAndSet: String
-  ) {
-    @Ignore
-    val day = dayAndSet.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" }
-  }
 }

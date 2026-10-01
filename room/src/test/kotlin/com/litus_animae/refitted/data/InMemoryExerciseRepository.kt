@@ -2,7 +2,6 @@ package com.litus_animae.refitted.data
 
 import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.models.Exercise
-import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
@@ -36,10 +35,6 @@ class InMemoryExerciseRepository(
     }
 
     override suspend fun deleteSetRecord(exercise: String, completed: Instant) {
-        TODO("Not yet implemented")
-    }
-
-    override fun loadWorkoutRecords(workoutId: String) {
         TODO("Not yet implemented")
     }
 
@@ -81,8 +76,6 @@ class InMemoryExerciseRepository(
     override val exercisesAreLoading: StateFlow<Boolean>
         get() = TODO("Not yet implemented")
     override val records: Flow<List<ExerciseRecord>> = recordList
-    override val workoutRecords: Flow<List<ExerciseCompletionRecord>>
-        get() = TODO("Not yet implemented")
 
     override fun exercisesByMuscle(muscle: String): Flow<List<Exercise>> {
         TODO("Not yet implemented")
