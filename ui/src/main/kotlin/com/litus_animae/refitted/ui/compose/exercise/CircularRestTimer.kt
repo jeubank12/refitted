@@ -1,5 +1,6 @@
 package com.litus_animae.refitted.ui.compose.exercise
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -179,6 +180,17 @@ fun CircularRestTimer(
   // dark surfaces, rather than a fixed color that only worked on one.
   val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
 
+  val arcColor by animateColorAsState(
+    targetValue = if (isAlmostDone) amberColor else primaryColor,
+    animationSpec = tween(400),
+    label = "restArcColor"
+  )
+  val countdownTextColor by animateColorAsState(
+    targetValue = if (isAlmostDone) amberColor else MaterialTheme.colorScheme.onSurface,
+    animationSpec = tween(400),
+    label = "restTextColor"
+  )
+
   Column(
     modifier = modifier.fillMaxSize(),
     horizontalAlignment = Alignment.CenterHorizontally,
@@ -218,11 +230,7 @@ fun CircularRestTimer(
           }
           if (sweep != 0f) {
             drawArc(
-              color = when {
-                isFinishFlashing -> successColor
-                isAlmostDone -> amberColor
-                else -> primaryColor
-              },
+              color = if (isFinishFlashing) successColor else arcColor,
               startAngle = -90f,
               sweepAngle = sweep,
               useCenter = false,
@@ -239,11 +247,7 @@ fun CircularRestTimer(
             Text(
               "${remainingSeconds}s",
               style = MaterialTheme.typography.headlineMedium,
-              color = when {
-                isFinishFlashing -> successColor
-                isAlmostDone -> amberColor
-                else -> MaterialTheme.colorScheme.onSurface
-              }
+              color = if (isFinishFlashing) successColor else countdownTextColor
             )
           } else {
             Text(
