@@ -8,8 +8,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.litus_animae.refitted.room.entities.*
 
 @Database(
-  entities = [RoomExercise::class, RoomExerciseSet::class, RoomSetRecord::class, RoomWorkoutPlan::class, RoomSavedState::class],
-  version = 15
+  entities = [RoomExercise::class, RoomExerciseSet::class, RoomSetRecord::class, RoomWorkoutPlan::class, RoomSavedState::class, RoomDayCompletion::class],
+  version = 16
 )
 @TypeConverters(Converters::class)
 abstract class RefittedRoom : RoomDatabase() {
@@ -227,6 +227,28 @@ abstract class RefittedRoom : RoomDatabase() {
             "ADD COLUMN `id` TEXT NOT NULL DEFAULT ''"
         )
         db.execSQL("UPDATE `workouts` SET `id` = `workout` WHERE `id` = ''")
+      }
+    }
+
+    // Backfills each day's completion from the records already logged against it, the same
+    // "latest record whose target_set starts with that day" the calendar used to derive on read.
+    val MIGRATION_15_16: Migration = object : Migration(15, 16) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+          "CREATE TABLE IF NOT EXISTS `DayCompletion` " +
+            "(`workout` TEXT NOT NULL, " +
+            "`day` INTEGER NOT NULL, " +
+            "`completed` INTEGER NOT NULL, " +
+            "PRIMARY KEY(`workout`, `day`))"
+        )
+        db.execSQL(
+          "INSERT INTO `DayCompletion` (`workout`, `day`, `completed`) " +
+            "SELECT `workout`, `day`, MAX(`completed`) FROM (" +
+            "SELECT `workout`, `completed`, CAST(CASE WHEN INSTR(`target_set`, '.') > 0 " +
+            "THEN SUBSTR(`target_set`, 1, INSTR(`target_set`, '.') - 1) " +
+            "ELSE `target_set` END AS INTEGER) AS `day` FROM `SetRecord`" +
+            ") WHERE `day` > 0 GROUP BY `workout`, `day`"
+        )
       }
     }
   }

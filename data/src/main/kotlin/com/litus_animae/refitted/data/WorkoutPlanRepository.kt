@@ -19,6 +19,13 @@ interface WorkoutPlanRepository {
    * to order/section that list by [WorkoutPlan.kind].
    */
   val accessibleWorkouts: Flow<List<WorkoutPlan>>
+
+  /**
+   * When each day of [workout] was last completed, by day number - days never completed are
+   * absent. Whether a completion still counts for the plan is up to the plan's start date.
+   */
+  fun completedDays(workout: String): Flow<Map<Int, Instant>>
+
   suspend fun setWorkoutLastViewedDay(workoutPlan: WorkoutPlan, day: Int)
   suspend fun setWorkoutStartDate(workoutPlan: WorkoutPlan, startDate: Instant)
   suspend fun setWorkoutGlobalAlternate(workoutPlan: WorkoutPlan, index: Int)
@@ -49,6 +56,12 @@ interface WorkoutPlanRepository {
    * place, empty.
    */
   suspend fun clearCustomDay(workoutPlan: WorkoutPlan, day: Int)
+
+  /**
+   * Removes [days] from a custom plan and renumbers the days after them to close the gaps. The
+   * days' exercise sets and completions move with them; set records are history and stay as logged.
+   */
+  suspend fun deleteCustomDays(workoutPlan: WorkoutPlan, days: Set<Int>)
 
   /**
    * Marks or unmarks [day] of a custom plan as a rest day. Marking a day as rest also clears its
