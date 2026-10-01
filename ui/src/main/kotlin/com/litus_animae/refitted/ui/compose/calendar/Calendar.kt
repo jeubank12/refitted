@@ -460,7 +460,7 @@ private fun DeleteDaysConfirmDialog(
     title = { Text("Delete $count ${if (count == 1) "day" else "days"}?") },
     text = {
       Text(
-        "Later days move up to fill the gaps, and your completed days are reset. " +
+        "Later days move up to fill the gaps, keeping their completed status. " +
           "This does not remove records of your previous exercise sets."
       )
     },

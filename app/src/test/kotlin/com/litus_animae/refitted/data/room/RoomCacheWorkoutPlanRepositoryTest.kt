@@ -217,6 +217,8 @@ class RoomCacheWorkoutPlanRepositoryTest {
     fun stubDao() {
       coEvery { exerciseDao.clearDay(any(), any()) } returns Unit
       coEvery { exerciseDao.moveDay(any(), any(), any()) } returns Unit
+      coEvery { exerciseDao.deleteDayCompletion(any(), any()) } returns Unit
+      coEvery { exerciseDao.moveDayCompletion(any(), any(), any()) } returns Unit
     }
 
     @Test
@@ -242,7 +244,28 @@ class RoomCacheWorkoutPlanRepositoryTest {
     }
 
     @Test
-    fun `shrinks totalDays, shifts restDays and lastViewedDay, and resets the start date`() = runTest {
+    fun `completions follow their days`() = runTest {
+      // Given
+      val existingPlan = RoomWorkoutPlan(
+        workout = workoutName, totalDays = 6, isCustom = true, workoutStartDate = aligned
+      )
+      coEvery { workoutPlanDao.getByName(workoutName) } returns existingPlan
+
+      // When
+      subject.deleteCustomDays(existingPlan.toDomain(), setOf(2, 5))
+
+      // Then
+      coVerify { exerciseDao.deleteDayCompletion(workoutName, 2) }
+      coVerify { exerciseDao.deleteDayCompletion(workoutName, 5) }
+      coVerifyOrder {
+        exerciseDao.moveDayCompletion(workoutName, 3, 2)
+        exerciseDao.moveDayCompletion(workoutName, 4, 3)
+        exerciseDao.moveDayCompletion(workoutName, 6, 4)
+      }
+    }
+
+    @Test
+    fun `shrinks totalDays and shifts restDays and lastViewedDay, keeping the start date`() = runTest {
       // Given
       val existingPlan = RoomWorkoutPlan(
         workout = workoutName,
@@ -263,8 +286,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
           existingPlan.copy(
             totalDays = 4,
             restDays = listOf(3, 4),
-            lastViewedDay = 4,
-            workoutStartDate = Instant.ofEpochMilli(0)
+            lastViewedDay = 4
           )
         )
       }
@@ -301,8 +323,7 @@ class RoomCacheWorkoutPlanRepositoryTest {
         workoutPlanDao.update(
           existingPlan.copy(
             totalDays = 0,
-            lastViewedDay = 1,
-            workoutStartDate = Instant.ofEpochMilli(0)
+            lastViewedDay = 1
           )
         )
       }

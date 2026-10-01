@@ -123,12 +123,18 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
                 ?: RoomWorkoutPlan.fromDomain(workoutPlan)
             val survivors = (1..currentPlan.totalDays).filterNot { it in days }
 
-            days.forEach { exerciseDao.clearDay(it.toString(), workout) }
+            days.forEach {
+                exerciseDao.clearDay(it.toString(), workout)
+                exerciseDao.deleteDayCompletion(workout, it)
+            }
             // Ascending, so each move lands on a day number that is already free - day is part
             // of the primary key.
             survivors.forEachIndexed { index, oldDay ->
                 val newDay = index + 1
-                if (newDay != oldDay) exerciseDao.moveDay(workout, oldDay.toString(), newDay.toString())
+                if (newDay != oldDay) {
+                    exerciseDao.moveDay(workout, oldDay.toString(), newDay.toString())
+                    exerciseDao.moveDayCompletion(workout, oldDay, newDay)
+                }
             }
 
             val lastViewed = currentPlan.lastViewedDay - days.count { it < currentPlan.lastViewedDay }
@@ -138,8 +144,7 @@ class RoomCacheWorkoutPlanRepository @Inject constructor(
                     restDays = survivors.withIndex()
                         .filter { it.value in currentPlan.restDays }
                         .map { it.index + 1 },
-                    lastViewedDay = lastViewed.coerceIn(1, maxOf(1, survivors.size)),
-                    workoutStartDate = Instant.ofEpochMilli(0)
+                    lastViewedDay = lastViewed.coerceIn(1, maxOf(1, survivors.size))
                 )
             )
         }
