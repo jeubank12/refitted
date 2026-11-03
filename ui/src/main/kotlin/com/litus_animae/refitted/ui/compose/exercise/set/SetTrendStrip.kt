@@ -259,7 +259,7 @@ fun SetTrendStrip(
                 EffortModel.repSize(scored.source.reps),
                 scored.zone,
                 z = scored.z,
-                emphasized = index == windowed.lastIndex
+                emphasized = projectedScored == null && index == windowed.lastIndex
               )
             }
             if (projectedScored == null) {
