@@ -33,6 +33,33 @@ Presentation layer with ViewModels (business logic) and Jetpack Compose UI (view
 - `api(libs.androidx.paging.*)` - Exposed as api for ViewModels
 - Jetpack Compose, Hilt, Firebase (types only)
 
+## Major UI Actions
+
+Check here before building a plan/day/set action - it may already exist (e.g. "Reset workout" is a
+plan-menu action, not something to build into the calendar). Add
+a line when you add an action.
+
+**Calendar screen** (`compose/calendar/`)
+- *Plan list* (`WorkoutMenu.kt`, `WorkoutPlanListPane.kt`): select a plan; refresh from the server;
+  sign in/out; "+" creates a custom plan; a custom row's pencil opens Rename / Delete plan.
+- *Plan overflow menu* (`WorkoutDetailPane.kt` top bar): **Edit plan** (custom only), **Rename
+  plan** / **Delete plan** (custom only), **Reset workout** (any plan; clears completed days by
+  returning the plan to the unaligned start-date picker - set records are kept).
+- *Calendar grid* (`Calendar.kt`): tap a day to open it. While the plan is unaligned, tapping picks
+  the start date instead, then Save. Month nav, "hide rest days", legend.
+- *Edit mode* (custom plans): tap a day for Edit day / Clear contents / Make or Remove rest day.
+  The FAB menu has **New day**, **Copy from...** (copy mode: tap the source day), **Delete
+  days...** (delete mode: check several days, then confirm), **Rest day**. Copy and delete are
+  modes of the same grid, driven by `copyMode`/`deleteMode` in `calendar/Main.kt`.
+
+**Day screen** (`compose/exercise/`)
+- Pager of the day's exercises: log a set (weight, reps), swap alternates (`AlternateChip`,
+  `AlternatePickerDialog`), history pane (`SetRecordList`: edit or delete a past record).
+- Custom days opened via Edit day: add an exercise or an alternate (`add/AddExercisePicker.kt`),
+  remove an exercise, edit its instructions, adjust target sets/reps/rest (`TargetStepper`).
+- Watch icon in the day's top bar opens `WatchSyncDialog`: shows the watch's status and sends the
+  day's plan to it; sets completed on the watch sync back through `:garmin`.
+
 ## Compose Gotchas
 
 - `Flow.collectAsState()` delegates to `produceState`, whose backing `mutableStateOf` is

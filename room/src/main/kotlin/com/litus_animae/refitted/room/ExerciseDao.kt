@@ -3,6 +3,7 @@ package com.litus_animae.refitted.room
 import androidx.paging.PagingSource
 import androidx.room.*
 import com.litus_animae.refitted.data.models.DayAndWorkout
+import com.litus_animae.refitted.room.entities.RoomDayCompletion
 import com.litus_animae.refitted.room.entities.RoomExercise
 import com.litus_animae.refitted.room.entities.RoomExerciseSet
 import com.litus_animae.refitted.room.entities.RoomSetRecord
@@ -52,6 +53,9 @@ interface ExerciseDao {
 
   @Query("delete from exerciseset where day = :day and workout = :workout")
   suspend fun clearDay(day: String, workout: String)
+
+  @Query("update exerciseset set day = :newDay where day = :oldDay and workout = :workout")
+  suspend fun moveDay(workout: String, oldDay: String, newDay: String)
 
   /**
    * Deletes a single exercise set. Leaves gaps in [RoomExerciseSet.primaryStep] rather than
@@ -145,17 +149,44 @@ interface ExerciseDao {
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun storeExerciseRecord(exerciseRecord: RoomSetRecord)
 
-  @Query(
-    "select max(completed) as latest_completion, target_set from setrecord " +
-      "where workout = :workout group by target_set"
-  )
-  fun getDayCompletedSets(workout: String): Flow<List<ExerciseCompletionRecord>>
-
   @Query("UPDATE Exercise SET exercise_workout = :newName WHERE exercise_workout = :oldName")
   suspend fun renameExerciseWorkout(oldName: String, newName: String)
 
   @Query("UPDATE exerciseset SET workout = :newName WHERE workout = :oldName")
   suspend fun renameExerciseSetWorkout(oldName: String, newName: String)
+
+  @Query("select * from DayCompletion where workout = :workout")
+  fun getDayCompletions(workout: String): Flow<List<RoomDayCompletion>>
+
+  @Insert(onConflict = OnConflictStrategy.IGNORE)
+  suspend fun insertDayCompletion(completion: RoomDayCompletion)
+
+  @Query("UPDATE DayCompletion SET completed = max(completed, :completed) WHERE workout = :workout AND day = :day")
+  suspend fun raiseDayCompletion(workout: String, day: Int, completed: Instant)
+
+  /**
+   * Stores [record] and marks its day (the part of `target_set` before the `.`) completed as of
+   * the record, never moving an existing completion earlier - a replayed old record is harmless.
+   */
+  @Transaction
+  suspend fun storeRecordAndMarkDay(record: RoomSetRecord) {
+    storeExerciseRecord(record)
+    val day = record.targetSet.substringBefore('.').toIntOrNull() ?: return
+    insertDayCompletion(RoomDayCompletion(record.workout, day, record.completed))
+    raiseDayCompletion(record.workout, day, record.completed)
+  }
+
+  @Query("DELETE FROM DayCompletion WHERE workout = :workout AND day = :day")
+  suspend fun deleteDayCompletion(workout: String, day: Int)
+
+  @Query("UPDATE DayCompletion SET day = :newDay WHERE workout = :workout AND day = :oldDay")
+  suspend fun moveDayCompletion(workout: String, oldDay: Int, newDay: Int)
+
+  @Query("UPDATE DayCompletion SET workout = :newName WHERE workout = :oldName")
+  suspend fun renameDayCompletionWorkout(oldName: String, newName: String)
+
+  @Query("DELETE FROM DayCompletion WHERE workout = :name")
+  suspend fun deleteDayCompletionsForWorkout(name: String)
 
   @Query("UPDATE SetRecord SET workout = :newName WHERE workout = :oldName")
   suspend fun renameSetRecordWorkout(oldName: String, newName: String)
@@ -182,12 +213,4 @@ interface ExerciseDao {
    */
   @Query("DELETE FROM SetRecord WHERE exercise = :exercise AND completed = :completed")
   suspend fun deleteSetRecord(exercise: String, completed: Instant)
-
-  data class ExerciseCompletionRecord(
-    @ColumnInfo(name = "latest_completion") val latestCompletion: Instant,
-    @ColumnInfo(name = "target_set") val dayAndSet: String
-  ) {
-    @Ignore
-    val day = dayAndSet.split("\\.".toRegex(), 2).toTypedArray().getOrElse(0) { "" }
-  }
 }

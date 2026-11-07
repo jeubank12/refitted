@@ -14,7 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -23,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -107,6 +110,11 @@ fun WorkoutCalendar(
   copyMode: Boolean = false,
   onCancelCopy: () -> Unit = {},
   onCopyFromDay: (day: Int) -> Unit = {},
+  // True while the user is checking off days to delete - like copyMode, reuses the grid as the
+  // picker. Selection lives here; only the confirmed set leaves via onDeleteDays.
+  deleteMode: Boolean = false,
+  onCancelDelete: () -> Unit = {},
+  onDeleteDays: (days: Set<Int>) -> Unit = {},
   navigateToDay: (Int) -> Unit,
 ) {
   LaunchedEffect(plan) {
@@ -134,6 +142,14 @@ fun WorkoutCalendar(
   var hideRestDays by rememberSaveable { mutableStateOf(false) }
   // Tapped day awaiting the edit-actions dialog - edit mode only (see onClick below).
   var editingDay by rememberSaveable { mutableStateOf<Int?>(null) }
+  var daysToDelete by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
+  var confirmingDelete by rememberSaveable { mutableStateOf(false) }
+  LaunchedEffect(deleteMode) {
+    if (!deleteMode) {
+      daysToDelete = emptyList()
+      confirmingDelete = false
+    }
+  }
 
   val firstOfMonth = displayedMonth.atDay(1)
   // Sunday-first grid: ISO Sunday (7) should wrap to 0 leading cells, not 7.
@@ -163,7 +179,14 @@ fun WorkoutCalendar(
         }
         item {
           AnimatedVisibility(visible = editMode, exit = shrinkVertically() + fadeOut()) {
-            if (copyMode) {
+            if (deleteMode) {
+              DeleteModeBanner(
+                selectedCount = daysToDelete.size,
+                onDelete = { confirmingDelete = true },
+                onCancel = onCancelDelete,
+                modifier = Modifier.padding(bottom = 12.dp)
+              )
+            } else if (copyMode) {
               CopyModeBanner(onCancel = onCancelCopy, modifier = Modifier.padding(bottom = 12.dp))
             } else {
               EditModeBanner(
@@ -200,6 +223,11 @@ fun WorkoutCalendar(
               // Edit mode needs rest days visible to manage them, even with "hide rest days" on.
               val hidden = isRestDay && hideRestDays && !editMode
               val onClick: (() -> Unit)? = when {
+                deleteMode && inPlanRange && !hidden -> ({
+                  daysToDelete =
+                    if (workoutDay in daysToDelete) daysToDelete - workoutDay
+                    else daysToDelete + workoutDay
+                })
                 !aligned && inDisplayedMonth -> ({ pickedEpochDay = cellDate.toEpochDay() })
                 copyMode && inPlanRange && !hidden -> ({ onCopyFromDay(workoutDay) })
                 editMode && inPlanRange && !hidden -> ({ editingDay = workoutDay })
@@ -207,6 +235,8 @@ fun WorkoutCalendar(
                 else -> null
               }
               val label = when {
+                deleteMode && inPlanRange ->
+                  if (workoutDay in daysToDelete) "Keep day $workoutDay" else "Delete day $workoutDay"
                 !aligned && inDisplayedMonth ->
                   "Choose ${cellDate.format(DateTimeFormatter.ofPattern("MMM d"))} as start"
                 copyMode && inPlanRange -> "Copy from day $workoutDay"
@@ -244,6 +274,7 @@ fun WorkoutCalendar(
                       isRestDay = isRestDay
                     ),
                     selected = !aligned && cellDate == pickedDate,
+                    markedForDelete = deleteMode && workoutDay in daysToDelete,
                     isToday = isToday,
                     dimmed = !inDisplayedMonth
                   )
@@ -279,6 +310,18 @@ fun WorkoutCalendar(
     )
   } else {
     gridContent(bodyModifier, true)
+  }
+
+  if (confirmingDelete) {
+    DeleteDaysConfirmDialog(
+      count = daysToDelete.size,
+      onDismissRequest = { confirmingDelete = false },
+      onConfirm = {
+        onDeleteDays(daysToDelete.toSet())
+        confirmingDelete = false
+        onCancelDelete()
+      }
+    )
   }
 
   editingDay?.let { day ->
@@ -356,6 +399,74 @@ private fun CopyModeBanner(onCancel: () -> Unit, modifier: Modifier = Modifier) 
       }
     }
   }
+}
+
+@Composable
+private fun DeleteModeBanner(
+  selectedCount: Int,
+  onDelete: () -> Unit,
+  onCancel: () -> Unit,
+  modifier: Modifier = Modifier
+) {
+  Surface(
+    modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(10.dp),
+    color = MaterialTheme.colorScheme.errorContainer,
+    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    shadowElevation = 1.dp
+  ) {
+    Row(
+      Modifier
+        .fillMaxWidth()
+        .padding(14.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      // TODO localize
+      Text(
+        if (selectedCount == 0) "Deleting days — tap the days to remove"
+        else "$selectedCount ${if (selectedCount == 1) "day" else "days"} selected",
+        Modifier.weight(1f),
+        fontSize = 13.sp
+      )
+      TextButton(onClick = onCancel) {
+        // TODO localize
+        Text("Cancel")
+      }
+      Button(
+        onClick = onDelete,
+        enabled = selectedCount > 0,
+        colors = ButtonDefaults.buttonColors(
+          containerColor = MaterialTheme.colorScheme.error,
+          contentColor = MaterialTheme.colorScheme.onError
+        )
+      ) {
+        // TODO localize
+        Text("Delete")
+      }
+    }
+  }
+}
+
+@Composable
+private fun DeleteDaysConfirmDialog(
+  count: Int,
+  onDismissRequest: () -> Unit,
+  onConfirm: () -> Unit
+) {
+  AlertDialog(
+    onDismissRequest = onDismissRequest,
+    // TODO localize
+    title = { Text("Delete $count ${if (count == 1) "day" else "days"}?") },
+    text = {
+      Text(
+        "Later days move up to fill the gaps, keeping their completed status. " +
+          "This does not remove records of your previous exercise sets."
+      )
+    },
+    confirmButton = { Button(onClick = onConfirm) { Text("Delete") } },
+    dismissButton = { TextButton(onClick = onDismissRequest) { Text("Cancel") } }
+  )
 }
 
 @Composable
@@ -655,6 +766,7 @@ private fun CalendarDayCell(
   workoutDay: Int,
   properties: DayProperties,
   selected: Boolean = false,
+  markedForDelete: Boolean = false,
   isToday: Boolean = false,
   dimmed: Boolean = false
 ) {
@@ -663,6 +775,7 @@ private fun CalendarDayCell(
   val highlighted = properties.isLastViewedDay || selected
   val isDark = isSystemInDarkTheme()
   val backgroundColor = when {
+    markedForDelete -> MaterialTheme.colorScheme.errorContainer
     highlighted -> MaterialTheme.colorScheme.background
     // Old M2 secondary (#212121) doubled as both the "secondary" role and the literal
     // completed-day color; the generated M3 secondary doesn't preserve that. In light mode
@@ -676,11 +789,16 @@ private fun CalendarDayCell(
   // contentColorFor(backgroundColor) doesn't resolve inverseSurface/inverseOnSurface (or the
   // Card container tone) as a pair, so each branch picks its own "on" color explicitly.
   val contentColor = when {
+    markedForDelete -> MaterialTheme.colorScheme.onErrorContainer
     highlighted -> MaterialTheme.colorScheme.onBackground
     properties.isCompletedDay -> if (isDark) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
     else -> MaterialTheme.colorScheme.onPrimary
   }
-  val border = if (highlighted) BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer) else null
+  val border = when {
+    markedForDelete -> BorderStroke(3.dp, MaterialTheme.colorScheme.error)
+    highlighted -> BorderStroke(3.dp, MaterialTheme.colorScheme.primaryContainer)
+    else -> null
+  }
   // Rest-day and adjacent-month dimming both fade the same surface - multiply rather than
   // pick one, so a rest day that also falls outside the displayed month reads as both.
   val restDayAlpha = if (properties.isRestDay) 0.45f else 1f

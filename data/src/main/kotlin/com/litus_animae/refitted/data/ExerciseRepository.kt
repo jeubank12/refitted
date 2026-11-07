@@ -1,7 +1,6 @@
 package com.litus_animae.refitted.data
 
 import com.litus_animae.refitted.data.models.Exercise
-import com.litus_animae.refitted.data.models.ExerciseCompletionRecord
 import com.litus_animae.refitted.data.models.ExerciseRecord
 import com.litus_animae.refitted.data.models.ExerciseSet
 import com.litus_animae.refitted.data.models.SetRecord
@@ -17,7 +16,6 @@ interface ExerciseRepository {
   suspend fun loadExercises(day: String, workoutId: String)
   fun refreshExercises()
   suspend fun storeSetRecord(record: SetRecord)
-  fun loadWorkoutRecords(workoutId: String)
 
   /**
    * Updates a previously-logged set's [weight] and [reps] in place, keyed by [exercise]/[completed]
@@ -86,7 +84,6 @@ interface ExerciseRepository {
   val exercises: Flow<List<ExerciseSet>>
   val exercisesAreLoading: StateFlow<Boolean>
   val records: Flow<List<ExerciseRecord>>
-  val workoutRecords: Flow<List<ExerciseCompletionRecord>>
 
   /**
    * Locally-synced exercises for [muscle] (the id's muscle-group prefix), across every workout

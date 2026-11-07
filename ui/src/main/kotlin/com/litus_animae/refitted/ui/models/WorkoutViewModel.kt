@@ -7,7 +7,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import com.litus_animae.refitted.data.ExerciseRepository
 import com.litus_animae.refitted.data.SavedStateRepository
 import com.litus_animae.refitted.data.WorkoutPlanRepository
 import com.litus_animae.refitted.data.models.WorkoutPlan
@@ -44,7 +43,6 @@ import javax.inject.Inject
 @ExperimentalCoroutinesApi
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
-  private val exerciseRepo: ExerciseRepository,
   private val log: LogUtil,
   private val workoutPlanRepo: WorkoutPlanRepository,
   private val savedStateRepo: SavedStateRepository,
@@ -160,14 +158,11 @@ class WorkoutViewModel @Inject constructor(
           }
           completedDaysPlanId = plan.id
           log.d(TAG, "Loading completed days for $plan")
-          exerciseRepo.loadWorkoutRecords(plan.workout)
         }
-        exerciseRepo.workoutRecords.map { records ->
+        maybePlan?.let { workoutPlanRepo.completedDays(it.workout) }?.map { days ->
           completedDaysLoadingRaw.value = false
-          records.groupBy { it.day }
-            .mapValues { entry -> entry.value.maxOf { it.latestCompletion } }
-            .mapKeys { it.key.toIntOrNull() ?: 0 }
-        }
+          days
+        } ?: emptyFlow()
       }
 
   fun loadWorkoutDaysCompleted(workout: WorkoutPlan) {
@@ -330,6 +325,14 @@ class WorkoutViewModel @Inject constructor(
     viewModelScope.launch(Dispatchers.IO) {
       log.d(TAG, "Clearing day $day of custom plan ${workout.workout}")
       workoutPlanRepo.clearCustomDay(workout, day)
+      workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
+    }
+  }
+
+  fun deleteDays(workout: WorkoutPlan, days: Set<Int>) {
+    viewModelScope.launch(Dispatchers.IO) {
+      log.d(TAG, "Deleting days $days of custom plan ${workout.workout}")
+      workoutPlanRepo.deleteCustomDays(workout, days)
       workoutPlanRepo.workoutByName(workout.workout).first()?.let { loadWorkoutDaysCompleted(it) }
     }
   }
