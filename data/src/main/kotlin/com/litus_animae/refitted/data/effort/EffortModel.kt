@@ -337,6 +337,9 @@ object EffortModel {
     var priorSessionCount = 0
     var lastPriorX = 0.0
     var runningBest = 0.0
+    // A skipped warm-up can be the first set of a day, which is where that day's aging is
+    // charged - carried forward so it still lands on the next set that does fold in.
+    var pendingAgingDays = 0.0
 
     // Stagnation tracking (day-grain only - see trackStagnation). stagnationRepsSum/Count are
     // a running average of reps across a streak of sessions whose session-best weight and reps
@@ -458,6 +461,7 @@ object EffortModel {
       // never let go: once a layoff or a lighter block put every set under 85% of an old peak,
       // every set from then on was skipped and the trend froze at that peak for good.
       runningBest *= 0.5.pow(session.agingDays / config.halfLifeDays)
+      pendingAgingDays += session.agingDays
       val isWarmUp = skipWarmUps && sessionValue < config.workingSetFraction * runningBest
       runningBest = max(runningBest, sessionValue)
       if (isWarmUp) return@forEach
@@ -479,7 +483,8 @@ object EffortModel {
 
       // Fold this session in *after* using it for prediction/scoring, so a session's
       // outcome (a PR or a bad day) never influences its own expectation.
-      val decay = sessionDecay * 0.5.pow(session.agingDays / config.halfLifeDays)
+      val decay = sessionDecay * 0.5.pow(pendingAgingDays / config.halfLifeDays)
+      pendingAgingDays = 0.0
       sumW *= decay; sumWx *= decay; sumWy *= decay; sumWxx *= decay; sumWxy *= decay
       sumResidualW *= decay; sumResidualWe2 *= decay
       sumRepsW *= decay; sumRepsWr *= decay
