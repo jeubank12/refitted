@@ -453,6 +453,11 @@ object EffortModel {
       // explicit: a set far under what the lifter has already shown is a warm-up, and folding it
       // in as if it were a session outcome yanks the recency-weighted line down hard enough to
       // make the very next working set read IMPLAUSIBLE.
+      //
+      // "Already shown" ages on the same calendar half-life as the fit itself. An all-time best
+      // never let go: once a layoff or a lighter block put every set under 85% of an old peak,
+      // every set from then on was skipped and the trend froze at that peak for good.
+      runningBest *= 0.5.pow(session.agingDays / config.halfLifeDays)
       val isWarmUp = skipWarmUps && sessionValue < config.workingSetFraction * runningBest
       runningBest = max(runningBest, sessionValue)
       if (isWarmUp) return@forEach

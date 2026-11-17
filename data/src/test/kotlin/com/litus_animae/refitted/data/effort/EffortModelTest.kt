@@ -865,6 +865,20 @@ class EffortModelTest {
     }
 
     @Test
+    fun `a lighter block after a long layoff is not skipped as warm-ups forever`() {
+      val peak = (0..2).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 200.0, 8) }
+      }
+      val comeback = (0..5).flatMap { session ->
+        (0 until 3).map { EffortSet(day(365 + session * 7L).plusSeconds(it * 120L), 120.0, 8) }
+      }
+      val last = EffortModel.scoreWithBootstrap(peak + comeback).sets.last()
+
+      assertThat(last.zone).isEqualTo(EffortZone.ON_CURVE)
+      assertThat(last.expectation!!).isWithin(0.1 * last.capacity).of(last.capacity)
+    }
+
+    @Test
     fun `every scored set carries the expected weight its expectation implies`() {
       val sets = (0..4).flatMap { session ->
         (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session, 8) }
