@@ -267,6 +267,11 @@ Note: Paths abbreviated with `...` represent the full package path `com/litus_an
 
 ## Development Conventions
 
+### Before adding a UI action
+Read the "Major UI Actions" section of `ui/CLAUDE.md` first - plan and day actions (reset, copy,
+rename, delete, rest days, ...) are easy to duplicate or to miss when designing around them. When
+you add, remove, or change one, update that list in the same change.
+
 ### Code Style
 - Uses Kotlin coroutines with `suspend` functions and `Flow` extensively
 - Prefer `Flow` over LiveData for reactive streams

@@ -22,7 +22,7 @@ class RoomSetRecordSink @Inject constructor(
   override suspend fun store(records: List<SetRecord>) {
     withContext(Dispatchers.IO) {
       val exerciseDao = roomProvider.refittedRoom.getExerciseDao()
-      records.forEach { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(it)) }
+      records.forEach { exerciseDao.storeRecordAndMarkDay(RoomSetRecord.fromDomain(it)) }
     }
   }
 }

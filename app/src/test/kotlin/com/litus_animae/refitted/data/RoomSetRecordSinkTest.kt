@@ -52,23 +52,23 @@ class RoomSetRecordSinkTest {
 
   @Test
   fun `writes each record through to the DAO`() = runTest {
-    coEvery { exerciseDao.storeExerciseRecord(any()) } returns Unit
+    coEvery { exerciseDao.storeRecordAndMarkDay(any()) } returns Unit
     val watchRecord = SetRecord(weight = 135.0, reps = 8, targetExerciseSet)
 
     subject.store(listOf(watchRecord))
 
-    coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(watchRecord)) }
+    coVerify { exerciseDao.storeRecordAndMarkDay(RoomSetRecord.fromDomain(watchRecord)) }
   }
 
   @Test
   fun `stores multiple records in the same call`() = runTest {
-    coEvery { exerciseDao.storeExerciseRecord(any()) } returns Unit
+    coEvery { exerciseDao.storeRecordAndMarkDay(any()) } returns Unit
     val first = SetRecord(weight = 135.0, reps = 8, targetExerciseSet)
     val second = SetRecord(weight = 140.0, reps = 6, targetExerciseSet)
 
     subject.store(listOf(first, second))
 
-    coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(first)) }
-    coVerify { exerciseDao.storeExerciseRecord(RoomSetRecord.fromDomain(second)) }
+    coVerify { exerciseDao.storeRecordAndMarkDay(RoomSetRecord.fromDomain(first)) }
+    coVerify { exerciseDao.storeRecordAndMarkDay(RoomSetRecord.fromDomain(second)) }
   }
 }

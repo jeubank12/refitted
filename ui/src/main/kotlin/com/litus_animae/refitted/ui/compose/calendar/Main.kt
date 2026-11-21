@@ -61,6 +61,7 @@ fun Calendar(
   // Whether the user is currently picking a source day for "copy from…" - see
   // WorkoutDetailPane's onCopyModeChange and Calendar.kt's copyMode-gated tap routing.
   var copyMode by rememberSaveable { mutableStateOf(false) }
+  var deleteMode by rememberSaveable { mutableStateOf(false) }
   // True once the user explicitly opens the plan menu at Compact width - the calendar is always
   // the default/home screen, this is only ever set by an explicit tap, never derived from
   // selection state, so there's no state where the menu accidentally becomes the landing screen.
@@ -174,6 +175,8 @@ fun Calendar(
                 }
               }
             },
+            deleteMode = deleteMode,
+            onDeleteModeChange = { deleteMode = it },
             showMenuButton = !bothPanesFit,
             wideLayout = compactPaneLayout,
             onOpenMenu = { planMenuOpen = true },
@@ -200,6 +203,7 @@ fun Calendar(
               if (it.workout != selectedWorkoutPlan?.workout) {
                 editMode = false
                 copyMode = false
+                deleteMode = false
                 workoutModel.loadWorkoutDaysCompleted(it)
               }
             },
@@ -262,6 +266,7 @@ fun Calendar(
         if (selectedWorkoutPlan?.workout == target) {
           editMode = false
           copyMode = false
+          deleteMode = false
         }
         deleteTarget = null
       }
