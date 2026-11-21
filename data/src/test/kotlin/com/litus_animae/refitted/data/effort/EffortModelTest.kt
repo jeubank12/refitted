@@ -865,6 +865,38 @@ class EffortModelTest {
     }
 
     @Test
+    fun `a lighter block after a long layoff is not skipped as warm-ups forever`() {
+      val peak = (0..2).flatMap { session ->
+        (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 200.0, 8) }
+      }
+      val comeback = (0..5).flatMap { session ->
+        (0 until 3).map { EffortSet(day(365 + session * 7L).plusSeconds(it * 120L), 120.0, 8) }
+      }
+      val last = EffortModel.scoreWithBootstrap(peak + comeback).sets.last()
+
+      assertThat(last.zone).isEqualTo(EffortZone.ON_CURVE)
+      assertThat(last.expectation!!).isWithin(0.1 * last.capacity).of(last.capacity)
+    }
+
+    @Test
+    fun `a warm-up opening a comeback day still ages the history`() {
+      fun nextWeekExpectation(warmUp: Boolean): Double {
+        val history = (0..3).flatMap { session ->
+          (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0, 8) }
+        }
+        val comebackDay = day(141)
+        val opener = if (warmUp) listOf(EffortSet(comebackDay, 20.0, 8)) else emptyList()
+        val working = (1..3).map { EffortSet(comebackDay.plusSeconds(it * 120L), 80.0, 8) }
+        val probe = EffortSet(day(148), 80.0, 8)
+        return EffortModel.scoreWithBootstrap(history + opener + working + probe).sets.last().expectation!!
+      }
+
+      assertThat(nextWeekExpectation(warmUp = true))
+        .isWithin(0.01 * nextWeekExpectation(warmUp = false))
+        .of(nextWeekExpectation(warmUp = false))
+    }
+
+    @Test
     fun `every scored set carries the expected weight its expectation implies`() {
       val sets = (0..4).flatMap { session ->
         (0 until 3).map { EffortSet(day(session * 7L).plusSeconds(it * 120L), 100.0 + session, 8) }
